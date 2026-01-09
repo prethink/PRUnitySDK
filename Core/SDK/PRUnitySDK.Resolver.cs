@@ -9,7 +9,7 @@ public partial class PRUnitySDK
     /// <summary>
     /// Инициализация модуля.
     /// </summary>
-    [InitializeMethod(InitializeType.SDK, 0)]
+    [MethodHook(MethodHookStage.SDK, 0)]
     private static void InitializeResolver()
     {
         InitializeModuleSDK(nameof(IServiceResolver), () =>

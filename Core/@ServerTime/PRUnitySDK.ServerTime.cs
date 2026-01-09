@@ -1,6 +1,11 @@
 public partial class PRUnitySDK
 {
     /// <summary>
+    /// Приоритет.
+    /// </summary>
+    private const int PRIORITY_SERVER_TIME = 10;
+
+    /// <summary>
     /// Серверное время.
     /// </summary>
     public static ServerTimeBase ServerTime;
@@ -10,7 +15,7 @@ public partial class PRUnitySDK
     /// <summary>
     /// Инициализация модуля.
     /// </summary>
-    [InitializeMethod(InitializeType.SDK, 1)]
+    [MethodHook(MethodHookStage.SDK, PRIORITY_SERVER_TIME)]
     private static void InitializeServerTime()
     {
         InitializeModuleSDK(nameof(ServerTime), () =>

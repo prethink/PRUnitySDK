@@ -19,6 +19,6 @@ public partial class PRUnitySDK
     [OverrideProperty(typeof(IServiceResolver), PrioritySDK.OVERRIDE_PROPERTY_ZINJECTION_PRIORITY)]
     private static void OverrideZInjectResolver()
     {
-
+        serviceResolver = new ZenjectServiceResolver(ProjectContext.Instance.Container);
     }
 }

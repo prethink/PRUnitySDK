@@ -1,14 +1,19 @@
-public sealed partial class PRUnitySDK 
+public sealed partial class PRUnitySDK
 {
     /// <summary>
-    /// Игровые настройки.
+    /// Настройки.
     /// </summary>
-    public static PRGameSettings GameSettings { get; private set; }
+    public readonly static PRSettingsContainer Settings = new();
 
     /// <summary>
     /// База данных.
     /// </summary>
-    public static PRDatabase Database { get; private set; }
+    public readonly static PRDatabaseContainer Database = new();
+
+    /// <summary>
+    /// Менеджеры.
+    /// </summary>
+    public readonly static PRManagerContainer Managers = new();
 
     /// <summary>
     /// Сервис управления паузой.

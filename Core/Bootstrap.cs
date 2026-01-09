@@ -1,7 +1,7 @@
 using System.Linq;
 using UnityEngine;
 
-public partial class Bootstrap : MonoBehaviour
+public partial class Bootstrap : MonoBehaviour, ISDKEvents
 {
     #region  Поля и свойства
 
@@ -23,6 +23,21 @@ public partial class Bootstrap : MonoBehaviour
             InitializeSDK();
     }
 
+    private void OnEnable()
+    {
+        EventBus.Subscribe(this);
+
+        this.RunMethodHooks(MethodHookStage.OnEnable);
+    }
+
+    // Отписываемся от ивента onGetSDKData
+    private void OnDisable()
+    {
+        EventBus.Unsubscribe(this);
+
+        this.RunMethodHooks(MethodHookStage.OnDisable);
+    }
+
     #endregion
 
     #region Методы
@@ -42,6 +57,15 @@ public partial class Bootstrap : MonoBehaviour
     private void InitializeSDK()
     {
         PRUnitySDK.InitializeSDK();
+    }
+
+    #endregion
+
+    #region ISDKEvents
+
+    public void OnInitialized()
+    {
+        //TODO: Создать GameManager
     }
 
     #endregion

@@ -4,10 +4,14 @@ using UnityEngine;
 
 public abstract class ResourceScriptableObject : ScriptableObject
 {
-    protected static void CreateGameSettings<T>() 
-        where T : ScriptableObject
+    public static readonly string RESOURCES_PATH = "Assets/Resources";
+
+    public static T Create<T>(bool logIfCreated = false, string resourcesPath = null) 
+        where T : ResourceScriptableObject
     {
-        var assetFolderPath = GetSelectedFolderPath();
+        var assetFolderPath = string.IsNullOrEmpty(resourcesPath) 
+            ? GetSelectedFolderPath() 
+            : resourcesPath;
 
         if (string.IsNullOrEmpty(assetFolderPath))
         {
@@ -15,7 +19,7 @@ public abstract class ResourceScriptableObject : ScriptableObject
                 "Error",
                 "Please select a folder in the Project window.",
                 "Ok");
-            return;
+            return null;
         }
 
         if (Path.GetFileName(assetFolderPath) != "Resources")
@@ -24,27 +28,25 @@ public abstract class ResourceScriptableObject : ScriptableObject
                 "Error",
                 $"{typeof(T).Name} must be created inside a folder named 'Resources'.",
                 "Ok");
-            return;
+            return null;
         }
 
-        // 🔍 Проверка по типу
-        if (ExistsInResources<PRGameSettings>())
+        var existing = FindInResources<T>();
+        if (existing != null)
         {
-            EditorUtility.DisplayDialog(
-                "Error",
-                $"{typeof(T).Name} already exists in Resources.",
-                "Ok");
-            return;
+            if (logIfCreated)
+                PRLog.WriteWarning(typeof(T), $"{typeof(T).Name} already exists in Resources, returning existing instance.");
+            return existing;
         }
 
 
-        CreateGameSettingsInternal<T>(assetFolderPath);
+        return CreateSettingsInternal<T>(assetFolderPath, logIfCreated);
     }
 
     /// <summary>
-    /// Проверяет, существует ли ScriptableObject указанного типа в Resources
+    /// Ищет ScriptableObject указанного типа в Resources и возвращает его
     /// </summary>
-    private static bool ExistsInResources<T>() where T : ScriptableObject
+    private static T FindInResources<T>() where T : ResourceScriptableObject
     {
         var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
 
@@ -53,10 +55,14 @@ public abstract class ResourceScriptableObject : ScriptableObject
             var path = AssetDatabase.GUIDToAssetPath(guid);
 
             if (IsInResourcesFolder(path))
-                return true;
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+                if (asset != null)
+                    return asset;
+            }
         }
 
-        return false;
+        return null;
     }
 
     private static bool IsInResourcesFolder(string assetPath)
@@ -64,22 +70,14 @@ public abstract class ResourceScriptableObject : ScriptableObject
         return assetPath.Contains("/Resources/");
     }
 
-    private static void CreateGameSettingsInternal<T>(string assetFolderPath) 
-        where T : ScriptableObject
+    private static T CreateSettingsInternal<T>(string assetFolderPath, bool logIfCreated) 
+        where T : ResourceScriptableObject
     {
         var fullPath = Path.Combine(assetFolderPath, typeof(T).Name + ".asset")
             .Replace("\\", "/");
 
-        if (AssetDatabase.LoadAssetAtPath<T>(fullPath) != null)
-        {
-            EditorUtility.DisplayDialog(
-                "Error",
-                $"Asset already exists at:\n{fullPath}",
-                "Ok");
-            return;
-        }
-
         var settings = CreateInstance<T>();
+        settings.SetDefaultSettings();
 
         AssetDatabase.CreateAsset(settings, fullPath);
         AssetDatabase.SaveAssets();
@@ -87,7 +85,15 @@ public abstract class ResourceScriptableObject : ScriptableObject
 
         Selection.activeObject = settings;
 
-        Debug.Log($"Created PRGameSettings at '{fullPath}'");
+        if (logIfCreated)
+        {
+            EditorUtility.DisplayDialog(
+                "Warning",
+                $"Created {typeof(T).Name} at '{fullPath}'. A configuration file is required for correct operation.",
+                "Ok");
+        }
+
+        return settings;
     }
 
     /// <summary>
@@ -110,4 +116,6 @@ public abstract class ResourceScriptableObject : ScriptableObject
 
         return Path.GetDirectoryName(path);
     }
+
+    protected abstract void SetDefaultSettings();
 }

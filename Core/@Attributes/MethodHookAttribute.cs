@@ -1,18 +1,18 @@
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class InitializeMethodAttribute : Attribute
+public class MethodHookAttribute : Attribute
 {
     /// <summary>
     /// Приоритет.
     /// Чем значение ниже, тем выше приоритет.
     /// </summary>
     public int Order { get; }
-    public InitializeType InitializeType { get; }
+    public MethodHookStage MethodHookStage { get; }
 
-    public InitializeMethodAttribute(InitializeType type, int order = 0)
+    public MethodHookAttribute(MethodHookStage hookStage, int order = 0)
     {
-        this.InitializeType = type;
+        this.MethodHookStage = hookStage;
         this.Order = order;
     }
 }
@@ -20,7 +20,7 @@ public class InitializeMethodAttribute : Attribute
 /// <summary>
 /// Тип обозначающий, когда должна быть вызвана инициализация.
 /// </summary>
-public enum InitializeType
+public enum MethodHookStage
 {
     /// <summary>
     /// Вызов при создании объекта через конструктор (new).
@@ -56,6 +56,21 @@ public enum InitializeType
     /// Инициализация для SDK.  
     /// </summary>
     SDK,
+
+    /// <summary>
+    /// Установки настроек по умолчанию.
+    /// </summary>
+    DefaultSettings,
+
+    /// <summary>
+    /// Вызов при активации Unity-объекта (Unity OnEnable).
+    /// </summary>
+    OnEnable,
+
+    /// <summary>
+    /// Вызов при деактивации Unity-объекта (Unity OnDisable).
+    /// </summary>
+    OnDisable,
 
     /// <summary>
     /// Пользовательский вызов в произвольный момент (ручной триггер).

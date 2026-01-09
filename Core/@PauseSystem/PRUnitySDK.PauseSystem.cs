@@ -14,7 +14,7 @@ public partial class PRUnitySDK
     ///// <summary>
     ///// Инициализация модуля.
     ///// </summary>
-    //[InitializeMethod(InitializeType.SDK, 0)]
+    //[InitializeMethod(MethodHookStage.SDK, 0)]
     //private static void InitializePauseSystem()
     //{
     //    InitializeModuleSDK(nameof(PauseManager), () =>

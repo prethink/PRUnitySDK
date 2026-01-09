@@ -5,18 +5,18 @@ using System.Reflection;
 
 public static class ReflectionExtension 
 {
-    private static List<MethodInfo> GetPartialMethodsForInitialized(this object instance, InitializeType initializeType)
+    private static List<MethodInfo> GetPartialMethodsForInitialized(this object instance, MethodHookStage methodHookStage)
     {
         return instance.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                  .Where(m => m.GetCustomAttribute<InitializeMethodAttribute>() != null && m.GetCustomAttribute<InitializeMethodAttribute>().InitializeType == initializeType)
-                  .OrderBy(m => m.GetCustomAttribute<InitializeMethodAttribute>().Order).ToList();
+                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage == methodHookStage)
+                  .OrderBy(m => m.GetCustomAttribute<MethodHookAttribute>().Order).ToList();
     }
 
-    private static List<MethodInfo> GetPartialStaticMethodsForInitialized(this Type type, InitializeType initializeType)
+    private static List<MethodInfo> GetPartialStaticMethodsForInitialized(this Type type, MethodHookStage methodHookStage)
     {
         return type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                  .Where(m => m.GetCustomAttribute<InitializeMethodAttribute>() != null && m.GetCustomAttribute<InitializeMethodAttribute>().InitializeType == initializeType)
-                  .OrderBy(m => m.GetCustomAttribute<InitializeMethodAttribute>().Order).ToList();
+                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage == methodHookStage)
+                  .OrderBy(m => m.GetCustomAttribute<MethodHookAttribute>().Order).ToList();
     }
 
     private static List<MethodInfo> GetOverridePropertyMethods(this object instance, Type requiredType)
@@ -65,16 +65,16 @@ public static class ReflectionExtension
             .ToList();
     }
 
-    public static void InvokePartialMethods(this object instance, InitializeType initializeType)
+    public static void RunMethodHooks(this object instance, MethodHookStage methodHookStage)
     {
-        var methods = instance.GetPartialMethodsForInitialized(initializeType);
+        var methods = instance.GetPartialMethodsForInitialized(methodHookStage);
         foreach (var method in methods)
             method.Invoke(instance, null);
     }
 
-    public static void InvokePartialStaticMethods(this Type type, InitializeType initializeType)
+    public static void RunStaticMethodHooks(this Type type, MethodHookStage methodHookStage)
     {
-        var methods = type.GetPartialStaticMethodsForInitialized(initializeType);
+        var methods = type.GetPartialStaticMethodsForInitialized(methodHookStage);
         foreach (var method in methods)
             method.Invoke(null, null);
     }

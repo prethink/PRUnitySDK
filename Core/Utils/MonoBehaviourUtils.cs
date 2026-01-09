@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public static class MonoBehaviourUtils
 {
@@ -6,9 +6,7 @@ public static class MonoBehaviourUtils
         where T : MonoBehaviour
     {
         GameObject obj = new GameObject();
-        obj.name = string.IsNullOrEmpty(name) 
-            ? typeof(T).Name 
-            : name;
+        obj.name = $"☢ {typeof(T).Name}";
 
         T component = obj.AddComponent<T>();
         Object.DontDestroyOnLoad(obj);

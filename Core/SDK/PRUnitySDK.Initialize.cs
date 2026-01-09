@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -6,6 +7,11 @@ using UnityEngine;
 /// </summary>
 public partial class PRUnitySDK
 {
+    /// <summary>
+    /// Инициализированные типы.
+    /// </summary>
+    public readonly static HashSet<Type> InitializedTypes = new();
+
     /// <summary>
     /// Признак, что SDK инициализирован.
     /// </summary>
@@ -35,39 +41,55 @@ public partial class PRUnitySDK
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Already is initialized.");
             return;
         }
-        LoadSettings();
-        typeof(PRUnitySDK).InvokePartialStaticMethods(InitializeType.SDK);
+
+        Settings.Initialize();
+        Database.Initialize();
+
+        typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
+
+        Managers.Initialize();
 
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete.");
     }
 
-    private static void LoadSettings()
+    /// <summary>
+    /// Признак, что сервис инициализирован.
+    /// </summary>
+    /// <param name="service">Тип сервиса.</param>
+    /// <returns>True если проинициализирован, False - если нет.</returns>
+    public static bool IsInitialize(Type service)
     {
-        try
-        {
-            GameSettings = ResourcesUtils.LoadSingleFromResources<PRGameSettings>();
-            Database = ResourcesUtils.LoadSingleFromResources<PRDatabase>();
+        return InitializedTypes.Contains(service);
+    }
 
-            RegisterService(GameSettings);
-            RegisterService(Database);
-        }
-        catch(ResourceNotFoundException resourceNotFoundException)
+    /// <summary>
+    /// Признак, что сервис инициализирован.
+    /// </summary>
+    /// <typeparam name="T">Тип.</typeparam>
+    /// <returns>True если проинициализирован, False - если нет.</returns>
+    public static bool IsInitialize<T>()
+    {
+        return IsInitialize(typeof(T));
+    }
+
+    /// <summary>
+    /// Установить признак, что тип инициализирован.
+    /// </summary>
+    /// <typeparam name="T">Тип.</typeparam>
+    /// <param name="action">Кастомное действие.</param>
+    public static void InitializeType<T>(Action action, string name = null)
+    {
+        var result = InitializedTypes.Add((typeof(T)));
+        if(!result)
+            PRLog.WriteWarning(typeof(PRUnitySDK), $"Type {typeof(T)} already initialized.");
+        else
         {
-            PRLog.WriteError(typeof(PRUnitySDK), $"Required create {resourceNotFoundException.Type} in 'Resources' folder. Use Assets/Create/PRUnitySDK/...");
-            throw;
+            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{(string.IsNullOrEmpty(name) ? typeof(T).Name : name)}</color>.");
         }
-        catch(MultipleResourcesFoundException multipleResourcesFoundException)
-        {
-            PRLog.WriteError(typeof(PRUnitySDK), $"More than one {multipleResourcesFoundException.Type} found in 'Resources' folder.");
-            throw;
-        }
-        catch (Exception exception)
-        {
-            PRLog.WriteError(typeof(PRUnitySDK), $"{exception}");
-            throw;
-        }
+        
+        action?.Invoke();
     }
 
     /// <summary>
@@ -79,9 +101,7 @@ public partial class PRUnitySDK
     {
         try
         {
-            PRLog.WriteDebug(typeof(PRUnitySDK), $"Try initialize module <color={Color.yellow}>{name}</color>.", new PRLogSettings() { LevelDebug = 8 });
-            RegisterService(initializeAction.Invoke());
-            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{name}</color>.");
+            InitializeType<T>(() => { RegisterService(initializeAction.Invoke()); }, name);
         }
         catch(Exception exception)
         {
