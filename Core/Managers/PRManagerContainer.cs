@@ -1,14 +1,14 @@
-public class PRManagerContainer 
+public partial class PRManagerContainer 
 {
     /// <summary>
     /// Игровой менеджер.
     /// </summary>
-    public static GameManager GameManager;
+    public GameManager GameManager;
 
     /// <summary>
     /// Менеджер управления свойств.
     /// </summary>
-    public static ProjectPropertiesManager ProjectPropertiesManager;
+    public ProjectPropertiesManager ProjectPropertiesManager;
 
     public void Initialize()
     {

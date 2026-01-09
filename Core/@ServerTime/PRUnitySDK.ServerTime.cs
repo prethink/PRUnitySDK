@@ -1,5 +1,7 @@
 public partial class PRUnitySDK
 {
+    #region Поля и свойства
+
     /// <summary>
     /// Приоритет.
     /// </summary>
@@ -9,6 +11,8 @@ public partial class PRUnitySDK
     /// Серверное время.
     /// </summary>
     public static ServerTimeBase ServerTime;
+
+    #endregion
 
     #region Методы
 

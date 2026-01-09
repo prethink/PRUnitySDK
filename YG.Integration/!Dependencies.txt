@@ -1,3 +1,0 @@
-1. PRUnitySDK.Core
-2. YG2 Plugin - https://max-games.ru/plugin-yg/ | https://assetstore.unity.com/packages/tools/integration/plugin-your-games-unified-api-for-webgl-and-mobile-stores-302343
-2.1 YG2.Storage 

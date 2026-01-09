@@ -85,9 +85,7 @@ public partial class PRUnitySDK
         if(!result)
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Type {typeof(T)} already initialized.");
         else
-        {
             PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{(string.IsNullOrEmpty(name) ? typeof(T).Name : name)}</color>.");
-        }
         
         action?.Invoke();
     }
