@@ -8,9 +8,12 @@ public class MethodHookAttribute : Attribute
     /// Чем значение ниже, тем выше приоритет.
     /// </summary>
     public int Order { get; }
-    public MethodHookStage MethodHookStage { get; }
+    public string MethodHookStage { get; }
 
-    public MethodHookAttribute(MethodHookStage hookStage, int order = 0)
+    public MethodHookAttribute(MethodHookStage hookStage, int order = 0) 
+        : this(hookStage.ToString(), order) { }
+
+    public MethodHookAttribute(string hookStage, int order = 0)
     {
         this.MethodHookStage = hookStage;
         this.Order = order;
@@ -26,6 +29,77 @@ public enum MethodHookStage
     /// Вызов при создании объекта через конструктор (new).
     /// </summary>
     Construct,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PreAwake,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PostAwake,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PreStart,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PostStart,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PreSave,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    Saving,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PostSave,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PreOnEnable,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PostOnEnable,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PreOnDisable,
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    PostOnDisable,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    Pre,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    Post,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    Pause,
 
     /// <summary>
     /// Вызов в методе Awake Unity (до Start, сразу после активации объекта).
@@ -61,16 +135,6 @@ public enum MethodHookStage
     /// Установки настроек по умолчанию.
     /// </summary>
     DefaultSettings,
-
-    /// <summary>
-    /// Вызов при активации Unity-объекта (Unity OnEnable).
-    /// </summary>
-    OnEnable,
-
-    /// <summary>
-    /// Вызов при деактивации Unity-объекта (Unity OnDisable).
-    /// </summary>
-    OnDisable,
 
     /// <summary>
     /// Пользовательский вызов в произвольный момент (ручной триггер).

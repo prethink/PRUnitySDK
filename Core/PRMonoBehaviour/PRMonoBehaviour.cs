@@ -60,19 +60,25 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerStay(Collider other)
     {
-        if(PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerStay)))
             return;
 
-        if (Time.time < LastTriggerTick + PROnTriggerStayTimeout())
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        LastTriggerTick = Time.time;
+        if (PRTime.Instance.Time < LastTriggerTick + PROnTriggerStayTimeout())
+            return;
+
+        LastTriggerTick = PRTime.Instance.Time;
 
         PROnTriggerStay(other);
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        if (this.IsMethodDisabled(nameof(OnTriggerEnter)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused || !collidersInside.Add(other))
             return;
 
@@ -81,6 +87,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerExit(Collider other)
     {
+        if (this.IsMethodDisabled(nameof(OnTriggerExit)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused || collidersInside.Remove(other) )
             return;
 
@@ -89,6 +98,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionEnter(Collision collision)
     {
+        if(this.IsMethodDisabled(nameof(OnCollisionEnter)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
@@ -97,6 +109,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionStay(Collision collision)
     {
+        if (this.IsMethodDisabled(nameof(OnCollisionStay)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
@@ -110,6 +125,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionExit(Collision collision)
     {
+        if (this.IsMethodDisabled(nameof(OnCollisionExit)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
@@ -118,6 +136,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (this.IsMethodDisabled(nameof(OnTriggerEnter2D)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
@@ -126,6 +147,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerExit2D(Collider2D collision)
     {
+        if (this.IsMethodDisabled(nameof(OnTriggerExit2D)))
+            return;
+
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
@@ -134,7 +158,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if ( PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerStay2D)))
+            return;
+
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
         PROnTriggerStay2D(collision);
@@ -143,21 +170,6 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     #endregion
 
     #region Поля и свойства
-
-    /// <summary>
-    /// Отслеживаемые rigidbodies.
-    /// </summary>
-    protected List<Rigidbody> rigidbodies = new List<Rigidbody>();
-
-    /// <summary>
-    /// Состояние rigidbodies.
-    /// </summary>
-    protected Dictionary<Rigidbody, RigidbodyData> rigidbodyStates = new();
-
-
-    protected readonly HashSet<Animator> animators = new();
-
-    protected readonly Dictionary<Animator, AnimatorData> animatorStates = new();
 
     /// <summary>
     /// Время тика.
@@ -170,26 +182,23 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     #endregion
 
-    #region IPauseNotify
+    #region IPauseStateListener
+
     public virtual void OnPauseStateChanged(PauseEventArgs args)
     {
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
-        {
-            PauseRigidBody();
-            PauseAnimators();
-        }
-        else
-        {
-            ResumeRigidBody();
-            ResumeAnimators();
-        }
+        if(this.IsMethodDisabled(nameof(OnPauseStateChanged)))
+            return;
+
+        this.RunMethodHooks(MethodHookStage.Pause);
     }
+
+    #endregion
 
     public virtual void OnReadyGame() { }
 
     public virtual void OnReadyScene() { }
 
-    #endregion
+
 
     #region Методы
 
@@ -308,115 +317,5 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         OnTriggerExit(other);
     }
 
-    /// <summary>
-    /// Регистрация rigidBody.
-    /// </summary>
-    /// <param name="rigidbody">rigidbody.</param>
-    protected virtual void RegisterRigidBody(Rigidbody rigidbody)
-    {
-        if (rigidbody == null)
-            return;
-
-        rigidbodies.Add(rigidbody);
-        OnPauseStateChanged(new PauseEventArgs());
-    }
-
-    protected virtual void ResumeRigidBody()
-    {
-        foreach (var pair in rigidbodyStates)
-        {
-            var rb = pair.Key;
-            var data = pair.Value;
-
-            if (rb == null || rb.isKinematic)
-                continue;
-            //TODO: Баг с бесконечным открыванием магазина обби
-            //rb.isKinematic = data.IsKinematic;
-            rb.useGravity = data.UseGravity;
-            rb.velocity = data.Velocity;
-            rb.angularVelocity = data.AngularVelocity;
-        }
-
-        rigidbodyStates.Clear();
-    }
-
-    protected virtual void PauseRigidBody()
-    {
-        foreach (var rb in rigidbodies)
-        {
-            if (rb == null || rb.isKinematic || rigidbodyStates.TryGetValue(rb, out var _))
-                continue;
-
-            rigidbodyStates[rb] = new RigidbodyData
-            {
-                Velocity = rb.velocity,
-                AngularVelocity = rb.angularVelocity,
-                UseGravity = rb.useGravity
-                //IsKinematic = rb.isKinematic
-            };
-
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.useGravity = false;
-            //rb.isKinematic = true;
-        }
-    }
-
-    protected void RegisterAnimator(Animator animator)
-    {
-        if (animator == null)
-            return;
-
-        animators.Add(animator);
-        OnPauseStateChanged(new PauseEventArgs()); // если сразу надо применить
-    }
-
-    private void PauseAnimators()
-    {
-        foreach (var animator in animators)
-        {
-            if (animator == null || animatorStates.ContainsKey(animator))
-                continue;
-
-            animatorStates[animator] = new AnimatorData
-            {
-                Speed = animator.speed,
-                Enabled = animator.enabled
-            };
-
-            animator.speed = 0f;
-        }
-    }
-
-    private void ResumeAnimators()
-    {
-        foreach (var pair in animatorStates)
-        {
-            var animator = pair.Key;
-            var data = pair.Value;
-
-            if (animator == null)
-                continue;
-
-            animator.speed = data.Speed;
-        }
-
-        animatorStates.Clear();
-    }
-
     #endregion
-
-    protected struct RigidbodyData
-    {
-        public Vector3 Velocity;
-        public Vector3 AngularVelocity;
-        public bool IsKinematic;
-        public bool UseGravity;
-    }
-
-    protected class AnimatorData
-    {
-        public float Speed;
-        public bool Enabled;
-    }
 }

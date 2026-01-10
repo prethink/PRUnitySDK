@@ -5,7 +5,7 @@ public partial class PRManagerContainer
     /// </summary>
     public XPManager XPManager;
 
-    [MethodHook(MethodHookStage.SDK)]
+    [MethodHook(MethodHookStage.Post, 110)]
     public void InitializeXPManager()
     {
         PRUnitySDK.InitializeType<XPManager>(() =>

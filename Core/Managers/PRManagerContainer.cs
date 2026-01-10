@@ -10,11 +10,33 @@ public partial class PRManagerContainer
     /// </summary>
     public ProjectPropertiesManager ProjectPropertiesManager;
 
+    /// <summary>
+    /// Контейнер для менеджеров.   
+    /// </summary>
+    public PRContainer Container;
+
     public void Initialize()
     {
-        PRUnitySDK.InitializeType<GameManager>(() => { GameManager = GameManager.Instance; });
-        PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectPropertiesManager = ProjectPropertiesManager.Instance; });
+        this.RunMethodHooks(MethodHookStage.Pre);
 
-        this.RunMethodHooks(MethodHookStage.SDK);
+        Container = MonoBehaviourUtils.CreateContainer("Managers");
+
+        this.RunMethodHooks(MethodHookStage.Post);
+    }
+
+    [MethodHook(MethodHookStage.Post, 10)]
+    public void InitializeGameManager()
+    {
+        PRUnitySDK.InitializeType<GameManager>(() =>
+        {
+            GameManager = GameManager.Instance;
+            GameManager.transform.SetParent(Container.transform);
+        });
+    }
+
+    [MethodHook(MethodHookStage.Post, 20)]
+    public void InitializeProjectPropertiesManager()
+    {
+        PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectPropertiesManager = ProjectPropertiesManager.Instance; });
     }
 }

@@ -8,14 +8,14 @@ public partial class Bootstrap
         isOverriden = true;
     }
 
-    [MethodHook(MethodHookStage.OnEnable)]
+    [MethodHook(MethodHookStage.PostOnEnable)]
     private void OnEnableYG()
     {
         YG2.onGetSDKData += InitializeSDK;
         //TODO:YG2.onDefaultSaves += InitializeSDK;
     }
 
-    [MethodHook(MethodHookStage.OnDisable)]
+    [MethodHook(MethodHookStage.PostOnDisable)]
     private void OnDisableYG()
     {
         YG2.onGetSDKData -= InitializeSDK;

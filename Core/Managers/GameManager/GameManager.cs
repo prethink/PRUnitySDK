@@ -24,10 +24,10 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     /// </summary>
     public GlobalGameSettingsSession GameSettingsSession { get; private set; }
 
-    /// <summary>
-    /// Менеджер управления ресурсами.
-    /// </summary>
-    public ResourceManager ResourceManager { get; private set; }
+    ///// <summary>
+    ///// Менеджер управления ресурсами.
+    ///// </summary>
+    //public ResourceManager ResourceManager { get; private set; }
 
     ///// <summary>
     ///// Менеджер управления уровнями.
@@ -45,7 +45,6 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
     #region События
 
-    public event Action ReadyManager;
     public event Action AutoSaveEvent;
 
     public event Action OnPreSave;
@@ -66,19 +65,25 @@ private static extern void UnregisterPageVisibilityCallback();
 
     private void Awake()
     {
+        this.RunMethodHooks(MethodHookStage.PreAwake);
+
         //GameSettingsSession = new GlobalGameSettingsSession(globalGameSettings);
-        ResourceManager = new ResourceManager(this);
+        //ResourceManager = new ResourceManager(this);
         //MapManager = new MapManager(this);
         this.InitializeGameManager();
-        this.RunMethodHooks(MethodHookStage.Awake);
+
+        this.RunMethodHooks(MethodHookStage.PostAwake);
     }
 
     private void Start()
     {
+        this.RunMethodHooks(MethodHookStage.PreStart);
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         PageVisibility.Subscribe(gameObject.name, nameof(OnPageVisibilityChange));
 #endif
-        this.RunMethodHooks(MethodHookStage.Start);
+
+        this.RunMethodHooks(MethodHookStage.PostAwake);
     }
 
     private void OnDestroy()
@@ -105,8 +110,8 @@ private static extern void UnregisterPageVisibilityCallback();
 
     public void OnPageVisibilityChange(int isHiddenInt)
     {
-        //if (!deviceInfoBase.IsIOS())
-        //    return;
+        if (!PRUnitySDK.DeviceInfo.IsIOS())
+            return;
 
         bool isHidden = isHiddenInt == 1;
         PRLog.WriteDebug(this, $"WebGL Visibility Changed. Hidden: {isHidden}", new PRLogSettings() { LevelDebug = 5 });
@@ -192,7 +197,7 @@ private static extern void UnregisterPageVisibilityCallback();
 
     protected void SetDefaultControlSettings()
     {
-        //gameSettings.Sensitivity = globalGameSettings.DefaultControlSettings.Sensitivity;
+         //gameSettings.Sensitivity = globalGameSettings.DefaultControlSettings.Sensitivity;
        // gameSettings.InvertHorizontalInput = globalGameSettings.DefaultControlSettings.InvertHorizontalInput;
         //gameSettings.InvertVerticalInput = globalGameSettings.DefaultControlSettings.InvertVerticalInput;
     }

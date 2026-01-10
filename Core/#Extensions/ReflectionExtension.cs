@@ -5,17 +5,20 @@ using System.Reflection;
 
 public static class ReflectionExtension 
 {
-    private static List<MethodInfo> GetPartialMethodsForInitialized(this object instance, MethodHookStage methodHookStage)
+    //TODO: Нужен кэш.
+
+
+    private static List<MethodInfo> GetMethodsHooks(this object instance, string methodHookStage)
     {
         return instance.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage == methodHookStage)
+                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase))
                   .OrderBy(m => m.GetCustomAttribute<MethodHookAttribute>().Order).ToList();
     }
 
-    private static List<MethodInfo> GetPartialStaticMethodsForInitialized(this Type type, MethodHookStage methodHookStage)
+    private static List<MethodInfo> GetStaticMethodHooks(this Type type, string methodHookStage)
     {
         return type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage == methodHookStage)
+                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase))
                   .OrderBy(m => m.GetCustomAttribute<MethodHookAttribute>().Order).ToList();
     }
 
@@ -67,14 +70,24 @@ public static class ReflectionExtension
 
     public static void RunMethodHooks(this object instance, MethodHookStage methodHookStage)
     {
-        var methods = instance.GetPartialMethodsForInitialized(methodHookStage);
+        RunMethodHooks(instance, methodHookStage.ToString());
+    }
+
+    public static void RunMethodHooks(this object instance, string methodHookStage)
+    {
+        var methods = instance.GetMethodsHooks(methodHookStage);
         foreach (var method in methods)
             method.Invoke(instance, null);
     }
 
     public static void RunStaticMethodHooks(this Type type, MethodHookStage methodHookStage)
     {
-        var methods = type.GetPartialStaticMethodsForInitialized(methodHookStage);
+        RunStaticMethodHooks(type, methodHookStage.ToString());
+    }
+
+    public static void RunStaticMethodHooks(this Type type, string methodHookStage)
+    {
+        var methods = type.GetStaticMethodHooks(methodHookStage);
         foreach (var method in methods)
             method.Invoke(null, null);
     }

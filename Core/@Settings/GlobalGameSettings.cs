@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public partial class GlobalGameSettings : IRootClass
+public partial class GlobalGameSettings
 {
     /// <summary>
     /// Базовые настройки игры

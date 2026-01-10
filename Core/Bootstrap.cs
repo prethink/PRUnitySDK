@@ -25,17 +25,21 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
 
     private void OnEnable()
     {
+        this.RunMethodHooks(MethodHookStage.PreOnEnable);
+
         EventBus.Subscribe(this);
 
-        this.RunMethodHooks(MethodHookStage.OnEnable);
+        this.RunMethodHooks(MethodHookStage.PostOnEnable);
     }
 
     // Отписываемся от ивента onGetSDKData
     private void OnDisable()
     {
+        this.RunMethodHooks(MethodHookStage.PreOnDisable);
+
         EventBus.Unsubscribe(this);
 
-        this.RunMethodHooks(MethodHookStage.OnDisable);
+        this.RunMethodHooks(MethodHookStage.PostOnDisable);
     }
 
     #endregion
@@ -65,7 +69,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
 
     public void OnInitialized()
     {
-        //TODO: Создать GameManager
+        //TODO: Инициализация модулей, требующих инициализации после SDK.
     }
 
     #endregion
