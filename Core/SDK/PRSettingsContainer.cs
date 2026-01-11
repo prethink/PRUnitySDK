@@ -6,12 +6,12 @@ public partial class PRSettingsContainer : DataContainer
 
     public void Initialize()
     {
-        this.RunMethodHooks(MethodHookStage.Pre);
+        this.RunMethodHooks(MethodHookStage.PreOperation);
 
         Initialize<PRProjectSettings>(() => ProjectSettings = ResourcesUtils.GetOrCreateResourceSO<PRProjectSettings>());
         Initialize<PRGameSettings>(() => GameSettings = ResourcesUtils.GetOrCreateResourceSO<PRGameSettings>());
         Initialize<GameStorageSettings>(() => GameStorageSettings = ResourcesUtils.GetOrCreateResourceSO<GameStorageSettings>());
 
-        this.RunMethodHooks(MethodHookStage.Post);
+        this.RunMethodHooks(MethodHookStage.PostOperation);
     }
 }

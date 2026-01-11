@@ -31,10 +31,10 @@ public class ResourceManager
     public int GetOrCreateResource(ResourceType resourceType)
     {
         var resourceName = resourceType.ToString();
-        if (gameManager.GetProjectData().InventoryData.Resources.TryGetValue(resourceName, out var value))
-            return value;
+        //if (gameManager.GetProjectData().InventoryData.Resources.TryGetValue(resourceName, out var value))
+        //    return value;
 
-        gameManager.GetProjectData().InventoryData.Resources[resourceName] = 0;
+        //gameManager.GetProjectData().InventoryData.Resources[resourceName] = 0;
         return 0;
     }
 
@@ -48,7 +48,7 @@ public class ResourceManager
     public void SetOrUpdateResource(ResourceType resourceType, int value, bool requiredNotify = false, bool requiredSaveNow = false)
     {
         var resourceName = resourceType.ToString();
-        gameManager.GetProjectData().InventoryData.Resources[resourceName] = value;
+        //gameManager.GetProjectData().InventoryData.Resources[resourceName] = value;
 
         //if (requiredNotify)
             //TODO:EventBus.RaiseEvent<IGlobalEvent>(invoke => invoke.GlobalChange(resourceName, value.ToString(), value.GetType()));

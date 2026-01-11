@@ -10,7 +10,7 @@ public partial class PRUnitySDK
     /// <summary>
     /// Серверное время.
     /// </summary>
-    public static ServerTimeBase ServerTime;
+    public static IServerTime ServerTime;
 
     #endregion
 
@@ -22,11 +22,11 @@ public partial class PRUnitySDK
     [MethodHook(MethodHookStage.SDK, PRIORITY_SERVER_TIME)]
     private static void InitializeServerTime()
     {
-        InitializeModuleSDK(nameof(ServerTime), () =>
+        InitializeModuleSDK(nameof(IServerTime), () =>
         {
-            typeof(PRUnitySDK).TryOverrideStaticProperty(typeof(ServerTimeBase));
+            typeof(PRUnitySDK).TryOverrideStaticProperty(typeof(IServerTime));
 
-            InitializeDefault(nameof(ServerTime), () => ServerTime, () => { ServerTime = new LocalServerTime(); return ServerTime; });
+            InitializeDefault(nameof(IServerTime), () => ServerTime, () => { ServerTime = new LocalServerTime(); return ServerTime; });
 
             return ServerTime;
         });

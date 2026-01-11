@@ -1,8 +1,8 @@
 using System;
 
-public class LocalServerTime : ServerTimeBase
+public class LocalServerTime : IServerTime
 {
-    public override DateTime GetNow()
+    public DateTime GetNow()
     {
         return DateTime.Now;
     }

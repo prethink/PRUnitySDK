@@ -24,3 +24,8 @@
 
 Зависимости:
 - YG2.Storage 
+
+## Translate
+
+Зависимости:
+- YG2.Localization 

@@ -1,13 +1,13 @@
 using System;
 using YG;
 
-public class YandexServerTime : ServerTimeBase
+public class YandexServerTime : IServerTime
 {
     private DateTime serverStartTime;
     private DateTime localStartTime;
     private bool initialized;
 
-    public override DateTime GetNow()
+    public DateTime GetNow()
     {
         Initialize();
 

@@ -18,14 +18,14 @@ public partial class PRUnitySDK
     public static bool IsInitialized { get; private set; }
 
     /// <summary>
-    /// Признак, что SDK начал иницилаизаци.
+    /// Признак, что SDK начал инициализацию. 
+    /// Предотвращает повторный/одновременный запуск инициализации.
     /// </summary>
     public static bool IsStartInitialize { get; private set; }
 
     /// <summary>
     /// Инициализация SDK.
     /// </summary>
-    //[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void InitializeSDK()
     {
         if (IsStartInitialize)
@@ -42,8 +42,10 @@ public partial class PRUnitySDK
             return;
         }
 
+        InitializeConverters();
+
         Settings.Initialize();
-        Database.Initialize();
+        Databases.Initialize();
 
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
 
@@ -52,6 +54,14 @@ public partial class PRUnitySDK
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete.");
+    }
+
+    /// <summary>
+    /// Инициализация конвертеров.
+    /// </summary>
+    private static void InitializeConverters()
+    {
+        typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.Converter);
     }
 
     /// <summary>

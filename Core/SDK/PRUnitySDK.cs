@@ -8,7 +8,7 @@ public sealed partial class PRUnitySDK
     /// <summary>
     /// База данных.
     /// </summary>
-    public readonly static PRDatabaseContainer Database = new();
+    public readonly static PRDatabaseContainer Databases = new();
 
     /// <summary>
     /// Менеджеры.
