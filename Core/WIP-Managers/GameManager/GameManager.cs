@@ -200,7 +200,7 @@ private static extern void UnregisterPageVisibilityCallback();
 
     public GameStorageSettings GetStorageSettings()
     {
-        return PRUnitySDK.Settings.GameStorageSettings;
+        return PRUnitySDK.Settings.GameStorage;
     }
 
     /// <summary>

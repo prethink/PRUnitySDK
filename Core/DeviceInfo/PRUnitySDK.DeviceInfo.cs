@@ -20,7 +20,10 @@ public partial class PRUnitySDK
         {
             typeof(PRUnitySDK).TryOverrideStaticProperty(typeof(DeviceInfoBase));
 
-            InitializeDefault(nameof(DeviceInfo), () => DeviceInfo, () => { DeviceInfo = new LocalDeviceInfo(); return DeviceInfo; });
+            InitializeDefault(nameof(DeviceInfo), () => DeviceInfo, () => 
+            { 
+                DeviceInfo = new LocalDeviceInfo(); return DeviceInfo; 
+            });
 
             return DeviceInfo;
         });

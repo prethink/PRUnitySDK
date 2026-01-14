@@ -44,8 +44,9 @@ public partial class PRUnitySDK
 
         InitializeConverters();
 
-        Settings.Initialize();
-        Databases.Initialize();
+        // На всякий случай инициализируем настройки и базу данных заранее.
+        var initSettings = Settings;
+        var initDatabase = Database;
 
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
 

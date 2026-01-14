@@ -153,7 +153,7 @@ public class YandexGameDataStorager : IGameDataStorage
 
     public GameStorageSettings GetSettings()
     {
-        return PRUnitySDK.Settings.GameStorageSettings;
+        return PRUnitySDK.Settings.GameStorage;
     }
 
     #endregion

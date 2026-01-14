@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public partial class PRDatabase
+public partial class PRSDKDatabase
 {
     [field: SerializeField] public LocalizationDatabase LocalizationDatabase { get; protected set; }
 }

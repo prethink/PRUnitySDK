@@ -91,7 +91,7 @@ public partial class PRUnitySDK
         L.InitTranslate(LanguageManager);
         L.InitLocalizationService(LocalizationService);
 
-        var defaultLanguage = LocalizationUtils.GetLanguageCode(Databases.Core.LocalizationDatabase.DefaultLanguage);
+        var defaultLanguage = LocalizationUtils.GetLanguageCode(Database.LocalizationDatabase.DefaultLanguage);
         DefaultLanguage = defaultLanguage;
         SetCurrentLang(defaultLanguage);
     }

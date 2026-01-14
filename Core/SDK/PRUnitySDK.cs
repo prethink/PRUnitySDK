@@ -3,12 +3,12 @@ public sealed partial class PRUnitySDK
     /// <summary>
     /// Настройки.
     /// </summary>
-    public readonly static PRSettingsContainer Settings = new();
+    public static PRSDKSettings Settings => PRSDKSettings.Instance;
 
     /// <summary>
     /// База данных.
     /// </summary>
-    public readonly static PRDatabaseContainer Databases = new();
+    public static PRSDKDatabase Database => PRSDKDatabase.Instance;
 
     /// <summary>
     /// Менеджеры.

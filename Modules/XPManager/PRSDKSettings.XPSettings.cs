@@ -1,9 +1,13 @@
 using System;
-using UnityEditor;
 using UnityEngine;
 
+public partial class PRSDKSettings
+{
+    [field: SerializeField] public XPSettings ExperiencePoints { get; protected set; }
+}
+
 [Serializable]
-public class XPSettings : ResourceScriptableObject
+public class XPSettings
 {
     [field: Header("XP система")]
     [Tooltip("Стартовое количество очков для расчета уровней")]
@@ -19,17 +23,11 @@ public class XPSettings : ResourceScriptableObject
 
     [field: SerializeField] public long PointForLevelUP { get; protected set; } = 1;
 
-    protected override void SetDefaultSettings()
+    public void SetDefaultSettings()
     {
         BasePoints = 100;
         StartLevel = 1;
         GrowthFactor = 1.5f;
         PointForLevelUP = 1;
-    }
-
-    [MenuItem("Assets/Create/PRUnitySDK/Settings/XP settings", false, 40)]
-    public static void Create()
-    {
-        Create<XPSettings>();
     }
 }

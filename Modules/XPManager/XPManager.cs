@@ -175,7 +175,7 @@ public class XPManager : SingletonProviderBase<XPManager>
 
     public XPSettings GetSettings()
     {
-        return PRUnitySDK.Settings.XPSettings;
+        return PRUnitySDK.Settings.ExperiencePoints;
     }
 
     public ProjectPropertiesManager GetManager()

@@ -1,10 +1,22 @@
-using UnityEditor;
+using System;
 using UnityEngine;
+
+public partial class PRSDKSettings
+{
+    [field: SerializeField] public GameStorageSettings GameStorage { get; protected set; }
+
+    [MethodHook(MethodHookStage.Initializing)]
+    public void SetDefaultGameStorageSettings()
+    {
+        GameStorage.SetDefaultSettings();
+    }
+}
 
 /// <summary>
 /// Настройки для сохранения.
 /// </summary>
-public class GameStorageSettings : ResourceScriptableObject
+[Serializable]
+public class GameStorageSettings
 {
     /// <summary>
     /// Признак включенного автоматического сохранения данных.
@@ -31,16 +43,10 @@ public class GameStorageSettings : ResourceScriptableObject
     /// </summary>
     [field: SerializeField] public EncryptionLoadingStrategy EncryptionStrategy { get; private set; }
 
-    [MenuItem("Assets/Create/PRUnitySDK/Settings/GameStorage settings", false, 40)]
-    public static void Create()
-    {
-        Create<GameStorageSettings>();
-    }
-
     #region Базовый класс
 
     /// <inheridoc />
-    protected override void SetDefaultSettings()
+    public void SetDefaultSettings()
     {
         EnabledAutoSave = true;
         AutoSaveSeconds = 180;
@@ -52,15 +58,33 @@ public class GameStorageSettings : ResourceScriptableObject
     #endregion
 }
 
-
+/// <summary>
+/// 
+/// </summary>
 public enum SaveStrategy
 {
+    /// <summary>
+    /// 
+    /// </summary>
     Serialize,
+    /// <summary>
+    /// 
+    /// </summary>
     Class
 }
 
+/// <summary>
+/// 
+/// </summary>
 public enum EncryptionLoadingStrategy
 {
+    /// <summary>
+    /// 
+    /// </summary>
     Convert,
+    /// <summary>
+    /// 
+    /// </summary>
     OnlyEncryption
 }
+

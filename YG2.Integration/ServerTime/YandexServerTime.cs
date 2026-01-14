@@ -22,7 +22,7 @@ public class YandexServerTime : IServerTime
 
         try
         {
-            serverStartTime = PRUnitySDK.Settings.ProjectSettings.ReleaseType == ReleaseType.Release
+            serverStartTime = PRUnitySDK.Settings.Project.ReleaseType == ReleaseType.Release
                 ? DateTimeOffset.FromUnixTimeMilliseconds(YG2.ServerTime()).DateTime
                 : DateTime.Now;
         }
