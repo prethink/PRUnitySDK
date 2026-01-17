@@ -22,16 +22,49 @@ public partial class PRUnitySDK
         });
     }
 
-    public static T ResolveService<T>() where T : class
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public static T ResolveService<T>() 
+        where T : class
     {
+        //if(Settings.Project.ResolveStrategy == ResolveStrategy.PriorityResolver)
+        //{
+        //    if(TryResolve<T>(out var service))
+        //    {
+        //        return service;
+        //    }
+        //    else
+        //    {
+        //        throw new InvalidOperationException($"Service of type {typeof(T).FullName} is not registered in the resolver.");
+        //    }
+        //}
+        //else
+        //{
+        //    return serviceResolver.Resolve<T>();
+        //}
         return serviceResolver.Resolve<T>();
     }
 
-    public static bool TryResolve<T>(out T service) where T : class
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="service"></param>
+    /// <returns></returns>
+    public static bool TryResolve<T>(out T service) 
+        where T : class
     {
         return serviceResolver.TryResolve<T>(out service);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="service"></param>
     public static void RegisterService<T>(T service)
     {
         if (serviceResolver is not ServiceResolver defaultServiceResolver)

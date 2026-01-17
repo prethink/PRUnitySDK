@@ -149,6 +149,11 @@ public enum MethodHookStage
     DefaultSettings,
 
     /// <summary>
+    /// Создание коллекций.
+    /// </summary>
+    CreateCollections,
+
+    /// <summary>
     /// Пользовательский вызов в произвольный момент (ручной триггер).
     /// </summary>
     Custom

@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public abstract partial class MonoWindow : PRMonoBehaviour
+public abstract partial class MonoWindowBase : PRMonoBehaviour
 {
     public abstract string Key { get; }
 

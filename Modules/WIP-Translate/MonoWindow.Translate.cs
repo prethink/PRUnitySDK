@@ -1,4 +1,4 @@
-public partial class MonoWindow
+public partial class MonoWindowBase
 {
     //TODO: Подключить систему переводов
     public virtual void UpdateTranslate()
