@@ -198,8 +198,6 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     public virtual void OnReadyScene() { }
 
-
-
     #region Ìועמהû
 
     public virtual void PRDestroy(GameObject obj, float timeout)
@@ -212,6 +210,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             Destroy(obj);
             return;
         }
+
+        IPlayer player;
 
         //this.DelayAction(timeout, (t) => Destroy(obj));  
 

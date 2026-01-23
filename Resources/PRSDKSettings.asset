@@ -20,6 +20,25 @@ MonoBehaviour:
     <EncryptionStrategy>k__BackingField: 0
   <Project>k__BackingField:
     <ReleaseType>k__BackingField: 0
+    <DebugLogLevel>k__BackingField: 0
+    <ResolveStrategy>k__BackingField: 0
+  <Quality>k__BackingField:
+    <CommonWeight>k__BackingField: 100
+    <CommonColor>k__BackingField: {r: 1, g: 0, b: 0, a: 0}
+    <UncommonWeight>k__BackingField: 20
+    <UncommonColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
+    <RareWeight>k__BackingField: 15
+    <RareColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
+    <MythicWeight>k__BackingField: 2
+    <MythicColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
+    <EpicWeight>k__BackingField: 5
+    <EpicColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
+    <LegendaryWeight>k__BackingField: 3
+    <LegendaryColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
+    <AncientWeight>k__BackingField: 1
+    <AncientColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
+    <GodlikeWeight>k__BackingField: 1
+    <GodlikeColor>k__BackingField: {r: 0, g: 0, b: 0, a: 0}
   <ExperiencePoints>k__BackingField:
     <BasePoints>k__BackingField: 100
     <StartLevel>k__BackingField: 1

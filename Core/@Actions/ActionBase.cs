@@ -4,7 +4,7 @@ using UnityEngine;
 /// Базовый объект действия.
 /// Может быть клик по ссылке, загрузка сцены, или что-то другое.
 /// </summary>
-public abstract class ActionBase : ScriptableObject, IIconItem
+public abstract class ActionBase : ScriptableObject, IIconProvider
 {
     /// <summary>
     /// Иконка действия.

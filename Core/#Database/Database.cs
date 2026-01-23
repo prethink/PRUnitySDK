@@ -4,11 +4,9 @@ using System.Linq;
 using UnityEngine;
 
 [Serializable]
-public abstract class Database<T> 
+public class Database<T> 
 {
     [SerializeField] private List<T> data = new();
 
-    public IReadOnlyList<T> Data => data.ToList();
-
-    public abstract string DataBaseKey { get; }
+    public IEnumerable<T> Data => data.ToList();
 }

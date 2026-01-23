@@ -11,6 +11,16 @@ public sealed partial class PRUnitySDK
     public static PRSDKDatabase Database => PRSDKDatabase.Instance;
 
     /// <summary>
+    /// Утилиты.
+    /// </summary>
+    public static PRUtils Utils => PRUtils.Instance;
+
+    /// <summary>
+    /// Трекеры.
+    /// </summary>
+    public static PRTrackers Trackers => new();
+
+    /// <summary>
     /// Менеджеры.
     /// </summary>
     public readonly static PRManagerContainer Managers = new();
@@ -19,9 +29,4 @@ public sealed partial class PRUnitySDK
     /// Сервис управления паузой.
     /// </summary>
     public static IPauseManager PauseManager => PauseProvider.Instance;
-
-    /// <summary>
-    /// Менеджер наблюдателей.
-    /// </summary>
-    public static WatcherManager WatcherManager => WatcherProvider.Instance;
 }

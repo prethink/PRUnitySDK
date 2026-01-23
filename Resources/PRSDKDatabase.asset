@@ -12,6 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf782cc62db26e648ab95e45d87ac091, type: 3}
   m_Name: PRSDKDatabase
   m_EditorClassIdentifier: 
+  <Actions>k__BackingField:
+    data: []
+  <Sprites>k__BackingField:
+    data: []
+    Entities:
+      GameEventEntity: {fileID: 0}
+      EntityBase: {fileID: 0}
+  <Sounds>k__BackingField:
+    <BackgroundMusic>k__BackingField:
+      data: []
+    <UI>k__BackingField:
+      data: []
+    <Common>k__BackingField:
+      data: []
   <LocalizationDatabase>k__BackingField:
     languageFonts: []
     <DefaultLanguage>k__BackingField: 0
