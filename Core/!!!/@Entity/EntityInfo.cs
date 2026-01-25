@@ -1,11 +1,9 @@
+
 using System;
 using UnityEngine;
 
-//[CreateAssetMenu(fileName = "Entity Info", menuName = "PRUnitySDK/Entities/Entity Info")]
-public abstract class EntityInfoBase : ScriptableObject, IEntityInfo
+[CreateAssetMenu(fileName = "Entity Info", menuName = "PRUnitySDK/Entities/Data/Entity Info")]
+public class EntityInfo : EntityInfoBase
 {
-    public abstract Guid TypeGuid { get; }
-    [field: SerializeField] public string Name { get; protected set; }
-
-    [field:SerializeField] public Sprite Icon { get; protected set; }
+    public override Guid TypeGuid => throw new NotImplementedException();
 }

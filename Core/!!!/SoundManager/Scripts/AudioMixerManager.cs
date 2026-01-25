@@ -169,4 +169,9 @@ public class AudioMixerManager : MonoBehaviour, IReadyGameEvent, IPauseStateList
     {
         EventBus.Unsubscribe(this);
     }
+
+    public static AudioMixerManager Factory()
+    {
+        return Instantiate(Resources.Load<AudioMixerManager>($"{PRUnitySDK.CorePrefabsPath}/AudioMixer"));
+    }
 }

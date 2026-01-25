@@ -1,9 +1,22 @@
+public class ItemsCategoryRoot
+{
+    public const string Root = "Item";
+}
+
+
 public partial class ResourceItemCategory
 {
     public const string Category = "Resource";
 
-    public static string Coin => $"{Category}.{nameof(Coin)}";
-    public string Crystal => $"{Category}.{nameof(Crystal)}";
+    public const string Root = ItemsCategoryRoot.Root;
+
+    public static string Coin => $"{Root}.{Category}.{nameof(Coin)}";
+    public string Crystal => $"{Root}.{Category}.{nameof(Crystal)}";
+
+    public static string GetCategory(string category)
+    {
+        return $"{Root}.{Category}.{category}";
+    }
 }
 
 public partial class ObjectItemCategory

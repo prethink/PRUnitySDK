@@ -9,6 +9,16 @@ public partial class PRManagerContainer
     /// Менеджер управления свойств.
     /// </summary>
     public ProjectPropertiesManager ProjectPropertiesManager;
+    
+    /// <summary>
+    /// Менеджер звуков.
+    /// </summary>
+    public SoundManager SoundManager;
+
+    /// <summary>
+    /// Менеджер аудиомиксера.
+    /// </summary>
+    public AudioMixerManager AudioMixerManager;
 
     /// <summary>
     /// Контейнер для менеджеров.   
@@ -38,5 +48,24 @@ public partial class PRManagerContainer
     public void InitializeProjectPropertiesManager()
     {
         PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectPropertiesManager = ProjectPropertiesManager.Instance; });
+    }
+
+    [MethodHook(MethodHookStage.PostOperation, 20)]
+    public void InitializeAudioMixerManager()
+    {
+        PRUnitySDK.InitializeType<AudioMixerManager>(() => 
+        {
+            AudioMixerManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(AudioMixerManager.Factory);
+        });
+    }
+
+    [MethodHook(MethodHookStage.PostOperation, 30)]
+    public void InitializeSoundManager()
+    {
+        PRUnitySDK.InitializeType<SoundManager>(() => 
+        {
+            SoundManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(SoundManager.Factory);
+            AudioMixerManager.RegisterSoundManager(SoundManager);
+        });
     }
 }

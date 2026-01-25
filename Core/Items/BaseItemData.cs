@@ -7,5 +7,5 @@ public abstract partial class BaseItemData : ScriptableObject, IItemData
     [field: SerializeField] public Sprite Icon { get; protected set; }
     [field: SerializeField] public QualityType Quality { get; protected set; }
 
-    public abstract ItemCategory Category { get; }
+    public abstract CategoryPath Category { get; }
 }

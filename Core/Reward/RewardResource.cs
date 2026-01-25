@@ -4,5 +4,5 @@ using UnityEngine;
 public class RewardResource : RewardDataBase
 {
     [field: SerializeField] public int Count { get; protected set; }
-    [field: SerializeField] public ItemResourceData ResourceData { get; protected set; }
+    [field: SerializeField] public ResourceItemData ResourceData { get; protected set; }
 }

@@ -14,4 +14,9 @@ public abstract class EventArgsBase
     /// Время события.
     /// </summary>
     public virtual DateTime EventTime { get; }
+
+    /// <summary>
+    /// Базовая категория события
+    /// </summary>
+    protected static readonly CategoryPath rootPath = new("Event");
 }

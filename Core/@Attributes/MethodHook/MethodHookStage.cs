@@ -139,6 +139,11 @@ public enum MethodHookStage
     SDK,
 
     /// <summary>
+    /// Регистрация фабрик.
+    /// </summary>
+    RegisterFactories,
+
+    /// <summary>
     /// Инициализация конвертеров.
     /// </summary>
     Converter,

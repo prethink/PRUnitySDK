@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public abstract class PRMonoBehaviourSingletonBase<T> : PRMonoBehaviour
@@ -21,9 +22,20 @@ public abstract class PRMonoBehaviourSingletonBase<T> : PRMonoBehaviour
             instance = FindObjectOfType<T>();
 
             if (instance == null)
-                instance = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad<T>();
+            {
+                instance = CustomFactory != null 
+                    ? MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(CustomFactory) 
+                    : MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad<T>();
+            }
 
             return instance;
         }
+    }
+
+    protected static Func<T> CustomFactory;
+
+    public static void RegisterFactory(Func<T> factory)
+    {
+        CustomFactory = factory;
     }
 }

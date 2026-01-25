@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public static class MonoBehaviourUtils
 {
@@ -9,7 +10,21 @@ public static class MonoBehaviourUtils
         obj.name = $"{(useRadiationIcon ? "☢ " : "")}{(string.IsNullOrEmpty(name) ? typeof(T).Name : name)}";
 
         T component = obj.AddComponent<T>();
-        Object.DontDestroyOnLoad(obj);
+        UnityEngine.Object.DontDestroyOnLoad(obj);
+        return component;
+    }
+
+    public static T CreateMonoBehaviourDontDestroyOnLoad<T>(Func<T> factory, bool useRadiationIcon = true)
+        where T : MonoBehaviour
+    {
+        var component = factory();
+        if (useRadiationIcon)
+            component.name = $"☢ {component.name}";
+
+        if (component == null)
+            throw new ArgumentNullException(nameof(factory));
+
+        UnityEngine.Object.DontDestroyOnLoad(component.gameObject);
         return component;
     }
 

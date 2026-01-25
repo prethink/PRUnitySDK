@@ -211,8 +211,6 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             return;
         }
 
-        IPlayer player;
-
         //this.DelayAction(timeout, (t) => Destroy(obj));  
 
     }

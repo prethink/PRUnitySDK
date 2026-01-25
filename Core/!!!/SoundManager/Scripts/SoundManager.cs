@@ -6,7 +6,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
-public class SoundManager : MonoBehaviour, IReadyGameEvent
+public class SoundManager : MonoBehaviour
 {
     #region Поля и свойства
 
@@ -36,16 +36,6 @@ public class SoundManager : MonoBehaviour, IReadyGameEvent
     {
         if (!isInit)
             StartWork();
-    }
-
-    protected void OnEnable()
-    {
-        EventBus.Subscribe(this);
-    }
-
-    protected void OnDisable()
-    {
-        EventBus.Unsubscribe(this);
     }
 
     private void StartWork()
@@ -326,4 +316,9 @@ public class SoundManager : MonoBehaviour, IReadyGameEvent
     }
 
     #endregion
+
+    public static SoundManager Factory()
+    {
+        return Instantiate(Resources.Load<SoundManager>($"{PRUnitySDK.CorePrefabsPath}/SoundManager"));
+    }
 }

@@ -43,10 +43,7 @@ public partial class PRUnitySDK
         }
 
         InitializeConverters();
-
-        // На всякий случай инициализируем настройки и базу данных заранее.
-        var initSettings = Settings;
-        var initDatabase = Database;
+        RegisterFactories();
 
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
 
@@ -126,5 +123,12 @@ public partial class PRUnitySDK
             var result = setProperty();
             PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize <color={Color.yellow}>{name}</color> implement {result.GetType()}.", new PRLogSettings() { LevelDebug = 8 });
         }
+    }
+    
+    private static void RegisterFactories()
+    {
+        ScreenFade.RegisterFactory(() => { return Instantiate(Resources.Load<ScreenFade>($"{CorePrefabsPath}/ScreenFader")); });
+
+        typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.RegisterFactories);
     }
 }

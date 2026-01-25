@@ -70,6 +70,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     public void OnInitialized()
     {
         //TODO: Инициализация модулей, требующих инициализации после SDK.
+        SceneChanger.Instance.SceneChange(1);
     }
 
     #endregion
