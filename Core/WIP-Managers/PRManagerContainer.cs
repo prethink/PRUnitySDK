@@ -21,6 +21,11 @@ public partial class PRManagerContainer
     public AudioMixerManager AudioMixerManager;
 
     /// <summary>
+    /// Менеджер открытых предметов.
+    /// </summary>
+    public OpenedItemsManager OpenedItemsManager;
+
+    /// <summary>
     /// Контейнер для менеджеров.   
     /// </summary>
     public PRContainer Container;
@@ -56,6 +61,7 @@ public partial class PRManagerContainer
         PRUnitySDK.InitializeType<AudioMixerManager>(() => 
         {
             AudioMixerManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(AudioMixerManager.Factory);
+            AudioMixerManager.transform.SetParent(Container.transform);
         });
     }
 
@@ -65,7 +71,17 @@ public partial class PRManagerContainer
         PRUnitySDK.InitializeType<SoundManager>(() => 
         {
             SoundManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(SoundManager.Factory);
+            SoundManager.transform.SetParent(Container.transform);
             AudioMixerManager.RegisterSoundManager(SoundManager);
+        });
+    }
+
+    [MethodHook(MethodHookStage.PostOperation, 40)]
+    public void InitializeOpenItemManager()
+    {
+        PRUnitySDK.InitializeType<OpenedItemsManager>(() =>
+        {
+            OpenedItemsManager = OpenedItemsManager.Instance;
         });
     }
 }

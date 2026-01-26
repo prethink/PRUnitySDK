@@ -105,8 +105,6 @@ private static extern void UnregisterPageVisibilityCallback();
         AutoSaveHandler();
 
         GameplayEvents.RaiseGameReady();
-
-        PRLog.WriteDebug(this, "Initialize GameManager");
     }
 
     public void SaveData()

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f8c6819264dd22498315e90e0ba8230, type: 3}
   m_Name: PrefabContainer
   m_EditorClassIdentifier: 
-  core: []
+  core:
+  - {fileID: 7097574338473905592, guid: 5e6004dc4b5f47f42b06820bcab39dfe, type: 3}
   modules: []
   monoWindows: []
