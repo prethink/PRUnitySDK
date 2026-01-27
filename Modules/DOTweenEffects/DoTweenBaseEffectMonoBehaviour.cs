@@ -71,14 +71,14 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
         if (playAnimationOnStart)
             CreateAnimation();
 
-        OnPauseStateChanged(new PauseEventArgs());
+        OnPauseStateChanged(new PauseStateEventArgs());
     }
 
     #endregion
 
     #region IPauseNotify
 
-    public void OnPauseStateChanged(PauseEventArgs args)
+    public void OnPauseStateChanged(PauseStateEventArgs args)
     {
         if (ignorePauseNotify)
             return;

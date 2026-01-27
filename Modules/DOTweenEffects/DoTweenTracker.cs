@@ -67,7 +67,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     /// Колбэк от системы паузы.
     /// Вызывается при изменении состояния паузы игры.
     /// </summary>
-    public void OnPauseStateChanged(PauseEventArgs args)
+    public void OnPauseStateChanged(PauseStateEventArgs args)
     {
         // Список tween'ов, которые нужно удалить (если они стали null)
         List<Guid> toRemove = new List<Guid>();

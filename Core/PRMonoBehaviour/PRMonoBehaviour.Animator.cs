@@ -28,7 +28,7 @@ public partial class PRMonoBehaviour
             return;
 
         animators.Add(animator);
-        OnPauseStateChanged(new PauseEventArgs()); // если сразу надо применить
+        OnPauseStateChanged(new PauseStateEventArgs()); // если сразу надо применить
     }
 
     private void PauseAnimators()

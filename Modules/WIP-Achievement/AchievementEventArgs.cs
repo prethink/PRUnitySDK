@@ -2,7 +2,6 @@ using System;
 
 public class AchievementEventArgs : GameplayEventArgsBase
 {
-    public override string EventId => "TriggerAchievement";
     public override DateTime EventTime { get; }
 
     public string Trigger { get; }
@@ -11,5 +10,10 @@ public class AchievementEventArgs : GameplayEventArgsBase
     {
         EventTime = PRUnitySDK.ServerTime.GetNow();
         Trigger = triggerName;
+    }
+
+    public override CategoryPath GetEventId()
+    {
+        return new CategoryPath(base.GetEventId(), "Achievement.Trigger");
     }
 }

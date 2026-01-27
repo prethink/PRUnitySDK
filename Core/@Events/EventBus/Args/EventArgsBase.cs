@@ -6,17 +6,16 @@ using System;
 public abstract class EventArgsBase
 {
     /// <summary>
-    /// Идентификатор события.
-    /// </summary>
-    public abstract string EventId { get; }
-
-    /// <summary>
     /// Время события.
     /// </summary>
     public virtual DateTime EventTime { get; }
 
     /// <summary>
-    /// Базовая категория события
+    /// Получить EventId.
     /// </summary>
-    protected static readonly CategoryPath rootPath = new("Event");
+    /// <returns>EventId.</returns>
+    public virtual CategoryPath GetEventId()
+    {
+        return new CategoryPath("Event");
+    }
 }

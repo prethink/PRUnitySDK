@@ -3,7 +3,7 @@ using System;
 /// <summary>
 /// Аргументы при изменение состояния паузы.
 /// </summary>
-public class PauseEventArgs : GameplayEventArgsBase
+public class PauseStateEventArgs : GameplayEventArgsBase
 {
     /// <summary>
     /// Признак изменения музыкальной паузы.
@@ -58,18 +58,18 @@ public class PauseEventArgs : GameplayEventArgsBase
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public override string EventId => "Gameplay.Pause";
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
     public override DateTime EventTime { get; }
 
     /// <summary>
     /// Конструктор.
     /// </summary>
-    public PauseEventArgs()
+    public PauseStateEventArgs()
     {
         EventTime = PRUnitySDK.ServerTime.GetNow();
+    }
+
+    public override CategoryPath GetEventId()
+    {
+        return new CategoryPath(base.GetEventId(), "PauseState");
     }
 }

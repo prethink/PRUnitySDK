@@ -8,5 +8,5 @@ public interface IPauseStateListener : IGlobalSubscriber
     /// Событие изменения состояния паузы.
     /// </summary>
     /// <param name="args">Аргументы события.</param>
-    void OnPauseStateChanged(PauseEventArgs args);
+    void OnPauseStateChanged(PauseStateEventArgs args);
 }

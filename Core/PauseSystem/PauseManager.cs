@@ -82,11 +82,11 @@ public class PauseManager : IPauseManager
         => SetPauseState(isPaused, executer, e => e.IsCutSceneStateChange = true, ref isCutScenePaused, isUserAction);
 
     /// <inheritdoc />
-    private void SetPauseState(bool isPaused, object executer, Action<PauseEventArgs> setStateFlag, ref bool property, bool isUserAction = false)
+    private void SetPauseState(bool isPaused, object executer, Action<PauseStateEventArgs> setStateFlag, ref bool property, bool isUserAction = false)
     {
         var previousValue = property;
         property = isPaused;
-        var pauseArgs = new PauseEventArgs()
+        var pauseArgs = new PauseStateEventArgs()
         {
             IsCutSceneStateChange = true,
             PreviousValue = previousValue,
@@ -97,11 +97,11 @@ public class PauseManager : IPauseManager
         SetNotifyPauseChange(pauseArgs);
     }
 
-    private void SetNotifyPauseChange(PauseEventArgs pauseArgs)
+    private void SetNotifyPauseChange(PauseStateEventArgs pauseArgs)
         => EventBus.RaiseEvent<IPauseStateListener>(invoke => invoke.OnPauseStateChanged(pauseArgs));
 
     public static void SetNotifyPauseChange()
-        => EventBus.RaiseEvent<IPauseStateListener>(invoke => invoke.OnPauseStateChanged(new PauseEventArgs() { IsCustom = true }));
+        => EventBus.RaiseEvent<IPauseStateListener>(invoke => invoke.OnPauseStateChanged(new PauseStateEventArgs() { IsCustom = true }));
 
     #endregion
 }

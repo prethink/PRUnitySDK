@@ -8,7 +8,10 @@ public class EndRoundPlayerArgs : EndRoundArgsBase
     /// <summary> Все игроки, участвовавшие в раунде. </summary>
     public IReadOnlyList<IPlayer> Participants { get; set; }
 
-    public override string EventId => "GameSession.Round.EndRoundPlayer";
+    public override CategoryPath GetEventId()
+    {
+        return new CategoryPath(base.GetEventId(), "EndPlayer");
+    }
 }
 
 public class EndRoundTeamArgs : EndRoundArgsBase
@@ -22,14 +25,20 @@ public class EndRoundTeamArgs : EndRoundArgsBase
     /// <summary> Все команды (если применимо). </summary>
     public IReadOnlyList<IPlayerTeam> Teams { get;  set; }
 
-    public override string EventId => "GameSession.Round.EndRoundTeam";
+    public override CategoryPath GetEventId()
+    {
+        return new CategoryPath(base.GetEventId(), "EndTeam");
+    }
 }
 
 public abstract class EndRoundArgsBase : RoundArgsBase { }
 
 public class StartRoundArgsBase : RoundArgsBase 
 {
-    public override string EventId => "GameSession.Round.StartRound";
+    public override CategoryPath GetEventId()
+    {
+        return new CategoryPath(base.GetEventId(), "Start");
+    }
 }
 
 
@@ -69,6 +78,11 @@ public abstract class RoundArgsBase : GameSessionEventArgsBase
     public void SetCustom<T>(string key, T value)
     {
         CustomData[key] = value!;
+    }
+
+    public override CategoryPath GetEventId()
+    {
+        return new CategoryPath(base.GetEventId(), "Round");
     }
 }
 

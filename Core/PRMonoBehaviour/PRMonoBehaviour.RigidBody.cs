@@ -40,7 +40,7 @@ public partial class PRMonoBehaviour
             return;
 
         rigidbodies.Add(rigidbody);
-        OnPauseStateChanged(new PauseEventArgs());
+        OnPauseStateChanged(new PauseStateEventArgs());
     }
 
     protected virtual void ResumeRigidBody()

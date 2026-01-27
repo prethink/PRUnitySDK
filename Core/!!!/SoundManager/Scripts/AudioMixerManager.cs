@@ -143,7 +143,7 @@ public class AudioMixerManager : MonoBehaviour, IReadyGameEvent, IPauseStateList
 
     #endregion
 
-    public void OnPauseStateChanged(PauseEventArgs args)
+    public void OnPauseStateChanged(PauseStateEventArgs args)
     {
         if (args.Executer?.GetType() == typeof(GameManager))
         {

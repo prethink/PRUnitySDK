@@ -184,7 +184,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     #region IPauseStateListener
 
-    public virtual void OnPauseStateChanged(PauseEventArgs args)
+    public virtual void OnPauseStateChanged(PauseStateEventArgs args)
     {
         if(this.IsMethodDisabled(nameof(OnPauseStateChanged)))
             return;
@@ -211,8 +211,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             return;
         }
 
-        //this.DelayAction(timeout, (t) => Destroy(obj));  
-
+        this.DelayAction(timeout, (t) => Destroy(obj));
     }
 
     public virtual void PRDestroy(GameObject obj)
