@@ -8,7 +8,7 @@ public abstract class EventArgsBase
     /// <summary>
     /// Время события.
     /// </summary>
-    public virtual DateTime EventTime { get; }
+    public virtual DateTime EventTime { get; protected set; }
 
     /// <summary>
     /// Получить EventId.
@@ -17,5 +17,10 @@ public abstract class EventArgsBase
     public virtual CategoryPath GetEventId()
     {
         return new CategoryPath("Event");
+    }
+
+    protected EventArgsBase()
+    {
+        EventTime = PRUnitySDK.ServerTime.GetNow();
     }
 }

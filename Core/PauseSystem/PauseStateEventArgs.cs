@@ -56,11 +56,6 @@ public class PauseStateEventArgs : GameplayEventArgsBase
     public bool IsCustom;
 
     /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public override DateTime EventTime { get; }
-
-    /// <summary>
     /// Конструктор.
     /// </summary>
     public PauseStateEventArgs()

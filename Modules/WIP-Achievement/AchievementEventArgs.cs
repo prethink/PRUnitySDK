@@ -2,8 +2,6 @@ using System;
 
 public class AchievementEventArgs : GameplayEventArgsBase
 {
-    public override DateTime EventTime { get; }
-
     public string Trigger { get; }
 
     public AchievementEventArgs(string triggerName)
