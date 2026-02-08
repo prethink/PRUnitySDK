@@ -26,9 +26,7 @@ MonoBehaviour:
   <Rewards>k__BackingField:
     actions: []
     resources: []
-    items:
-    - key: 
-      value: {fileID: 0}
+    items: []
   <LocalizationDatabase>k__BackingField:
     languageFonts: []
     <DefaultLanguage>k__BackingField: 0

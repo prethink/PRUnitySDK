@@ -1,4 +1,4 @@
-public abstract class GameplayEventArgsBase : EventArgsBase
+public class GameplayEventArgsBase : EventArgsBase
 {
     public override CategoryPath GetEventId()
     {

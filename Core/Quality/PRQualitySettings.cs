@@ -1,11 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 [Serializable]
 public class PRQualitySettings
 {
+    [field: SerializeField]
+    public bool UseDefaultColor { get; protected set; } = true;
+
     [field: SerializeField, Header("Common")] 
     public ulong CommonWeight { get; protected set; } = 100;
 

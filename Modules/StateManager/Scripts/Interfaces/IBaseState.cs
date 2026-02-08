@@ -10,7 +10,7 @@ public interface IBaseState
     /// <summary>
     /// Уникальный ключ состояния, используется для идентификации и переключения.
     /// </summary>
-    public string StateKey { get; }
+    public Enumeration StateKey { get; }
 
     /// <summary>
     /// Определяет, является ли состояние стартовым при инициализации FSM.
@@ -39,11 +39,17 @@ public interface IBaseState
     public abstract void UpdateState();
 
     /// <summary>
+    /// Отдельный тик, чтобы не создавать большую нагрузку. 
+    /// Вызывается с определённым интервалом, который задаётся в менеджере состояний.
+    /// </summary>
+    public abstract void Tick();
+
+    /// <summary>
     /// Определяет ключ следующего состояния.
     /// Возвращает null или текущий ключ, если переход не требуется.
     /// </summary>
     /// <returns>Ключ следующего состояния.</returns>
-    public abstract string GetNextState();
+    public abstract Enumeration GetNextState();
 
     /// <summary>
     /// Вызывается при входе другого коллайдера в триггер.

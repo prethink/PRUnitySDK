@@ -6,14 +6,14 @@ using UnityEngine;
 /// <summary>
 /// Менеджер состояний.
 /// </summary>
-public class StateManager : PRMonoBehaviour
+public abstract class StateManager : PRMonoBehaviour
 {
     #region Поля и свойства
 
     /// <summary>
     /// Состояния.
     /// </summary>
-    protected Dictionary<string, IBaseState> States = new();
+    protected Dictionary<Enumeration, IBaseState> States = new();
 
     /// <summary>
     /// Текущее состояние.
@@ -24,6 +24,16 @@ public class StateManager : PRMonoBehaviour
     /// Предыдущее состояние.
     /// </summary>
     public IBaseState PreviousState { get; protected set; }
+
+    /// <summary>
+    /// Интервал тика (в секундах). Если 0 — не использовать Tick.
+    /// </summary>
+    public abstract float Tick { get; }
+
+    /// <summary>
+    /// Текущий тик.
+    /// </summary>
+    private float currentTick;
 
     /// <summary>
     /// Признак того, что происходит переход между состояниями.
@@ -38,13 +48,13 @@ public class StateManager : PRMonoBehaviour
     /// <summary>
     /// Ключ текущего состояния. Используется для отладки.
     /// </summary>
-    [field: SerializeField] public string CurrentStateKey { get; protected set; }
+    [field: SerializeField] public Enumeration CurrentStateKey { get; protected set; }
 
     #endregion
 
     #region События
 
-    public event Action<string> OnChangeState;
+    public event Action<Enumeration> OnChangeState;
 
     #endregion
 
@@ -60,7 +70,7 @@ public class StateManager : PRMonoBehaviour
 
         CurrentState.EnterState();
         CurrentStateKey = CurrentState.StateKey;
-        isWork = true;
+        StartWork();
     }
 
     /// <summary>
@@ -81,6 +91,22 @@ public class StateManager : PRMonoBehaviour
         StartStateMachine();
     }
 
+    public virtual void SetDefaultState()
+    {
+        var defaultState = States.Single(States => States.Value.IsStartState);
+        SetState(defaultState.Key);
+    }
+
+    public virtual void StopWork()
+    {
+        isWork = false;
+    }
+
+    public virtual void StartWork()
+    {
+        isWork = true;
+    }
+
     #region MonoBehaviour
 
     protected override void PRUpdate()
@@ -90,10 +116,17 @@ public class StateManager : PRMonoBehaviour
 
         PreUpdate();
 
-        string nextStateKey = CurrentState.GetNextState();
+        var nextStateKey = CurrentState.GetNextState();
 
         if (nextStateKey.Equals(CurrentState.StateKey))
+        {
+            if(PRTime.Instance.Time >= currentTick + Tick)
+            {
+                CurrentState.Tick();
+                currentTick = PRTime.Instance.Time;
+            }
             CurrentState.UpdateState();
+        }
         else
             TransitionToState(nextStateKey);
 
@@ -127,16 +160,16 @@ public class StateManager : PRMonoBehaviour
     /// </summary>
     /// <param name="stateKey">Ключ состояния.</param>
     /// <returns>True - совпадает, False - нет.</returns>
-    public bool IsCurrentState(string stateKey)
+    public bool IsCurrentState(Enumeration stateKey)
     {
-        return CurrentState?.StateKey.Equals(stateKey, StringComparison.OrdinalIgnoreCase) == true;
+        return CurrentState?.StateKey.Equals(stateKey) == true;
     }
 
     /// <summary>
     /// Установить новое состояние.
     /// </summary>
     /// <param name="statekey">Ключ состояния.</param>
-    public string SetState(string statekey)
+    public Enumeration SetState(Enumeration statekey)
     {
         if(States.ContainsKey(statekey))
             return TransitionToState(statekey);
@@ -148,7 +181,7 @@ public class StateManager : PRMonoBehaviour
     /// Переход на следующее состояние.
     /// </summary>
     /// <param name="statekey">Ключ состояния.</param>
-    private string TransitionToState(string statekey)
+    private Enumeration TransitionToState(Enumeration statekey)
     {
         IsTransitionState = true;
         CurrentState.ExitState();
@@ -166,7 +199,7 @@ public class StateManager : PRMonoBehaviour
     /// Оповестить об изменение состояния.
     /// </summary>
     /// <param name="statekey">Ключ состояния.</param>
-    public void NotifyStateChange(string statekey)
+    public void NotifyStateChange(Enumeration statekey)
     {
         OnChangeState?.Invoke(statekey);
     }

@@ -8,7 +8,7 @@ public abstract class MonoBehaviourStateBase : MonoBehaviour, IBaseState
     #region IBaseState
 
     /// <inheritdoc />
-    public abstract string StateKey { get; }
+    public abstract Enumeration StateKey { get; }
 
     /// <inheritdoc />
     public abstract bool IsStartState { get; }
@@ -23,7 +23,10 @@ public abstract class MonoBehaviourStateBase : MonoBehaviour, IBaseState
     public abstract void UpdateState();
 
     /// <inheritdoc />
-    public abstract string GetNextState();
+    public abstract void Tick();
+
+    /// <inheritdoc />
+    public abstract Enumeration GetNextState();
 
     /// <inheritdoc />
     public abstract void OnTriggerEnter(Collider other);
