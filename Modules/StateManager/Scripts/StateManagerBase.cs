@@ -6,24 +6,25 @@ using UnityEngine;
 /// <summary>
 /// Менеджер состояний.
 /// </summary>
-public abstract class StateManager : PRMonoBehaviour
+public abstract class StateManagerBase<T> : PRMonoBehaviour 
+    where T : StateManagerBase<T>
 {
     #region Поля и свойства
 
     /// <summary>
     /// Состояния.
     /// </summary>
-    protected Dictionary<Enumeration, IBaseState> States = new();
+    protected Dictionary<Enumeration, IBaseState<T>> States = new();
 
     /// <summary>
     /// Текущее состояние.
     /// </summary>
-    public IBaseState CurrentState { get; protected set; }
+    public IBaseState<T> CurrentState { get; protected set; }
 
     /// <summary>
     /// Предыдущее состояние.
     /// </summary>
-    public IBaseState PreviousState { get; protected set; }
+    public IBaseState<T> PreviousState { get; protected set; }
 
     /// <summary>
     /// Интервал тика (в секундах). Если 0 — не использовать Tick.
@@ -78,7 +79,7 @@ public abstract class StateManager : PRMonoBehaviour
     /// </summary>
     protected virtual void InitStateMachine()
     {
-        var monoBehaviourStates = GetComponents<IBaseState>();
+        var monoBehaviourStates = GetComponents<IBaseState<T>>();
         foreach (var monoBehaviourState in monoBehaviourStates)
         {
             States.Add(monoBehaviourState.StateKey, monoBehaviourState);
@@ -86,7 +87,7 @@ public abstract class StateManager : PRMonoBehaviour
             if (monoBehaviourState.IsStartState)
                 CurrentState = monoBehaviourState;
 
-            monoBehaviourState.LinkToStateManager(this);
+            monoBehaviourState.LinkToStateManager(this as T);
         }
         StartStateMachine();
     }
@@ -150,7 +151,7 @@ public abstract class StateManager : PRMonoBehaviour
 
     }
 
-    public void AddState(IBaseState state)
+    public void AddState(IBaseState<T> state)
     {
         States.Add(state.StateKey, state);
     }
@@ -206,21 +207,17 @@ public abstract class StateManager : PRMonoBehaviour
 
     protected override void PROnTriggerEnter(Collider other)
     {
-        if (CurrentState is BaseState)
-            CurrentState.OnTriggerEnter(other);
-
+        CurrentState?.OnTriggerEnter(other);
     }
 
     protected override void PROnTriggerStay(Collider other)
     {
-        if (CurrentState is BaseState)
-            CurrentState.OnTriggerStay(other);
+        CurrentState?.OnTriggerStay(other);
     }
 
     protected override void PROnTriggerExit(Collider other)
     {
-        if (CurrentState is BaseState)
-            CurrentState.OnTriggerExit(other);
+        CurrentState?.OnTriggerExit(other);
     }
 
 

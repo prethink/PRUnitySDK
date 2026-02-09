@@ -3,6 +3,35 @@ using UnityEngine;
 /// <summary>
 /// Базовый интерфейс для состояний FSM (Finite State Machine).
 /// </summary>
+public interface IBaseState<T> : IBaseState
+    where T : StateManagerBase<T>
+{
+    #region Поля и свойства
+
+
+    /// <summary>
+    /// Определяет, является ли состояние стартовым при инициализации FSM.
+    /// </summary>
+    public T StateManager { get; }
+
+    #endregion
+
+    #region Методы
+
+    /// <summary>
+    /// Привязывает состояние к менеджеру состояний.
+    /// Используется для управления переходами и доступом к FSM.
+    /// </summary>
+    /// <param name="stateManager">Менеджер состояний.</param>
+    public void LinkToStateManager(T stateManager);
+
+    #endregion
+}
+
+
+/// <summary>
+/// Базовый интерфейс для состояний FSM (Finite State Machine).
+/// </summary>
 public interface IBaseState
 {
     #region Поля и свойства
@@ -16,6 +45,7 @@ public interface IBaseState
     /// Определяет, является ли состояние стартовым при инициализации FSM.
     /// </summary>
     public bool IsStartState { get; }
+
 
     #endregion
 
@@ -97,13 +127,6 @@ public interface IBaseState
     /// </summary>
     /// <param name="data">Связанный объект сцены.</param>
     public virtual void AnimationTriggerGameObject(GameObject data) { }
-
-    /// <summary>
-    /// Привязывает состояние к менеджеру состояний.
-    /// Используется для управления переходами и доступом к FSM.
-    /// </summary>
-    /// <param name="stateManager">Менеджер состояний.</param>
-    public void LinkToStateManager(StateManager stateManager);
 
     #endregion
 }

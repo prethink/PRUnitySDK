@@ -143,7 +143,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     #region MonoBehaviour
 
-    private void OnDestroy()
+    protected virtual void OnDestroy()
     {
         PRUnitySDK.Trackers.Entities.Unregister(this);
     }
@@ -220,7 +220,10 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     public virtual void OnSessionEnd() { }
 
-    public abstract void EntityInitialize();
+    protected virtual void EntityInitialize()
+    {
+
+    }
 
     #endregion
 }

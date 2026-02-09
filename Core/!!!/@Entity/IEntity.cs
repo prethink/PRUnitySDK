@@ -58,9 +58,4 @@ public partial interface IEntity
     /// В Unity gameObject идет с маленькой буквы.
     /// </summary>
     public GameObject gameObject { get; }
-
-    /// <summary>
-    /// Инициализация сущности.
-    /// </summary>
-    public void EntityInitialize();
 }

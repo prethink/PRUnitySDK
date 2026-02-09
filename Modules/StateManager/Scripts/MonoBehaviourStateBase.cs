@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Ѕазовое состо€ние использу€ компонентную систему MonoBehaviour.
 /// </summary>
-public abstract class MonoBehaviourStateBase : MonoBehaviour, IBaseState
+public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IBaseState<T> 
+    where T : StateManagerBase<T>
 {
     #region IBaseState
 
@@ -12,6 +13,8 @@ public abstract class MonoBehaviourStateBase : MonoBehaviour, IBaseState
 
     /// <inheritdoc />
     public abstract bool IsStartState { get; }
+
+    public T StateManager { get; protected set; }
 
     /// <inheritdoc />
     public abstract void EnterState();
@@ -53,7 +56,7 @@ public abstract class MonoBehaviourStateBase : MonoBehaviour, IBaseState
     public virtual void AnimationTriggerGameObject(GameObject data) { }
 
     /// <inheritdoc />
-    public virtual void LinkToStateManager(StateManager stateManager)
+    public virtual void LinkToStateManager(T stateManager)
     {
 
     }
