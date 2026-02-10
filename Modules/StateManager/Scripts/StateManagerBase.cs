@@ -34,7 +34,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// <summary>
     /// Текущий тик.
     /// </summary>
-    private float currentTick;
+    private Cooldown Cooldown = new Cooldown();
 
     /// <summary>
     /// Признак того, что происходит переход между состояниями.
@@ -85,10 +85,15 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
             States.Add(monoBehaviourState.StateKey, monoBehaviourState);
 
             if (monoBehaviourState.IsStartState)
+            {
                 CurrentState = monoBehaviourState;
-
-            monoBehaviourState.LinkToStateManager(this as T);
+                PreviousState = CurrentState;
+            }
         }
+
+        foreach (var state in States)
+            state.Value.LinkToStateManager(this as T);
+
         StartStateMachine();
     }
 
@@ -98,9 +103,12 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
         SetState(defaultState.Key);
     }
 
-    public virtual void StopWork()
+    public virtual void StopWork(bool setDefaultState = false)
     {
         isWork = false;
+
+        if(setDefaultState)
+            SetDefaultState();
     }
 
     public virtual void StartWork()
@@ -121,17 +129,21 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
 
         if (nextStateKey.Equals(CurrentState.StateKey))
         {
-            if(PRTime.Instance.Time >= currentTick + Tick)
+            Cooldown.TryExecute(Tick, () =>
             {
-                CurrentState.Tick();
-                currentTick = PRTime.Instance.Time;
-            }
+                TickRate();
+            });
             CurrentState.UpdateState();
         }
         else
             TransitionToState(nextStateKey);
 
         PostUpdate();
+    }
+
+    protected virtual void TickRate()
+    {
+        CurrentState.Tick();
     }
 
     #endregion

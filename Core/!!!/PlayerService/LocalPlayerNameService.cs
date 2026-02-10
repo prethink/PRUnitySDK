@@ -1,4 +1,4 @@
-public class LocalPlayerService : PlayerServiceBase
+public class LocalPlayerNameService : PlayerNameServiceBase
 {
     public override string GetCurrentName()
     {

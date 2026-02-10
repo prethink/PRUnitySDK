@@ -20,7 +20,7 @@ MonoBehaviour:
     <EncryptionStrategy>k__BackingField: 0
   <Project>k__BackingField:
     <ReleaseType>k__BackingField: 0
-    <DebugLogLevel>k__BackingField: 0
+    <DebugLogLevel>k__BackingField: 10
     <ResolveStrategy>k__BackingField: 0
   <Game>k__BackingField:
     <KnockoutPower>k__BackingField:
@@ -34,7 +34,7 @@ MonoBehaviour:
       <Eight>k__BackingField: 10
       <Nine>k__BackingField: 11
       <Ten>k__BackingField: 12
-    <StepSeconds>k__BackingField: 6
+    <StepSeconds>k__BackingField: 10
   <SceneTransition>k__BackingField:
     <UseFadeOnChange>k__BackingField: 1
     <LoaderTimeout>k__BackingField: 0

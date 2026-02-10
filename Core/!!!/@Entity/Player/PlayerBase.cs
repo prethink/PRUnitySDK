@@ -222,7 +222,7 @@ public abstract class PlayerBase : EntityBase, IPlayer
     public void JoinGame()
     {
         if (PlayerType == PlayerType.Human)
-            HumanId = GameSessionBehaviour.Manager.PlayerTracker.GetNextId();
+            HumanId = PRUnitySDK.Trackers.Players.GetNextId();
 
         debugPlayerId = HumanId;
 
@@ -232,7 +232,7 @@ public abstract class PlayerBase : EntityBase, IPlayer
     public void RemovePlayer()
     {
         if (PlayerType == PlayerType.Human)
-            GameSessionBehaviour.Manager.PlayerTracker.RemoveId(HumanId);
+            PRUnitySDK.Trackers.Players.RemoveId(HumanId);
     }
 
     #endregion

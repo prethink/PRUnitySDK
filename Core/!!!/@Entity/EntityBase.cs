@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Базовый класс сущности.
 /// </summary>
-public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, IGameSessionListener
+public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 {
     #region Поля и свойства
 
@@ -150,13 +150,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     protected override void OnEnable()
     {
-        GameSessionBehaviour.Register(this);
         base.OnEnable();
     }
 
     protected override void OnDisable()
     {
-        GameSessionBehaviour.Unregister();
         base.OnDisable();
     }
 
@@ -210,15 +208,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     #region IGameSessionListener
 
-    public GameSessionBehaviour GameSessionBehaviour { get; private set; }
-
     public IEntityInfo Info => throw new NotImplementedException();
-
-    public virtual void OnPreparingData() { }
-
-    public virtual void OnSessionStart() { }
-
-    public virtual void OnSessionEnd() { }
 
     protected virtual void EntityInitialize()
     {

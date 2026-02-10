@@ -8,7 +8,6 @@ public interface IBaseState<T> : IBaseState
 {
     #region ѕол€ и свойства
 
-
     /// <summary>
     /// ќпредел€ет, €вл€етс€ ли состо€ние стартовым при инициализации FSM.
     /// </summary>
@@ -45,7 +44,6 @@ public interface IBaseState
     /// ќпредел€ет, €вл€етс€ ли состо€ние стартовым при инициализации FSM.
     /// </summary>
     public bool IsStartState { get; }
-
 
     #endregion
 

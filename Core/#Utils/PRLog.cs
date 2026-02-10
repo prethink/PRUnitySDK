@@ -24,8 +24,8 @@ public static class PRLog
         CreateSettingsIfNull(ref settings);
         AddColorIfEmpty(settings, DEBUG_COLOR);
 
-        //TODO: if (ProjectBus.IsRelease && !settings.IgnoreBuildSettings || !settings.IgnoreBuildSettings && settings.LevelDebug > ProjectBus.DebugLogLevel)
-        //    return;
+        if (PRUnitySDK.Settings.Project.ReleaseType == ReleaseType.Release && !settings.IgnoreBuildSettings || !settings.IgnoreBuildSettings && settings.LevelDebug > PRUnitySDK.Settings.Project.DebugLogLevel)
+            return;
 
         Debug.Log(GetFormattedMessage(type, message, settings));
     }

@@ -1,6 +1,6 @@
 using YG;
 
-public class YandexPlayerService : PlayerServiceBase
+public class YandexPlayerNameService : PlayerNameServiceBase
 {
     public override string GetCurrentName()
     {

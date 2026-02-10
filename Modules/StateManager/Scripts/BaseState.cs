@@ -58,7 +58,7 @@ public abstract class BaseState<T> : IBaseState<T>
     /// <inheritdoc />
     public virtual void LinkToStateManager(T stateManager)
     {
-
+        this.StateManager = stateManager;
     }
 
     #endregion
