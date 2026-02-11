@@ -1,3 +1,5 @@
+using System;
+
 public partial class PRUnitySDK
 {
     /// <summary>
@@ -68,7 +70,7 @@ public partial class PRUnitySDK
     public static void RegisterService<T>(T service)
     {
         if (serviceResolver is not ServiceResolver defaultServiceResolver)
-            return;
+            throw new InvalidOperationException($"Cannot register service of type {typeof(T).FullName} because the default resolver is not being used."); 
 
         defaultServiceResolver.Register<T>(service);
     }

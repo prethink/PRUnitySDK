@@ -20,7 +20,7 @@ MonoBehaviour:
     <EncryptionStrategy>k__BackingField: 0
   <Project>k__BackingField:
     <ReleaseType>k__BackingField: 0
-    <DebugLogLevel>k__BackingField: 10
+    <DebugLogLevel>k__BackingField: 9
     <ResolveStrategy>k__BackingField: 0
   <Game>k__BackingField:
     <KnockoutPower>k__BackingField:
