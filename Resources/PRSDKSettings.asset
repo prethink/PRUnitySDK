@@ -24,16 +24,16 @@ MonoBehaviour:
     <ResolveStrategy>k__BackingField: 0
   <Game>k__BackingField:
     <KnockoutPower>k__BackingField:
-      <One>k__BackingField: 3
-      <Two>k__BackingField: 4
-      <Three>k__BackingField: 5
-      <Four>k__BackingField: 6
-      <Five>k__BackingField: 7
-      <Six>k__BackingField: 8
-      <Seven>k__BackingField: 9
-      <Eight>k__BackingField: 10
-      <Nine>k__BackingField: 11
-      <Ten>k__BackingField: 12
+      <One>k__BackingField: 1
+      <Two>k__BackingField: 2
+      <Three>k__BackingField: 3
+      <Four>k__BackingField: 4
+      <Five>k__BackingField: 5
+      <Six>k__BackingField: 6
+      <Seven>k__BackingField: 7
+      <Eight>k__BackingField: 8
+      <Nine>k__BackingField: 9
+      <Ten>k__BackingField: 10
     <StepSeconds>k__BackingField: 10
   <SceneTransition>k__BackingField:
     <UseFadeOnChange>k__BackingField: 1
