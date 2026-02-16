@@ -5,6 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Базовый класс сущности.
 /// </summary>
+[RequireComponent(typeof(EntityLink))]
 public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 {
     #region Поля и свойства

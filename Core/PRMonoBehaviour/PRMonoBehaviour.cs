@@ -98,7 +98,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionEnter(Collision collision)
     {
-        if(this.IsMethodDisabled(nameof(OnCollisionEnter)))
+        Debug.Log("Hit!");
+        if (this.IsMethodDisabled(nameof(OnCollisionEnter)))
             return;
 
         if (PRUnitySDK.PauseManager.IsLogicPaused)
