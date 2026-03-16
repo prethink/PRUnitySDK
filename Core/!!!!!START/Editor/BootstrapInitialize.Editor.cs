@@ -1,4 +1,3 @@
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 //public static class BootstrapInitializer
@@ -27,7 +26,6 @@ using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEngine;
 
 [InitializeOnLoad]
 public static class PlayFromBootstrap
