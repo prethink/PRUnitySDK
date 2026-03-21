@@ -61,5 +61,10 @@ public abstract class BaseState<T> : IBaseState<T>
         this.StateManager = stateManager;
     }
 
+    public virtual void BackgroundUpdate()
+    {
+
+    }
+
     #endregion
 }

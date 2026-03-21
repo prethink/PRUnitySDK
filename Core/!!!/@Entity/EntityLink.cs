@@ -49,6 +49,7 @@ public class EntityLink : PRMonoBehaviour
     private void TryFindEntity()
     {
         Entity ??= GetComponentInParent<EntityBase>();
+        Entity ??= GetComponent<EntityBase>();
     }
 
     /// <summary>

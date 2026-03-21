@@ -26,6 +26,9 @@ public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IBaseState<T>
     public abstract void UpdateState();
 
     /// <inheritdoc />
+    public virtual void BackgroundUpdate() { }
+
+    /// <inheritdoc />
     public abstract void Tick();
 
     /// <inheritdoc />
@@ -58,7 +61,7 @@ public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IBaseState<T>
     /// <inheritdoc />
     public virtual void LinkToStateManager(T stateManager)
     {
-
+        this.StateManager = stateManager;
     }
 
     #endregion

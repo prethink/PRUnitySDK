@@ -14,6 +14,17 @@ public static class ClassExtension
         return obj.GetType().IsMethodDisabled(methodName);
     }
 
+    public static bool IsNull(this object obj)
+    {
+        if (obj == null)
+            return true;
+
+        if (obj is UnityEngine.Object unityObj)
+            return unityObj == null;
+
+        return false;
+    }
+
     /// <summary>
     /// Проверяет, заблокирован ли метод для данного типа через атрибут.
     /// </summary>

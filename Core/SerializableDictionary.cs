@@ -18,7 +18,6 @@ public class SerializableDictionary<TKey, TValue> : ISerializationCallbackReceiv
         set => dictionary[key] = value;
     }
 
-
     public bool TryGetValue(TKey key, out TValue value)
         => dictionary.TryGetValue(key, out value);
 

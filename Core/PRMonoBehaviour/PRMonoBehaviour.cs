@@ -55,7 +55,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void OnValidate()
     {
-        InitializationComponents();
+
     }
 
     private void OnTriggerStay(Collider other)
@@ -98,7 +98,6 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionEnter(Collision collision)
     {
-        Debug.Log("Hit!");
         if (this.IsMethodDisabled(nameof(OnCollisionEnter)))
             return;
 

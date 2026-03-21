@@ -1,60 +1,44 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using System.Reflection;
-using System.Linq;
-using System.Collections.Generic;
 
-[CustomPropertyDrawer(typeof(EnumerationReference))]
+[CustomPropertyDrawer(typeof(EnumerationReference<>), true)]
 public class EnumerationReferenceDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        // Поле, где хранится значение
         var valueProp = property.FindPropertyRelative("value");
 
-        // Получаем атрибут EnumerationOptionsAttribute, если он есть
-        var attr = fieldInfo
-            .GetCustomAttributes(typeof(EnumerationOptionsAttribute), false)
-            .FirstOrDefault() as EnumerationOptionsAttribute;
+        var options = GetOptions();
 
-        if (attr == null)
+        if (options == null)
         {
             EditorGUI.PropertyField(position, valueProp, label);
             return;
         }
 
-        // Сначала пытаемся получить статический метод
-        IEnumerable<string> options = null;
-        var method = attr.OptionsType.GetMethod(attr.StaticMethodName,
-            BindingFlags.Public | BindingFlags.Static);
+        var optionsArray = options.Select(o => o.Value).ToArray();
 
-        if (method != null)
-        {
-            // Если метод есть, вызываем его
-            var result = method.Invoke(null, null) as IEnumerable<Enumeration>;
-            if (result != null)
-                options = result.Select(e => e.Value);
-        }
+        int index = Mathf.Max(0, Array.IndexOf(optionsArray, valueProp.stringValue));
 
-        // Если метода нет или вернул null, fallback на публичные статические поля
-        if (options == null)
-        {
-            var fields = attr.OptionsType.GetFields(BindingFlags.Public | BindingFlags.Static);
-            options = fields
-                .Select(f => f.GetValue(null))
-                .OfType<Enumeration>()
-                .Select(e => e.Value);
-        }
+        int newIndex = EditorGUI.Popup(position, label.text, index, optionsArray);
 
-        var optionsArray = options.ToArray();
-
-        // Текущий индекс
-        int currentIndex = Mathf.Max(0, System.Array.IndexOf(optionsArray, valueProp.stringValue));
-
-        // Рисуем popup
-        int newIndex = EditorGUI.Popup(position, label.text, currentIndex, optionsArray);
-
-        // Сохраняем новое значение
         valueProp.stringValue = optionsArray[newIndex];
+    }
+
+    private IEnumerable<Enumeration> GetOptions()
+    {
+        var type = fieldInfo.FieldType;
+
+        if (!type.IsGenericType)
+            return null;
+
+        var genericType = type.GetGenericArguments()[0];
+
+        var provider = Activator.CreateInstance(genericType) as IEnumerationProvider;
+
+        return provider?.GetOptions();
     }
 }

@@ -62,9 +62,14 @@ public interface IBaseState
     public abstract void ExitState();
 
     /// <summary>
-    /// Обновление состояния, вызывается каждый кадр.
+    /// Обновление состояния, вызывается каждый кадр только если текущий стейт.
     /// </summary>
     public abstract void UpdateState();
+
+    /// <summary>
+    /// Обновление состояния, вызывается каждый кадр всегда.
+    /// </summary>
+    public void BackgroundUpdate();
 
     /// <summary>
     /// Отдельный тик, чтобы не создавать большую нагрузку. 
@@ -125,6 +130,30 @@ public interface IBaseState
     /// </summary>
     /// <param name="data">Связанный объект сцены.</param>
     public virtual void AnimationTriggerGameObject(GameObject data) { }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="action">Название события.</param>
+    public virtual void TriggerAction(Enumeration action) { }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="action">Название события.</param>
+    public virtual void TriggerActionPressedUp(Enumeration action) { }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="action">Название события.</param>
+    public virtual void TriggerActionPressedDown(Enumeration action) { }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="action">Название события.</param>
+    public virtual void TriggerActionPressed(Enumeration action) { }
 
     #endregion
 }

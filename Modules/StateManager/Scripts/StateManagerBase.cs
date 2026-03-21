@@ -125,6 +125,11 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
 
         PreUpdate();
 
+        foreach (var state in States)
+            state.Value.BackgroundUpdate();
+
+        GlobalStateUpdate();
+
         var nextStateKey = CurrentState.GetNextState();
 
         if (nextStateKey.Equals(CurrentState.StateKey))
@@ -139,6 +144,11 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
             TransitionToState(nextStateKey);
 
         PostUpdate();
+    }
+
+    protected virtual void GlobalStateUpdate()
+    {
+
     }
 
     protected virtual void TickRate()
