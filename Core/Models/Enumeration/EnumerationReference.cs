@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [Serializable]
@@ -10,13 +11,25 @@ public class EnumerationReference<T> : EnumerationReference
     {
         return typeof(T).GetEnumerationsSmart(true);
     }
+
+    public void SetDefaultIfNull(Enumeration enumeration)
+    {
+        if(string.IsNullOrEmpty(value))
+        {
+            var available = GetOptions();
+            if (!available.Any(e => e == enumeration))
+                throw new Exception($"Enumeration '{enumeration}' не существует в {typeof(T).Name}");
+
+            value = enumeration.Value;
+        }
+    }
 }
 
 [Serializable]
 public class EnumerationReference
 {
     [SerializeField]
-    private string value;
+    protected string value;
 
     public string Value => value;
 

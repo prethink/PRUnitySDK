@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public class PRSaveData : ICloneable
 {
@@ -9,6 +10,8 @@ public class PRSaveData : ICloneable
     public GameSettings GameSettings;
 
     public ProjectData ProjectData;
+
+    public Dictionary<string, Dictionary<string, object>> Data = new();
 
     public PRSaveData()
     {

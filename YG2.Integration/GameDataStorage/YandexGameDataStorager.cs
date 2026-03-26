@@ -1,12 +1,13 @@
-using System;
+п»їusing System;
+using System.Collections.Generic;
 using YG;
 
 /// <summary>
-/// Менеджер сохранения для работы с yandexSDK.
+/// РњРµРЅРµРґР¶РµСЂ СЃРѕС…СЂР°РЅРµРЅРёСЏ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ yandexSDK.
 /// </summary>
 public class YandexGameDataStorager : IGameDataStorage
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     private PRSaveData saveData;
 
@@ -149,6 +150,53 @@ public class YandexGameDataStorager : IGameDataStorage
 
         if(requiredSave)
             Save();
+    }
+
+    public void SetValue<T>(Enumeration category, Enumeration<T> enumeration, T value, bool isRequiredSave = true)
+    {
+        if (!this.saveData.Data.TryGetValue(category.Value, out var categoryDict))
+        {
+            categoryDict = new Dictionary<string, object>();
+            this.saveData.Data[category.Value] = categoryDict;
+        }
+
+        categoryDict[enumeration.Value] = value;
+
+        if (isRequiredSave)
+            Save();
+    }
+
+    public T GetValue<T>(Enumeration category, Enumeration<T> enumeration, T defaultValue)
+    {
+        if (this.saveData.Data.TryGetValue(category.Value, out var categoryDict))
+        {
+            if (categoryDict.TryGetValue(enumeration.Value, out var value))
+            {
+                if (value is T typedValue)
+                    return typedValue;
+
+                return ConvertValue<T>(value, enumeration.ValueType);
+            }
+        }
+
+        return defaultValue;
+    }
+
+    private T ConvertValue<T>(object value, Type targetType)
+    {
+        if (targetType == typeof(float))
+            return (T)(object)Convert.ToSingle(value);
+
+        if (targetType == typeof(int))
+            return (T)(object)Convert.ToInt32(value);
+
+        if (targetType == typeof(bool))
+            return (T)(object)Convert.ToBoolean(value);
+
+        if (targetType.IsEnum)
+            return (T)Enum.Parse(targetType, value.ToString());
+
+        throw new Exception($"Unsupported type {targetType}");
     }
 
     public GameStorageSettings GetSettings()

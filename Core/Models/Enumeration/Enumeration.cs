@@ -1,6 +1,16 @@
 using System;
 
-public readonly struct Enumeration : IEquatable<Enumeration>
+public class Enumeration<T> : Enumeration
+{
+    public Type ValueType => typeof(T);
+
+    public Enumeration(string value) : base(value)
+    {
+
+    }
+}
+
+public class Enumeration : IEquatable<Enumeration>
 {
     public string Value { get; }
 

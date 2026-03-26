@@ -100,4 +100,14 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
         if (requiredSave)
             Save();
     }
+
+    public void SetValue<T>(Enumeration category, Enumeration<T> enumeration, T value, bool isRequiredSave = true)
+    {
+        throw new NotImplementedException();
+    }
+
+    public T GetValue<T>(Enumeration category, Enumeration<T> enumeration, T defaultValue)
+    {
+        throw new NotImplementedException();
+    }
 }
