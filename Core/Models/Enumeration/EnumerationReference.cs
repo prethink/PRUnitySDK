@@ -15,13 +15,16 @@ public class EnumerationReference<T> : EnumerationReference
     public void SetDefaultIfNull(Enumeration enumeration)
     {
         if(string.IsNullOrEmpty(value))
-        {
-            var available = GetOptions();
-            if (!available.Any(e => e == enumeration))
-                throw new Exception($"Enumeration '{enumeration}' не существует в {typeof(T).Name}");
+            Set(enumeration);
+    }
 
-            value = enumeration.Value;
-        }
+    public void Set(Enumeration enumeration)
+    {
+        var available = GetOptions();
+        if (!available.Any(e => e == enumeration))
+            throw new Exception($"Enumeration '{enumeration}' не существует в {typeof(T).Name}");
+
+        value = enumeration.Value;
     }
 }
 

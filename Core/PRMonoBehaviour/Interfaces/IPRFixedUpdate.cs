@@ -1,4 +1,4 @@
-public interface IPRFixedUpdate 
+public interface IPRFixedUpdate : IOrderTick
 {
     void PRFixedUpdate();
 }

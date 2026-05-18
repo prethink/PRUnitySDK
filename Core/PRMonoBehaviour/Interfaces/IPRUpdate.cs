@@ -1,4 +1,4 @@
-public interface IPRUpdate 
+public interface IPRUpdate : IOrderTick
 {
     void PRUpdate();
 }

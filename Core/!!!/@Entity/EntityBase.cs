@@ -5,6 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Базовый класс сущности.
 /// </summary>
+[RequireComponent(typeof(RigidBodyPauseMonitor), typeof(AnimatorPauseMonitor))]
 public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 {
     #region Поля и свойства
@@ -70,6 +71,10 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
 
     [field: SerializeField] public Sprite KillIcon { get; protected set; }
+
+    protected RigidBodyPauseMonitor rigidBodyPauseMonitor;
+
+    protected AnimatorPauseMonitor animatorPauseMonitor;
 
     public virtual void GenerateId(Func<int> register)
     {
@@ -139,6 +144,14 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
         entityGameObject = entity;
     }
 
+    protected override void InitializationComponents()
+    {
+        base.InitializationComponents();
+
+        rigidBodyPauseMonitor = GetComponent<RigidBodyPauseMonitor>();
+        animatorPauseMonitor = GetComponent<AnimatorPauseMonitor>();
+    }
+
     #endregion
 
     #region MonoBehaviour
@@ -170,9 +183,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     protected override void Start()
     {
         RegisterEntity();
-        if(RootEntityObject.TryGetComponent<Rigidbody>(out var rb))
-            RegisterRigidBody(rb);
-
         base.Start();
     }
 
@@ -208,7 +218,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region IGameSessionListener
 
-    public IEntityInfo Info => throw new NotImplementedException();
+    public IEntityInfo Info => null;
 
     protected virtual void EntityInitialize()
     {

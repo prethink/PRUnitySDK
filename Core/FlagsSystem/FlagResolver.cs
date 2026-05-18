@@ -5,7 +5,7 @@
 /// Поддерживает Allow / Deny / Default.
 /// Один source может иметь только одно влияние.
 /// </summary>
-public class FlagContainer
+public class FlagResolver
 {
     private enum Influence
     {
@@ -13,23 +13,49 @@ public class FlagContainer
         Deny
     }
 
+    private readonly struct FlagState
+    {
+        public readonly Influence Decision;
+        public readonly bool IsFrame;
+
+        public FlagState(Influence decision, bool isFrame)
+        {
+            Decision = decision;
+            IsFrame = isFrame;
+        }
+    }
+
     public bool IsDirty { get; protected set; }
 
-    // key → (source → influence)
-    private readonly Dictionary<Enumeration, Dictionary<object, Influence>> flags = new();
+    private readonly Dictionary<Enumeration, Dictionary<object, FlagState>> flags = new();
 
     /// <summary>
     /// Добавить или обновить влияние на флаг.
     /// </summary>
     public void Add(Enumeration key, object source, bool value)
     {
+        Add(key, source, value, false);
+    }
+
+    /// <summary>
+    /// Добавить или обновить влияние на флаг.
+    /// </summary>
+    public void Add(Enumeration key, object source, bool value, bool isFlagFrame)
+    {
         if (!flags.TryGetValue(key, out var sources))
         {
-            sources = new Dictionary<object, Influence>();
+            sources = new Dictionary<object, FlagState>();
             flags[key] = sources;
         }
 
-        sources[source] = value ? Influence.Allow : Influence.Deny;
+        sources[source] = value 
+            ? new FlagState(Influence.Allow, isFlagFrame)
+            : new FlagState(Influence.Deny, isFlagFrame);
+    }
+
+    public void AddFrame(Enumeration key, object source, bool value)
+    {
+        Add(key, source, value, true);
     }
 
     /// <summary>
@@ -72,10 +98,10 @@ public class FlagContainer
 
             var influence = kvp.Value;
 
-            if (influence == Influence.Deny)
+            if (influence.Decision == Influence.Deny)
                 return false;
 
-            if (influence == Influence.Allow)
+            if (influence.Decision == Influence.Allow)
                 hasAllow = true;
         }
 
@@ -100,6 +126,11 @@ public class FlagContainer
     public void Clear()
     {
         flags.Clear();
+    }
+
+    public void ClearFrameFlags()
+    {
+
     }
 
     public void SetDirty()

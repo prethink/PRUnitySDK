@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public partial class PRMonoBehaviour
+public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
 {
     protected struct RigidbodyData
     {
@@ -21,20 +21,32 @@ public partial class PRMonoBehaviour
     /// </summary>
     protected Dictionary<Rigidbody, RigidbodyData> rigidbodyStates = new();
 
-    [MethodHook(MethodHookStage.Pause)]
-    public virtual void OnPauseRigidChange()
+    #region MonoBehaviour
+
+    private void OnEnable()
     {
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
-            PauseRigidBody();
-        else
-            ResumeRigidBody();
+        EventBus.Subscribe(this);
     }
+
+    private void OnDisable()
+    {
+        EventBus.Unsubscribe(this);
+    }
+
+    private void Awake()
+    {
+        var rigidBodies = this.gameObject.GetComponentsInSelfOrChildren<Rigidbody>();
+        foreach (var rb in rigidBodies)
+            RegisterRigidBody(rb);
+    }
+
+    #endregion
 
     /// <summary>
     /// Регистрация rigidBody.
     /// </summary>
     /// <param name="rigidbody">rigidbody.</param>
-    protected virtual void RegisterRigidBody(Rigidbody rigidbody)
+    public virtual void RegisterRigidBody(Rigidbody rigidbody)
     {
         if (rigidbody == null)
             return;
@@ -83,4 +95,16 @@ public partial class PRMonoBehaviour
             //rb.isKinematic = true;
         }
     }
+
+    #region IPauseStateListener
+
+    public void OnPauseStateChanged(PauseStateEventArgs args)
+    {
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            PauseRigidBody();
+        else
+            ResumeRigidBody();
+    }
+
+    #endregion
 }

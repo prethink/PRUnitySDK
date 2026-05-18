@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public partial class PRMonoBehaviour
+public class AnimatorPauseMonitor : MonoBehaviour, IPauseStateListener
 {
     protected class AnimatorData
     {
@@ -13,16 +13,27 @@ public partial class PRMonoBehaviour
 
     protected readonly Dictionary<Animator, AnimatorData> animatorStates = new();
 
-    [MethodHook(MethodHookStage.Pause)]
-    public virtual void OnPauseAnimatorChange()
+    #region MonoBehaviour
+    private void OnEnable()
     {
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
-            PauseAnimators();
-        else
-            ResumeAnimators();
+        EventBus.Subscribe(this);
     }
 
-    protected void RegisterAnimator(Animator animator)
+    private void OnDisable()
+    {
+        EventBus.Unsubscribe(this);
+    }
+
+    private void Awake()
+    {
+        var animators = this.gameObject.GetComponentsInSelfOrChildren<Animator>();
+        foreach (var animator in animators)
+            RegisterAnimator(animator);
+    }
+
+    #endregion
+
+    public void RegisterAnimator(Animator animator)
     {
         if (animator == null)
             return;
@@ -63,4 +74,16 @@ public partial class PRMonoBehaviour
 
         animatorStates.Clear();
     }
+
+    #region IPauseStateListener
+
+    public void OnPauseStateChanged(PauseStateEventArgs args)
+    {
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            PauseAnimators();
+        else
+            ResumeAnimators();
+    }
+
+    #endregion
 }

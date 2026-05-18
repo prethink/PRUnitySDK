@@ -108,13 +108,6 @@ public abstract class PlayerBase : EntityBase, IPlayer
         //InitHealth();
         //OnSpawnInvoke(EntityGameObject.transform.position);
         OnPlayerInit?.Invoke(this);
-        var rigidBodies = RootEntityObject.GetComponentsInSelfOrChildren<Rigidbody>();
-        foreach (var rb in rigidBodies)
-            RegisterRigidBody(rb);
-
-        var animators = RootEntityObject.GetComponentsInSelfOrChildren<Animator>();
-        foreach (var animator in animators)
-            RegisterAnimator(animator);
     }
 
     public virtual void StartFly(Vector3 direction, float distance)

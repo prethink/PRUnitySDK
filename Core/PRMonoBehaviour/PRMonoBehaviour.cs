@@ -1,18 +1,19 @@
-using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
 public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListener, IReadySceneGameEvent, IReadyGameEvent
 {
     #region MonoBehaviour
 
-    private readonly HashSet<Collider> collidersInside = new();
-
     protected virtual void Awake()
     {
         InitializationComponents(); 
     }
 
-    protected virtual void Start()  { }
+    protected virtual void Start()  
+    {
+        StartCoroutine(LateFixedUpdate());
+    }
 
     protected virtual void Update()
     {
@@ -79,7 +80,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         if (this.IsMethodDisabled(nameof(OnTriggerEnter)))
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused || !collidersInside.Add(other))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
         PROnTriggerEnter(other);
@@ -90,7 +91,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         if (this.IsMethodDisabled(nameof(OnTriggerExit)))
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused || collidersInside.Remove(other) )
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
         PROnTriggerExit(other);
@@ -244,6 +245,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void PRFixedUpdate() { }
 
+    protected virtual void PRLateFixedUpdate() { }
+
     protected virtual float PROnTriggerStayTimeout()
     {
         return 0f;
@@ -312,6 +315,17 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerExit));
 
         OnTriggerExit(other);
+    }
+
+    IEnumerator LateFixedUpdate()
+    {
+        WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
+        while (true)
+        {
+            yield return new WaitPause();
+            yield return waitForFixedUpdate;
+            PRLateFixedUpdate();
+        }
     }
 
     #endregion
