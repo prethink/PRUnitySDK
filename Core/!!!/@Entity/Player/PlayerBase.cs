@@ -288,22 +288,22 @@ public abstract class PlayerBase : EntityBase, IPlayer
 
     public void StartMeleeAttackAnimation(float attackCooldown, string attackAnimation = "Attack")
     {
-        if (animator == null)
-            return;
+        //if (animator == null)
+        //    return;
 
-        animator.SetLayerWeight(1, 1);
-        animator.ResetTrigger(attackAnimation);
-        animator.SetTrigger(attackAnimation);
+        //animator.SetLayerWeight(1, 1);
+        //animator.ResetTrigger(attackAnimation);
+        //animator.SetTrigger(attackAnimation);
 
-        float fadeDuration = attackCooldown * 0.3f; // Длительность затухания 30% от кулдауна
-        float delayBeforeFade = attackCooldown * 0.5f; // Задержка перед затуханием 70% от кулдауна
+        //float fadeDuration = attackCooldown * 0.3f; // Длительность затухания 30% от кулдауна
+        //float delayBeforeFade = attackCooldown * 0.5f; // Задержка перед затуханием 70% от кулдауна
 
-        DOTween.To(
-            () => animator.GetLayerWeight(1),
-            value => animator.SetLayerWeight(1, value),
-            0f,
-            fadeDuration
-        ).SetDelay(delayBeforeFade);
+        //DOTween.To(
+        //    () => animator.GetLayerWeight(1),
+        //    value => animator.SetLayerWeight(1, value),
+        //    0f,
+        //    fadeDuration
+        //).SetDelay(delayBeforeFade);
     }
 
     #endregion

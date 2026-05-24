@@ -159,8 +159,6 @@ public class SoundManager : MonoBehaviour
                 Destroy(audioSource);
         }
     }
-
-
     public void PlaySoundEffectOneShot(AudioClip sound, Vector2? randomPitch = null)
     {
         PlaySoundEffectOneShot(sound, effectsSource.volume, randomPitch);

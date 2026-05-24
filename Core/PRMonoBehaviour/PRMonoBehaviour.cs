@@ -12,7 +12,11 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void Start()  
     {
-        StartCoroutine(LateFixedUpdate());
+        if(UseCoroutineLateFixedUpdate())
+            StartCoroutine(LateFixedUpdate());
+
+        if (UseCoroutineWaitForEndOfFrame())
+            StartCoroutine(WaitForEndOfFrame());
     }
 
     protected virtual void Update()
@@ -24,7 +28,6 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             return;
 
         PRUpdate();
-
         PRPostUpdate();
     }
 
@@ -247,6 +250,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void PRLateFixedUpdate() { }
 
+    protected virtual void PREndOfFrame() { }
+
     protected virtual float PROnTriggerStayTimeout()
     {
         return 0f;
@@ -317,14 +322,35 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         OnTriggerExit(other);
     }
 
+    protected virtual bool UseCoroutineLateFixedUpdate()
+    {
+        return false;
+    }
+
     IEnumerator LateFixedUpdate()
     {
         WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
         while (true)
         {
-            yield return new WaitPause();
+            yield return WaitPause.Instance;
             yield return waitForFixedUpdate;
             PRLateFixedUpdate();
+        }
+    }
+
+    protected virtual bool UseCoroutineWaitForEndOfFrame()
+    {
+        return false;
+    }
+
+    IEnumerator WaitForEndOfFrame()
+    {
+        WaitForEndOfFrame waitForFrame = new WaitForEndOfFrame();
+        while (true)
+        {
+            yield return WaitPause.Instance;
+            yield return waitForFrame;
+            PREndOfFrame();
         }
     }
 

@@ -26,6 +26,11 @@ public partial class PRManagerContainer
     public OpenedItemsManager OpenedItemsManager;
 
     /// <summary>
+    /// Менеджер флагов в игре.
+    /// </summary>
+    public FlagsManager FlagsManager;
+
+    /// <summary>
     /// Контейнер для менеджеров.   
     /// </summary>
     public PRContainer Container;
@@ -82,6 +87,16 @@ public partial class PRManagerContainer
         PRUnitySDK.InitializeType<OpenedItemsManager>(() =>
         {
             OpenedItemsManager = OpenedItemsManager.Instance;
+        });
+    }
+
+    [MethodHook(MethodHookStage.PostOperation, 50)]
+    public void InitializeFlagsManager()
+    {
+        PRUnitySDK.InitializeType<FlagsManager>(() =>
+        {
+            FlagsManager = FlagsManager.Instance;
+            FlagsManager.transform.SetParent(Container.transform);
         });
     }
 }

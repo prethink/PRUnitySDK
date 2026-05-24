@@ -37,11 +37,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     [SerializeField] protected GameObject rootGameObject;
 
     /// <summary>
-    /// Игровой объект сущности.
-    /// </summary>
-    [SerializeField] protected Animator animator;
-
-    /// <summary>
     /// Время жизни сущности.
     /// </summary>
     [field:SerializeField] public EntityLifeTime LifeTime { get; protected set; }

@@ -64,6 +64,7 @@ public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
 
             if (rb == null || rb.isKinematic)
                 continue;
+
             //TODO: Баг с бесконечным открыванием магазина обби
             //rb.isKinematic = data.IsKinematic;
             rb.useGravity = data.UseGravity;
@@ -85,8 +86,8 @@ public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
             {
                 Velocity = rb.velocity,
                 AngularVelocity = rb.angularVelocity,
-                UseGravity = rb.useGravity
-                //IsKinematic = rb.isKinematic
+                UseGravity = rb.useGravity,
+                IsKinematic = rb.isKinematic
             };
 
             rb.velocity = Vector3.zero;

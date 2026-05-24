@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Контейнер влияний на флаги.
@@ -29,6 +30,8 @@ public class FlagResolver
 
     private readonly Dictionary<Enumeration, Dictionary<object, FlagState>> flags = new();
 
+    public event Action<Enumeration, bool> OnChangeFlagState;
+
     /// <summary>
     /// Добавить или обновить влияние на флаг.
     /// </summary>
@@ -51,6 +54,8 @@ public class FlagResolver
         sources[source] = value 
             ? new FlagState(Influence.Allow, isFlagFrame)
             : new FlagState(Influence.Deny, isFlagFrame);
+
+        this.ChangeFlagState(key, Get(key));
     }
 
     public void AddFrame(Enumeration key, object source, bool value)
@@ -125,6 +130,9 @@ public class FlagResolver
     /// </summary>
     public void Clear()
     {
+        foreach (var item in flags)
+            this.ChangeFlagState(item.Key, false);
+
         flags.Clear();
     }
 
@@ -154,7 +162,15 @@ public class FlagResolver
         }
 
         foreach (var key in keysToRemove)
+        {
+            this.ChangeFlagState(key, false);
             flags.Remove(key);
+        }
+    }
+
+    protected void ChangeFlagState(Enumeration enumeration, bool value)
+    {
+        OnChangeFlagState?.Invoke(enumeration, value);
     }
 
     public void Cleanup()
@@ -186,7 +202,10 @@ public class FlagResolver
         }
 
         foreach (var key in keysToRemove)
+        {
+            this.ChangeFlagState(key, false);
             flags.Remove(key);
+        }
 
         IsDirty = false;
     }
