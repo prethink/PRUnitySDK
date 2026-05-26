@@ -32,8 +32,6 @@ public abstract class PlayerBase : EntityBase, IPlayer
 
     public IPlayerTeam PlayerTeam => playerTeam;
 
-    public override Sprite Icon => GetPlayerIcon();
-
     public long Points { get; protected set; }
 
     public int Deaths { get; protected set; }
@@ -71,15 +69,6 @@ public abstract class PlayerBase : EntityBase, IPlayer
         this.Attacker = null;
     }
 
-    public virtual Sprite GetPlayerIcon()
-    {
-        //return entityIcon != null 
-        //    ? entityIcon 
-        //    : SpriteManager.GetPlayerBaseIcon();
-
-        throw new NotImplementedException();
-    }
-
     public override void DestroyEntity(EntityDestroyOptions options)
     {
         OnPlayerDestroy?.Invoke(this);
@@ -95,8 +84,7 @@ public abstract class PlayerBase : EntityBase, IPlayer
     #endregion
 
     #region MonoBehaviour
-
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
         PRUnitySDK.Trackers.Players.Unregister(this);
     }
@@ -286,24 +274,9 @@ public abstract class PlayerBase : EntityBase, IPlayer
         };
     }
 
-    public void StartMeleeAttackAnimation(float attackCooldown, string attackAnimation = "Attack")
+    protected override IEntityInfo GetDefaultEntityInfo()
     {
-        //if (animator == null)
-        //    return;
-
-        //animator.SetLayerWeight(1, 1);
-        //animator.ResetTrigger(attackAnimation);
-        //animator.SetTrigger(attackAnimation);
-
-        //float fadeDuration = attackCooldown * 0.3f; // Длительность затухания 30% от кулдауна
-        //float delayBeforeFade = attackCooldown * 0.5f; // Задержка перед затуханием 70% от кулдауна
-
-        //DOTween.To(
-        //    () => animator.GetLayerWeight(1),
-        //    value => animator.SetLayerWeight(1, value),
-        //    0f,
-        //    fadeDuration
-        //).SetDelay(delayBeforeFade);
+        throw new NotImplementedException();
     }
 
     #endregion

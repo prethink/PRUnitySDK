@@ -12,7 +12,7 @@ public partial interface IEntity
     public long Id { get; }
 
     /// <summary>
-    /// 
+    /// Информация об сущности
     /// </summary>
     public IEntityInfo Info { get; }
 

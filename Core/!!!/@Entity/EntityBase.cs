@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     [Header("Базовая сущность")]
     /// <summary>
-    /// Действиет при уничтожение.
+    /// Действие при уничтожение.
     /// </summary>
     [SerializeField] protected EntityDisposeAction EntityDisposeAction;
 
@@ -60,12 +61,8 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public virtual bool OnScene => this.gameObject.activeSelf;
 
-    public virtual Sprite Icon => !entityIcon.IsUnityNull() ? entityIcon : PRUnitySDK.Database.Sprites.Entities.EntityBase;
-
     public virtual GameObject EntityGameObject => entityGameObject != null ? entityGameObject : gameObject;
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
-
-    [field: SerializeField] public Sprite KillIcon { get; protected set; }
 
     protected RigidBodyPauseMonitor rigidBodyPauseMonitor;
 
@@ -142,7 +139,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     protected override void InitializationComponents()
     {
         base.InitializationComponents();
-
+        InitializeEntityInfo();
         rigidBodyPauseMonitor = GetComponent<RigidBodyPauseMonitor>();
         animatorPauseMonitor = GetComponent<AnimatorPauseMonitor>();
     }
@@ -213,12 +210,20 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region IGameSessionListener
 
-    public IEntityInfo Info => null;
+    public IEntityInfo Info { get; protected set; }
 
     protected virtual void EntityInitialize()
     {
 
     }
+
+    protected virtual void InitializeEntityInfo()
+    {
+        Info = GetComponent<IEntityInfoProvider>()?.EntityInfo;
+        Info ??= GetDefaultEntityInfo();
+    }
+
+    protected abstract IEntityInfo GetDefaultEntityInfo();
 
     #endregion
 }

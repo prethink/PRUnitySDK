@@ -39,4 +39,14 @@ public static class LocalizationUtils
                 return LangType.English;
         }
     }
+
+    /// <summary>
+    /// Получить индекс языка.
+    /// </summary>
+    /// <param name="language"></param>
+    /// <returns></returns>
+    public static int GetLanguageIndex(LangType language)
+    {
+        return (int)language;
+    }
 }
