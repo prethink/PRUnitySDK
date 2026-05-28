@@ -18,11 +18,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     [SerializeField] protected EntityDisposeAction EntityDisposeAction;
 
     /// <summary>
-    /// Переведенное имя сущности..
-    /// </summary>
-    [SerializeField] protected Translator entityTranslateName;
-
-    /// <summary>
     /// Спрайт иконки сущности.
     /// </summary>
     [SerializeField] protected Sprite entityIcon;

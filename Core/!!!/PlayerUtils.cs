@@ -10,8 +10,8 @@ public static class PlayerUtils
             { LangType.English, "Player" },
             { LangType.Turkey, "Oyuncu" }
         };
-        var defaultPlayerName = new Translator("Default player name", defaultPlayerNameDict);
+        var localization = new LocalizationRow(defaultPlayerNameDict);
 
-        return defaultPlayerName.GetTranslateByLang(PRUnitySDK.CurrentLang);
+        return localization.GetTranslate();
     }
 }

@@ -37,4 +37,6 @@ public class EnumerationReference
     public string Value => value;
 
     public Enumeration ToEnumeration() => new Enumeration(value);
+
+    public const string ProtectedStringValueName = nameof(value);
 }

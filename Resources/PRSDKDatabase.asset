@@ -35,24 +35,21 @@ MonoBehaviour:
     <DefaultLanguage>k__BackingField: 0
     <Common>k__BackingField:
     - <Key>k__BackingField: ok
-      <LangData>k__BackingField:
+      langData:
       - 
       - 
       - 
     - <Key>k__BackingField: exit
-      <LangData>k__BackingField:
-      - "\u0432\u044B\u0445\u043E\u0434"
-      - exit
-      - "\xE7\u0131k\u0131\u015F"
+      langData:
+      - 
+      - 
+      - 
     <Project>k__BackingField:
     - <Key>k__BackingField: exit
-      <LangData>k__BackingField:
-      - "\u0432\u044B\u0445\u043E\u04341"
-      - 
-      - "\u0432\u044B\u0445\u043E\u04343"
+      langData: []
   <Achievements>k__BackingField:
     Items:
-    - <Guid>k__BackingField: a2f9d708-b6b3-4204-a0ee-81a06a7e44c2
+    - <Guid>k__BackingField: ca2dbb8b-a3d6-4764-9c94-7771afda6f6e
       <Icon>k__BackingField: {fileID: 21300000, guid: 598c63d3020397849842a1b37e202097,
         type: 3}
       <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
@@ -60,22 +57,46 @@ MonoBehaviour:
         value: Win
       <TargetCount>k__BackingField: 0
       <Reward>k__BackingField: {fileID: 0}
-      <Localization>k__BackingField:
-        <Key>k__BackingField: gav
-        <LangData>k__BackingField:
+      langData:
+        values:
+        - "\u0439"
+        - "\u0446\u0443"
+        - "\u0443"
+    - <Guid>k__BackingField: 1de9b2aa-2195-4bb9-a9dc-83ae9dcbe9fa
+      <Icon>k__BackingField: {fileID: 21300000, guid: 3dac14c611b844a4b97d0d0e15fa63d6,
+        type: 3}
+      <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
+      <TriggerKey>k__BackingField:
+        value: NoDeaths
+      <TargetCount>k__BackingField: 0
+      <Reward>k__BackingField: {fileID: 0}
+      langData:
+        values:
         - 
         - 
         - 
-    - <Guid>k__BackingField: b05008de-3b32-4ba3-b7d4-046aebd0e19f
+    - <Guid>k__BackingField: f4f7b75c-97c0-4db2-8734-17bf73a59252
+      <Icon>k__BackingField: {fileID: 21300000, guid: 0f0614c6d794a524384365c112063d91,
+        type: 3}
+      <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
+      <TriggerKey>k__BackingField:
+        value: SecretFound
+      <TargetCount>k__BackingField: 0
+      <Reward>k__BackingField: {fileID: 0}
+      langData:
+        values:
+        - 
+        - 
+        - 
+    - <Guid>k__BackingField: ef2dc390-df3b-43ad-8a1a-787a487c55ec
       <Icon>k__BackingField: {fileID: 0}
       <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
       <TriggerKey>k__BackingField:
         value: Win
       <TargetCount>k__BackingField: 0
       <Reward>k__BackingField: {fileID: 0}
-      <Localization>k__BackingField:
-        <Key>k__BackingField: 
-        <LangData>k__BackingField:
+      langData:
+        values:
         - 
         - 
         - 

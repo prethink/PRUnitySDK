@@ -32,7 +32,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     public virtual void Show(MonoWindowArgs args)
     {
         container.SetActive(true);
-        UpdateTranslate();
+        //UpdateTranslate();
         container.RefreshLayoutGroupsImmediateAndRecursive();
         ExecuterId = args.Executer;
         PRUnitySDK.SetWindowsState(true);
@@ -66,7 +66,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     {
         exitButton?.onClick.AddListener(() => { Hide(); });
         //uiWatcher.Register(this);
-        UpdateTranslate();
+        //UpdateTranslate();
         base.OnEnable();
     }
 
