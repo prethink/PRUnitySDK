@@ -8,5 +8,5 @@ public class LocalizationArray
 {
     [SerializeField] private List<string> values;
 
-    public IEnumerable<string> Values => values.ToList();
+    public IReadOnlyList<string> Values => values.ToList();
 }

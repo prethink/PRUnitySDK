@@ -7,7 +7,7 @@ using UnityEngine;
 /// <summary>
 /// Система пула объектов на сцене.
 /// </summary>
-public class ObjectPoolSystem : MonoBehaviour
+public class ObjectPoolManager : MonoBehaviour
 {
     #region Поля и свойства
 
@@ -513,14 +513,14 @@ public class ObjectPoolSystem : MonoBehaviour
     /// <param name="obj">Префаб объекта.</param>
     private void CreateInstance(string category, string name, Queue<PoolObject> queue, GameObject obj)
     {
-        //var instance = diContainer.InstantiatePrefab(obj);
-        //var poolObject = new PoolObject(category, name, instance);
-        //if (instance.TryGetComponent<IPoolable>(out var basePoolObject))
-        //    basePoolObject.RegisterPoolObject(poolObject);
+        var instance = PRUnitySDK.Instantiate(obj);
+        var poolObject = new PoolObject(category, name, instance);
+        if (instance.TryGetComponent<IPoolable>(out var basePoolObject))
+            basePoolObject.RegisterPoolObject(poolObject);
 
-        //poolObject.InstanceGameObject.transform.SetParent(poolObject.PoolObjectType == PoolObjectType.Particles ? particles : gameObjects);
-        //instance.SetActive(false);
-        //queue.Enqueue(poolObject);
+        poolObject.InstanceGameObject.transform.SetParent(poolObject.PoolObjectType == PoolObjectType.Particles ? particles : gameObjects);
+        instance.SetActive(false);
+        queue.Enqueue(poolObject);
     }
 
     /// <summary>
@@ -659,6 +659,11 @@ public class ObjectPoolSystem : MonoBehaviour
     {
         var poolObject = objectOnScene.FirstOrDefault(x => x.InstanceGameObject.Equals(obj));
         OnObjectDestroy(poolObject);
+    }
+
+    public static ObjectPoolManager Factory()
+    {
+        return Instantiate(Resources.Load<ObjectPoolManager>($"{PRUnitySDK.CorePrefabsPath}/ObjectPoolManager"));
     }
 
     #endregion

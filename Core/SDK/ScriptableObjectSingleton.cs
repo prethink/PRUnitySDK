@@ -24,24 +24,37 @@ public class ScriptableObjectSingleton<T> : ScriptableObject
             if (instance != null)
                 return instance;
 
-            instance = ScriptableObject.CreateInstance<T>();
-
-            string path = $"{PATCH_ASSETS}/Resources/{fileName}.asset";
-            string directory = $"{PATCH_ASSETS}/Resources";
-
-            if (!Directory.Exists(directory))
-                Directory.CreateDirectory(directory);
-
-            AssetDatabase.CreateAsset(instance, path);
-            AssetDatabase.Refresh();
-
-            instance = Resources.Load<T>(fileName);
-
-            instance.SetDefaultSettings();
+#if UNITY_EDITOR
+            instance = CreateInEditor(fileName);
+#else
+            Debug.LogError($"[Singleton] {fileName} not found in Resources!");
+#endif
 
             return instance;
         }
     }
+
+#if UNITY_EDITOR
+    private static T CreateInEditor(string fileName)
+    {
+        instance = ScriptableObject.CreateInstance<T>();
+
+        string path = $"{PATCH_ASSETS}/Resources/{fileName}.asset";
+        string directory = $"{PATCH_ASSETS}/Resources";
+
+        if (!Directory.Exists(directory))
+            Directory.CreateDirectory(directory);
+
+        AssetDatabase.CreateAsset(instance, path);
+        AssetDatabase.Refresh();
+
+        instance = Resources.Load<T>(fileName);
+
+        instance.SetDefaultSettings();
+
+        return instance;
+    }
+#endif
 
     /// <summary>
     /// Установить настройки по умолчанию.

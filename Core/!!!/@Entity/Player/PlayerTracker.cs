@@ -54,7 +54,7 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
         elements.Add(player);
         //OnPlayerConnected?.Invoke(player);
 
-        PRLog.WriteDebug(this, $"Игрок {player.Info.Name} - ID:{player.Id} зарегистрирован в игровой сессии.");
+        PRLog.WriteDebug(this, $"Игрок {player.Info.GetName()} - ID:{player.Id} зарегистрирован в игровой сессии.");
         return true;
     }
 
@@ -62,7 +62,7 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
     {
         elements.Remove(player);
         //OnPlayerDisconnected?.Invoke(player);
-        PRLog.WriteDebug(this, $"Игрок {player.Info.Name} - ID:{player.Id} удален из игровой сессии.");
+        PRLog.WriteDebug(this, $"Игрок {player.Info.GetName()} - ID:{player.Id} удален из игровой сессии.");
         return true;
     }
 

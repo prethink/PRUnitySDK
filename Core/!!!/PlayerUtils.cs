@@ -10,7 +10,7 @@ public static class PlayerUtils
             { LangType.English, "Player" },
             { LangType.Turkey, "Oyuncu" }
         };
-        var localization = new LocalizationRow(defaultPlayerNameDict);
+        var localization = LocalizationUtils.CreateLocalization(defaultPlayerNameDict);
 
         return localization.GetTranslate();
     }

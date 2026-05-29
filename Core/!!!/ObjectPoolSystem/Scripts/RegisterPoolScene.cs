@@ -21,7 +21,7 @@ public class RegisterPoolScene : MonoBehaviour
 
     #region Zinject
 
-    private ObjectPoolSystem poolSystem;
+    private ObjectPoolManager poolSystem;
 
     #endregion
 }

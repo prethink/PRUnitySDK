@@ -16,6 +16,11 @@ public partial class PRManagerContainer
     public SoundManager SoundManager;
 
     /// <summary>
+    /// Pool Manager.
+    /// </summary>
+    public ObjectPoolManager ObjectPoolManager;
+
+    /// <summary>
     /// Менеджер аудиомиксера.
     /// </summary>
     public AudioMixerManager AudioMixerManager;
@@ -78,6 +83,16 @@ public partial class PRManagerContainer
             SoundManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(SoundManager.Factory);
             SoundManager.transform.SetParent(Container.transform);
             AudioMixerManager.RegisterSoundManager(SoundManager);
+        });
+    }
+
+    [MethodHook(MethodHookStage.PostOperation, 35)]
+    public void InitializeObjectPollManager()
+    {
+        PRUnitySDK.InitializeType<ObjectPoolManager>(() =>
+        {
+            ObjectPoolManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(ObjectPoolManager.Factory);
+            ObjectPoolManager.transform.SetParent(Container.transform);
         });
     }
 

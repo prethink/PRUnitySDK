@@ -1,9 +1,6 @@
 using System;
 using System.Collections;
 using UnityEngine;
-#if UNITY_WEBGL && !UNITY_EDITOR
-using System.Runtime.InteropServices;
-#endif
 
 public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 {
@@ -30,14 +27,6 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
     #region MonoBehaviour
 
-#if UNITY_WEBGL && !UNITY_EDITOR
-[DllImport("__Internal")]
-private static extern void RegisterPageVisibilityCallback(string gameObjectName, string methodName);
-
-[DllImport("__Internal")]
-private static extern void UnregisterPageVisibilityCallback();
-#endif
-
     private void Awake()
     {
         this.RunMethodHooks(MethodHookStage.PreAwake);
@@ -50,19 +39,12 @@ private static extern void UnregisterPageVisibilityCallback();
     private void Start()
     {
         this.RunMethodHooks(MethodHookStage.PreStart);
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-        PageVisibility.Subscribe(gameObject.name, nameof(OnPageVisibilityChange));
-#endif
-
         this.RunMethodHooks(MethodHookStage.PostAwake);
     }
 
     private void OnDestroy()
     {
-#if UNITY_WEBGL && !UNITY_EDITOR
-        PageVisibility.Unsubscribe();
-#endif
+
     }
 
     private void OnApplicationPause(bool pauseStatus)

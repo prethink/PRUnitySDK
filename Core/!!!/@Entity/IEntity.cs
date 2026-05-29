@@ -14,7 +14,7 @@ public partial interface IEntity
     /// <summary>
     /// Информация об сущности
     /// </summary>
-    public IEntityInfo Info { get; }
+    public EntityInfoContainer Info { get; }
 
     /// <summary>
     /// Тип сущности.

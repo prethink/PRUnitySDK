@@ -1,9 +1,12 @@
+using System;
+
 public class PoolBehaviour 
 {
-    public bool InPool { get; protected set; }
+    public bool InPool { get; protected set; } = false;
 
     protected PoolObject poolObject;
-    protected ObjectPoolSystem poolSystem;
+
+    public event Action<bool> OnInitializeObject;
 
     public virtual void RegisterPoolObject(PoolObject poolObject)
     {
@@ -12,7 +15,10 @@ public class PoolBehaviour
 
     public virtual void InitializationPoolObject()
     {
+        var previousState = InPool;
         InPool = false;
+        bool isFirstInitialize = previousState == InPool;
+        OnInitializeObject?.Invoke(isFirstInitialize);
     }
 
     public virtual void OnDestroyPool(bool fullDestroy = false)
@@ -20,11 +26,6 @@ public class PoolBehaviour
         if (!fullDestroy)
             InPool = true;
 
-        poolSystem.OnObjectDestroy(poolObject, fullDestroy);
-    }
-
-    public PoolBehaviour(ObjectPoolSystem poolSystem)
-    {
-        this.poolSystem = poolSystem;
+        PRUnitySDK.Managers.ObjectPoolManager.OnObjectDestroy(poolObject, fullDestroy);
     }
 }

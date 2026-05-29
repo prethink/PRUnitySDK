@@ -16,7 +16,7 @@ public class LocalizationRowDrawer : LocalizationLangDrawerBase
 
     protected override void DrawBeforeLanguages(Rect position, SerializedProperty property, ref Rect r)
     {
-        var key = property.FindPropertyRelative(nameof(LocalizationRow.Key).GetBackingField());
+        var key = property.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField());
 
         float h = EditorGUIUtility.singleLineHeight;
         float sp = 3f;

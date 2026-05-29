@@ -95,7 +95,7 @@ public class LocalizationWindow : ExtendedEditorWindow
         for (int i = 0; i < listProp.arraySize; i++)
         {
             var element = listProp.GetArrayElementAtIndex(i);
-            var key = element.FindPropertyRelative(nameof(LocalizationRow.Key).GetBackingField()).stringValue;
+            var key = element.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue;
 
             if (string.IsNullOrEmpty(key))
                 continue;
@@ -125,7 +125,7 @@ public class LocalizationWindow : ExtendedEditorWindow
         {
             var element = listProp.GetArrayElementAtIndex(i);
 
-            var keyProp = element.FindPropertyRelative(nameof(LocalizationRow.Key).GetBackingField());
+            var keyProp = element.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField());
             var langProp = element.FindPropertyRelative(LocalizationRow.LangPropertyName);
 
             if (!Filter(keyProp.stringValue))
@@ -229,8 +229,8 @@ public class LocalizationWindow : ExtendedEditorWindow
             var dst = listProp.GetArrayElementAtIndex(index + 1);
 
             // KEY
-            dst.FindPropertyRelative(nameof(LocalizationRow.Key).GetBackingField()).stringValue =
-                src.FindPropertyRelative(nameof(LocalizationRow.Key).GetBackingField()).stringValue + "_copy";
+            dst.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue =
+                src.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue + "_copy";
 
             // LANG DATA
             var srcLang = src.FindPropertyRelative(LocalizationRow.LangPropertyName);
@@ -284,7 +284,7 @@ public class LocalizationWindow : ExtendedEditorWindow
 
             var newElement = listProp.GetArrayElementAtIndex(listProp.arraySize - 1);
 
-            newElement.FindPropertyRelative(nameof(LocalizationRow.Key).GetBackingField()).stringValue = "new_key";
+            newElement.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue = "new_key";
 
             var langProp = newElement.FindPropertyRelative(LocalizationRow.LangPropertyName);
             EnsureLangSize(langProp);

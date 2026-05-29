@@ -1,11 +1,11 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 public class GameEventEntity : IEntity
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     private string name;
 
@@ -29,7 +29,24 @@ public class GameEventEntity : IEntity
 
     public GameObject gameObject => GameEventsFactory.GetOrCreateGameObject(name);
 
-    public IEntityInfo Info => new EntityInfoImplementer(Guid.Empty, nameof(GameEventEntity), PRUnitySDK.Database.Sprites.Entities.GameEventEntity); 
+    public EntityInfoContainer Info { get; } = CreateGameEventInfo(); 
+
+    public static EntityInfoContainer CreateGameEventInfo()
+    {
+        var entityInfo =  new EntityInfoImplementer(
+            Guid.Empty, 
+            nameof(GameEventEntity),
+            PRUnitySDK.Database.Sprites.Entities.GameEventEntity, 
+            "GameEventEntity", 
+            LocalizationUtils.CreateLocalizationList(new Dictionary<LangType, string>()
+            {
+                { LangType.Russian, "РРіСЂРѕРІРѕРµ СЃРѕР±С‹С‚РёРµ" },
+                { LangType.English, "Game Event" },
+                { LangType.Turkey, "Oyun EtkinliДџi" }
+            }));
+
+        return new EntityInfoContainer(entityInfo);
+    }
 
     public void DestroyEntity() { }
 
@@ -58,7 +75,7 @@ public class GameEventEntity : IEntity
 
     #endregion
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public GameEventEntity(string name)
     {
@@ -92,7 +109,7 @@ public static class GameEventsFactory
     private static GameObject root;
 
     /// <summary>
-    /// Корневой объект для всех игровых событий.
+    /// РљРѕСЂРЅРµРІРѕР№ РѕР±СЉРµРєС‚ РґР»СЏ РІСЃРµС… РёРіСЂРѕРІС‹С… СЃРѕР±С‹С‚РёР№.
     /// </summary>
     private static GameObject Root
     {
@@ -108,10 +125,10 @@ public static class GameEventsFactory
     }
 
     /// <summary>
-    /// Получает существующий или создаёт новый GameObject для события.
+    /// РџРѕР»СѓС‡Р°РµС‚ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ РёР»Рё СЃРѕР·РґР°С‘С‚ РЅРѕРІС‹Р№ GameObject РґР»СЏ СЃРѕР±С‹С‚РёСЏ.
     /// </summary>
-    /// <param name="name">Название объекта.</param>
-    /// <returns>GameObject события.</returns>
+    /// <param name="name">РќР°Р·РІР°РЅРёРµ РѕР±СЉРµРєС‚Р°.</param>
+    /// <returns>GameObject СЃРѕР±С‹С‚РёСЏ.</returns>
     public static GameObject GetOrCreateGameObject(string name)
     {
         if (gameObjects.TryGetValue(name, out var existing))
@@ -119,7 +136,7 @@ public static class GameEventsFactory
             return existing;
         }
 
-        // Проверка, не создан ли объект в корне
+        // РџСЂРѕРІРµСЂРєР°, РЅРµ СЃРѕР·РґР°РЅ Р»Рё РѕР±СЉРµРєС‚ РІ РєРѕСЂРЅРµ
         var childTransform = Root.transform.Find(name);
         if (childTransform != null)
         {
@@ -127,7 +144,7 @@ public static class GameEventsFactory
             return childTransform.gameObject;
         }
 
-        // Создание нового объекта
+        // РЎРѕР·РґР°РЅРёРµ РЅРѕРІРѕРіРѕ РѕР±СЉРµРєС‚Р°
         var go = new GameObject(name);
         go.transform.SetParent(Root.transform);
         gameObjects[name] = go;
@@ -135,7 +152,7 @@ public static class GameEventsFactory
     }
 
     /// <summary>
-    /// Удаляет объект из фабрики и сцены.
+    /// РЈРґР°Р»СЏРµС‚ РѕР±СЉРµРєС‚ РёР· С„Р°Р±СЂРёРєРё Рё СЃС†РµРЅС‹.
     /// </summary>
     public static void DestroyGameObject(string name)
     {
@@ -147,7 +164,7 @@ public static class GameEventsFactory
     }
 
     /// <summary>
-    /// Удаляет все объекты фабрики.
+    /// РЈРґР°Р»СЏРµС‚ РІСЃРµ РѕР±СЉРµРєС‚С‹ С„Р°Р±СЂРёРєРё.
     /// </summary>
     public static void DestroyAll()
     {

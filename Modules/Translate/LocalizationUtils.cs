@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 public static class LocalizationUtils 
 {
     /// <summary>
@@ -38,6 +41,33 @@ public static class LocalizationUtils
             default:
                 return LangType.English;
         }
+    }
+
+    public static IEnumerable<string> CreateLocalizationList(Dictionary<LangType, string> dictionary)
+    {
+        var languages = (LangType[])Enum.GetValues(typeof(LangType));
+
+        var localizations = new List<string>(new string[languages.Length]);
+
+        foreach (var pair in dictionary)
+        {
+            int index = LocalizationUtils.GetLanguageIndex(pair.Key);
+
+            if (index >= 0 && index < localizations.Count)
+                localizations[index] = pair.Value;
+        }
+
+        return localizations;
+    }
+
+    public static ILocalizationProvider CreateLocalization(string key, Dictionary<LangType, string> dictionary)
+    {
+        return new LocalizationRow(key, CreateLocalizationList(dictionary));
+    }
+
+    public static ILocalizationProvider CreateLocalization(Dictionary<LangType, string> dictionary)
+    {
+        return new LocalizationRow(new Guid().ToString(), CreateLocalizationList(dictionary));
     }
 
     /// <summary>

@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -11,17 +10,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 {
     #region Поля и свойства
 
-    [Header("Базовая сущность")]
-    /// <summary>
-    /// Действие при уничтожение.
-    /// </summary>
-    [SerializeField] protected EntityDisposeAction EntityDisposeAction;
-
-    /// <summary>
-    /// Спрайт иконки сущности.
-    /// </summary>
-    [SerializeField] protected Sprite entityIcon;
-
+    [Header("Ссылки")]
     /// <summary>
     /// Игровой объект сущности.
     /// </summary>
@@ -32,15 +21,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     /// </summary>
     [SerializeField] protected GameObject rootGameObject;
 
+    [Header("Жизненный цикл")]
+    /// <summary>
+    /// Действие при уничтожение.
+    /// </summary>
+    [SerializeField] protected EntityDisposeAction EntityDisposeAction;
+
     /// <summary>
     /// Время жизни сущности.
     /// </summary>
     [field:SerializeField] public EntityLifeTime LifeTime { get; protected set; }
-
-    /// <summary>
-    /// Качество сущности.
-    /// </summary>
-    [field: SerializeField] public QualityType Quality { get; private set; }
 
     #endregion
 
@@ -54,7 +44,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public abstract string Name { get; }
 
-    public virtual bool OnScene => this.gameObject.activeSelf;
+    public virtual bool OnScene => this.EntityGameObject.activeSelf;
 
     public virtual GameObject EntityGameObject => entityGameObject != null ? entityGameObject : gameObject;
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
@@ -134,7 +124,10 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     protected override void InitializationComponents()
     {
         base.InitializationComponents();
+
         InitializeEntityInfo();
+        InitializeEntity();
+
         rigidBodyPauseMonitor = GetComponent<RigidBodyPauseMonitor>();
         animatorPauseMonitor = GetComponent<AnimatorPauseMonitor>();
     }
@@ -150,11 +143,13 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     protected override void OnEnable()
     {
+        PoolBehaviour.OnInitializeObject += InitializeFromPool;
         base.OnEnable();
     }
 
     protected override void OnDisable()
     {
+        PoolBehaviour.OnInitializeObject -= InitializeFromPool;
         base.OnDisable();
     }
 
@@ -177,7 +172,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region IPollable 
 
-    public PoolBehaviour PoolBehaviour { get; private set; }
+    public PoolBehaviour PoolBehaviour { get; private set; } = new();
 
     public bool InPool => PoolBehaviour.InPool;
 
@@ -201,24 +196,69 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
         return EntityType.ToString();
     }
 
+    protected void InitializeFromPool(bool isFirstPool)
+    {
+        if (isFirstPool)
+            return;
+
+        InitializeEntity();
+    }
+
+    protected virtual void InitializeEntity()
+    {
+
+    }
+
     #endregion
 
     #region IGameSessionListener
 
-    public IEntityInfo Info { get; protected set; }
+    public EntityInfoContainer Info { get; protected set; }
 
-    protected virtual void EntityInitialize()
+    [SerializeField, Header("Информация о типе сущностей")] protected EntityInfoBase entityInfoData;
+    protected IEntityInfo baseEntityInfo;
+    protected IEntityInfo overrideEntityInfo;
+
+    protected virtual void EntityInitializeBaseEntityInfo()
     {
+        baseEntityInfo = entityInfoData;
+        baseEntityInfo ??= PRUnitySDK.Database.EntityInfo.Data.First();
+    }
 
+    protected virtual void EntityInitializeOverrideEntityInfo()
+    {
+        overrideEntityInfo = GetComponent<IEntityInfoProvider>()?.EntityInfo;
     }
 
     protected virtual void InitializeEntityInfo()
     {
-        Info = GetComponent<IEntityInfoProvider>()?.EntityInfo;
-        Info ??= GetDefaultEntityInfo();
+        InitializeDefaultEntityInfo();
+        EntityInitializeOverrideEntityInfo();
+
+        if (baseEntityInfo != null && overrideEntityInfo != null)
+        {
+            Info = new EntityInfoContainer(baseEntityInfo, overrideEntityInfo);
+        }
+        else if (baseEntityInfo != null)
+        {
+            Info = new EntityInfoContainer(baseEntityInfo);
+        }
+        else if (overrideEntityInfo != null)
+        {
+            Info = new EntityInfoContainer(overrideEntityInfo);
+        }
+        else
+            throw new InvalidOperationException("Not have entity info");
+
+        PostEntityInitialize();
     }
 
-    protected abstract IEntityInfo GetDefaultEntityInfo();
+    protected virtual void PostEntityInitialize()
+    {
+
+    }
+
+    protected abstract void InitializeDefaultEntityInfo();
 
     #endregion
 }

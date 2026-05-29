@@ -18,14 +18,14 @@ public static class L
 
         var localizationDataBase = PRUnitySDK.Database.LocalizationDatabase;
         var translate = string.Empty;
-        var projectLocalization = localizationDataBase.Project.FirstOrDefault(x => x.Key.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
+        var projectLocalization = localizationDataBase.Project.FirstOrDefault(x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
         if (projectLocalization != null)
             translate = projectLocalization.GetTranslate(languageTranslator.GetCurrentLang());
 
         if (!string.IsNullOrEmpty(translate))
             return GetTranslate(translate, args);
 
-        var commonLocalization = localizationDataBase.Common.FirstOrDefault(x => x.Key.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
+        var commonLocalization = localizationDataBase.Common.FirstOrDefault(x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
         if (commonLocalization != null)
             translate = commonLocalization.GetTranslate(languageTranslator.GetCurrentLang());
 

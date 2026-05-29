@@ -73,7 +73,7 @@ GameObject:
   - component: {fileID: 7196262515932059716}
   - component: {fileID: 6518516953208334534}
   m_Layer: 0
-  m_Name: '[ObjectPool]'
+  m_Name: ObjectPoolManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -12,14 +12,14 @@ public class LocalizationDatabase
 }
 
 [Serializable]
-public class LocalizationRow : ILocalization
+public class LocalizationRow : ILocalizationProvider
 {
-    [field: SerializeField] public string Key { get; protected set; }
-    [SerializeField] protected List<string> langData = new();
+    [field: SerializeField] public string LocalizationKey { get; protected set; }
+    [SerializeField] protected List<string> localizations = new();
 
-    public IEnumerable<string> LangData => langData.ToList();
+    public IReadOnlyList<string> LocalizationValues => localizations.ToList();
 
-    public const string LangPropertyName = nameof(LocalizationRow.langData);
+    public const string LangPropertyName = nameof(LocalizationRow.localizations);
 
     public LocalizationRow()
     {
@@ -28,23 +28,12 @@ public class LocalizationRow : ILocalization
 
     public LocalizationRow(string key)
     {
-        this.Key = key;        
+        this.LocalizationKey = key;        
     }
 
-    public LocalizationRow(Dictionary<LangType, string> dict, string key = "")
+    public LocalizationRow(string key, IEnumerable<string> localization)
     {
-        Key = key;
-
-        var languages = (LangType[])Enum.GetValues(typeof(LangType));
-
-        langData = new List<string>(new string[languages.Length]);
-
-        foreach (var pair in dict)
-        {
-            int index = LocalizationUtils.GetLanguageIndex(pair.Key);
-
-            if (index >= 0 && index < langData.Count)
-                langData[index] = pair.Value;
-        }
+        this.LocalizationKey = key;
+        localizations = localization.ToList();
     }
 }

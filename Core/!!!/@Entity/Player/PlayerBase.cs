@@ -1,4 +1,3 @@
-using DG.Tweening;
 using System;
 using UnityEngine;
 using UnityEngine.Events;
@@ -96,41 +95,6 @@ public abstract class PlayerBase : EntityBase, IPlayer
         //InitHealth();
         //OnSpawnInvoke(EntityGameObject.transform.position);
         OnPlayerInit?.Invoke(this);
-    }
-
-    public virtual void StartFly(Vector3 direction, float distance)
-    {
-        float jumpPower = 3.5f;
-        int numJumps = 1;
-        float duration = 2.0f;
-
-        Vector3 targetPosition = transform.position + direction.normalized * distance;
-
-        // Отключаем физику
-        PreFly();
-
-        transform.DOJump(targetPosition, jumpPower, numJumps, duration)
-            .SetEase(Ease.OutQuad)
-            .OnComplete(() =>
-            {
-                // Включаем физику обратно
-                PostFly();
-            });
-    }
-
-    protected virtual void PreFly()
-    {
-
-    }
-
-    protected virtual void PostFly()
-    {
-
-    }
-
-    public virtual void RestorePlayer(Action callback = null)
-    {
-
     }
 
     #endregion
@@ -274,9 +238,9 @@ public abstract class PlayerBase : EntityBase, IPlayer
         };
     }
 
-    protected override IEntityInfo GetDefaultEntityInfo()
+    protected override void InitializeDefaultEntityInfo()
     {
-        throw new NotImplementedException();
+        EntityInitializeBaseEntityInfo();
     }
 
     #endregion
