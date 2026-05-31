@@ -16,7 +16,7 @@ public static class EntityExtensions
         where T : EntityBase
     {
         entity = null;
-        if (collision.gameObject.TryGetComponent<EntityLink>(out var entityLink))
+        if (collision.gameObject.TryGetComponent<EntityLinkBase<T>>(out var entityLink))
             return entityLink.TryGetEntity(out entity);
 
         return false;
@@ -33,7 +33,7 @@ public static class EntityExtensions
         where T : EntityBase
     {
         entity = null;
-        if (collider.gameObject.TryGetComponent<EntityLink>(out var entityLink))
+        if (collider.gameObject.TryGetComponent<EntityLinkBase<T>>(out var entityLink))
             return entityLink.TryGetEntity(out entity);
 
         return false;
@@ -50,7 +50,7 @@ public static class EntityExtensions
         where T : EntityBase
     {
         entity = null;
-        if (gameObject.TryGetComponent<EntityLink>(out var entityLink))
+        if (gameObject.TryGetComponent<EntityLinkBase<T>>(out var entityLink))
             return entityLink.TryGetEntity(out entity);
 
         return false;
@@ -67,7 +67,7 @@ public static class EntityExtensions
         where T : EntityBase
     {
         entity = null;
-        if (obj is GameObject gameObject && gameObject.TryGetComponent<EntityLink>(out var entityLink))
+        if (obj is GameObject gameObject && gameObject.TryGetComponent<EntityLinkBase<T>>(out var entityLink))
             return entityLink.TryGetEntity(out entity);
 
         return false;

@@ -7,8 +7,8 @@ using UnityEngine;
 public class LocalizationDatabase 
 {
     [field: SerializeField] public LangType DefaultLanguage { get; protected set; }
-    [field: SerializeField] public List<LocalizationRow> Common { get; protected set; } = new List<LocalizationRow>();
-    [field: SerializeField] public List<LocalizationRow> Project { get; protected set; } = new List<LocalizationRow>();
+    [field: SerializeField, HideInInspector] public List<LocalizationRow> Common { get; protected set; } = new List<LocalizationRow>();
+    [field: SerializeField, HideInInspector] public List<LocalizationRow> Project { get; protected set; } = new List<LocalizationRow>();
 }
 
 [Serializable]

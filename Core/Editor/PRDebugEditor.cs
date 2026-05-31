@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -5,6 +6,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 {
     private double nextUpdate;
     private bool showPlayerList = true;
+    private bool showEntityDetails = true;
 
     [MenuItem("PRUnitySDK/Debug window")]
     public static void ShowWindow()
@@ -39,6 +41,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 
         DrawPauseState();
         DrawPlayersInfo();
+        DrawEntitiesInfo();
         DrawPoolSystem();
     }
 
@@ -134,59 +137,60 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         }
     }
 
-    //private void DrawEntitiesInfo()
-    //{
-    //    EditorGUILayout.LabelField("Entities", EditorStyles.boldLabel);
-    //    var existsEntities = gameSessionManager.EntityTracker.GetExistsEntityCount();
-    //    var onSceneEntities = gameSessionManager.EntityTracker.GetEntityOnSceneCount();
-    //    var onPoolEntities = gameSessionManager.EntityTracker.GetEntityInPoolCount();
-    //    var hideEntities = existsEntities - onSceneEntities;
+    private void DrawEntitiesInfo()
+    {
+        EditorGUILayout.LabelField("Entities", EditorStyles.boldLabel);
+        var tracker = PRUnitySDK.Trackers.Entities;
+        var existsEntities = tracker.GetExistsEntityCount();
+        var onSceneEntities = tracker.GetEntityOnSceneCount();
+        var onPoolEntities = tracker.GetEntityInPoolCount();
+        var hideEntities = existsEntities - onSceneEntities;
 
 
-    //    EditorGUILayout.BeginVertical("box");
-    //    EditorGUILayout.BeginHorizontal();
-    //    EditorGUILayout.LabelField("Всего сущностей", GUILayout.Width(170));
-    //    EditorGUILayout.LabelField("На сцене", GUILayout.Width(70));
-    //    EditorGUILayout.LabelField("Спрятанных", GUILayout.Width(100));
-    //    EditorGUILayout.LabelField("Спрятанных в pool", GUILayout.Width(170));
-    //    EditorGUILayout.EndHorizontal();
+        EditorGUILayout.BeginVertical("box");
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Всего сущностей", GUILayout.Width(170));
+        EditorGUILayout.LabelField("На сцене", GUILayout.Width(70));
+        EditorGUILayout.LabelField("Спрятанных", GUILayout.Width(100));
+        EditorGUILayout.LabelField("Спрятанных в pool", GUILayout.Width(170));
+        EditorGUILayout.EndHorizontal();
 
-    //    EditorGUILayout.BeginHorizontal();
-    //    EditorGUILayout.LabelField(existsEntities.ToString(), GUILayout.Width(170));
-    //    EditorGUILayout.LabelField(onSceneEntities.ToString(), GUILayout.Width(70));
-    //    EditorGUILayout.LabelField(hideEntities.ToString(), GUILayout.Width(100));
-    //    EditorGUILayout.LabelField(onPoolEntities.ToString(), GUILayout.Width(170));
-    //    EditorGUILayout.EndHorizontal();
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField(existsEntities.ToString(), GUILayout.Width(170));
+        EditorGUILayout.LabelField(onSceneEntities.ToString(), GUILayout.Width(70));
+        EditorGUILayout.LabelField(hideEntities.ToString(), GUILayout.Width(100));
+        EditorGUILayout.LabelField(onPoolEntities.ToString(), GUILayout.Width(170));
+        EditorGUILayout.EndHorizontal();
 
-    //    showEntityDetails = EditorGUILayout.Foldout(showEntityDetails, $"EntityDetails ({gameSessionManager.EntityTracker.GetEntitiesCount()})");
-    //    if (showEntityDetails)
-    //    {
-    //        EditorGUILayout.BeginHorizontal();
-    //        EditorGUILayout.LabelField("Тип сущности", GUILayout.Width(170));
-    //        EditorGUILayout.LabelField("Всего", GUILayout.Width(70));
-    //        EditorGUILayout.LabelField("На сцене", GUILayout.Width(70));
-    //        EditorGUILayout.LabelField("Спрятанных", GUILayout.Width(100));
-    //        EditorGUILayout.LabelField("Спрятанных в pool", GUILayout.Width(170));
-    //        EditorGUILayout.EndHorizontal();
+        showEntityDetails = EditorGUILayout.Foldout(showEntityDetails, $"EntityDetails ({tracker.GetEntitiesCount()})");
+        if (showEntityDetails)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Тип сущности", GUILayout.Width(170));
+            EditorGUILayout.LabelField("Всего", GUILayout.Width(70));
+            EditorGUILayout.LabelField("На сцене", GUILayout.Width(70));
+            EditorGUILayout.LabelField("Спрятанных", GUILayout.Width(100));
+            EditorGUILayout.LabelField("Спрятанных в pool", GUILayout.Width(170));
+            EditorGUILayout.EndHorizontal();
 
-    //        var entityDetails = gameSessionManager.EntityTracker.RegisteredEntity.OrderByDescending(x => x.Value);
-    //        foreach (var entity in entityDetails)
-    //        {
-    //            var onSceneEntity = gameSessionManager.EntityTracker.GetExactEntityOnSceneCount(entity.Key);
-    //            var inPoolEntity = gameSessionManager.EntityTracker.GetExactEntityInPoolCount(entity.Key);
-    //            var hideEntity = entity.Value - onSceneEntity;
+            var entityDetails = tracker.RegisteredEntity.OrderByDescending(x => x.Value);
+            foreach (var entity in entityDetails)
+            {
+                var onSceneEntity = tracker.GetExactEntityOnSceneCount(entity.Key);
+                var inPoolEntity = tracker.GetExactEntityInPoolCount(entity.Key);
+                var hideEntity = entity.Value - onSceneEntity;
 
-    //            Texture icon = EditorGUIUtility.IconContent("d_Prefab Icon").image;
-    //            GUILayout.BeginHorizontal();
-    //            GUILayout.Label(icon, GUILayout.Width(16), GUILayout.Height(16));
-    //            EditorGUILayout.LabelField(entity.Key.ToString(), GUILayout.Width(150));
-    //            EditorGUILayout.LabelField(entity.Value.ToString(), GUILayout.Width(70));
-    //            EditorGUILayout.LabelField(onSceneEntity.ToString(), GUILayout.Width(70));
-    //            EditorGUILayout.LabelField(hideEntity.ToString(), GUILayout.Width(100));
-    //            EditorGUILayout.LabelField(inPoolEntity.ToString(), GUILayout.Width(170));
-    //            GUILayout.EndHorizontal();
-    //        }
-    //    }
-    //    EditorGUILayout.EndVertical();
-    //}
+                Texture icon = EditorGUIUtility.IconContent("d_Prefab Icon").image;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(icon, GUILayout.Width(16), GUILayout.Height(16));
+                EditorGUILayout.LabelField(entity.Key.ToString(), GUILayout.Width(150));
+                EditorGUILayout.LabelField(entity.Value.ToString(), GUILayout.Width(70));
+                EditorGUILayout.LabelField(onSceneEntity.ToString(), GUILayout.Width(70));
+                EditorGUILayout.LabelField(hideEntity.ToString(), GUILayout.Width(100));
+                EditorGUILayout.LabelField(inPoolEntity.ToString(), GUILayout.Width(170));
+                GUILayout.EndHorizontal();
+            }
+        }
+        EditorGUILayout.EndVertical();
+    }
 }

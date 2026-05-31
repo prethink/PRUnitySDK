@@ -49,17 +49,27 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void OnEnable()
     {
-        EventBus.Subscribe(this);
+        
     }
 
     protected virtual void OnDisable()
     {
-        EventBus.Unsubscribe(this);
+
     }
 
     protected virtual void OnValidate()
     {
 
+    }
+
+    private void SubscribeEventBus()
+    {
+        EventBus.Subscribe(this);
+    }
+
+    private void UnsubscribeEventBus()
+    {
+        EventBus.Unsubscribe(this);
     }
 
     private void OnTriggerStay(Collider other)
@@ -233,6 +243,11 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         PRDestroy(obj.gameObject, timeout);
     }
 
+    private void OnDestroy()
+    {
+        UnsubscribeEventBus();
+    }
+
     protected virtual bool PRPreUpdate() { return true; }
 
     protected virtual void PRUpdate() { }
@@ -241,7 +256,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void InitializationComponents()
     {
-
+        SubscribeEventBus();
     }
 
     protected virtual void PRLateUpdate() { }

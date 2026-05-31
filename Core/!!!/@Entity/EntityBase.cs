@@ -258,7 +258,10 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     }
 
-    protected abstract void InitializeDefaultEntityInfo();
+    protected virtual void InitializeDefaultEntityInfo()
+    {
+        EntityInitializeBaseEntityInfo(); 
+    }
 
     #endregion
 }

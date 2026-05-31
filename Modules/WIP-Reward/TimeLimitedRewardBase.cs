@@ -5,18 +5,14 @@ public abstract class TimeLimitedRewardBase
     protected virtual bool IsActive(string name, out DateTime endTime)
     {
         endTime = DateTime.MinValue;
-        if (PRUnitySDK.Managers.ProjectPropertiesManager.TryGetDateTime(GetName(name), out var data))
-        {
-            if (PRUnitySDK.ServerTime.GetNow() < data)
-            {
-                endTime = data;
-                return true;
-            }
-
+        if (!PRUnitySDK.Managers.ProjectPropertiesManager.TryGetDateTime(GetName(name), out var data))
             return false;
-        }
 
-        return false;
+        if (PRUnitySDK.ServerTime.GetNow() > data)
+            return false;
+
+        endTime = data;
+        return true;
     }
 
     protected virtual void AddTime(string name, TimeSpan addTime)
