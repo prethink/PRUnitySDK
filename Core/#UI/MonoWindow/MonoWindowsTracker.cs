@@ -1,3 +1,5 @@
+using System.Linq;
+
 public class MonoWindowsTracker : TrackerBase<MonoWindowBase>
 {
     public override bool Register(MonoWindowBase element)
@@ -9,5 +11,25 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>
     public override bool Unregister(MonoWindowBase element)
     {
         return elements.Remove(element);
+    }
+
+    public void HideAllWindows()
+    {
+        foreach (var window in elements)
+            window.Hide();
+    }
+
+    public void TryShowWindow(string key, MonoWindowArgs args)
+    {
+        HideAllWindows();
+
+        var requiredWindow = elements.FirstOrDefault(x => x.Key.Equals(key, System.StringComparison.OrdinalIgnoreCase));
+        if (requiredWindow != null)
+            requiredWindow.Show(args);
+    }
+
+    public void TryShowWindow(string key)
+    {
+        TryShowWindow(key, new MonoWindowsArgsEmpty());
     }
 }

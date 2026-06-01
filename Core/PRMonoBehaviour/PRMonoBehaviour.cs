@@ -62,12 +62,12 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     }
 
-    private void SubscribeEventBus()
+    protected virtual void RegisterEventsOnCreated()
     {
         EventBus.Subscribe(this);
     }
 
-    private void UnsubscribeEventBus()
+    protected virtual void UnRegisterEventsOnDestroy()
     {
         EventBus.Unsubscribe(this);
     }
@@ -245,7 +245,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnDestroy()
     {
-        UnsubscribeEventBus();
+        UnRegisterEventsOnDestroy();
     }
 
     protected virtual bool PRPreUpdate() { return true; }
@@ -256,7 +256,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void InitializationComponents()
     {
-        SubscribeEventBus();
+        RegisterEventsOnCreated();
     }
 
     protected virtual void PRLateUpdate() { }

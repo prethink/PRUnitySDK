@@ -6,9 +6,6 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 {
     public abstract string Key { get; }
 
-    [Header("Главный контейнер")]
-    [SerializeField] protected GameObject container;
-
     [Header("Заголовок")]
     [SerializeField] protected RectTransform header;
     [SerializeField] protected Image iconHeader;
@@ -20,21 +17,11 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     [SerializeField] protected bool setPauseWhenOpen;
 
-    /// <summary>
-    /// Окно в процессе изменения.
-    /// </summary>
-    public bool IsStateChanging { get; protected set; }
-
-    public bool IsInitTranslate { get; protected set; }
-
-    public int ExecuterId { get; protected set; }   
-
     public virtual void Show(MonoWindowArgs args)
     {
-        container.SetActive(true);
+        gameObject.SetActive(true);
         //UpdateTranslate();
-        container.RefreshLayoutGroupsImmediateAndRecursive();
-        ExecuterId = args.Executer;
+        gameObject.RefreshLayoutGroupsImmediateAndRecursive();
         PRUnitySDK.SetWindowsState(true);
         if (setPauseWhenOpen)
             PRUnitySDK.PauseManager.SetLogicPaused(true, this);
@@ -44,11 +31,11 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     public virtual void Hide(bool isForceClose = false)
     {
-        if (container.activeSelf)
+        if (gameObject.activeSelf)
             GameManager.Instance.SaveData();
 
         PRUnitySDK.SetWindowsState(false);
-        container.SetActive(false);
+        gameObject.SetActive(false);
         PRUnitySDK.PauseManager.SetLogicPaused(false, this);
         GameManager.Instance.LoadingUserCursorState();
     }
@@ -65,15 +52,24 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     protected override void OnEnable()
     {
         exitButton?.onClick.AddListener(() => { Hide(); });
-        //uiWatcher.Register(this);
-        //UpdateTranslate();
         base.OnEnable();
     }
 
     protected override void OnDisable()
     {
         exitButton?.onClick.RemoveAllListeners();
-        //uiWatcher.UnRegister(this);
         base.OnDisable();
+    }
+
+    protected override void RegisterEventsOnCreated()
+    {
+        PRUnitySDK.Trackers.MonoWindows.Register(this);
+        base.RegisterEventsOnCreated();
+    }
+
+    protected override void UnRegisterEventsOnDestroy()
+    {
+        PRUnitySDK.Trackers.MonoWindows.Unregister(this);
+        base.UnRegisterEventsOnDestroy();
     }
 }
