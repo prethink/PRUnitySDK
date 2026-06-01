@@ -1,4 +1,5 @@
 using NaughtyAttributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -11,10 +12,12 @@ public class LocalizationObserver : PRMonoBehaviour
     [SerializeField] protected LocalizationRow localization;
     [SerializeField] protected List<string> localizationArgs = new();
 
+    private ILocalizationProvider localizationProvider;
+
     protected override void InitializationComponents()
     {
         base.InitializationComponents();
-
+        localizationProvider = localization;
         textMeshProUGUI ??= GetComponent<TextMeshProUGUI>();
     }
 
@@ -27,14 +30,26 @@ public class LocalizationObserver : PRMonoBehaviour
     private void OnChangeLanguage(string langKey)
     {
         textMeshProUGUI.text = localizationArgs.Any() 
-            ? string.Format(localization.GetTranslate(langKey), localizationArgs.ToArray())
-            : localization.GetTranslate(langKey);
+            ? string.Format(localizationProvider.GetTranslate(langKey), localizationArgs.ToArray())
+            : localizationProvider.GetTranslate(langKey);
+    }
+
+    public void SetLocalization(ILocalizationProvider localization, string[] args)
+    {
+        this.localizationProvider = localization;
+        SetArgs(args);
+    }
+
+    public void SetLocalization(ILocalizationProvider localization)
+    {
+        this.SetLocalization(localization, Array.Empty<string>());
     }
 
     public void SetArgs(string[] args, bool updateText = true)
     {
         localizationArgs.Clear();
-        localizationArgs.AddRange(args);
+        if(args.Length > 0)
+            localizationArgs.AddRange(args);
 
         if (updateText)
             OnChangeLanguage(PRUnitySDK.CurrentLang);

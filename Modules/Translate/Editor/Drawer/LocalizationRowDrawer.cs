@@ -6,7 +6,7 @@ public class LocalizationRowDrawer : LocalizationLangDrawerBase
 {
     protected override SerializedProperty GetValues(SerializedProperty property)
     {
-        return property.FindPropertyRelative("langData");
+        return property.FindPropertyRelative(LocalizationRow.LangPropertyName);
     }
 
     protected override float GetBeforeLanguagesHeight(SerializedProperty property)
