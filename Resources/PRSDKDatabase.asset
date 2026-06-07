@@ -39,6 +39,8 @@ MonoBehaviour:
       - 
       - 
     <Project>k__BackingField: []
+  <BrainrotDefinitions>k__BackingField:
+    data: []
   <Achievements>k__BackingField:
     Items:
     - <Guid>k__BackingField: 243ed64b-59b9-449a-a7a6-08ccb2fec462

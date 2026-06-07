@@ -44,8 +44,3 @@ public class SerializableDictionary<TKey, TValue> : ISerializationCallbackReceiv
         }
     }
 }
-
-[Serializable]
-public class TranslateDictionary : SerializableDictionary<LangType, string>
-{
-}

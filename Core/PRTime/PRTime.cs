@@ -1,3 +1,6 @@
+using System;
+using UnityEngine;
+
 public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 {
     /// <summary>
@@ -14,6 +17,16 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     /// Время прошедшее с последнего кадра, без учёта паузы логики.
     /// </summary>
     public float LastRawTime { get; private set; }
+
+    /// <summary>
+    /// Событие , вызываемое при наступлении каждой новой секунды. Передаёт количество полных секунд, прошедших с момента инициализации PRTime.
+    /// </summary>
+    public event Action<int> OnNextSecond;
+
+    /// <summary>
+    /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond.
+    /// </summary>
+    private int lastSecond;
 
     #region MonoBehaviour
 
@@ -58,6 +71,14 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         this.DeltaTime = rawDelta;
         this.Time += DeltaTime;
         this.LastRawTime = rawTime;
+
+        int currentSecond = Mathf.FloorToInt(this.Time);
+
+        if (currentSecond != lastSecond)
+        {
+            lastSecond = currentSecond;
+            OnNextSecond?.Invoke(currentSecond);
+        }
     }
 
     #endregion

@@ -33,22 +33,30 @@ public class ButtonBase : PRMonoBehaviour
 
     protected override void OnEnable()
     {
-        button.onClick.AddListener(BaseClick);
+        button.onClick.AddListener(Execute);
         base.OnEnable();
     }
 
     protected override void OnDisable()
     {
-        button.onClick.RemoveListener(BaseClick);
+        button.onClick.RemoveListener(Execute);
         base.OnDisable();
     }
 
-    public void BaseClick()
+    protected void Execute()
     {
         SendMetric();
         ClickSound();
         DisablePostClick();
         HidePostClick();
+
+        if(CanExecute())
+            InternalExecute();
+    }
+
+    protected virtual void InternalExecute()
+    {
+
     }
 
     protected virtual void HidePostClick()

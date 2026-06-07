@@ -17,11 +17,9 @@ public class StateButton : ButtonBase
         base.Awake();
     }
 
-    public void ChangeState()
-    {
-        if (!CanExecute())
-            return;
 
+    protected override void InternalExecute()
+    {
         var container = new ValueStringContainer();
         OnRequestValue?.Invoke(container);
         if (!string.IsNullOrEmpty(container.Value))
