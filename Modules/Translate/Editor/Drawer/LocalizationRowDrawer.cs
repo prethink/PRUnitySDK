@@ -1,28 +1,28 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomPropertyDrawer(typeof(LocalizationRow))]
-public class LocalizationRowDrawer : LocalizationLangDrawerBase
+
+public class LocalizationRowDrawer //: LocalizationLangDrawerBase
 {
-    protected override SerializedProperty GetValues(SerializedProperty property)
-    {
-        return property.FindPropertyRelative(LocalizationRow.LangPropertyName);
-    }
+    //protected override SerializedProperty GetValues(SerializedProperty property)
+    //{
+    //    return property.FindPropertyRelative(LocalizationRow.LangPropertyName);
+    //}
 
-    protected override float GetBeforeLanguagesHeight(SerializedProperty property)
-    {
-        return EditorGUIUtility.singleLineHeight + 3f * 2;
-    }
+    //protected override float GetBeforeLanguagesHeight(SerializedProperty property)
+    //{
+    //    return EditorGUIUtility.singleLineHeight + 3f * 2;
+    //}
 
-    protected override void DrawBeforeLanguages(Rect position, SerializedProperty property, ref Rect r)
-    {
-        var key = property.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField());
+    //protected override void DrawBeforeLanguages(Rect position, SerializedProperty property, ref Rect r)
+    //{
+    //    var key = property.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField());
 
-        float h = EditorGUIUtility.singleLineHeight;
-        float sp = 3f;
+    //    float h = EditorGUIUtility.singleLineHeight;
+    //    float sp = 3f;
 
-        key.stringValue = EditorGUI.TextField(r, "Key", key.stringValue);
+    //    key.stringValue = EditorGUI.TextField(r, "Key", key.stringValue);
 
-        r.y += h + sp * 2;
-    }
+    //    r.y += h + sp * 2;
+    //}
 }

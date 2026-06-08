@@ -38,12 +38,12 @@ public class GameEventEntity : IEntity
             nameof(GameEventEntity),
             PRUnitySDK.Database.Sprites.Entities.GameEventEntity, 
             "GameEventEntity", 
-            LocalizationUtils.CreateLocalizationList(new Dictionary<LangType, string>()
+            new Dictionary<LangType, string>()
             {
                 { LangType.Russian, "Игровое событие" },
                 { LangType.English, "Game Event" },
                 { LangType.Turkey, "Oyun Etkinliği" }
-            }));
+            });
 
         return new EntityInfoContainer(entityInfo);
     }

@@ -33,25 +33,38 @@ MonoBehaviour:
   <LocalizationDatabase>k__BackingField:
     <DefaultLanguage>k__BackingField: 0
     <Common>k__BackingField:
-    - <LocalizationKey>k__BackingField: new_key
-      localizations:
-      - 
-      - 
-      - 
+    - <localizationValues>k__BackingField:
+        _serializedList: []
+    - <localizationValues>k__BackingField:
+        _serializedList: []
     <Project>k__BackingField: []
   <BrainrotDefinitions>k__BackingField:
     data: []
   <Achievements>k__BackingField:
     Items:
-    - <Guid>k__BackingField: 243ed64b-59b9-449a-a7a6-08ccb2fec462
+    - <Guid>k__BackingField: ed927f3c-24cc-4603-8baa-25829e72827e
       <Icon>k__BackingField: {fileID: 0}
       <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
       <TriggerKey>k__BackingField:
         value: Win
       <TargetCount>k__BackingField: 0
       <Reward>k__BackingField: {fileID: 0}
-      localizations:
-        values:
-        - 
-        - 
-        - 
+      <localization>k__BackingField:
+        _serializedList:
+        - Key: 0
+          Value: Q
+        - Key: 1
+          Value: W
+        - Key: 2
+          Value: E
+    - <Guid>k__BackingField: 6a16e8f2-045c-44a5-96c4-fe58923415f2
+      <Icon>k__BackingField: {fileID: 0}
+      <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
+      <TriggerKey>k__BackingField:
+        value: Win
+      <TargetCount>k__BackingField: 0
+      <Reward>k__BackingField: {fileID: 0}
+      <localization>k__BackingField:
+        _serializedList:
+        - Key: 0
+          Value: 67

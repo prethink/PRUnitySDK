@@ -44,6 +44,12 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         Reset();
     }
 
+    protected override void UnRegisterEventsOnDestroy()
+    {
+        base.UnRegisterEventsOnDestroy();
+        OnNextSecond = null;
+    }
+
     /// <inheritdoc />
     protected override void Update()
     {

@@ -12,5 +12,5 @@ public class CommonResourceItemDefinition : ResourceItemDefinitionBase
 
     public override CategoryPath Category => new CategoryPath(ResourceItemCategory.GetCategory(Name));
 
-    public override string LocalizationKey => $"resource_{name}";
+    //public override string LocalizationKey => $"resource_{name}";
 }

@@ -4,19 +4,19 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-public class LocalizationWindow : ExtendedEditorWindow
+public class LocalizationWindow : EditorWindow
 {
     private SerializedObject so;
 
     private SerializedProperty commonProp;
     private SerializedProperty projectProp;
 
-    private HashSet<string> duplicateKeys = new HashSet<string>();
-
     private Vector2 scroll;
     private string search;
 
     private LangType[] languages;
+
+    private PRSDKDatabase database;
 
     [MenuItem("PRUnitySDK/Tools/Localization")]
     public static void Open()
@@ -29,10 +29,17 @@ public class LocalizationWindow : ExtendedEditorWindow
         database = ScriptableObjectSingleton<PRSDKDatabase>.Instance;
         so = new SerializedObject(database);
 
-        var loc = so.FindProperty(nameof(PRUnitySDK.Database.LocalizationDatabase).GetBackingField());
+        var loc = so.FindProperty(
+            nameof(PRUnitySDK.Database.LocalizationDatabase).GetBackingField()
+        );
 
-        commonProp = loc.FindPropertyRelative(nameof(PRUnitySDK.Database.LocalizationDatabase.Common).GetBackingField());
-        projectProp = loc.FindPropertyRelative(nameof(PRUnitySDK.Database.LocalizationDatabase.Project).GetBackingField());
+        commonProp = loc.FindPropertyRelative(
+            nameof(PRUnitySDK.Database.LocalizationDatabase.Common).GetBackingField()
+        );
+
+        projectProp = loc.FindPropertyRelative(
+            nameof(PRUnitySDK.Database.LocalizationDatabase.Project).GetBackingField()
+        );
 
         languages = Enum.GetValues(typeof(LangType))
             .Cast<LangType>()
@@ -43,102 +50,127 @@ public class LocalizationWindow : ExtendedEditorWindow
     {
         if (database == null)
         {
-            EditorGUILayout.HelpBox("PRSDKDatabase not found", MessageType.Error);
+            EditorGUILayout.HelpBox("Database not found", MessageType.Error);
             return;
         }
 
         so.Update();
 
         Tabs(
-            ("Common", () => DrawTable(commonProp)),
-            ("Project", () => DrawTable(projectProp))
+            ("Common", () => DrawList(commonProp)),
+            ("Project", () => DrawList(projectProp))
         );
 
         so.ApplyModifiedProperties();
     }
 
-    private void DrawTopWarning()
-    {
-        if (duplicateKeys.Count == 0)
-            return;
-
-        EditorGUILayout.Space(5);
-
-        var oldColor = GUI.backgroundColor;
-        GUI.backgroundColor = Color.red;
-
-        EditorGUILayout.BeginVertical("box");
-
-        EditorGUILayout.LabelField(
-            "⚠ Duplicate localization keys detected!",
-            EditorStyles.boldLabel
-        );
-
-        EditorGUILayout.LabelField(
-            string.Join(", ", duplicateKeys)
-        );
-
-        EditorGUILayout.EndVertical();
-
-        GUI.backgroundColor = oldColor;
-
-        EditorGUILayout.Space(5);
-    }
-
-    private void ValidateDuplicates(SerializedProperty listProp)
-    {
-        duplicateKeys.Clear();
-
-        var keys = new HashSet<string>();
-        var duplicates = new HashSet<string>();
-
-        for (int i = 0; i < listProp.arraySize; i++)
-        {
-            var element = listProp.GetArrayElementAtIndex(i);
-            var key = element.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue;
-
-            if (string.IsNullOrEmpty(key))
-                continue;
-
-            if (!keys.Add(key))
-                duplicates.Add(key);
-        }
-
-        duplicateKeys = duplicates;
-    }
-
     // =========================
-    // TABLE
+    // DRAW LIST
     // =========================
 
-    private void DrawTable(SerializedProperty listProp)
+    private void DrawList(SerializedProperty listProp)
     {
-        ValidateDuplicates(listProp);
-        DrawTopWarning();
         DrawSearch();
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
 
-        DrawHeader();
-
         for (int i = 0; i < listProp.arraySize; i++)
         {
             var element = listProp.GetArrayElementAtIndex(i);
 
-            var keyProp = element.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField());
-            var langProp = element.FindPropertyRelative(LocalizationRow.LangPropertyName);
-
-            if (!Filter(keyProp.stringValue))
+            if (!Filter(element))
                 continue;
 
-            EnsureLangSize(langProp);
+            EditorGUILayout.BeginVertical("box");
 
-            DrawRow(listProp, element, i, keyProp, langProp);
+            // 💥 ВОТ ОНО
+            EditorGUILayout.PropertyField(element);
+
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("Delete", GUILayout.Width(60)))
+            {
+                listProp.DeleteArrayElementAtIndex(i);
+                GUIUtility.ExitGUI();
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
         }
 
         EditorGUILayout.EndScrollView();
 
         DrawAdd(listProp);
+    }
+
+    // =========================
+    // DICTIONARY DRAW
+    // =========================
+
+    private void DrawDictionary(SerializedProperty dictList)
+    {
+        EnsureLangSize(dictList);
+
+        for (int i = 0; i < languages.Length; i++)
+        {
+            var pair = FindPair(dictList, languages[i]);
+
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label(languages[i].ToString(), GUILayout.Width(100));
+
+            var valueProp = pair.FindPropertyRelative("Value");
+
+            valueProp.stringValue = EditorGUILayout.TextField(valueProp.stringValue);
+
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+
+    // =========================
+    // ADD
+    // =========================
+
+    private void DrawAdd(SerializedProperty listProp)
+    {
+        bool isSearching = !string.IsNullOrEmpty(search);
+
+        GUI.enabled = !isSearching;
+
+        if (GUILayout.Button("+ Add Key"))
+        {
+            so.Update();
+
+            int index = listProp.arraySize;
+            listProp.InsertArrayElementAtIndex(index);
+
+            var element = listProp.GetArrayElementAtIndex(index);
+
+            // =========================
+            // FORCE RESET OBJECT STATE
+            // =========================
+
+            // KEY (ВАЖНО: не backing field!)
+            var keyProp = element.FindPropertyRelative("localizationKey");
+            if (keyProp != null)
+                keyProp.stringValue = "new_key";
+
+            // DICTIONARY RESET
+            var dictProp = element.FindPropertyRelative("localizationValues");
+
+            if (dictProp != null)
+            {
+                var list = dictProp.FindPropertyRelative("_serializedList");
+
+                if (list != null)
+                    list.ClearArray();
+            }
+
+            so.ApplyModifiedProperties();
+        }
+
+        GUI.enabled = true;
     }
 
     // =========================
@@ -157,162 +189,76 @@ public class LocalizationWindow : ExtendedEditorWindow
         EditorGUILayout.EndHorizontal();
     }
 
-    private bool Filter(string key)
+    private bool Filter(SerializedProperty element)
     {
         if (string.IsNullOrEmpty(search))
             return true;
 
-        return key != null &&
-               key.ToLower().Contains(search.ToLower());
-    }
-
-    // =========================
-    // HEADER
-    // =========================
-
-    private void DrawHeader()
-    {
-        EditorGUILayout.BeginHorizontal("box");
-
-        GUILayout.Label("Key", GUILayout.Width(200));
-
-        foreach (var lang in languages)
-        {
-            GUILayout.Label(GetLangName(lang), GUILayout.Width(150));
-        }
-
-        GUILayout.Label("", GUILayout.Width(80));
-
-        EditorGUILayout.EndHorizontal();
-    }
-
-    // =========================
-    // ROW
-    // =========================
-
-    private void DrawRow(
-        SerializedProperty listProp,
-        SerializedProperty element,
-        int index,
-        SerializedProperty keyProp,
-        SerializedProperty langProp)
-    {
-        EditorGUILayout.BeginHorizontal("box");
-
-        // KEY
-        keyProp.stringValue = EditorGUILayout.TextField(
-            keyProp.stringValue,
-            GUILayout.Width(200)
+        var keyProp = element.FindPropertyRelative(
+            nameof(LocalizationControl.LocalizationKey).GetBackingField()
         );
 
-        // LANGS
-        for (int i = 0; i < languages.Length; i++)
-        {
-            var valueProp = langProp.GetArrayElementAtIndex(i);
+        if (keyProp.stringValue != null &&
+            keyProp.stringValue.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0)
+            return true;
 
-            valueProp.stringValue = EditorGUILayout.TextField(
-                valueProp.stringValue,
-                GUILayout.Width(150)
-            );
+        var dict = element.FindPropertyRelative("localizationValues")
+                          .FindPropertyRelative("_serializedList");
+
+        for (int i = 0; i < dict.arraySize; i++)
+        {
+            var v = dict.GetArrayElementAtIndex(i)
+                        .FindPropertyRelative("Value");
+
+            if (v.stringValue != null &&
+                v.stringValue.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
         }
 
-        GUILayout.FlexibleSpace();
-
-        // ACTIONS
-        if (GUILayout.Button("Copy", GUILayout.Width(30)))
-        {
-            so.Update();
-
-            listProp.InsertArrayElementAtIndex(index + 1);
-
-            var src = listProp.GetArrayElementAtIndex(index);
-            var dst = listProp.GetArrayElementAtIndex(index + 1);
-
-            // KEY
-            dst.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue =
-                src.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue + "_copy";
-
-            // LANG DATA
-            var srcLang = src.FindPropertyRelative(LocalizationRow.LangPropertyName);
-            var dstLang = dst.FindPropertyRelative(LocalizationRow.LangPropertyName);
-
-            dstLang.ClearArray();
-
-            for (int i = 0; i < srcLang.arraySize; i++)
-            {
-                dstLang.InsertArrayElementAtIndex(i);
-                dstLang.GetArrayElementAtIndex(i).stringValue =
-                    srcLang.GetArrayElementAtIndex(i).stringValue;
-            }
-
-            so.ApplyModifiedProperties();
-
-            Repaint();
-        }
-
-        if (GUILayout.Button("X", GUILayout.Width(30)))
-        {
-            if (!EditorUtility.DisplayDialog(
-                "Delete",
-                $"Delete key '{keyProp.stringValue}'?",
-                "Yes",
-                "No"))
-                return;
-
-            so.Update();
-            listProp.DeleteArrayElementAtIndex(index);
-            so.ApplyModifiedProperties();
-
-            GUIUtility.ExitGUI(); // 🔥 ВАЖНО
-            return;
-        }
-
-        EditorGUILayout.EndHorizontal();
-    }
-
-    // =========================
-    // ADD ROW
-    // =========================
-
-    private void DrawAdd(SerializedProperty listProp)
-    {
-        EditorGUILayout.Space(5);
-
-        if (GUILayout.Button("+ Add Key", GUILayout.Height(25)))
-        {
-            listProp.InsertArrayElementAtIndex(listProp.arraySize);
-
-            var newElement = listProp.GetArrayElementAtIndex(listProp.arraySize - 1);
-
-            newElement.FindPropertyRelative(nameof(LocalizationRow.LocalizationKey).GetBackingField()).stringValue = "new_key";
-
-            var langProp = newElement.FindPropertyRelative(LocalizationRow.LangPropertyName);
-            EnsureLangSize(langProp);
-        }
+        return false;
     }
 
     // =========================
     // HELPERS
     // =========================
 
-    private void EnsureLangSize(SerializedProperty langProp)
+    private void EnsureLangSize(SerializedProperty dictList)
     {
-        int target = languages.Length;
-
-        while (langProp.arraySize < target)
-            langProp.InsertArrayElementAtIndex(langProp.arraySize);
-
-        while (langProp.arraySize > target)
-            langProp.DeleteArrayElementAtIndex(langProp.arraySize - 1);
+        while (dictList.arraySize < languages.Length)
+            dictList.InsertArrayElementAtIndex(dictList.arraySize);
     }
 
-    private string GetLangName(LangType lang)
+    private SerializedProperty FindPair(SerializedProperty list, LangType lang)
     {
-        var mem = typeof(LangType).GetMember(lang.ToString());
-        var attr = mem[0]
-            .GetCustomAttributes(typeof(InspectorNameAttribute), false)
-            .FirstOrDefault() as InspectorNameAttribute;
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            var element = list.GetArrayElementAtIndex(i);
 
-        return attr != null ? attr.displayName : lang.ToString();
+            var keyProp = element.FindPropertyRelative("Key");
+
+            if ((LangType)keyProp.enumValueIndex == lang)
+                return element;
+        }
+
+        return null;
+    }
+
+    // =========================
+    // TABS
+    // =========================
+
+    private void Tabs(params (string name, Action draw)[] tabs)
+    {
+        EditorGUILayout.BeginHorizontal();
+
+        foreach (var t in tabs)
+        {
+            if (GUILayout.Button(t.name))
+                scroll = Vector2.zero;
+        }
+
+        EditorGUILayout.EndHorizontal();
+
+        tabs[0].draw();
     }
 }

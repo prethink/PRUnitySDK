@@ -7,6 +7,4 @@ public class TextureDefinition : ItemVisualDefinition
     public override string Id => throw new System.NotImplementedException();
 
     public override CategoryPath Category => throw new System.NotImplementedException();
-
-    public override string LocalizationKey => throw new System.NotImplementedException();
 }

@@ -1,4 +1,4 @@
-public partial interface IItemDefinition : IIdentifiable, IIconProvider, INameProvider, IQualityProvider, ILocalizationProvider
+public partial interface IItemDefinition : IIdentifiable, IIconProvider, INameProvider, IQualityProvider
 {
 
 }

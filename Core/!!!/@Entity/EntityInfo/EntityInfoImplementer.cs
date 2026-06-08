@@ -9,26 +9,25 @@ public class EntityInfoImplementer : IEntityInfo
     public Sprite Icon { get; private set; }
 
     public string LocalizationKey { get; private set; }
-    public IReadOnlyList<string> LocalizationValues { get; private set; }
 
     public QualityType Quality { get; private set; }
+
+    public IReadOnlyDictionary<LangType, string> LocalizationValues { get; }
 
     public EntityInfoImplementer(
         Guid type,
         string name,
         Sprite icon,
         string localizationKey,
-        IEnumerable<string> localizationValues)
+        Dictionary<LangType, string> localizationValues)
     {
         TypeGuid = type;
         Name = name;
         Icon = icon;
 
         LocalizationKey = localizationKey;
-        LocalizationValues = localizationValues is List<string> list
-            ? list
-            : new List<string>(localizationValues);
-    }
+        LocalizationValues = localizationValues;
+}
 
     public void SetQuality(QualityType quality)
     {

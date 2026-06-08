@@ -9,7 +9,7 @@ using UnityEngine;
 public class LocalizationObserver : PRMonoBehaviour
 {
     [field: SerializeField] public TextMeshProUGUI TextMeshProUGUI;
-    [SerializeField] protected LocalizationRow localization;
+    [SerializeField] protected LocalizationControl localization;
     [SerializeField] protected List<string> localizationArgs = new();
 
     private ILocalizationProvider localizationProvider;
@@ -17,7 +17,7 @@ public class LocalizationObserver : PRMonoBehaviour
     protected override void InitializationComponents()
     {
         base.InitializationComponents();
-        localizationProvider = localization;
+        localizationProvider ??= localization;
         TextMeshProUGUI ??= GetComponent<TextMeshProUGUI>();
     }
 
