@@ -54,10 +54,7 @@ public class GameEventEntity : IEntity
 
     public void GenerateId(Func<int> register) { }
 
-    public long GetCurrentLevel()
-    {
-        return 99999;
-    }
+    public long Level => 99999;
 
     public DamageData GetDamageData()
     {

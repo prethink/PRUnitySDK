@@ -94,11 +94,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
         throw new NotImplementedException();
     }
 
-    public virtual long GetCurrentLevel()
-    {
-        return 1;
-    }
-
     public virtual DamageData GetDamageData()
     {
         return CreateBaseDamageData();

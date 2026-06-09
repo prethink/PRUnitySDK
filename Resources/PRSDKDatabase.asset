@@ -33,10 +33,15 @@ MonoBehaviour:
   <LocalizationDatabase>k__BackingField:
     <DefaultLanguage>k__BackingField: 0
     <Common>k__BackingField:
-    - <localizationValues>k__BackingField:
-        _serializedList: []
-    - <localizationValues>k__BackingField:
-        _serializedList: []
+    - <LocalizationKey>k__BackingField: level
+      <localizationValues>k__BackingField:
+        _serializedList:
+        - Key: 0
+          Value: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C"
+        - Key: 1
+          Value: Level
+        - Key: 2
+          Value: Seviye
     <Project>k__BackingField: []
   <BrainrotDefinitions>k__BackingField:
     data: []

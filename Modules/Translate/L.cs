@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 public static class L 
@@ -33,6 +34,21 @@ public static class L
             return GetTranslate(translate, args);
 
         return $"NOT_FOUND_KEY_{key}";
+    }
+
+    public static IReadOnlyDictionary<LangType, string> GetDictionary(string key)
+    {
+        var localizationDataBase = PRUnitySDK.Database.LocalizationDatabase;
+
+        var projectLocalization = localizationDataBase.Project.FirstOrDefault(x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (projectLocalization != null)
+            return projectLocalization.LocalizationValues;
+
+        var commonLocalization = localizationDataBase.Common.FirstOrDefault(x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (commonLocalization != null)
+            return commonLocalization.LocalizationValues;
+
+        return new Dictionary<LangType, string>();
     }
 
     private static string GetTranslate(string translate, params string[] args)

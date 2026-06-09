@@ -1,5 +1,3 @@
-using System.Linq;
-
 public static class PRLocalization
 {
     public static string GetTranslate(ILocalizationProvider localization)
@@ -19,6 +17,9 @@ public static class PRLocalization
 
         if(localization.LocalizationValues.TryGetValue(lang, out var value))
         {
+            if(localization is ILocalizationPostfix postfixProvider)
+                value += postfixProvider.LocalizationPostfix;
+
             return value;
         }
         else

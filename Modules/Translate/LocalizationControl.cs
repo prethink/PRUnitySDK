@@ -6,10 +6,12 @@ using UnityEngine;
 [Serializable]
 public class LocalizationControl : ILocalizationProvider
 {
-    [SerializeField] public string LocalizationKey { get; private set; }
+    [field: SerializeField] public string LocalizationKey { get; private set; }
     [field: SerializeField, SerializedDictionary("Lang", "Value")] public SerializedDictionary<LangType, string> localizationValues { get; private set; } = new();
 
     public IReadOnlyDictionary<LangType, string> LocalizationValues => localizationValues;
+
+    public const string InternalLocalizationValuesPropertyName = nameof(localizationValues);
 
     public LocalizationControl()
     {

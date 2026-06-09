@@ -4,5 +4,5 @@ public interface ILevelProvider
     /// Получить текущий уровень объекта.
     /// </summary>
     /// <returns>Уровень.</returns>
-    long GetCurrentLevel();
+    long Level { get; }
 }
