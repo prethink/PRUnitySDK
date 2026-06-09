@@ -66,6 +66,22 @@ public static class QualityUtils
         };
     }
 
+    public static long GetQualityLevelModifier(QualityType quality)
+    {
+        return quality switch
+        {
+            QualityType.Common => PRUnitySDK.Settings.Quality.CommonLevel,
+            QualityType.Uncommon => PRUnitySDK.Settings.Quality.UncommonLevel,
+            QualityType.Rare => PRUnitySDK.Settings.Quality.RareLevel,
+            QualityType.Epic => PRUnitySDK.Settings.Quality.EpicLevel,
+            QualityType.Legendary => PRUnitySDK.Settings.Quality.LegendaryLevel,
+            QualityType.Mythic => PRUnitySDK.Settings.Quality.MythicLevel,
+            QualityType.Ancient => PRUnitySDK.Settings.Quality.AncientLevel,
+            QualityType.Godlike => PRUnitySDK.Settings.Quality.GodlikeLevel,
+            _ => 0
+        };
+    }
+
     /// <summary>
     /// ѕолучить качество по случайному весу.
     /// </summary>
