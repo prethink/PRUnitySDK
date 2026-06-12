@@ -376,11 +376,12 @@ public class ObjectPoolManager : MonoBehaviour
                     return ShowObject(type, category, position, rotation, scaler, parent);
                 }
 
-                poolObject.InstanceGameObject.transform.position = position;
-                poolObject.InstanceGameObject.transform.rotation = rotation;
-                poolObject.InstanceGameObject.transform.localScale = scaler;
-                if(parent != null)
+                if (parent != null)
                     poolObject.InstanceGameObject.transform.SetParent(parent.transform);
+
+                poolObject.InstanceGameObject.transform.localPosition = position;
+                poolObject.InstanceGameObject.transform.localRotation = rotation;
+                poolObject.InstanceGameObject.transform.localScale = scaler;
 
                 poolObject.InstanceGameObject.SetActive(true);
                 poolObject.InstanceGameObject.GetComponent<IPoolable>()?.InitializationPoolObject();
@@ -430,6 +431,15 @@ public class ObjectPoolManager : MonoBehaviour
     {
         RegisterPoolObject(nameof(GameObject), prefab.GetType().ToString(), prefab.gameObject);
         poolObject = ShowObject(nameof(GameObject), prefab.GetType().ToString(), position, Quaternion.identity, prefab.transform.localScale, transform);
+
+        return poolObject.InstanceGameObject.GetComponent<T>();
+    }
+
+    public T ShowObject<T>(T prefab, Transform transform, out PoolObject poolObject)
+    where T : Component
+    {
+        RegisterPoolObject(nameof(GameObject), prefab.GetType().ToString(), prefab.gameObject);
+        poolObject = ShowObject(nameof(GameObject), prefab.GetType().ToString(), Vector3.zero, Quaternion.identity, prefab.transform.localScale, transform);
 
         return poolObject.InstanceGameObject.GetComponent<T>();
     }

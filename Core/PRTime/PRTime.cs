@@ -28,6 +28,8 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     /// </summary>
     private int lastSecond;
 
+    //TODO: Глобальный тик
+
     #region MonoBehaviour
 
     /// <inheritdoc />
@@ -76,10 +78,10 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         float rawDelta = rawTime - LastRawTime;
         this.DeltaTime = rawDelta;
         this.Time += DeltaTime;
+
         this.LastRawTime = rawTime;
 
         int currentSecond = Mathf.FloorToInt(this.Time);
-
         if (currentSecond != lastSecond)
         {
             lastSecond = currentSecond;

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public abstract class ObjectDefinitionBase : ItemVisualDefinition
+public abstract class ObjectDefinitionBase<T> : ItemVisualDefinition where T : Object
 {
-    [field: SerializeField, PrefabPreview(140)] public GameObject Prefab { get; protected set; }
+    [field: SerializeField, PrefabPreview(140)] public T Prefab { get; protected set; }
 }

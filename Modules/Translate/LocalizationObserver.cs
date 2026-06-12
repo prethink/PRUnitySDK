@@ -9,6 +9,7 @@ using UnityEngine;
 public class LocalizationObserver : PRMonoBehaviour
 {
     [field: SerializeField] public TextMeshProUGUI TextMeshProUGUI;
+    [SerializeField] protected string globalKey;
     [SerializeField] protected LocalizationControl localization;
     [SerializeField] protected List<string> localizationArgs = new();
 
@@ -18,6 +19,11 @@ public class LocalizationObserver : PRMonoBehaviour
     {
         base.InitializationComponents();
         localizationProvider ??= localization;
+    }
+
+    protected override void OnValidate()
+    {
+        base.OnValidate();
         TextMeshProUGUI ??= GetComponent<TextMeshProUGUI>();
     }
 
@@ -32,9 +38,18 @@ public class LocalizationObserver : PRMonoBehaviour
         if (TextMeshProUGUI == null)
             return;
 
-        TextMeshProUGUI.text = localizationArgs.Any() 
-            ? string.Format(localizationProvider.GetTranslate(langKey), localizationArgs.ToArray())
-            : localizationProvider.GetTranslate(langKey);
+        TextMeshProUGUI.text = GetTranslate(langKey);
+    }
+
+    private string GetTranslate(string langKey)
+    {
+        if(!string.IsNullOrEmpty(globalKey))
+            return L.Tr(globalKey, localizationArgs.ToArray());
+
+        if (localizationArgs.Any())
+            return string.Format(localizationProvider.GetTranslate(langKey), localizationArgs.ToArray());
+
+        return localizationProvider.GetTranslate(langKey); 
     }
 
     public void SetLocalization(ILocalizationProvider localization, string[] args)

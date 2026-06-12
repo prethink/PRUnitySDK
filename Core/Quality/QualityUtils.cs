@@ -82,6 +82,16 @@ public static class QualityUtils
         };
     }
 
+    public static QualityType GetQualityByRandomWeights(QualityRange range)
+    {
+        var filtered = GetWeights()
+            .Where(w => range.Contains(w.Item))
+            .Cast<WeightItem<QualityType>>()
+            .ToList();
+
+        return WeightUtils.GetRandomWeight(filtered);
+    }
+
     /// <summary>
     /// ѕолучить качество по случайному весу.
     /// </summary>

@@ -42,9 +42,25 @@ MonoBehaviour:
           Value: Level
         - Key: 2
           Value: Seviye
+    - <LocalizationKey>k__BackingField: get
+      <localizationValues>k__BackingField:
+        _serializedList:
+        - Key: 0
+          Value: "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C"
+        - Key: 1
+          Value: Get
+        - Key: 2
+          Value: Almak
     <Project>k__BackingField: []
   <BrainrotDefinitions>k__BackingField:
-    data: []
+    data:
+    - {fileID: 11400000, guid: cabe65a53c3f02542a8d82f42f0eadf9, type: 2}
+    - {fileID: 11400000, guid: 427400ca617224a4f821dd208a76cd06, type: 2}
+    - {fileID: 11400000, guid: 46a1a65258eedd1468433d86ad6e81ba, type: 2}
+    - {fileID: 11400000, guid: 6ae0341f7e41b43439ad2facac864be8, type: 2}
+    - {fileID: 11400000, guid: 54702d2ea3d2906459a3f588976f7325, type: 2}
+    - {fileID: 11400000, guid: ee3cd7b68cb61c740a2d1ce1b08f7fdb, type: 2}
+    - {fileID: 11400000, guid: 2001bd524fcbb5342bcfb54af1e27fe3, type: 2}
   <Achievements>k__BackingField:
     Items:
     - <Guid>k__BackingField: ed927f3c-24cc-4603-8baa-25829e72827e

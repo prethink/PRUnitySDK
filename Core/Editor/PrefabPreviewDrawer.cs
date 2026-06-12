@@ -1,4 +1,4 @@
-using UnityEditor;
+п»їusing UnityEditor;
 using UnityEngine;
 
 [CustomPropertyDrawer(typeof(PrefabPreviewAttribute))]
@@ -18,10 +18,17 @@ public class PrefabPreviewDrawer : PropertyDrawer
         if (property.objectReferenceValue == null)
             return;
 
-        // создаём editor для превью
-        if (previewEditor == null || previewEditor.target != property.objectReferenceValue)
+        Object target = property.objectReferenceValue;
+
+        if (target is Component component)
+            target = component.gameObject;
+
+        if (previewEditor == null || previewEditor.target != target)
         {
-            previewEditor = Editor.CreateEditor(property.objectReferenceValue);
+            if (previewEditor != null)
+                Object.DestroyImmediate(previewEditor);
+
+            previewEditor = Editor.CreateEditor(target);
         }
 
         if (previewEditor != null && previewEditor.HasPreviewGUI())
