@@ -3,7 +3,7 @@ using UnityEngine;
 
 public partial class PRSDKSettings
 {
-    [field: SerializeField] public GameStorageSettings GameStorage { get; protected set; }
+    [field: SerializeField] public GameStorageSettings GameStorage { get; protected set; } = new();
 
     [MethodHook(MethodHookStage.Initializing)]
     public void SetDefaultGameStorageSettings()

@@ -71,3 +71,51 @@ MonoBehaviour:
     <ShowLevelUI>k__BackingField: 0
     <ShowQualityUI>k__BackingField: 1
     <ShowCostUI>k__BackingField: 1
+  <LuckyBox>k__BackingField:
+    <PreviewCount>k__BackingField: 25
+    <IterationSound>k__BackingField: {fileID: 8300000, guid: 837dc73372ad7b148b636a85bd8b91d2,
+      type: 3}
+    <OpenedSound>k__BackingField: {fileID: 8300000, guid: c0153bbb78c61054db1fc67bb94fa416,
+      type: 3}
+    <RollCurve>k__BackingField:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0.0015738962
+        value: 0.10612747
+        inSlope: 0.14759983
+        outSlope: 0.14759983
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.6987281
+        value: 0.2090273
+        inSlope: 0.2370365
+        outSlope: 0.2370365
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.2183787
+      - serializedVersion: 3
+        time: 0.8988935
+        value: 0.50737834
+        inSlope: 1.4280789
+        outSlope: 1.4280789
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.20733967
+      - serializedVersion: 3
+        time: 0.9992139
+        value: 1.1108409
+        inSlope: 6.0153527
+        outSlope: 6.0153527
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4

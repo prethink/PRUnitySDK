@@ -3,7 +3,7 @@ using UnityEngine;
 
 public partial class PRSDKSettings
 {
-    [field: SerializeField] public XPSettings ExperiencePoints { get; protected set; }
+    [field: SerializeField] public XPSettings ExperiencePoints { get; protected set; } = new();
 }
 
 [Serializable]

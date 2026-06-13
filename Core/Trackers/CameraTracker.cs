@@ -9,6 +9,12 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
         cameraStack.Push(cameraController);
     }
 
+    public bool IsLastStack() => cameraStack.Count == 1;
+
+    public bool IsEmptyStack() => cameraStack.Count == 0;
+
+    public int Count => cameraStack.Count;
+
     public CameraControllerBase Pop()
     {
         if (cameraStack.Count == 0)
