@@ -16,7 +16,7 @@ MonoBehaviour:
     <EnabledAutoSave>k__BackingField: 0
     <AutoSaveSeconds>k__BackingField: 0
     <SaveStrategy>k__BackingField: 0
-    <UseEncryption>k__BackingField: 1
+    <UseEncryption>k__BackingField: 0
     <EncryptionStrategy>k__BackingField: 0
   <Project>k__BackingField:
     <ReleaseType>k__BackingField: 0
@@ -68,6 +68,7 @@ MonoBehaviour:
     <GrowthFactor>k__BackingField: 1.5
     <PointForLevelUP>k__BackingField: 1
   <Brainrot>k__BackingField:
+    <ShowNameUI>k__BackingField: 1
     <ShowLevelUI>k__BackingField: 0
     <ShowQualityUI>k__BackingField: 1
     <ShowCostUI>k__BackingField: 1
