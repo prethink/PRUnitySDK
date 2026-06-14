@@ -32,7 +32,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     public virtual void Hide(bool isForceClose = false)
     {
         if (gameObject.activeSelf)
-            GameManager.Instance.SaveData();
+            GameManager.Instance.StartSaveTask();
 
         PRUnitySDK.SetWindowsState(false);
         gameObject.SetActive(false);

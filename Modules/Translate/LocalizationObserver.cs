@@ -73,6 +73,12 @@ public class LocalizationObserver : PRMonoBehaviour
             OnChangeLanguage(PRUnitySDK.CurrentLang);
     }
 
+    public void SetGlobalKey(string key)
+    {
+        this.globalKey = key;
+        OnChangeLanguage(PRUnitySDK.CurrentLang);
+    }
+
     protected override void OnDisable()
     {
         base.OnDisable();

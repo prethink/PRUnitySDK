@@ -4,6 +4,11 @@
 public partial class GameplayEvents
 {
     /// <summary>
+    /// Вызвать событие до сохранения игры.
+    /// </summary>
+    public static void RaiseBeforeSaveEvent() => EventBus.RaiseEvent<IGameplayEvent>(invoke => invoke.Track(new BeforeSaveGameEventArgs()));
+
+    /// <summary>
     /// Вызвать событие сохранения игры.
     /// </summary>
     public static void RaiseSaveEvent() => EventBus.RaiseEvent<IGameplayEvent>(invoke => invoke.Track(new SaveGameEventArgs()));

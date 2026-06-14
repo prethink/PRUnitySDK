@@ -61,6 +61,7 @@ public partial class PRManagerContainer
         PRUnitySDK.InitializeType<GameManager>(() =>
         {
             GameManager = GameManager.Instance;
+            GameManager.InitializeGameManager();
             GameManager.transform.SetParent(ManagerContainer.transform);
         });
     }

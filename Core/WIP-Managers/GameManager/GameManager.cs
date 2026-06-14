@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
@@ -22,6 +24,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     public GlobalGameSettingsSession GameSettingsSession { get; private set; }
 
     private IGameDataStorage gameDataStorage { get; set; }
+
+    private bool isInitialize;
+    private bool isSaving;
 
     #endregion
 
@@ -79,6 +84,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
     public void InitializeGameManager()
     {
+        if (isInitialize)
+            return;
+
         gameDataStorage = PRUnitySDK.GameDataStorage;
         gameDataStorage.Load();
 
@@ -87,15 +95,42 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         AutoSaveHandler();
 
         GameplayEvents.RaiseGameReady();
+        isInitialize = true;
     }
 
-    public void SaveData()
+    public void StartSaveTask()
     {
-        gameDataStorage.UpdateProjectData(projectData);
-        gameDataStorage.UpdateGameSettings(gameSettings);
-        gameDataStorage.Save();
+        Task.Run(() => InternalSave());
+    }
 
-        GameplayEvents.RaiseSaveEvent();
+    private async Task InternalSave()
+    {
+        if (isSaving)
+            return;
+
+        try
+        {
+            isSaving = true;
+
+            GameplayEvents.RaiseBeforeSaveEvent();
+            var saveTasks = PRUnitySDK.Trackers.Saveables.Where(x => !x.IsNull()).Select(x => x.TrySaveData());
+            await Task.WhenAll(saveTasks);
+
+            gameDataStorage.UpdateProjectData(projectData);
+            gameDataStorage.UpdateGameSettings(gameSettings);
+            gameDataStorage.Save();
+
+            GameplayEvents.RaiseSaveEvent();
+
+        }
+        catch(Exception ex) 
+        {
+            Debug.LogException(ex);
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
     public void LoadingUserCursorState()
@@ -113,7 +148,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         {
             GetGameSettings().IsShowCursor = !GetGameSettings().IsShowCursor;
             Cursor.visible = GetGameSettings().IsShowCursor;
-            SaveData();
+            StartSaveTask();
         }
 
     }
@@ -143,7 +178,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
             SetDefaultControlSettings();
 
         if (requiredSave)
-            SaveData();
+            StartSaveTask();
     }
 
     protected void SetDefaultControlSettings()
@@ -158,7 +193,8 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         while (true)
         {
             yield return new WaitForSeconds(GetStorageSettings().AutoSaveSeconds);
-            SaveData();
+            if (!isSaving)
+                StartSaveTask();
         }
     }
 

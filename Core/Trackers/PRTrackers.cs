@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 public partial class PRTrackers
 {
     public WatcherTracker Watchers => WatcherService.Instance;
@@ -9,4 +11,6 @@ public partial class PRTrackers
     public MonoWindowsTracker MonoWindows => MonoWindowsService.Instance;
 
     public CameraTracker CameraTracker => CameraTracker.Instance;
+
+    public HashSet<ISaveable> Saveables = new HashSet<ISaveable>();
 }

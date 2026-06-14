@@ -18,7 +18,7 @@ public sealed partial class PRUnitySDK
     /// <summary>
     /// Трекеры.
     /// </summary>
-    public static PRTrackers Trackers => new();
+    public static PRTrackers Trackers = new();
 
     /// <summary>
     /// Менеджеры.

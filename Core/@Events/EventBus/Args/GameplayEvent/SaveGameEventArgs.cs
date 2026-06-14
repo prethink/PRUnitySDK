@@ -1,5 +1,3 @@
-using System;
-
 public class SaveGameEventArgs : GameplayEventArgsBase
 {
     public SaveGameEventArgs()

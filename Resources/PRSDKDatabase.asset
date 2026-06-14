@@ -51,6 +51,15 @@ MonoBehaviour:
           Value: Get
         - Key: 2
           Value: Almak
+    - <LocalizationKey>k__BackingField: set
+      <localizationValues>k__BackingField:
+        _serializedList:
+        - Key: 0
+          Value: "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C"
+        - Key: 1
+          Value: Place
+        - Key: 2
+          Value: "Yerle\u015Ftirmek"
     <Project>k__BackingField: []
   <BrainrotDefinitions>k__BackingField:
     data:

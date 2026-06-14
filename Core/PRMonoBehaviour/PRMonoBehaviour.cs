@@ -1,7 +1,8 @@
 using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 
-public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListener, IReadySceneGameEvent, IReadyGameEvent
+public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListener, IReadySceneGameEvent, IReadyGameEvent, ISaveable
 {
     #region MonoBehaviour
 
@@ -65,11 +66,13 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     protected virtual void RegisterEventsOnCreated()
     {
         EventBus.Subscribe(this);
+        PRUnitySDK.Trackers.Saveables.Add(this);
     }
 
     protected virtual void UnRegisterEventsOnDestroy()
     {
         EventBus.Unsubscribe(this);
+        PRUnitySDK.Trackers.Saveables.Remove(this);
     }
 
     private void OnTriggerStay(Collider other)
@@ -367,6 +370,11 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             yield return waitForFrame;
             PREndOfFrame();
         }
+    }
+
+    public virtual async Task<bool> TrySaveData()
+    {
+        return true;
     }
 
     #endregion

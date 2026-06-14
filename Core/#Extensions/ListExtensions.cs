@@ -63,4 +63,29 @@ public static class ListExtensions
 
         return currentIndex;
     }
+
+    /// <summary>
+    /// Добавляет элемент или заменяет существующий по ключу.
+    /// </summary>
+    public static void AddOrReplace<T, TKey>(this IList<T> list,Func<T, TKey> keySelector, T item)
+    {
+        if (list == null)
+            throw new ArgumentNullException(nameof(list));
+
+        if (keySelector == null)
+            throw new ArgumentNullException(nameof(keySelector));
+
+        var key = keySelector(item);
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (EqualityComparer<TKey>.Default.Equals(keySelector(list[i]), key))
+            {
+                list[i] = item;
+                return;
+            }
+        }
+
+        list.Add(item);
+    }
 }
