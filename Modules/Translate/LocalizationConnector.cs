@@ -1,23 +1,23 @@
 using System;
 using System.Collections.Generic;
 
-public class LocalizationConnector : ILocalizationProvider, ILocalizationPostfix
+public class LocalizationConnector : ILocalizationProvider, ILocalizationAffix
 {
-    public LocalizationConnector(string key) : this(key, string.Empty, Array.Empty<string>())
+    public LocalizationConnector(string key) : this(key, null, Array.Empty<string>())
     {
        
     }
 
-    public LocalizationConnector(string key, string prefixValue) : this(key, prefixValue, Array.Empty<string>())
+    public LocalizationConnector(string key, LocalizationAffixOptions options) : this(key, options, Array.Empty<string>())
     {
 
     }
 
-    public LocalizationConnector(string key, string prefix, params string[] args)
+    public LocalizationConnector(string key, LocalizationAffixOptions options, params string[] args)
     {
         LocalizationKey = key;
         Args = args;
-        this.prefix = prefix;
+        Options = options;
     }
 
     public string prefix = string.Empty;
@@ -28,5 +28,7 @@ public class LocalizationConnector : ILocalizationProvider, ILocalizationPostfix
 
     public IReadOnlyDictionary<LangType, string> LocalizationValues => L.GetDictionary(LocalizationKey);
 
-    public string LocalizationPostfix => prefix;
+    public LocalizationAffixOptions Options { get; }
 }
+
+

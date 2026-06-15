@@ -69,11 +69,12 @@ MonoBehaviour:
     <PointForLevelUP>k__BackingField: 1
   <Brainrot>k__BackingField:
     <ShowNameUI>k__BackingField: 1
-    <ShowLevelUI>k__BackingField: 0
+    <ShowIncomeUI>k__BackingField: 1
     <ShowQualityUI>k__BackingField: 1
     <ShowCostUI>k__BackingField: 1
   <LuckyBox>k__BackingField:
     <PreviewCount>k__BackingField: 25
+    <UseCameraFocus>k__BackingField: 0
     <IterationSound>k__BackingField: {fileID: 8300000, guid: 837dc73372ad7b148b636a85bd8b91d2,
       type: 3}
     <OpenedSound>k__BackingField: {fileID: 8300000, guid: c0153bbb78c61054db1fc67bb94fa416,

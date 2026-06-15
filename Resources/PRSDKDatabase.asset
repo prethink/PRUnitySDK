@@ -60,6 +60,15 @@ MonoBehaviour:
           Value: Place
         - Key: 2
           Value: "Yerle\u015Ftirmek"
+    - <LocalizationKey>k__BackingField: sec
+      <localizationValues>k__BackingField:
+        _serializedList:
+        - Key: 0
+          Value: "\u0441\u0435\u043A."
+        - Key: 1
+          Value: sec.
+        - Key: 2
+          Value: sn.
     <Project>k__BackingField: []
   <BrainrotDefinitions>k__BackingField:
     data:
