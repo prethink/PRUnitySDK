@@ -5,7 +5,7 @@ public static class NumberConverter
     /// </summary>
     /// <param name="value">Число для форматирования.</param>
     /// <returns>Отформатированная строка.</returns>
-    public static string FormatNumber(long value, int minDigitsBeforeShorten = 3)
+    public static string FormatNumber(long value, int minDigitsBeforeShorten = 5)
     {
         string[] suffixes = { "", "K", "M", "B", "T", "P", "E" }; // Суффиксы
         int suffixIndex = 0;

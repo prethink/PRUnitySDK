@@ -37,29 +37,29 @@ MonoBehaviour:
   <Quality>k__BackingField:
     <UseDefaultColor>k__BackingField: 1
     <UseQualityLevelModifier>k__BackingField: 1
-    <CommonWeight>k__BackingField: 450
+    <CommonWeight>k__BackingField: 900
     <CommonColor>k__BackingField: {r: 0.6901961, g: 0.7647059, b: 0.8509804, a: 0}
     <CommonLevel>k__BackingField: 0
-    <UncommonWeight>k__BackingField: 250
+    <UncommonWeight>k__BackingField: 400
     <UncommonColor>k__BackingField: {r: 0.36862746, g: 0.59607846, b: 0.8509804, a: 1}
     <UncommonLevel>k__BackingField: 10
-    <RareWeight>k__BackingField: 150
+    <RareWeight>k__BackingField: 120
     <RareColor>k__BackingField: {r: 0.29411766, g: 0.4117647, b: 1, a: 1}
     <RareLevel>k__BackingField: 20
-    <MythicWeight>k__BackingField: 80
+    <MythicWeight>k__BackingField: 30
     <MythicColor>k__BackingField: {r: 0.53333336, g: 0.2784314, b: 1, a: 1}
     <MythicLevel>k__BackingField: 30
-    <EpicWeight>k__BackingField: 40
+    <EpicWeight>k__BackingField: 15
     <EpicColor>k__BackingField: {r: 0.827451, g: 0.17254902, b: 0.9019608, a: 1}
     <EpicLevel>k__BackingField: 40
-    <LegendaryWeight>k__BackingField: 20
+    <LegendaryWeight>k__BackingField: 8
     <LegendaryColor>k__BackingField: {r: 0.92156863, g: 0.29411766, b: 0.29411766,
       a: 1}
     <LegendaryLevel>k__BackingField: 50
-    <AncientWeight>k__BackingField: 10
+    <AncientWeight>k__BackingField: 3
     <AncientColor>k__BackingField: {r: 1, g: 0.84313726, b: 0, a: 1}
     <AncientLevel>k__BackingField: 60
-    <GodlikeWeight>k__BackingField: 5
+    <GodlikeWeight>k__BackingField: 1
     <GodlikeColor>k__BackingField: {r: 0.8117647, g: 0.41568628, b: 0.19607843, a: 1}
     <GodlikeLevel>k__BackingField: 70
   <ExperiencePoints>k__BackingField:
@@ -72,6 +72,7 @@ MonoBehaviour:
     <ShowIncomeUI>k__BackingField: 1
     <ShowQualityUI>k__BackingField: 1
     <ShowCostUI>k__BackingField: 1
+    <LevelMultiply>k__BackingField: 1.1
   <LuckyBox>k__BackingField:
     <PreviewCount>k__BackingField: 25
     <UseCameraFocus>k__BackingField: 0
