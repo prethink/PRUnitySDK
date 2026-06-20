@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -40,7 +39,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     
     public long Id { get; protected set; }
 
-    public abstract Type EntityType { get; }
+    public abstract Enumeration EntityType { get; }
 
     public abstract string Name { get; }
 
@@ -79,12 +78,12 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
             Destroy(this.gameObject);
             return;
         }
-        else if (EntityDisposeAction == EntityDisposeAction.HideInPool && !InPool)
+        else if (EntityDisposeAction == EntityDisposeAction.HideInPool && !InPool && PoolBehaviour.IsInitialize)
         {
             OnDestroyPool();
             return;
         }
-        else if(EntityDisposeAction == EntityDisposeAction.HideInPool && InPool)
+        else if(EntityDisposeAction == EntityDisposeAction.HideInPool && InPool || !InPool && !PoolBehaviour.IsInitialize)
         {
             PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} использует настройку {nameof(EntityDisposeAction.HideInPool)}, но при этом создается не через pool system. Объект полностью уничтожен.");
             Destroy(this.gameObject);
@@ -210,53 +209,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public EntityInfoContainer Info { get; protected set; }
 
-    [SerializeField, Header("Информация о типе сущностей")] protected EntityInfoBase entityInfoData;
-    protected IEntityInfo baseEntityInfo;
-    protected IEntityInfo overrideEntityInfo;
-
-    protected virtual void EntityInitializeBaseEntityInfo()
-    {
-        baseEntityInfo = entityInfoData;
-        baseEntityInfo ??= PRUnitySDK.Database.EntityInfo.Data.First();
-    }
-
-    protected virtual void EntityInitializeOverrideEntityInfo()
-    {
-        overrideEntityInfo = GetComponent<IEntityInfoProvider>()?.EntityInfo;
-    }
-
-    protected virtual void InitializeEntityInfo()
-    {
-        InitializeDefaultEntityInfo();
-        EntityInitializeOverrideEntityInfo();
-
-        if (baseEntityInfo != null && overrideEntityInfo != null)
-        {
-            Info = new EntityInfoContainer(baseEntityInfo, overrideEntityInfo);
-        }
-        else if (baseEntityInfo != null)
-        {
-            Info = new EntityInfoContainer(baseEntityInfo);
-        }
-        else if (overrideEntityInfo != null)
-        {
-            Info = new EntityInfoContainer(overrideEntityInfo);
-        }
-        else
-            throw new InvalidOperationException("Not have entity info");
-
-        PostEntityInitialize();
-    }
-
-    protected virtual void PostEntityInitialize()
-    {
-
-    }
-
-    protected virtual void InitializeDefaultEntityInfo()
-    {
-        EntityInitializeBaseEntityInfo(); 
-    }
+    protected abstract void InitializeEntityInfo();
 
     #endregion
 }

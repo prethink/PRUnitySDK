@@ -3,6 +3,7 @@ using System;
 public class PoolBehaviour 
 {
     public bool InPool { get; protected set; } = false;
+    public bool IsInitialize { get; protected set; }
 
     protected PoolObject poolObject;
 
@@ -15,6 +16,7 @@ public class PoolBehaviour
 
     public virtual void InitializationPoolObject()
     {
+        IsInitialize = true;
         var previousState = InPool;
         InPool = false;
         bool isFirstInitialize = previousState == InPool;

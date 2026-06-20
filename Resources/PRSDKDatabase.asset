@@ -30,6 +30,7 @@ MonoBehaviour:
   <EntityInfo>k__BackingField:
     data:
     - {fileID: 11400000, guid: f6eac1adb08e5694d95af49f5bb515a7, type: 2}
+    - {fileID: 11400000, guid: 334f124782a0f944084240c668f3666d, type: 2}
   <LocalizationDatabase>k__BackingField:
     <DefaultLanguage>k__BackingField: 0
     <Common>k__BackingField:

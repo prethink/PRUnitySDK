@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <GameStorage>k__BackingField:
     <EnabledAutoSave>k__BackingField: 0
-    <AutoSaveSeconds>k__BackingField: 0
+    <AutoSaveSeconds>k__BackingField: 10
     <SaveStrategy>k__BackingField: 0
     <UseEncryption>k__BackingField: 0
     <EncryptionStrategy>k__BackingField: 0
@@ -73,6 +73,7 @@ MonoBehaviour:
     <ShowQualityUI>k__BackingField: 1
     <ShowCostUI>k__BackingField: 1
     <LevelMultiply>k__BackingField: 1.1
+    <TimeOnGround>k__BackingField: 10
   <LuckyBox>k__BackingField:
     <PreviewCount>k__BackingField: 25
     <UseCameraFocus>k__BackingField: 0

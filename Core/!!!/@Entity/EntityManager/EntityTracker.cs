@@ -13,19 +13,19 @@ public class EntityTracker : EntityTrackerBase<IEntity>
 
     public long GetEntityOnSceneCount() => elements.Count(x => x != null && x.OnScene);
     public long GetEntityInPoolCount() => elements.Count(x => x != null && x.InPool);
-    public long GetExactExistsEntityCount(Type type) => elements.Count(x => x != null && x.EntityType == type);
-    public long GetExactEntityOnSceneCount(Type type) => elements.Count(x => x != null && x.EntityType == type && x.OnScene);
-    public long GetExactEntityInPoolCount(Type type) => elements.Count(x => x != null && x.EntityType == type && x.InPool);
+    public long GetExactExistsEntityCount(Enumeration type) => elements.Count(x => x != null && x.EntityType == type);
+    public long GetExactEntityOnSceneCount(Enumeration type) => elements.Count(x => x != null && x.EntityType == type && x.OnScene);
+    public long GetExactEntityInPoolCount(Enumeration type) => elements.Count(x => x != null && x.EntityType == type && x.InPool);
     //TODO:
-    public long GetInheritedExistsEntityCount(Type type) => elements.Count(x => x != null && x.EntityType.IsAssignableFrom(type));
+    public long GetInheritedExistsEntityCount(Type type) => elements.Count(x => x != null && x.GetType().IsAssignableFrom(type));
 
-    public long GetInheritedEntityOnSceneCount(Type type) => elements.Count(x => x != null && x.EntityType.IsAssignableFrom(type) && x.OnScene);
+    public long GetInheritedEntityOnSceneCount(Type type) => elements.Count(x => x != null && x.GetType().IsAssignableFrom(type) && x.OnScene);
 
-    public long GetInheritedEntityInPoolCount(Type type) => elements.Count(x => x != null && x.EntityType.IsAssignableFrom(type) && x.InPool);
+    public long GetInheritedEntityInPoolCount(Type type) => elements.Count(x => x != null && x.GetType().IsAssignableFrom(type) && x.InPool);
 
-    private Dictionary<Type, long> registeredEntity = new Dictionary<Type, long>();
+    private Dictionary<Enumeration, long> registeredEntity = new Dictionary<Enumeration, long>();
 
-    public IReadOnlyDictionary<Type, long> RegisteredEntity => registeredEntity;
+    public IReadOnlyDictionary<Enumeration, long> RegisteredEntity => registeredEntity;
 
     #endregion
 
@@ -51,19 +51,19 @@ public class EntityTracker : EntityTrackerBase<IEntity>
         return true;
     }
 
-    private void RegisterEntityType(Type type)
+    private void RegisterEntityType(Enumeration type)
     {
         long currentEntitiesCount = GetRegisteredEntityCount(type);
         registeredEntity[type] = currentEntitiesCount + 1;
     }
 
-    private void UnRegisterEntityType(Type type)
+    private void UnRegisterEntityType(Enumeration type)
     {
         long currentEntitiesCount = GetRegisteredEntityCount(type);
         registeredEntity[type] = currentEntitiesCount - 1;
     }
 
-    public long GetRegisteredEntityCount(Type type)
+    public long GetRegisteredEntityCount(Enumeration type)
     {
         long currentEntitiesCount = 0;
         registeredEntity.TryGetValue(type, out currentEntitiesCount);

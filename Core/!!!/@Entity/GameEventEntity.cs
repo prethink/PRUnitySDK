@@ -17,7 +17,7 @@ public class GameEventEntity : IEntity
 
     public string Name => name;
 
-    public Type EntityType => typeof(GameEventEntity);
+    public Enumeration EntityType => EntityTypeEnumerationProvider.GameEvent;
 
     public bool OnScene => true;
 

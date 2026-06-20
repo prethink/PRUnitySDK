@@ -19,7 +19,7 @@ public partial interface IEntity
     /// <summary>
     /// Тип сущности.
     /// </summary>
-    public Type EntityType { get; }
+    public Enumeration EntityType { get; }
 
     /// <summary>
     /// Время жизни сущности.

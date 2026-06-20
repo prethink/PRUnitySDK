@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -79,6 +80,11 @@ public abstract class PlayerBase : EntityBase, IPlayer
 
     public event Action<PlayerBase> OnPlayerDestroy;
     public event Action OnJoinGame;
+
+    protected override void InitializeEntityInfo()
+    {
+        Info = new EntityInfoContainer(PRUnitySDK.Database.EntityInfo.Data.Single(x => x.Name == "Player"));
+    }
 
     #endregion
 
@@ -236,11 +242,6 @@ public abstract class PlayerBase : EntityBase, IPlayer
             PlayerType.NPC => PlayerTypeFlags.NPC,
             _ => PlayerTypeFlags.None
         };
-    }
-
-    protected override void InitializeDefaultEntityInfo()
-    {
-        EntityInitializeBaseEntityInfo();
     }
 
     #endregion

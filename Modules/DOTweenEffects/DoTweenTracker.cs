@@ -46,6 +46,22 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
         return guid;
     }
 
+    public Guid RegisterOrReplace(Guid guid, Tween tween, bool reactionOnPause = true)
+    {
+        DOTween.Kill(guid);
+        tween.SetId(guid);
+        tween.OnKill(() =>
+        {
+            tweens.Remove(guid);
+            pauseData.Remove(guid);
+        });
+
+        tweens[guid] = tween;
+        pauseData[guid] = reactionOnPause;
+
+        return guid;
+    }
+
     /// <summary>
     /// ѕринудительно убивает tween и удал€ет его из трекера.
     /// </summary>
