@@ -44,10 +44,7 @@ public abstract class PlayerBase : EntityBase, IPlayer
 
     public PlayerBase Attacker { get; protected set; }
 
-    public override void GenerateId(Func<int> register)
-    {
-        Id = register();
-    }
+    public long PlayerId { get; protected set; }
 
     public override void DestroyEntity()
     {
@@ -79,7 +76,6 @@ public abstract class PlayerBase : EntityBase, IPlayer
     }
 
     public event Action<PlayerBase> OnPlayerDestroy;
-    public event Action OnJoinGame;
 
     protected override void InitializeEntityInfo()
     {
@@ -172,18 +168,20 @@ public abstract class PlayerBase : EntityBase, IPlayer
 
     public void JoinGame()
     {
-        if (PlayerType == PlayerType.Human)
-            HumanId = PRUnitySDK.Trackers.Players.GetNextId();
+        //if (PlayerType == PlayerType.Human)
+        //    HumanId = PRUnitySDK.Trackers.Players.GetNextId();
 
-        debugPlayerId = HumanId;
+        //debugPlayerId = HumanId;
 
-        OnJoinGame?.Invoke();
+        PlayerEvents.RaiseOnJoinGame(this);
     }
 
     public void RemovePlayer()
     {
-        if (PlayerType == PlayerType.Human)
-            PRUnitySDK.Trackers.Players.RemoveId(HumanId);
+        //if (PlayerType == PlayerType.Human)
+        //    PRUnitySDK.Trackers.Players.RemoveId(HumanId);
+
+        PlayerEvents.RaiseOnLeftGame(this);
     }
 
     #endregion
@@ -242,6 +240,11 @@ public abstract class PlayerBase : EntityBase, IPlayer
             PlayerType.NPC => PlayerTypeFlags.NPC,
             _ => PlayerTypeFlags.None
         };
+    }
+
+    public void GeneratePlayerId(Func<long> register)
+    {
+        PlayerId = register();
     }
 
     #endregion

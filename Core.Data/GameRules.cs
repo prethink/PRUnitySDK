@@ -3,10 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+/// <summary>
+/// Игровые проекты.
+/// </summary>
 public static class GameRules
 {
+    /// <summary>
+    /// Набор правил.
+    /// </summary>
     private static readonly List<StatRuleBase> stateRules = new();
    
+    /// <summary>
+    /// Инициализация.
+    /// </summary>
     public static void Initialize()
     {
         stateRules.Clear();

@@ -1,14 +1,16 @@
 using UnityEngine;
 
 public class EntityLinkBase<T> 
-    : PRMonoBehaviour where T : EntityBase
+    : EntityLinkBase where T : EntityBase
 {
     #region Поля и свойства
 
     /// <summary>
     /// Ссылка на сущность.
     /// </summary>
-    [field: SerializeField] public T Entity { get; private set; }
+    [field: SerializeField] public T LinkedEntity { get; private set; }
+
+    public override EntityBase Entity => LinkedEntity;
 
     #endregion
 
@@ -44,8 +46,8 @@ public class EntityLinkBase<T>
     /// </summary>
     private void TryFindEntity()
     {
-        Entity ??= GetComponentInParent<T>();
-        Entity ??= GetComponent<T>();
+        LinkedEntity ??= GetComponentInParent<T>();
+        LinkedEntity ??= GetComponent<T>();
     }
 
     /// <summary>
@@ -54,7 +56,8 @@ public class EntityLinkBase<T>
     /// <typeparam name="T">Тип сущности.</typeparam>
     /// <param name="entity">Сущность.</param>
     /// <returns>True - удалось найти, false - не удалось найти.</returns>
-    public bool TryGetEntity<T>(out T entity) where T : EntityBase
+    public bool TryGetEntity<T>(out T entity) 
+        where T : EntityBase
     {
         if (Entity is T typedEntity)
         {
@@ -67,4 +70,9 @@ public class EntityLinkBase<T>
     }
 
     #endregion
+}
+
+public abstract class EntityLinkBase : PRMonoBehaviour
+{
+    public abstract EntityBase Entity { get; }
 }

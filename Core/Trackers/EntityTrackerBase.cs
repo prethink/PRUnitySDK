@@ -3,13 +3,6 @@ using System.Linq;
 public abstract class EntityTrackerBase<T> : TrackerBase<T>
     where T : IEntity
 {
-    protected int generatedNextId = 0;
-
-    protected virtual int GenerateId()
-    {
-        return generatedNextId++;
-    }
-
     public abstract void Clear();
 
     public virtual void ClearRound()

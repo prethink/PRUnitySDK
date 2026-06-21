@@ -31,7 +31,7 @@ public class EntityTracker : EntityTrackerBase<IEntity>
 
     public override bool Register(IEntity entity)
     {
-        entity.GenerateId(GenerateId);
+        entity.GenerateId(EntityIdGenerator.Instance.RegisterId);
         elements.Add(entity);
         RegisterEntityType(entity.EntityType);
 
@@ -77,7 +77,5 @@ public class EntityTracker : EntityTrackerBase<IEntity>
             entity.DestroyEntity(new EntityDestroyOptions() { FullDestroy = true });
             elements.Remove(entity);
         }
-
-        generatedNextId = 0;
     }
 }

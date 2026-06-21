@@ -40,7 +40,7 @@ public partial interface IEntity
     /// Генерация идентификатора сущности.
     /// </summary>
     /// <param name="register">Регистратор.</param>
-    public void GenerateId(Func<int> register);
+    public void GenerateId(Func<long> register);
 
     /// <summary>
     /// Уничтожения сущности.

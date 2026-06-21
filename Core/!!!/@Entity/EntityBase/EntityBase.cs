@@ -52,7 +52,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     protected AnimatorPauseMonitor animatorPauseMonitor;
 
-    public virtual void GenerateId(Func<int> register)
+    public virtual void GenerateId(Func<long> register)
     {
         Id = register();
     }

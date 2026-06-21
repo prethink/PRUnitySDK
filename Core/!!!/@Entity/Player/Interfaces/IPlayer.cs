@@ -1,8 +1,15 @@
+using System;
+
 /// <summary>
 /// Сущность игрока.
 /// </summary>
 public partial interface IPlayer : IEntity
 {
+    /// <summary>
+    /// Идентификатор игрока.
+    /// </summary>
+    public long PlayerId { get; }
+
     /// <summary>
     /// Количество очков.
     /// </summary>
@@ -33,6 +40,11 @@ public partial interface IPlayer : IEntity
     /// </summary>
     public IPlayerStats PlayerStats { get;}
 
+    /// <summary>
+    /// Генерация идентификатора игрока.
+    /// </summary>
+    /// <param name="register">Регистратор.</param>
+    public void GeneratePlayerId(Func<long> register);
 
     /// <summary>
     /// Номер игрока. Используется когда несколько живых игроков на 1 экране. Для ботов значение -1.

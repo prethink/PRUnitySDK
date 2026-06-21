@@ -1,6 +1,6 @@
 public class EntityEventArgsBase : EventArgsBase
 {
-    public IEntity Entity { get; set; }
+    public IEntity Entity { get; protected set; }
 
     public override CategoryPath GetEventId()
     {

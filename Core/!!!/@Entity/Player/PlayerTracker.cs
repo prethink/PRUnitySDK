@@ -13,11 +13,10 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
     public int HumanCount => elements.Count(x => x.PlayerType == PlayerType.Human);
     public int AICount => elements.Count(x => x.PlayerType == PlayerType.AI);
 
-    // public int AliveCount => entities.Count(x => x.IsAlive());
+    private long playerIds;
+    private int nextPlayerId = 0;
 
-    // public int DeadCount => entities.Count(x => !x.IsAlive);
-
-    private HashSet<int> CurrentPlayersIds = new HashSet<int>();
+    private readonly SortedSet<long> freePlayerIds = new();
 
     #endregion
 
@@ -32,76 +31,92 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
     public override void Clear()
     {
         foreach (var entity in elements)
-            entity.DestroyEntity(new EntityDestroyOptions() { FullDestroy = true });
+            entity.DestroyEntity(new EntityDestroyOptions { FullDestroy = true });
 
-        generatedNextId = 0;
         elements.Clear();
+        ResetIds();
     }
 
     public void Destroy()
     {
         foreach (var entity in elements)
-            entity.DestroyEntity(new EntityDestroyOptions() { FullDestroy = true });
+            entity.DestroyEntity(new EntityDestroyOptions { FullDestroy = true });
 
-        generatedNextId = 0;
         elements.Clear();
+        ResetIds();
+    }
+
+    private void ResetIds()
+    {
+        playerIds = 0;
+        nextPlayerId = 0;
+        freePlayerIds.Clear();
+    }
+
+    /// <summary>
+    /// ID сущности (общий глобальный ID).
+    /// </summary>
+    public long GetPlayerEntityId()
+    {
+        return playerIds++;
+    }
+
+    /// <summary>
+    /// CS-style Player ID (reuse freed slots).
+    /// </summary>
+    public long GetPlayerId()
+    {
+        long id;
+
+        if (freePlayerIds.Count > 0)
+        {
+            id = freePlayerIds.Min;
+            freePlayerIds.Remove(id);
+        }
+        else
+        {
+            id = nextPlayerId++;
+        }
+
+        return id;
+    }
+
+    private void ReleasePlayerId(long id)
+    {
+        freePlayerIds.Add(id);
     }
 
     public override bool Register(IPlayer player)
     {
-        player.GenerateId(GenerateId);
+        var playerId = GetPlayerId();
+
+        player.GenerateId(EntityIdGenerator.Instance.RegisterId);
+        player.GeneratePlayerId(() => playerId);
+
         player.JoinGame();
         elements.Add(player);
-        //OnPlayerConnected?.Invoke(player);
 
-        PRLog.WriteDebug(this, $"Игрок {player.Info.GetName()} - ID:{player.Id} зарегистрирован в игровой сессии.");
+        PRLog.WriteDebug(this,
+            $"Игрок {player.Info.GetName()} - EntityID:{player.Id}, PlayerID:{playerId} зарегистрирован.");
+
         return true;
     }
 
     public override bool Unregister(IPlayer player)
     {
         elements.Remove(player);
-        //OnPlayerDisconnected?.Invoke(player);
-        PRLog.WriteDebug(this, $"Игрок {player.Info.GetName()} - ID:{player.Id} удален из игровой сессии.");
+
+        ReleasePlayerId(player.PlayerId); 
+
+        PRLog.WriteDebug(this,
+            $"Игрок {player.Info.GetName()} - ID:{player.Id} удален из сессии.");
+
         return true;
     }
 
     public void InvokeOnPlayerDead(IEntity killer, PlayerBase player)
     {
         OnPlayerDead?.Invoke(killer, player);
-    }
-
-    public int GetNextId()
-    {
-        if (CurrentPlayersIds.Count == 0)
-        {
-            CurrentPlayersIds.Add(0);
-            return 0;
-        }
-
-        // Создаем отсортированный список из текущих ID
-        var sortedIds = CurrentPlayersIds.OrderBy(id => id).ToList();
-
-        // Ищем первый пропущенный ID
-        for (int i = 0; i < sortedIds.Count; i++)
-        {
-            if (sortedIds[i] != i)
-            {
-                // Если ID не совпадает с индексом, это пропущенный ID
-                CurrentPlayersIds.Add(i);  // Добавляем пропущенный ID в HashSet
-                return i;
-            }
-        }
-
-        // Если все ID идут подряд, то следующий будет максимальный ID + 1
-        int nextId = sortedIds.Last() + 1;
-        CurrentPlayersIds.Add(nextId);  // Добавляем новый ID в HashSet
-        return nextId;
-    }
-
-    public void RemoveId(int id)
-    {
-        CurrentPlayersIds.Remove(id);
     }
 
     #endregion

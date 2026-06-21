@@ -374,7 +374,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     public virtual async Task<bool> TrySaveData()
     {
-        return true;
+        return await Task.FromResult<bool>(true);
     }
 
     #endregion

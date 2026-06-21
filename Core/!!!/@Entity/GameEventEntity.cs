@@ -52,7 +52,7 @@ public class GameEventEntity : IEntity
 
     public void DestroyEntity(EntityDestroyOptions options) { }
 
-    public void GenerateId(Func<int> register) { }
+    public void GenerateId(Func<long> register) { }
 
     public long Level => 99999;
 
