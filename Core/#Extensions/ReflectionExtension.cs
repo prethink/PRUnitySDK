@@ -126,4 +126,14 @@ public static class ReflectionExtension
 
         return result;
     }
+
+    public static List<Type> FindClassesImplementingInterface<T>()
+    {
+        var interfaceType = typeof(T);
+
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => interfaceType.IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+            .ToList();
+    }
 }

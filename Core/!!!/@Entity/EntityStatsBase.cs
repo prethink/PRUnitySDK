@@ -1,6 +1,6 @@
 using AYellowpaper.SerializedCollections;
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class EntityStatsBase<TEnum, TValueType> : EntityStatsBase
     where TEnum : IEnumerationProvider, new()

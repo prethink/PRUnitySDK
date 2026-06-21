@@ -35,13 +35,13 @@ public partial class PRUnitySDK
         }
 
         IsStartInitialize = true;
-
         if (IsInitialized)
         {
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Already is initialized.");
             return;
         }
 
+        GameRules.Initialize();
         InitializeConverters();
         RegisterFactories();
 
