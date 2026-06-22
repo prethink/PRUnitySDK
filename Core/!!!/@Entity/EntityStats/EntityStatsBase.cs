@@ -2,22 +2,22 @@ using AYellowpaper.SerializedCollections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EntityStatsBase<TEnum, TValueType> : EntityStatsBase
+public class EntityStatsBase<TEnum> : EntityStatsBase
     where TEnum : IEnumerationProvider, new()
 {
     [SerializedDictionary("Stat", "Value")]
     [SerializeField]
-    private SerializedDictionary<EnumerationReference<TEnum>, TValueType> stats = new();
+    private SerializedDictionary<EnumerationReference<TEnum>, float> stats = new();
 
     /// <summary>
     /// Только чтение для внешнего мира.
     /// </summary>
-    public IReadOnlyDictionary<EnumerationReference<TEnum>, TValueType> Stats => stats;
+    public IReadOnlyDictionary<EnumerationReference<TEnum>, float> Stats => stats;
 
     /// <summary>
     /// Получить значение.
     /// </summary>
-    public bool TryGet(Enumeration key, out TValueType value)
+    public override bool TryGet(Enumeration key, out float value)
     {
         foreach (var kvp in stats)
         {
@@ -35,7 +35,7 @@ public class EntityStatsBase<TEnum, TValueType> : EntityStatsBase
     /// <summary>
     /// Получить значение или дефолт.
     /// </summary>
-    public TValueType Get(Enumeration key, TValueType defaultValue = default)
+    public override float Get(Enumeration key, float defaultValue = default)
     {
         return TryGet(key, out var value) 
             ? value 
@@ -43,7 +43,15 @@ public class EntityStatsBase<TEnum, TValueType> : EntityStatsBase
     }
 }
 
-public class EntityStatsBase : ScriptableObject
+public abstract class EntityStatsBase : ScriptableObject
 {
+    /// <summary>
+    /// Получить значение.
+    /// </summary>
+    public abstract bool TryGet(Enumeration key, out float value);
 
+    /// <summary>
+    /// Получить значение или дефолт.
+    /// </summary>
+    public abstract float Get(Enumeration key, float defaultValue = default);
 }
