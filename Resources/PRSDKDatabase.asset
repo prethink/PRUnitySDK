@@ -196,7 +196,8 @@ MonoBehaviour:
   <Achievements>k__BackingField:
     Items:
     - <Guid>k__BackingField: ed927f3c-24cc-4603-8baa-25829e72827e
-      <Icon>k__BackingField: {fileID: 0}
+      <Icon>k__BackingField: {fileID: 21300000, guid: a4d741d05a2018441a3fd3d4d11dfa61,
+        type: 3}
       <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
       <TriggerKey>k__BackingField:
         value: Win
@@ -211,7 +212,8 @@ MonoBehaviour:
         - Key: 2
           Value: E
     - <Guid>k__BackingField: 6a16e8f2-045c-44a5-96c4-fe58923415f2
-      <Icon>k__BackingField: {fileID: 0}
+      <Icon>k__BackingField: {fileID: 21300000, guid: a1a0aa5c4d0274a4c9712d935c780d9a,
+        type: 3}
       <IconColor>k__BackingField: {r: 1, g: 1, b: 1, a: 1}
       <TriggerKey>k__BackingField:
         value: Win

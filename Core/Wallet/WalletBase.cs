@@ -1,6 +1,6 @@
 public abstract class WalletBase 
 {
-    public abstract string Currency { get; }
+    public abstract Enumeration Currency { get; }
 
     public virtual long GetBalance()
     {

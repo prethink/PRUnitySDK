@@ -14,6 +14,8 @@ public class EntityInfoImplementer : IEntityInfo
 
     public IReadOnlyDictionary<LangType, string> LocalizationValues { get; }
 
+    public IEnumerable<StatModifier> StatModifiers { get; } = new List<StatModifier>();
+
     public EntityInfoImplementer(
         Guid type,
         string name,

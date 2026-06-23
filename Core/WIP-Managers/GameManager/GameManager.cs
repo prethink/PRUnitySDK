@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
@@ -27,6 +29,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
     private bool isInitialize;
     private bool isSaving;
+    private SynchronizationContext synchronizationContext;
 
     #endregion
 
@@ -86,7 +89,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     {
         if (isInitialize)
             return;
-
+        synchronizationContext = SynchronizationContext.Current;
         gameDataStorage = PRUnitySDK.GameDataStorage;
         gameDataStorage.Load();
 
@@ -116,6 +119,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
             var saveTasks = PRUnitySDK.Trackers.Saveables.Where(x => !x.IsNull()).Select(x => x.TrySaveData());
             await Task.WhenAll(saveTasks);
 
+            await SwitchToMainThread();
             gameDataStorage.UpdateProjectData(projectData);
             gameDataStorage.UpdateGameSettings(gameSettings);
             gameDataStorage.Save();
@@ -131,6 +135,18 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         {
             isSaving = false;
         }
+    }
+
+    public Task SwitchToMainThread()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        synchronizationContext.Post(_ =>
+        {
+            tcs.SetResult(true);
+        }, null);
+
+        return tcs.Task;
     }
 
     public void LoadingUserCursorState()

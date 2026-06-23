@@ -19,6 +19,11 @@ public partial class ProjectData : ICloneable
     public List<ItemStack> OpenedItems = new();
 
     /// <summary>
+    /// Идентификаторы открытых предметов.
+    /// </summary>
+    public Dictionary<string, long> Resources = new();
+
+    /// <summary>
     /// Временная переменная для клонирования. Используется для partial классов.
     /// </summary>
     private ProjectData clone;
@@ -34,6 +39,7 @@ public partial class ProjectData : ICloneable
     {
         ProjectProperties = new();
         OpenedItems = new();
+        Resources = new();
 
         this.RunMethodHooks(MethodHookStage.Initializing);
     }
@@ -47,6 +53,7 @@ public partial class ProjectData : ICloneable
         clone = new ProjectData();
 
         clone.ProjectProperties = (ProjectProperties)ProjectProperties.Clone();
+        clone.Resources = new Dictionary<string, long>(Resources);
         clone.OpenedItems = OpenedItems.ToList();
 
         this.RunMethodHooks(MethodHookStage.Cloning);

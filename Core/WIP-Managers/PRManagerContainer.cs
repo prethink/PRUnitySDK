@@ -9,7 +9,12 @@ public partial class PRManagerContainer
     /// Менеджер управления свойств.
     /// </summary>
     public ProjectPropertiesManager ProjectPropertiesManager;
-    
+
+    /// <summary>
+    /// Менеджер управления ресурсами.
+    /// </summary>
+    public ResourceManager ResourceManager;
+
     /// <summary>
     /// Менеджер звуков.
     /// </summary>
@@ -70,6 +75,12 @@ public partial class PRManagerContainer
     public void InitializeProjectPropertiesManager()
     {
         PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectPropertiesManager = ProjectPropertiesManager.Instance; });
+    }
+
+    [MethodHook(MethodHookStage.PostOperation, 20)]
+    public void InitializeResourceManager()
+    {
+        PRUnitySDK.InitializeType<ResourceManager>(() => { ResourceManager = ResourceManager.Instance; });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 20)]

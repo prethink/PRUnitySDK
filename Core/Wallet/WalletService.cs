@@ -1,42 +1,34 @@
 public class WalletService : SingletonProviderBase<WalletService>
 {
-    public long GetBalance(string currency)
+    public long GetBalance(Enumeration currency)
     {
-        return GetManager().TryGetLong(currency, out var balance) 
-            ? balance
-            : 0;
+        return GetManager().GetOrCreateResource(currency);
     }
 
-    public void Add(string currency, long amount, bool save = true)
+    public void Add(Enumeration currency, long amount, bool save = true)
     {
-        if(!GetManager().TryGetLong(currency, out var balance))
-        {
-            GetManager().SetLong(currency, amount, save);
-            return;
-        }
-
-        GetManager().SetLong(currency, balance + amount, save);
+        GetManager().SetOrUpdateResource(currency, GetBalance(currency) + amount, save);
     }
 
-    public bool Buy(string currency, long amount)
+    public bool Buy(Enumeration currency, long amount)
     {
         if (!CanBuy(currency, amount))
             return false;
 
         var currentBalance = GetBalance(currency);
         currentBalance -= amount;
-        GetManager().SetLong(currency, currentBalance);
+        GetManager().SetOrUpdateResource(currency, currentBalance);
         return true;
     }
 
-    public bool CanBuy(string currency, long amount)
+    public bool CanBuy(Enumeration currency, long amount)
     {
         var currentBalance = GetBalance(currency);
         return currentBalance >= amount;
     }
 
-    private ProjectPropertiesManager GetManager()
+    private ResourceManager GetManager()
     {
-        return PRUnitySDK.Managers.ProjectPropertiesManager;
+        return PRUnitySDK.Managers.ResourceManager;
     }
 }
