@@ -56,8 +56,7 @@ public class EntityLinkBase<T>
     /// <typeparam name="T">Тип сущности.</typeparam>
     /// <param name="entity">Сущность.</param>
     /// <returns>True - удалось найти, false - не удалось найти.</returns>
-    public bool TryGetEntity<T>(out T entity) 
-        where T : EntityBase
+    public bool TryGetEntity(out T entity) 
     {
         if (Entity is T typedEntity)
         {
@@ -65,7 +64,7 @@ public class EntityLinkBase<T>
             return true;
         }
 
-        entity = null;
+        entity = default;
         return false;
     }
 

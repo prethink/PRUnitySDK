@@ -5,6 +5,8 @@ using UnityEngine;
 public class RewardResource : RewardItemBase
 {
     [field: SerializeField] public int Count { get; protected set; }
+
+    [field: SerializeField] public int Multiply { get; protected set; }
     [field: SerializeField] public ResourceItemDefinition ResourceData { get; protected set; }
 
     public override ItemDefinitionBase Item => ResourceData;
@@ -14,4 +16,6 @@ public class RewardResource : RewardItemBase
     public override string LocalizationKey => ResourceData.LocalizationKey;
 
     public override IReadOnlyDictionary<LangType, string> LocalizationValues => ResourceData.LocalizationValues;
+
+    public bool CanMultiply => Multiply > 1;
 }
