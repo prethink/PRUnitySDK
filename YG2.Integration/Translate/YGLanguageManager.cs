@@ -24,12 +24,16 @@ public class YGLanguageManager : ILanguageManager
     private void OnChangeLangEventInvoker(string lang)
     {
         OnChangeLangEvent?.Invoke(lang);
-        PRUnitySDK.SetCurrentLang(lang);
     }
 
     public string GetCurrentLang()
     {
         return YG2.lang;
+    }
+
+    public void InvokeUpdateTranslate()
+    {
+        OnChangeLangEventInvoker(PRUnitySDK.CurrentLang);
     }
 
     #endregion

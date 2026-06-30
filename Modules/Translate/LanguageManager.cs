@@ -29,12 +29,16 @@ public class LanguageManager : ILanguageManager
 
         currentLang = lang;
         OnChangeLangEvent?.Invoke(lang);
-        PRUnitySDK.SetCurrentLang(lang);
     }
 
     public string GetCurrentLang()
     {
         return currentLang;
+    }
+
+    public void InvokeUpdateTranslate()
+    {
+        SwitchLang(PRUnitySDK.CurrentLang);
     }
 
     #endregion

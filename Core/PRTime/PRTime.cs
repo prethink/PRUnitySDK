@@ -19,16 +19,9 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     public float LastRawTime { get; private set; }
 
     /// <summary>
-    /// Событие , вызываемое при наступлении каждой новой секунды. Передаёт количество полных секунд, прошедших с момента инициализации PRTime.
-    /// </summary>
-    public event Action<int> OnNextSecond;
-
-    /// <summary>
     /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond.
     /// </summary>
     private int lastSecond;
-
-    //TODO: Глобальный тик
 
     #region MonoBehaviour
 
@@ -46,12 +39,6 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         Reset();
     }
 
-    protected override void UnRegisterEventsOnDestroy()
-    {
-        base.UnRegisterEventsOnDestroy();
-        OnNextSecond = null;
-    }
-
     /// <inheritdoc />
     protected override void Update()
     {
@@ -64,6 +51,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
             this.DeltaTime = 0f;
         }
         base.Update();
+        EventBus.RaiseEvent<IOnUpdateEvent>(x => x.OnUpdateEvent());
     }
 
     #endregion
@@ -85,8 +73,10 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         if (currentSecond != lastSecond)
         {
             lastSecond = currentSecond;
-            OnNextSecond?.Invoke(currentSecond);
+            EventBus.RaiseEvent<IOnSecondEvent>(x => x.OnSecondTick(currentSecond));
         }
+
+        EventBus.RaiseEvent<IOnPRUpdateEvent>(x => x.OnPRUpdateEvent());
     }
 
     #endregion

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 public static class ReflectionExtension 
 {
@@ -134,6 +135,13 @@ public static class ReflectionExtension
         return AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => interfaceType.IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+            .ToList();
+    }
+
+    public static List<T> FindMonoBehaviourImplementations<T>()
+    {
+        return UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+            .OfType<T>()
             .ToList();
     }
 }

@@ -20,7 +20,7 @@ public partial class PRUnitySDK
     /// <summary>
     /// “екущий €зык.
     /// </summary>
-    public static string CurrentLang { get; private set; } = "ru";
+    public static string CurrentLang => PRUnitySDK.LanguageManager.GetCurrentLang();
 
     /// <summary>
     /// язык по умолчанию.
@@ -30,15 +30,6 @@ public partial class PRUnitySDK
     #endregion
 
     #region ћетоды
-
-    /// <summary>
-    /// ”становить текущий €зык.
-    /// </summary>
-    /// <param name="lang">язык.</param>
-    public static void SetCurrentLang(string lang)
-    {
-        CurrentLang = lang;
-    }
 
     /// <summary>
     /// »нициализаци€ модул€.
@@ -63,10 +54,9 @@ public partial class PRUnitySDK
     private static void InitializeLocalization()
     {
         L.InitTranslate(LanguageManager);
-
-        var defaultLanguage = LocalizationUtils.GetLanguageCode(Database.LocalizationDatabase.DefaultLanguage);
-        DefaultLanguage = defaultLanguage;
-        SetCurrentLang(defaultLanguage);
+        DefaultLanguage = LocalizationUtils.GetLanguageCode(Database.LocalizationDatabase.DefaultLanguage);
+        //if (PRUnitySDK.Settings.Project.ReleaseType == ReleaseType.Debug)
+        //    LanguageManager.SwitchLang(DefaultLanguage);
     }
 
     #endregion

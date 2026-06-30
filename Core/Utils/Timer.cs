@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class Timer : IDisposable
+public class Timer : IDisposable, IOnSecondEvent
 {
     private int time;
     public int CurrentTime { get; private set; }
@@ -15,6 +15,7 @@ public class Timer : IDisposable
     {
         this.time = time;
         this.CurrentTime = time;
+        EventBus.Subscribe(this);
     }
 
     public void Start()
@@ -26,7 +27,6 @@ public class Timer : IDisposable
             return;
 
         isStarted = true;
-        PRTime.Instance.OnNextSecond += OnSecondTick;
     }
 
     public void Stop()
@@ -35,7 +35,6 @@ public class Timer : IDisposable
             return;
 
         isStarted = false;
-        PRTime.Instance.OnNextSecond -= OnSecondTick;
     }
 
     public void Reset()
@@ -56,7 +55,19 @@ public class Timer : IDisposable
         endAction = action;
     }
 
-    private void OnSecondTick(int _)
+    public void Dispose()
+    {
+        if (isDisposing)
+            return;
+
+        Stop();
+        OnTick = null;
+        endAction = null;
+        isDisposing = true;
+        EventBus.Unsubscribe(this);
+    }
+
+    public void OnSecondTick(int currentSecond)
     {
         if (!isStarted)
             return;
@@ -67,16 +78,5 @@ public class Timer : IDisposable
 
         if (CurrentTime <= 0)
             End();
-    }
-
-    public void Dispose()
-    {
-        if (isDisposing)
-            return;
-
-        Stop();
-        OnTick = null;
-        endAction = null;
-        isDisposing = true;
     }
 }

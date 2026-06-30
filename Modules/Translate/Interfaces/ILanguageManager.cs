@@ -32,4 +32,9 @@ public interface ILanguageManager
     /// </summary>
     /// <param name="lang"></param>
     public void InitLang(string lang);
+
+    /// <summary>
+    /// Вызвать событие обновление перевода.
+    /// </summary>
+    public void InvokeUpdateTranslate();
 }
