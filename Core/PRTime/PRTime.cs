@@ -9,6 +9,11 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     public float Time { get; private set; }
 
     /// <summary>
+    /// Текущее количество полных секунд, прошедших с момента инициализации PRTime.
+    /// </summary>
+    public long CurrentSecond { get; private set; }
+
+    /// <summary>
     /// Время прошедшее с последнего кадра, с учётом паузы логики.
     /// </summary>
     public float DeltaTime { get; private set; }
@@ -21,7 +26,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     /// <summary>
     /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond.
     /// </summary>
-    private int lastSecond;
+    private long lastSecond;
 
     #region MonoBehaviour
 
@@ -69,11 +74,11 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
         this.LastRawTime = rawTime;
 
-        int currentSecond = Mathf.FloorToInt(this.Time);
-        if (currentSecond != lastSecond)
+        CurrentSecond = Mathf.FloorToInt(this.Time);
+        if (CurrentSecond != lastSecond)
         {
-            lastSecond = currentSecond;
-            EventBus.RaiseEvent<IOnSecondEvent>(x => x.OnSecondTick(currentSecond));
+            lastSecond = CurrentSecond;
+            EventBus.RaiseEvent<IOnSecondEvent>(x => x.OnSecondTick(CurrentSecond));
         }
 
         EventBus.RaiseEvent<IOnPRUpdateEvent>(x => x.OnPRUpdateEvent());

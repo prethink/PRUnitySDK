@@ -18,6 +18,7 @@ MonoBehaviour:
     <SaveStrategy>k__BackingField: 0
     <UseEncryption>k__BackingField: 0
     <EncryptionStrategy>k__BackingField: 0
+    <SaveCooldownSeconds>k__BackingField: 10
   <Project>k__BackingField:
     <ReleaseType>k__BackingField: 0
     <DebugLogLevel>k__BackingField: 9

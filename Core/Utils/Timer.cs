@@ -67,7 +67,7 @@ public class Timer : IDisposable, IOnSecondEvent
         EventBus.Unsubscribe(this);
     }
 
-    public void OnSecondTick(int currentSecond)
+    public void OnSecondTick(long currentSecond)
     {
         if (!isStarted)
             return;

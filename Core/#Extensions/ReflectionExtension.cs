@@ -140,7 +140,7 @@ public static class ReflectionExtension
 
     public static List<T> FindMonoBehaviourImplementations<T>()
     {
-        return UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+        return UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .OfType<T>()
             .ToList();
     }

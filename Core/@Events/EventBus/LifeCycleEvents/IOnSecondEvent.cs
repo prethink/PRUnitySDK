@@ -1,4 +1,4 @@
 public interface IOnSecondEvent : IGlobalSubscriber
 {
-    void OnSecondTick(int currentSecond);
+    void OnSecondTick(long currentSecond);
 }

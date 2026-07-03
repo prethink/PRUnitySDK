@@ -43,6 +43,11 @@ public class GameStorageSettings
     /// </summary>
     [field: SerializeField] public EncryptionLoadingStrategy EncryptionStrategy { get; private set; }
 
+    /// <summary>
+    /// Таймаут между попытками сохранения данных.
+    /// </summary>
+    [field: SerializeField] public long SaveCooldownSeconds { get; private set; }
+
     #region Базовый класс
 
     /// <inheridoc />

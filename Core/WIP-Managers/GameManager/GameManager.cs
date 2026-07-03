@@ -29,6 +29,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
     private bool isInitialize;
     private bool isSaving;
+    private long saveCooldownCounter;
     private SynchronizationContext synchronizationContext;
 
     #endregion
@@ -89,7 +90,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     {
         if (isInitialize)
             return;
+
         synchronizationContext = SynchronizationContext.Current;
+
         gameDataStorage = PRUnitySDK.GameDataStorage;
         gameDataStorage.Load();
 
@@ -101,9 +104,33 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         isInitialize = true;
     }
 
-    public void StartSaveTask()
+    public async void StartSaveTask(bool isUserExecuter = false)
     {
-        Task.Run(() => InternalSave());
+        if (!CanSave(isUserExecuter))
+            return;
+
+        await InternalSave();
+    }
+
+    private bool CanSave(bool isUserExecuter)
+    {
+        if (isSaving)
+            return false;
+
+        if (isUserExecuter)
+            return true;
+
+        var saveCooldownSeconds = PRUnitySDK.Settings.GameStorage.SaveCooldownSeconds;
+        if (saveCooldownSeconds <= 0)
+            return true;
+
+        if(PRTime.Instance.CurrentSecond > saveCooldownCounter + saveCooldownSeconds)
+        {
+            saveCooldownCounter = PRTime.Instance.CurrentSecond;
+            return true;
+        }
+
+        return false;
     }
 
     private async Task InternalSave()
@@ -115,11 +142,11 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         {
             isSaving = true;
 
-            GameplayEvents.RaiseBeforeSaveEvent();
             var saveTasks = PRUnitySDK.Trackers.Saveables.Where(x => !x.IsNull()).Select(x => x.TrySaveData());
             await Task.WhenAll(saveTasks);
 
             await SwitchToMainThread();
+            GameplayEvents.RaiseBeforeSaveEvent();
             gameDataStorage.UpdateProjectData(projectData);
             gameDataStorage.UpdateGameSettings(gameSettings);
             gameDataStorage.Save();
@@ -140,7 +167,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     public Task SwitchToMainThread()
     {
         var tcs = new TaskCompletionSource<bool>();
-
+        Debug.Log(synchronizationContext);
         synchronizationContext.Post(_ =>
         {
             tcs.SetResult(true);
