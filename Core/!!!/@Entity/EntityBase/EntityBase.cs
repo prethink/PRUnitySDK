@@ -211,6 +211,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     protected abstract void InitializeEntityInfo();
 
+    public virtual Enumeration GetTimeScaleLayer()
+    {
+        return PRTimeScaleEnumerationProvider.Global;
+    }
+
     #endregion
 }
 

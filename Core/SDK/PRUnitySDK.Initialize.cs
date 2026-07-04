@@ -41,17 +41,23 @@ public partial class PRUnitySDK
             return;
         }
 
+
         GameRules.Initialize();
         InitializeConverters();
+        InitializeSingletons();
         RegisterFactories();
 
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
 
         Managers.Initialize();
-
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete.");
+    }
+
+    private static void InitializeSingletons()
+    {
+        PRTimeScale.Instance.SingletonInitialize();
     }
 
     /// <summary>

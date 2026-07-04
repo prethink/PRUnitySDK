@@ -9,12 +9,12 @@ public class TickDamageBrain : DamageBrainBase
 
     public override void PerformAttack()
     {
-        nextTimeTime = PRTime.Instance.Time + TickInterval;
+        nextTimeTime = PRTime.Instance.GameTime + TickInterval;
     }
 
     public override bool CanAttack()
     {
-        return nextTimeTime > PRTime.Instance.Time;
+        return nextTimeTime > PRTime.Instance.GameTime;
     }
 
     public override bool CanAttackSource()

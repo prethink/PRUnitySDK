@@ -1,4 +1,4 @@
-public struct DelayedCondition
+public abstract class DelayedConditionBase
 {
     private float triggerTime;
     private bool isTriggered;
@@ -14,15 +14,33 @@ public struct DelayedCondition
         if (!isTriggered)
         {
             isTriggered = true;
-            triggerTime = PRTime.Instance.Time;
+            triggerTime = GetTime();
         }
 
-        return PRTime.Instance.Time >= triggerTime + delay;
+        return GetTime() >= triggerTime + delay;
     }
+
+    public abstract float GetTime();
 
     public void Reset()
     {
         isTriggered = false;
         triggerTime = 0f;
+    }
+}
+
+public class DelayedConditionRealTime : DelayedConditionBase
+{
+    public override float GetTime()
+    {
+        return PRTime.Instance.RealTime;
+    }
+}
+
+public class DelayedConditionGameTime : DelayedConditionBase
+{
+    public override float GetTime()
+    {
+        return PRTime.Instance.GameTime;
     }
 }

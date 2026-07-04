@@ -104,7 +104,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
 
         while (elapsedTime < duration)
         {
-            elapsedTime += PRTime.Instance.DeltaTime;
+            elapsedTime += PRTime.Instance.GameDeltaTime;
             int newValue = Mathf.RoundToInt(Mathf.Lerp(startValue, targetValue, elapsedTime / duration));
 
             SetOrUpdateResource(resourceType, newValue, requiredNotify, false);

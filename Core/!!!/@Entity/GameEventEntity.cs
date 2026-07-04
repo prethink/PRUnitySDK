@@ -69,6 +69,11 @@ public class GameEventEntity : IEntity
 
     }
 
+    public Enumeration GetTimeScaleLayer()
+    {
+        return PRTimeScaleEnumerationProvider.Global;
+    }
+
 
     #endregion
 

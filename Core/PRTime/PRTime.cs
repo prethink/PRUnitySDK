@@ -1,32 +1,50 @@
-using System;
-using UnityEngine;
+п»їusing UnityEngine;
 
 public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 {
     /// <summary>
-    /// Общее время которое прошло с момента инициализации PRTime.
+    /// РћР±С‰РµРµ РІСЂРµРјСЏ РєРѕС‚РѕСЂРѕРµ РїСЂРѕС€Р»Рѕ СЃ РјРѕРјРµРЅС‚Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё PRTime.
     /// </summary>
-    public float Time { get; private set; }
+    public float RealTime { get; private set; }
 
     /// <summary>
-    /// Текущее количество полных секунд, прошедших с момента инициализации PRTime.
+    /// РРіСЂРѕРІРѕРµ РІСЂРµРјСЏ, РєРѕС‚РѕСЂРѕРµ РїСЂРѕС€Р»Рѕ СЃ РјРѕРјРµРЅС‚Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё PRTime, СЃ СѓС‡С‘С‚РѕРј global layer time scale.
     /// </summary>
-    public long CurrentSecond { get; private set; }
+    public float GameTime { get; private set; }
 
     /// <summary>
-    /// Время прошедшее с последнего кадра, с учётом паузы логики.
+    /// РўРµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕР»РЅС‹С… СЃРµРєСѓРЅРґ, РїСЂРѕС€РµРґС€РёС… СЃ РјРѕРјРµРЅС‚Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё PRTime.
     /// </summary>
-    public float DeltaTime { get; private set; }
+    public long CurrentRealSecond { get; private set; }
 
     /// <summary>
-    /// Время прошедшее с последнего кадра, без учёта паузы логики.
+    /// РўРµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕР»РЅС‹С… СЃРµРєСѓРЅРґ, РїСЂРѕС€РµРґС€РёС… СЃ РјРѕРјРµРЅС‚Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё PRTime, СЃ СѓС‡С‘С‚РѕРј global layer time scale.
+    /// </summary>
+    public long CurrentGameSecond { get; private set; }
+
+    /// <summary>
+    /// Р’СЂРµРјСЏ РїСЂРѕС€РµРґС€РµРµ СЃ РїРѕСЃР»РµРґРЅРµРіРѕ РєР°РґСЂР°, СЃ СѓС‡С‘С‚РѕРј РїР°СѓР·С‹ Р»РѕРіРёРєРё.
+    /// </summary>
+    public float RealDeltaTime { get; private set; }
+
+    /// Р’СЂРµРјСЏ РїСЂРѕС€РµРґС€РµРµ СЃ РїРѕСЃР»РµРґРЅРµРіРѕ РєР°РґСЂР°, СЃ СѓС‡С‘С‚РѕРј global layer time scale.
+    /// </summary>
+    public float GameDeltaTime { get; private set; }
+
+    /// <summary>
+    /// Р’СЂРµРјСЏ РїСЂРѕС€РµРґС€РµРµ СЃ РїРѕСЃР»РµРґРЅРµРіРѕ РєР°РґСЂР°, Р±РµР· СѓС‡С‘С‚Р° РїР°СѓР·С‹ Р»РѕРіРёРєРё.
     /// </summary>
     public float LastRawTime { get; private set; }
 
     /// <summary>
-    /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond.
+    /// РџРѕСЃР»РµРґРЅРµРµ Р·РЅР°С‡РµРЅРёРµ РєРѕР»РёС‡РµСЃС‚РІР° РїРѕР»РЅС‹С… СЃРµРєСѓРЅРґ, РїСЂРѕС€РµРґС€РёС… СЃ РјРѕРјРµРЅС‚Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё PRTime, РїСЂРё РєРѕС‚РѕСЂРѕРј Р±С‹Р»Рѕ РІС‹Р·РІР°РЅРѕ СЃРѕР±С‹С‚РёРµ OnNextSecond.
     /// </summary>
-    private long lastSecond;
+    private long lastRealSecond;
+
+    /// <summary>
+    /// РџРѕСЃР»РµРґРЅРµРµ Р·РЅР°С‡РµРЅРёРµ РєРѕР»РёС‡РµСЃС‚РІР° РїРѕР»РЅС‹С… СЃРµРєСѓРЅРґ, РїСЂРѕС€РµРґС€РёС… СЃ РјРѕРјРµРЅС‚Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё PRTime, РїСЂРё РєРѕС‚РѕСЂРѕРј Р±С‹Р»Рѕ РІС‹Р·РІР°РЅРѕ СЃРѕР±С‹С‚РёРµ OnNextSecond, СЃ СѓС‡С‘С‚РѕРј global layer time scale.
+    /// </summary>
+    private long lastGameSecond;
 
     #region MonoBehaviour
 
@@ -52,8 +70,8 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
         if (PRUnitySDK.PauseManager.IsLogicPaused)
         {
-            this.LastRawTime = UnityEngine.Time.realtimeSinceStartup;
-            this.DeltaTime = 0f;
+            this.LastRawTime = Time.realtimeSinceStartup;
+            this.RealDeltaTime = 0f;
         }
         base.Update();
         EventBus.RaiseEvent<IOnUpdateEvent>(x => x.OnUpdateEvent());
@@ -61,42 +79,65 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
     #endregion
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     /// <inheritdoc />
     protected override void PRUpdate()
     {
-        float rawTime = UnityEngine.Time.realtimeSinceStartup;
+        UpdateRealTime();
+        UpdateGameTime();
+        EventBus.RaiseEvent<IOnPRUpdateEvent>(x => x.OnPRUpdateEvent());
+    }
 
+    private void UpdateRealTime()
+    {
+        float rawTime = Time.realtimeSinceStartup;
         float rawDelta = rawTime - LastRawTime;
-        this.DeltaTime = rawDelta;
-        this.Time += DeltaTime;
-
+        this.RealDeltaTime = rawDelta;
+        this.RealTime += RealDeltaTime;
         this.LastRawTime = rawTime;
 
-        CurrentSecond = Mathf.FloorToInt(this.Time);
-        if (CurrentSecond != lastSecond)
+        CurrentRealSecond = Mathf.FloorToInt(this.RealTime);
+        if (CurrentRealSecond != lastRealSecond)
         {
-            lastSecond = CurrentSecond;
-            EventBus.RaiseEvent<IOnSecondEvent>(x => x.OnSecondTick(CurrentSecond));
+            lastRealSecond = CurrentRealSecond;
+            EventBus.RaiseEvent<IOnRealSecondsEvent>(x => x.OnRealSecondTick(CurrentRealSecond));
         }
+    }
 
-        EventBus.RaiseEvent<IOnPRUpdateEvent>(x => x.OnPRUpdateEvent());
+    private void UpdateGameTime()
+    {
+        float globalScale = PRTimeScale.Instance.Resolve(PRTimeScaleEnumerationProvider.Global);
+        GameDeltaTime = this.RealDeltaTime * globalScale;
+        GameTime += GameDeltaTime;
+
+        CurrentGameSecond = Mathf.FloorToInt(this.GameTime);
+        if (CurrentGameSecond != lastGameSecond)
+        {
+            lastGameSecond = CurrentGameSecond;
+            EventBus.RaiseEvent<IOnGameSecondsEvent>(x => x.OnGameSecondTick(CurrentGameSecond));
+        }
     }
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Сбросить время.
+    /// РЎР±СЂРѕСЃРёС‚СЊ РІСЂРµРјСЏ.
     /// </summary>
     public void Reset()
     {
-        this.Time = 0f;
-        this.DeltaTime = 0f;
+        this.RealTime = 0f;
+        this.RealDeltaTime = 0f;
         this.LastRawTime = UnityEngine.Time.realtimeSinceStartup;
     }
 
     #endregion
+}
+
+public enum PRTimeType
+{
+    RealTime,
+    GameTime
 }

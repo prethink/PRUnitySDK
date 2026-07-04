@@ -1,21 +1,21 @@
 ﻿using System;
 
-public class Timer : IDisposable, IOnSecondEvent
+public abstract class TimerBase : IDisposable
 {
-    private int time;
+    protected int time;
     public int CurrentTime { get; private set; }
 
-    private bool isStarted;
-    private bool isDisposing;
-    private Action endAction;
+    protected bool isStarted;
+    protected bool isDisposing;
+    protected Action endAction;
 
     public event Action<int> OnTick;
 
-    public Timer(int time)
+    public TimerBase(int time)
     {
         this.time = time;
         this.CurrentTime = time;
-        EventBus.Subscribe(this);
+        EventBusSubscribe();
     }
 
     public void Start()
@@ -64,10 +64,10 @@ public class Timer : IDisposable, IOnSecondEvent
         OnTick = null;
         endAction = null;
         isDisposing = true;
-        EventBus.Unsubscribe(this);
+        EventBusUnsubscribe();
     }
 
-    public void OnSecondTick(long currentSecond)
+    protected void Tick()
     {
         if (!isStarted)
             return;
@@ -78,5 +78,52 @@ public class Timer : IDisposable, IOnSecondEvent
 
         if (CurrentTime <= 0)
             End();
+    }
+
+    protected abstract void EventBusSubscribe();
+    protected abstract void EventBusUnsubscribe();
+}
+
+public class GameTimer : TimerBase, IOnGameSecondsEvent
+{
+    public GameTimer(int time) : base(time)
+    {
+    }
+
+    public void OnGameSecondTick(long currentSecond)
+    {
+        Tick();
+    }
+
+    protected override void EventBusSubscribe()
+    {
+        EventBus.Subscribe(this);
+    }
+
+    protected override void EventBusUnsubscribe()
+    {
+        EventBus.Unsubscribe(this);
+    }
+}
+
+public class RealTimer : TimerBase, IOnRealSecondsEvent
+{
+    public RealTimer(int time) : base(time)
+    {
+    }
+
+    public void OnRealSecondTick(long currentSecond)
+    {
+        Tick();
+    }
+
+    protected override void EventBusSubscribe()
+    {
+        EventBus.Subscribe(this);
+    }
+
+    protected override void EventBusUnsubscribe()
+    {
+        EventBus.Unsubscribe(this);
     }
 }

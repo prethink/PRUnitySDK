@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Сущность.
 /// </summary>
-public partial interface IEntity 
+public partial interface IEntity : ITimeScaleLayer
 {
     /// <summary>
     /// Идентификатор сущности.

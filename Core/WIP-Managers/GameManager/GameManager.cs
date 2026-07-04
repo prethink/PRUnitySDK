@@ -124,9 +124,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         if (saveCooldownSeconds <= 0)
             return true;
 
-        if(PRTime.Instance.CurrentSecond > saveCooldownCounter + saveCooldownSeconds)
+        if(PRTime.Instance.CurrentRealSecond > saveCooldownCounter + saveCooldownSeconds)
         {
-            saveCooldownCounter = PRTime.Instance.CurrentSecond;
+            saveCooldownCounter = PRTime.Instance.CurrentRealSecond;
             return true;
         }
 

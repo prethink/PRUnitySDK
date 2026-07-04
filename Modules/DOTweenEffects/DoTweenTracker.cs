@@ -1,6 +1,7 @@
 using DG.Tweening;
 using System;
 using System.Collections.Generic;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 /// <summary>
 /// Глобальный трекер DOTween-анимаций.
@@ -9,12 +10,12 @@ using System.Collections.Generic;
 /// - управлять их жизненным циклом
 /// - автоматически реагировать на паузу игры
 /// </summary>
-public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseStateListener
+public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseStateListener, IOnPRTimeScaleChange
 {
     /// <summary>
     /// Все зарегистрированные tween'ы по уникальному идентификатору.
     /// </summary>
-    private Dictionary<Guid, Tween> tweens = new Dictionary<Guid, Tween>();
+    private Dictionary<Guid, TweenTimeScaleDTO> tweens = new Dictionary<Guid, TweenTimeScaleDTO>();
 
     /// <summary>
     /// Флаги реакции tween'а на паузу:
@@ -31,32 +32,45 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     /// Должен ли tween реагировать на паузу игры
     /// </param>
     /// <returns>Guid — идентификатор tween'а</returns>
-    public Guid Register(Tween tween, bool reactionOnPause = true)
+    public Guid Register(Tween tween, Enumeration layer = null, bool reactionOnPause = true)
     {
         if (tween == null)
             throw new ArgumentNullException(nameof(tween));
 
-        // Генерируем уникальный идентификатор
+        if (layer == null)
+            layer = PRTimeScaleEnumerationProvider.Global;
+
         Guid guid = Guid.NewGuid();
 
-        // Сохраняем tween и его поведение при паузе
-        tweens[guid] = tween;
+        tweens[guid] = new TweenTimeScaleDTO(tween, layer);
         pauseData[guid] = reactionOnPause;
 
-        return guid;
-    }
-
-    public Guid RegisterOrReplace(Guid guid, Tween tween, bool reactionOnPause = true)
-    {
-        DOTween.Kill(guid);
         tween.SetId(guid);
+        tween.timeScale = PRTimeScale.instance.GetTimeScale(layer);
         tween.OnKill(() =>
         {
             tweens.Remove(guid);
             pauseData.Remove(guid);
         });
 
-        tweens[guid] = tween;
+        return guid;
+    }
+
+    public Guid RegisterOrReplace(Guid guid, Tween tween, Enumeration layer = null, bool reactionOnPause = true)
+    {
+        if (layer == null)
+            layer = PRTimeScaleEnumerationProvider.Global;
+
+        DOTween.Kill(guid);
+        tween.SetId(guid);
+        tween.timeScale = PRTimeScale.instance.GetTimeScale(layer);
+        tween.OnKill(() =>
+        {
+            tweens.Remove(guid);
+            pauseData.Remove(guid);
+        });
+
+        tweens[guid]  = new TweenTimeScaleDTO(tween, layer);
         pauseData[guid] = reactionOnPause;
 
         return guid;
@@ -68,10 +82,10 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     /// <param name="guid">Идентификатор tween'а</param>
     public void Kill(Guid guid)
     {
-        if (tweens.TryGetValue(guid, out Tween tween))
+        if (tweens.TryGetValue(guid, out TweenTimeScaleDTO tweenDTO))
         {
             // Безопасно убиваем tween
-            tween?.Kill();
+            tweenDTO?.Tween?.Kill();
 
             // Удаляем все связанные данные
             tweens.Remove(guid);
@@ -102,9 +116,9 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
 
                 // Управляем tween'ом в зависимости от состояния паузы
                 if (PRUnitySDK.PauseManager.IsLogicPaused)
-                    kvp.Value.Pause();
+                    kvp.Value.Tween.Pause();
                 else
-                    kvp.Value.Play();
+                    kvp.Value.Tween.Play();
             }
         }
 
@@ -115,6 +129,17 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
         }
     }
 
+    public void OnPRTimeScaleChange(Enumeration layer, float value)
+    {
+        foreach (var data in tweens)
+        {
+            if (data.Value.Layer != layer)
+                continue;
+
+            data.Value.Tween.timeScale = value;
+        }
+    }
+
     /// <summary>
     /// Конструктор.
     /// Подписывается на события системы паузы.
@@ -122,5 +147,18 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     public DoTweenTracker()
     {
         EventBus.Subscribe(this);
+    }
+}
+
+
+public class TweenTimeScaleDTO 
+{
+    public Tween Tween { get; protected set; }
+    public Enumeration Layer { get; protected set; }
+
+    public TweenTimeScaleDTO(Tween tween, Enumeration layer)
+    {
+        Tween = tween;
+        Layer = layer;
     }
 }

@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEffect
+public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEffect, ITimeScaleLayer, IOnPRTimeScaleChange
 {
     #region Поля и свойства
 
@@ -106,6 +106,8 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     public virtual void StartAnimation()
     {
         tween?.Play();
+        if(tween != null)
+            tween.timeScale = PRTimeScale.Instance.Resolve(GetTimeScaleLayer());
     }
 
     public virtual void StopAnimation()
@@ -119,6 +121,17 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     }
 
     public abstract Tween CreateAnimation();
+
+    public virtual Enumeration GetTimeScaleLayer()
+    {
+        return PRTimeScaleEnumerationProvider.Global;
+    }
+
+    public void OnPRTimeScaleChange(Enumeration layer, float value)
+    {
+        if(layer == GetTimeScaleLayer() && tween != null)
+            tween.timeScale = PRTimeScale.Instance.Resolve(layer);
+    }
 
 
     #endregion

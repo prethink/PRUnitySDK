@@ -25,7 +25,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     /// <summary>
     ///  улдаун, управл€ющий частотой вызова PRTick().
     /// </summary>
-    private Cooldown tickCooldown = new Cooldown();
+    private CooldownBase tickCooldown = new CooldownGameTime();
 
     #endregion
 

@@ -1,6 +1,6 @@
 using System;
 
-public struct Cooldown
+public abstract class CooldownBase
 {
     private float lastTime;
 
@@ -8,42 +8,60 @@ public struct Cooldown
 
     public bool TryExecute(float interval, Action action)
     {
-        if (PRTime.Instance.Time >= lastTime + interval)
+        if (GetTime() >= lastTime + interval)
         {
-            lastTime = PRTime.Instance.Time;
+            lastTime = GetTime();
             action?.Invoke();
             return true;
         }
 
         if(initiator != null)
-            PRLog.WriteDebug(initiator, $"Cooldown for {initiator} is not ready yet. Time left: {lastTime + interval - PRTime.Instance.Time}", new PRLogSettings { LevelDebug = 10 });
+            PRLog.WriteDebug(initiator, $"Cooldown for {initiator} is not ready yet. Time left: {lastTime + interval - GetTime()}", new PRLogSettings { LevelDebug = 10 });
 
         return false;
     }
 
     public T ExecuteWithResult<T>(float interval, Func<T> action, T fallback)
     {
-        if (PRTime.Instance.Time >= lastTime + interval)
+        if (GetTime() >= lastTime + interval)
         {
-            lastTime = PRTime.Instance.Time;
+            lastTime = GetTime();
             return action.Invoke();
         }
 
         if (initiator != null)
-            PRLog.WriteDebug(initiator, $"Cooldown for {initiator} is not ready yet. Time left: {lastTime + interval - PRTime.Instance.Time}", new PRLogSettings { LevelDebug = 10});
+            PRLog.WriteDebug(initiator, $"Cooldown for {initiator} is not ready yet. Time left: {lastTime + interval - GetTime()}", new PRLogSettings { LevelDebug = 10});
 
         return fallback;
     }
 
-    public Cooldown(float lastTime = 0)
+    protected abstract float GetTime();
+
+    public CooldownBase(float lastTime = 0)
     {
         this.lastTime = lastTime;
         initiator = null;
     }
 
-    public Cooldown(object initiator, float lastTime)
+    public CooldownBase(object initiator, float lastTime)
     {
         this.lastTime = lastTime;
         this.initiator = initiator;
+    }
+}
+
+public class CooldownRealTime : CooldownBase
+{
+    protected override float GetTime()
+    {
+        return PRTime.Instance.RealTime;
+    }
+}
+
+public class CooldownGameTime : CooldownBase
+{
+    protected override float GetTime()
+    {
+        return PRTime.Instance.GameTime;
     }
 }

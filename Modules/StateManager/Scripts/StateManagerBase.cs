@@ -34,7 +34,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// <summary>
     /// Текущий тик.
     /// </summary>
-    private Cooldown Cooldown = new Cooldown();
+    private CooldownBase Cooldown = new CooldownGameTime();
 
     /// <summary>
     /// Признак того, что происходит переход между состояниями.

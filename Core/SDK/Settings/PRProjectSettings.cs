@@ -7,6 +7,7 @@ public partial class PRProjectSettings
     [field: SerializeField] public ReleaseType ReleaseType { get; protected set; }
     [field: SerializeField, Range(0, 10)] public int DebugLogLevel { get; private set; }
     [field: SerializeField] public ResolveStrategy ResolveStrategy { get; protected set; }
+    [field: SerializeField] public TimeScaleCombineMode TimeScaleCombineMode { get; protected set; }
     [field: SerializeField] public PRMonobehaviourHostSettings PRMonobehaviourHost { get; protected set; }
 
     [field: SerializeField] public bool PhysicsDebug { get; protected set; }

@@ -83,10 +83,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRTime.Instance.Time < LastTriggerTick + PROnTriggerStayTimeout())
+        if (PRTime.Instance.GameTime < LastTriggerTick + PROnTriggerStayTimeout())
             return;
 
-        LastTriggerTick = PRTime.Instance.Time;
+        LastTriggerTick = PRTime.Instance.GameTime;
 
         PROnTriggerStay(other);
     }
@@ -132,10 +132,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (Time.time < LastCollisionTick + PROnCollisionStayTimeout())
+        if (PRTime.Instance.GameTime < LastCollisionTick + PROnCollisionStayTimeout())
             return;
 
-        LastCollisionTick = Time.time;
+        LastCollisionTick = PRTime.Instance.GameTime;
 
         PROnCollisionStay(collision);
     }
@@ -228,7 +228,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             return;
         }
 
-        this.DelayAction(timeout, (t) => Destroy(obj));
+        this.DelayAction(timeout, (t) => Destroy(obj), PRTimeType.GameTime);
     }
 
     public virtual void PRDestroy(GameObject obj)
