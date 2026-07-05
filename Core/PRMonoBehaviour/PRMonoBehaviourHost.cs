@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Центральный хост, управляющий пользовательским циклом обновления.
 /// </summary>
-public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourHost>
+public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourHost>, ISingletonInitializer
 {
     #region Поля и свойства
 
@@ -120,6 +121,10 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     {
         base.PRFixedUpdate();
 
+        var gameFixedDeltaTime = PRTime.Instance.GameFixedDeltaTime;
+        if (gameFixedDeltaTime > 0 && Physics.simulationMode == SimulationMode.Script)
+            Physics.Simulate(gameFixedDeltaTime);
+
         for (int i = 0; i < fixedUpdates.Count; i++)
             fixedUpdates[i]?.PRFixedUpdate();
     }
@@ -144,6 +149,12 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     public float GetHostTick()
     {
         return PRUnitySDK.Settings.Project.PRMonobehaviourHost.Tick;
+    }
+
+    public void SingletonInitialize()
+    {
+        Physics.simulationMode = SimulationMode.Script;
+        PRLog.WriteDebug(this, $"Physics.simulationMode = {Physics.simulationMode}");
     }
 
     #endregion

@@ -57,6 +57,7 @@ public partial class PRUnitySDK
 
     private static void InitializeSingletons()
     {
+        PRMonoBehaviourHost.Instance.SingletonInitialize();
         PRTimeScale.Instance.SingletonInitialize();
     }
 

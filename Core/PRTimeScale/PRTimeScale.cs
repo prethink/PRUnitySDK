@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 
 public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitializer
 {
@@ -8,6 +8,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public const float DefaultTimeScale = 1f;
     private HashSet<Enumeration> activeTaskTimeScaleTemporaly = new();
+    private TimeScaleCombineMode? combineMode;
 
     public int InitializeOrder => -1;
 
@@ -17,6 +18,11 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
             return layers[PRTimeScaleEnumerationProvider.Global];
 
         return value;
+    }
+
+    public float GetGlobalTimeScale()
+    {
+        return layers[PRTimeScaleEnumerationProvider.Global];
     }
 
     public void SetGlobalTimeScale(float value)
@@ -41,7 +47,6 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public void SetTimeScaleTemporarily(Enumeration layer, float value, float callBackTime)
     {
-        PRLog.WriteDebug(this, $"SetTimeScaleTemporarily: layer={layer}, value={value}, callBackTime={callBackTime}");
         if (activeTaskTimeScaleTemporaly.Contains(layer))
             return;
 
@@ -60,6 +65,16 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
             });
     }
 
+    public void Reset()
+    {
+        combineMode = null;
+        foreach (var key in layers.Keys.ToList())
+        {
+            layers[key] = DefaultTimeScale;
+            PRTimeScaleEvents.RaiseTimeScaleChange(key, DefaultTimeScale);
+        }
+    }
+
     public float Resolve(Enumeration layer = null)
     {
         if (layer == null)
@@ -68,7 +83,11 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         var global = layers[PRTimeScaleEnumerationProvider.Global];
         var value = layers[layer];
 
-        return PRUnitySDK.Settings.Project.TimeScaleCombineMode switch
+        var currentSettings = combineMode != null 
+            ? combineMode 
+            : PRUnitySDK.Settings.Project.TimeScaleCombineMode;
+
+        return currentSettings switch
         {
             TimeScaleCombineMode.Multiply => global * value,
             TimeScaleCombineMode.Max => Math.Max(global, value),
@@ -81,7 +100,6 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     public void SingletonInitialize()
     {
         var options = new PRTimeScaleEnumerationProvider().GetOptions();
-
         foreach (var item in options)
             layers.Add(item, DefaultTimeScale);
     }

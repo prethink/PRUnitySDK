@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Базовый класс сущности.
 /// </summary>
-[RequireComponent(typeof(RigidBodyPauseMonitor), typeof(AnimatorPauseMonitor))]
+[RequireComponent(typeof(AnimatorPauseMonitor))]
 public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 {
     #region Поля и свойства

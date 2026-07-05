@@ -26,6 +26,7 @@ MonoBehaviour:
     <PRMonobehaviourHost>k__BackingField:
       <Tick>k__BackingField: 1
     <PhysicsDebug>k__BackingField: 1
+    <TimeScaleCombineMode>k__BackingField: 0
   <Default>k__BackingField:
     <Control>k__BackingField:
       <Sensitivity>k__BackingField: 0.4

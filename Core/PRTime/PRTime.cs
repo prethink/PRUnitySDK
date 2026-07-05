@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using Unity.VisualScripting.Antlr3.Runtime;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 {
@@ -37,6 +40,19 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     public float LastRawTime { get; private set; }
 
     /// <summary>
+    /// Фактический фиксированный шаг времени физики Unity (Time.fixedDeltaTime),
+    /// не зависит от timeScale и используется как базовый физический timestep.
+    /// </summary>
+    public float RealFixedDeltaTime { get; private set; }
+
+    /// <summary>
+    /// Фиксированный шаг времени физики с учётом глобального time scale.
+    /// Используется для игровой логики/кастомной симуляции (например Physics.Simulate),
+    /// отражает “игровое” течение физического времени.
+    /// </summary>
+    public float GameFixedDeltaTime { get; private set; }
+
+    /// <summary>
     /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond.
     /// </summary>
     private long lastRealSecond;
@@ -72,9 +88,27 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         {
             this.LastRawTime = Time.realtimeSinceStartup;
             this.RealDeltaTime = 0f;
+            this.GameDeltaTime = 0f;
         }
         base.Update();
         EventBus.RaiseEvent<IOnUpdateEvent>(x => x.OnUpdateEvent());
+    }
+
+    protected override void FixedUpdate()
+    {
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        {
+            this.LastRawTime = Time.realtimeSinceStartup;
+            this.RealFixedDeltaTime = 0f;
+            this.GameFixedDeltaTime = 0f;
+            //TODO: OnFixedUpdateEvent
+        }
+        else
+        {
+            RealFixedDeltaTime = Time.fixedDeltaTime;
+            GameFixedDeltaTime = RealFixedDeltaTime * PRTimeScale.Instance.GetGlobalTimeScale();
+            //TODO: PROnFixedUpdateEvent
+        }
     }
 
     #endregion
@@ -129,8 +163,14 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     public void Reset()
     {
         this.RealTime = 0f;
+
         this.RealDeltaTime = 0f;
-        this.LastRawTime = UnityEngine.Time.realtimeSinceStartup;
+        this.GameDeltaTime = 0f;
+
+        this.RealFixedDeltaTime = 0f;
+        this.GameFixedDeltaTime = 0f;
+
+        this.LastRawTime = Time.realtimeSinceStartup;
     }
 
     #endregion

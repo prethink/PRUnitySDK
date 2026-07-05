@@ -40,7 +40,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         PRLateUpdate();
     }
 
-    private void FixedUpdate()
+    protected virtual void FixedUpdate()
     {
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
