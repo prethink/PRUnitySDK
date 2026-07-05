@@ -13,7 +13,6 @@ public partial class PRProjectSettings
 
     [field: SerializeField, Header("TimeScale")] 
     public TimeScaleCombineMode TimeScaleCombineMode { get; protected set; }
-    public bool UseGlobalScaleHowUnityScale { get; protected set; }
 }
 
 [Serializable]
