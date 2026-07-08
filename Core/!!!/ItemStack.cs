@@ -1,7 +1,7 @@
 public class ItemStack 
 {
     public string Created { get; set; }
-    public ISelectableItem Item { get; set; }
+    public IIdentifiable Item { get; set; }
 
     public int Count { get; set; }
 
@@ -15,7 +15,7 @@ public class ItemStack
         Count += count;
     }
 
-    public static ItemStack Create(string created, ISelectableItem item, int count = 1)
+    public static ItemStack Create(string created, IIdentifiable item, int count = 1)
     {
         return new ItemStack()
         {
@@ -25,7 +25,7 @@ public class ItemStack
         };
     }
 
-    public static ItemStack CreateEmpty(string type, ISelectableItem item, int count = 1)
+    public static ItemStack CreateEmpty(string type, IIdentifiable item, int count = 1)
     {
         return Create(type, item, 0);
     }

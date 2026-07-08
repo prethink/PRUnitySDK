@@ -3,6 +3,8 @@ using UnityEngine;
 public partial class PRUnitySDK
 {
     public const string CorePrefabsPath = "Prefabs/Core";
+    public const string CoreWindowsPrefabsPath = "Prefabs/Core/Windows/MonoWindows";
+    public const string CoreNotifierPrefabsPath = "Prefabs/Core/Windows/Notifier";
 
     public static T Instantiate<T>(T original)
         where T : Object

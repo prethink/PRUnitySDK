@@ -1,7 +1,6 @@
 using DG.Tweening;
 using System;
 using System.Collections.Generic;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 /// <summary>
 /// Глобальный трекер DOTween-анимаций.

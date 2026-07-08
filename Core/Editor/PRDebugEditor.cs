@@ -56,7 +56,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         EditorGUILayout.LabelField("На сцене", GUILayout.Width(100));
         EditorGUILayout.LabelField("Спрятанных", GUILayout.Width(100));
         EditorGUILayout.EndHorizontal();
-        foreach (var item in PRUnitySDK.Managers.ObjectPoolManager.GenerateReport())
+        foreach (var item in PRUnitySDK.Managers.ObjectPool.GenerateReport())
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(item.Type, GUILayout.Width(150));

@@ -54,7 +54,7 @@ public class SoundManager : MonoBehaviour
 
     public IEnumerator UpdateSettings()
     {
-        if (PRUnitySDK.Managers.GameManager.GetGameSettings().OffSound || AudioMixerManager.IsMute)
+        if (PRUnitySDK.Managers.Game.GetGameSettings().OffSound || AudioMixerManager.IsMute)
         {
             musicSource.volume = 0;
             uiSource.volume = 0;
@@ -64,7 +64,7 @@ public class SoundManager : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(0.2f);
-            var currentSettings = PRUnitySDK.Managers.GameManager.GetGameSettings();
+            var currentSettings = PRUnitySDK.Managers.Game.GetGameSettings();
             var masterVolume = currentSettings.MasterVolume;
 
             if (currentSettings.OffSound || AudioMixerManager.IsMute)
@@ -308,9 +308,9 @@ public class SoundManager : MonoBehaviour
 
     public void UnMute()
     {
-        effectsSource.volume = PRUnitySDK.Managers.GameManager.GetGameSettings().EffectVolume;
-        musicSource.volume = PRUnitySDK.Managers.GameManager.GetGameSettings().MusicVolume;
-        uiSource.volume = PRUnitySDK.Managers.GameManager.GetGameSettings().UIVolume;
+        effectsSource.volume = PRUnitySDK.Managers.Game.GetGameSettings().EffectVolume;
+        musicSource.volume = PRUnitySDK.Managers.Game.GetGameSettings().MusicVolume;
+        uiSource.volume = PRUnitySDK.Managers.Game.GetGameSettings().UIVolume;
     }
 
     #endregion

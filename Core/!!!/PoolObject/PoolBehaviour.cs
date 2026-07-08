@@ -28,6 +28,6 @@ public class PoolBehaviour
         if (!fullDestroy)
             InPool = true;
 
-        PRUnitySDK.Managers.ObjectPoolManager.OnObjectDestroy(poolObject, fullDestroy);
+        PRUnitySDK.Managers.ObjectPool.OnObjectDestroy(poolObject, fullDestroy);
     }
 }

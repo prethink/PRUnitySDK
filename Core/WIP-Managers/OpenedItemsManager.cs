@@ -3,7 +3,7 @@ using System.Linq;
 
 public class OpenedItemsManager : SingletonProviderBase<OpenedItemsManager>
 {
-    public bool IsOpenedItem(ISelectableItem selectableItem)
+    public bool IsOpenedItem(IIdentifiable selectableItem)
     {
         return IsOpenedItem(selectableItem.Id);
     }
@@ -13,7 +13,7 @@ public class OpenedItemsManager : SingletonProviderBase<OpenedItemsManager>
         return GameManager.Instance.GetProjectData().OpenedItems.Any(x => x.HasItem(id));
     }
 
-    public bool IsOpenedItem(Type type, ISelectableItem selectableItem)
+    public bool IsOpenedItem(Type type, IIdentifiable selectableItem)
     {
         return IsOpenedItem(type.ToString(), selectableItem.Id);
     }
@@ -28,17 +28,17 @@ public class OpenedItemsManager : SingletonProviderBase<OpenedItemsManager>
         return GameManager.Instance.GetProjectData().OpenedItems.Any(x => x.HasItem(id) && x.Created.Equals(type));
     }
 
-    public bool AddOpenItem(Type type, ISelectableItem selectableItem, bool requiredSave = true)
+    public bool AddOpenItem(Type type, IIdentifiable selectableItem, bool requiredSave = true)
     {
         return AddOpenItem(type.ToString(), selectableItem, requiredSave);
     }
 
-    public bool AddOpenItem(string type, ISelectableItem selectableItem, bool requiredSave = true)
+    public bool AddOpenItem(string type, IIdentifiable selectableItem, bool requiredSave = true)
     {
         return AddOpenItem(type, selectableItem, 1, requiredSave);
     }
 
-    public bool AddOpenItem(string type, ISelectableItem selectableItem, int count, bool requiredSave = true)
+    public bool AddOpenItem(string type, IIdentifiable selectableItem, int count, bool requiredSave = true)
     {
         var item = GameManager.Instance.GetProjectData().OpenedItems.FirstOrDefault(x => x.HasItem(selectableItem.Id));
         if(item == null)

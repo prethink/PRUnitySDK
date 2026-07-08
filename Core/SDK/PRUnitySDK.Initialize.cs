@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -50,6 +51,7 @@ public partial class PRUnitySDK
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
 
         Managers.Initialize();
+        Windows.Initialize();
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete.");
@@ -67,6 +69,13 @@ public partial class PRUnitySDK
     private static void InitializeConverters()
     {
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.Converter);
+        JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+        {
+            Converters =
+            {
+                new IIdentifiableItemConverter()
+            }
+        };
     }
 
     /// <summary>

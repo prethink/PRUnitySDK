@@ -3,59 +3,53 @@ public partial class PRManagerContainer
     /// <summary>
     /// Игровой менеджер.
     /// </summary>
-    public GameManager GameManager;
+    public GameManager Game;
 
     /// <summary>
     /// Менеджер управления свойств.
     /// </summary>
-    public ProjectPropertiesManager ProjectPropertiesManager;
+    public ProjectPropertiesManager ProjectProperties;
 
     /// <summary>
     /// Менеджер управления ресурсами.
     /// </summary>
-    public ResourceManager ResourceManager;
+    public ResourceManager Resource;
 
     /// <summary>
     /// Менеджер звуков.
     /// </summary>
-    public SoundManager SoundManager;
+    public SoundManager Sound;
 
     /// <summary>
     /// Pool Manager.
     /// </summary>
-    public ObjectPoolManager ObjectPoolManager;
+    public ObjectPoolManager ObjectPool;
 
     /// <summary>
     /// Менеджер аудиомиксера.
     /// </summary>
-    public AudioMixerManager AudioMixerManager;
+    public AudioMixerManager AudioMixer;
 
     /// <summary>
     /// Менеджер открытых предметов.
     /// </summary>
-    public OpenedItemsManager OpenedItemsManager;
+    public OpenedItemsManager OpenedItems;
 
     /// <summary>
     /// Менеджер флагов в игре.
     /// </summary>
-    public FlagsManager FlagsManager;
+    public FlagsManager Flags;
 
     /// <summary>
     /// Контейнер для менеджеров.   
     /// </summary>
     public PRContainer ManagerContainer;
 
-    /// <summary>
-    /// Контейнер для окон.   
-    /// </summary>
-    public PRContainer WindowsContainer;
-
     public void Initialize()
     {
         this.RunMethodHooks(MethodHookStage.PreOperation);
 
         ManagerContainer = MonoBehaviourUtils.CreateContainer("Managers");
-        WindowsContainer = MonoBehaviourUtils.CreateContainer("Windows");
 
         this.RunMethodHooks(MethodHookStage.PostOperation);
     }
@@ -65,22 +59,22 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<GameManager>(() =>
         {
-            GameManager = GameManager.Instance;
-            GameManager.InitializeGameManager();
-            GameManager.transform.SetParent(ManagerContainer.transform);
+            Game = GameManager.Instance;
+            Game.InitializeGameManager();
+            Game.transform.SetParent(ManagerContainer.transform);
         });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 20)]
     public void InitializeProjectPropertiesManager()
     {
-        PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectPropertiesManager = ProjectPropertiesManager.Instance; });
+        PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectProperties = ProjectPropertiesManager.Instance; });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 20)]
     public void InitializeResourceManager()
     {
-        PRUnitySDK.InitializeType<ResourceManager>(() => { ResourceManager = ResourceManager.Instance; });
+        PRUnitySDK.InitializeType<ResourceManager>(() => { Resource = ResourceManager.Instance; });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 20)]
@@ -88,8 +82,8 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<AudioMixerManager>(() => 
         {
-            AudioMixerManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(AudioMixerManager.Factory);
-            AudioMixerManager.transform.SetParent(ManagerContainer.transform);
+            AudioMixer = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(AudioMixerManager.Factory);
+            AudioMixer.transform.SetParent(ManagerContainer.transform);
         });
     }
 
@@ -98,9 +92,9 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<SoundManager>(() => 
         {
-            SoundManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(SoundManager.Factory);
-            SoundManager.transform.SetParent(ManagerContainer.transform);
-            AudioMixerManager.RegisterSoundManager(SoundManager);
+            Sound = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(SoundManager.Factory);
+            Sound.transform.SetParent(ManagerContainer.transform);
+            AudioMixer.RegisterSoundManager(Sound);
         });
     }
 
@@ -109,8 +103,8 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<ObjectPoolManager>(() =>
         {
-            ObjectPoolManager = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(ObjectPoolManager.Factory);
-            ObjectPoolManager.transform.SetParent(ManagerContainer.transform);
+            ObjectPool = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(ObjectPoolManager.Factory);
+            ObjectPool.transform.SetParent(ManagerContainer.transform);
         });
     }
 
@@ -119,7 +113,7 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<OpenedItemsManager>(() =>
         {
-            OpenedItemsManager = OpenedItemsManager.Instance;
+            OpenedItems = OpenedItemsManager.Instance;
         });
     }
 
@@ -128,8 +122,8 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<FlagsManager>(() =>
         {
-            FlagsManager = FlagsManager.Instance;
-            FlagsManager.transform.SetParent(ManagerContainer.transform);
+            Flags = FlagsManager.Instance;
+            Flags.transform.SetParent(ManagerContainer.transform);
         });
     }
 }

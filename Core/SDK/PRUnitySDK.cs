@@ -26,6 +26,11 @@ public sealed partial class PRUnitySDK
     public readonly static PRManagerContainer Managers = new();
 
     /// <summary>
+    /// Менеджеры.
+    /// </summary>
+    public readonly static PRWindowsContainer Windows = new();
+
+    /// <summary>
     /// Сервис управления паузой.
     /// </summary>
     public static IPauseManager PauseManager => PauseProvider.Instance;

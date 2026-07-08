@@ -180,7 +180,7 @@ public class XPManager : SingletonProviderBase<XPManager>
 
     public ProjectPropertiesManager GetManager()
     {
-        return PRUnitySDK.Managers.ProjectPropertiesManager;
+        return PRUnitySDK.Managers.ProjectProperties;
     }
 
     public void Init()

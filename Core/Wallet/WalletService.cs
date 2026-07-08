@@ -29,6 +29,6 @@ public class WalletService : SingletonProviderBase<WalletService>
 
     private ResourceManager GetManager()
     {
-        return PRUnitySDK.Managers.ResourceManager;
+        return PRUnitySDK.Managers.Resource;
     }
 }

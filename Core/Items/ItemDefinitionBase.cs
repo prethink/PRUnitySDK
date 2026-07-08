@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public abstract partial class ItemDefinitionBase : ScriptableObject, IItemDefinition
@@ -8,4 +9,8 @@ public abstract partial class ItemDefinitionBase : ScriptableObject, IItemDefini
     [field: SerializeField] public QualityType Quality { get; protected set; }
 
     public abstract CategoryPath Category { get; }
+
+    public abstract string LocalizationKey { get; }
+
+    public abstract IReadOnlyDictionary<LangType, string> LocalizationValues { get; }
 }
