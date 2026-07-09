@@ -1,13 +1,18 @@
-using System;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public partial class PRWindowsContainer 
 {
     /// <summary>
     /// Контейнер для окон.   
     /// </summary>
-    public PRContainer Windows;
+    public PRContainer Container;
+
+    /// <summary>
+    /// Контейнер для окон.   
+    /// </summary>
+    public PRContainer SharedCanvas;
 
     /// <summary>
     /// Контейнер для уведомлений.   
@@ -20,25 +25,36 @@ public partial class PRWindowsContainer
     {
         this.RunMethodHooks(MethodHookStage.PreOperation);
 
-        Windows = MonoBehaviourUtils.CreateContainer("Windows");
+        InitializeWindows();
         InitializeNotifiers();
 
         this.RunMethodHooks(MethodHookStage.PostOperation);
+    }
+
+    private void InitializeWindows()
+    {
+        Container      = MonoBehaviourUtils.CreateContainer("Windows");
+
+        SharedCanvas   = MonoBehaviourUtils.CreateContainer("Windows.SharedCanvas");
+
+        var canvas = SharedCanvas.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+        var canvasScaler = SharedCanvas.AddComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1920, 1080);
+        canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+        canvasScaler.referencePixelsPerUnit = 100;
+
+        var graphicRaycaster = SharedCanvas.AddComponent<GraphicRaycaster>();
+
+        var settingsWindows = new SettingsMonoWindowFactory().CreateMonoWindow();
     }
 
     private void InitializeNotifiers()
     {
         Notifiers = MonoBehaviourUtils.CreateContainer("Notifiers");
 
-        var providers = ReflectionExtension.FindClassesImplementingInterface<INotifierFactory>();
-        foreach (var provider in providers)
-        {
-            //TODO;
-            var factory = Activator.CreateInstance(provider) as INotifierFactory;
-            Debug.Log(factory.ResourcePath);
-            var instance = UnityEngine.Object.Instantiate(Resources.Load(factory.ResourcePath));
-            instance.GameObject().transform.SetParent(Notifiers.transform);
-            RewardNotifier = instance.GetComponent<RewardNotifier>();
-        }
+        RewardNotifier = new RewardNotifierFactory().Create();
     }
 }

@@ -671,11 +671,6 @@ public class ObjectPoolManager : MonoBehaviour
         OnObjectDestroy(poolObject);
     }
 
-    public static ObjectPoolManager Factory()
-    {
-        return Instantiate(Resources.Load<ObjectPoolManager>($"{PRUnitySDK.CorePrefabsPath}/ObjectPoolManager"));
-    }
-
     #endregion
 
     #region Monobehaviour
@@ -692,6 +687,11 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     #endregion
+}
+
+public class ObjectPoolManagerFactory : MonoBehaviourFactoryBase<ObjectPoolManager>
+{
+    public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/ObjectPoolManager";
 }
 
 public class PoolSystemTableData

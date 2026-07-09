@@ -19,7 +19,7 @@ public class ScriptableObjectSingleton<T> : ScriptableObject
 
             var fileName = typeof(T).Name;
 
-            instance = Resources.Load<T>(fileName);
+            instance = Resources.Load<T>($"{PRUnitySDK.ResourcePaths.CorePath}/{fileName}");
 
             if (instance != null)
                 return instance;
@@ -39,9 +39,9 @@ public class ScriptableObjectSingleton<T> : ScriptableObject
     {
         instance = ScriptableObject.CreateInstance<T>();
 
-        string path = $"{PATCH_ASSETS}/Resources/{fileName}.asset";
-        string directory = $"{PATCH_ASSETS}/Resources";
-
+        string path = $"{PATCH_ASSETS}/Resources/{CORE_FOLDER}/{fileName}.asset";
+        string directory = $"{PATCH_ASSETS}/Resources/{CORE_FOLDER}";
+        Debug.Log(path);
         if (!Directory.Exists(directory))
             Directory.CreateDirectory(directory);
 

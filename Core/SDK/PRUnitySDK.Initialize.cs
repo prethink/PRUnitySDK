@@ -143,8 +143,7 @@ public partial class PRUnitySDK
     
     private static void RegisterFactories()
     {
-        ScreenFade.RegisterFactory(() => { return Instantiate(Resources.Load<ScreenFade>($"{CorePrefabsPath}/ScreenFader")); });
-
+        ScreenFade.RegisterFactory(new ScreenFadeFactory());
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.RegisterFactories);
     }
 }

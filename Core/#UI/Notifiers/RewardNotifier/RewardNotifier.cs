@@ -117,3 +117,8 @@ public class RewardNotifier : PRMonoBehaviour
         base.OnDisable();
     }
 }
+
+public class RewardNotifierFactory : NotifierFactoryBase<RewardNotifier>
+{
+    public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.NotifiersPath}/RewardNotifier";
+}

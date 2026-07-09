@@ -1,4 +1,4 @@
-public interface INotifierFactory 
+public interface INotifierFactory : IResourcePathProvider
 {
-    string ResourcePath { get; }
+
 }

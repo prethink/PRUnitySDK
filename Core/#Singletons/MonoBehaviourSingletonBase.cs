@@ -32,9 +32,9 @@ public abstract class MonoBehaviourSingletonBase<T> : MonoBehaviour
         }
     }
 
-    protected static Func<T> CustomFactory;
+    protected static MonoBehaviourFactoryBase<T> CustomFactory;
 
-    public static void RegisterFactory(Func<T> factory)
+    public static void RegisterFactory(MonoBehaviourFactoryBase<T> factory)
     {
         CustomFactory = factory;
     }

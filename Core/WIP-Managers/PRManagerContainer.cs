@@ -82,7 +82,7 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<AudioMixerManager>(() => 
         {
-            AudioMixer = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(AudioMixerManager.Factory);
+            AudioMixer = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(new AudioMixerManagerFactory());
             AudioMixer.transform.SetParent(ManagerContainer.transform);
         });
     }
@@ -92,7 +92,7 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<SoundManager>(() => 
         {
-            Sound = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(SoundManager.Factory);
+            Sound = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(new SoundManagerFactory());
             Sound.transform.SetParent(ManagerContainer.transform);
             AudioMixer.RegisterSoundManager(Sound);
         });
@@ -103,7 +103,7 @@ public partial class PRManagerContainer
     {
         PRUnitySDK.InitializeType<ObjectPoolManager>(() =>
         {
-            ObjectPool = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(ObjectPoolManager.Factory);
+            ObjectPool = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(new ObjectPoolManagerFactory());
             ObjectPool.transform.SetParent(ManagerContainer.transform);
         });
     }

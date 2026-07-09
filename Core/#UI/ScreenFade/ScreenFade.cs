@@ -48,3 +48,9 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
         onComplete?.Invoke();
     }
 }
+
+
+public class ScreenFadeFactory : MonoBehaviourFactoryBase<ScreenFade>
+{
+    public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/ScreenFader";
+}

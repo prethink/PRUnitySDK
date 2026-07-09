@@ -642,7 +642,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TextMeshProUGUI: {fileID: 1050431102254461722}
-  globalKey: 
+  globalKey: get
   localization:
     <LocalizationKey>k__BackingField: 
     <localizationValues>k__BackingField:

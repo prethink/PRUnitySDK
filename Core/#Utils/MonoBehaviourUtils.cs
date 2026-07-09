@@ -14,10 +14,10 @@ public static class MonoBehaviourUtils
         return component;
     }
 
-    public static T CreateMonoBehaviourDontDestroyOnLoad<T>(Func<T> factory, bool useRadiationIcon = true)
+    public static T CreateMonoBehaviourDontDestroyOnLoad<T>(MonoBehaviourFactoryBase<T> factory, bool useRadiationIcon = true)
         where T : MonoBehaviour
     {
-        var component = factory();
+        var component = factory.Create();
         if (useRadiationIcon)
             component.name = $"☢ {component.name}";
 

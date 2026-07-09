@@ -31,6 +31,11 @@ public sealed partial class PRUnitySDK
     public readonly static PRWindowsContainer Windows = new();
 
     /// <summary>
+    /// Пути для ресурсов.
+    /// </summary>
+    public readonly static ResourcePaths ResourcePaths = new();
+
+    /// <summary>
     /// Сервис управления паузой.
     /// </summary>
     public static IPauseManager PauseManager => PauseProvider.Instance;

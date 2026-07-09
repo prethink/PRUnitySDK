@@ -314,9 +314,9 @@ public class SoundManager : MonoBehaviour
     }
 
     #endregion
+}
 
-    public static SoundManager Factory()
-    {
-        return Instantiate(Resources.Load<SoundManager>($"{PRUnitySDK.CorePrefabsPath}/SoundManager"));
-    }
+public class SoundManagerFactory : MonoBehaviourFactoryBase<SoundManager>
+{
+    public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/SoundManager";
 }

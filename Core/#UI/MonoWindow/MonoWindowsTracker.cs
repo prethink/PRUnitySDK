@@ -19,16 +19,16 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>
             window.Hide();
     }
 
-    public void TryShowWindow(string key, MonoWindowArgs args)
+    public void TryShowWindow(Enumeration key, MonoWindowArgs args)
     {
         HideAllWindows();
 
-        var requiredWindow = elements.FirstOrDefault(x => x.Key.Equals(key, System.StringComparison.OrdinalIgnoreCase));
+        var requiredWindow = elements.FirstOrDefault(x => x.Key == key);
         if (requiredWindow != null)
             requiredWindow.Show(args);
     }
 
-    public void TryShowWindow(string key)
+    public void TryShowWindow(Enumeration key)
     {
         TryShowWindow(key, new MonoWindowsArgsEmpty());
     }

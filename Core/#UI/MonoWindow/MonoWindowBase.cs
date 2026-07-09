@@ -1,15 +1,14 @@
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public abstract partial class MonoWindowBase : PRMonoBehaviour
 {
-    public abstract string Key { get; }
+    public abstract Enumeration Key { get; }
 
     [Header("Заголовок")]
     [SerializeField] protected RectTransform header;
     [SerializeField] protected Image iconHeader;
-    [SerializeField] protected TextMeshProUGUI titleHeader;
+    [SerializeField] protected LocalizationObserver titleHeader;
     [SerializeField] protected Button exitButton;
 
     [Header("Тело")]
@@ -20,7 +19,6 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     public virtual void Show(MonoWindowArgs args)
     {
         gameObject.SetActive(true);
-        //UpdateTranslate();
         gameObject.RefreshLayoutGroupsImmediateAndRecursive();
         PRUnitySDK.SetWindowsState(true);
         if (setPauseWhenOpen)
