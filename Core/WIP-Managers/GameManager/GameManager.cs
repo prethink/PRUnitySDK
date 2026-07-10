@@ -3,7 +3,6 @@ using System.Collections;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
@@ -94,14 +93,39 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         synchronizationContext = SynchronizationContext.Current;
 
         gameDataStorage = PRUnitySDK.GameDataStorage;
-        gameDataStorage.Load();
+        bool isRequiredFirstInitialize = !gameDataStorage.TryLoad();
 
         LoadingData();
+
+        if(isRequiredFirstInitialize)
+            InitializeDefaultData();
 
         AutoSaveHandler();
 
         GameplayEvents.RaiseGameReady();
         isInitialize = true;
+    }
+
+    private void InitializeDefaultData()
+    {
+        Debug.Log("INIT DEFAULT");
+        var defaultSettings = PRUnitySDK.Settings.Default;
+
+        gameSettings.Sensitivity = defaultSettings.Sensitivity;
+        gameSettings.InvertHorizontalInput = defaultSettings.InvertHorizontalInput;
+        gameSettings.InvertVerticalInput = defaultSettings.InvertVerticalInput;
+        gameSettings.MasterVolume = defaultSettings.MasterVolume;
+        gameSettings.MusicVolume = defaultSettings.MusicVolume;
+        gameSettings.EffectVolume = defaultSettings.EffectVolume;
+        gameSettings.UIVolume = defaultSettings.UIVolume;
+
+        gameSettings.OffEffect = defaultSettings.OffEffect;
+        gameSettings.OffSound = defaultSettings.OffSound;
+        gameSettings.UIVolume = defaultSettings.UIVolume;
+
+        gameSettings.IsShowCursor = defaultSettings.IsShowCursor;
+
+        StartSaveTask();
     }
 
     public async void StartSaveTask(bool isUserExecuter = false)

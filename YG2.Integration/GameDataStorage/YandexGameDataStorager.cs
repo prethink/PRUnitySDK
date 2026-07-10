@@ -15,18 +15,19 @@ public class YandexGameDataStorager : IGameDataStorage
 
     #region ISaveLoad
 
-    public void Load()
+    public bool TryLoad()
     {
         PRLog.WriteDebug(this, $"Try loading data use strategy {GetSettings().SaveStrategy}");
         saveData = new PRSaveData();
+        bool result = false;
         if (GetSettings().SaveStrategy == SaveStrategy.Serialize)
         {
             if(string.IsNullOrEmpty(YG2.saves.RawData))
                 PRLog.WriteWarning(this, $"Cannot loading. Raw data is empty.");
             else if (GetSettings().UseEncryption)
-                LoadingJsonEncryptedData();
+                result = LoadingJsonEncryptedData();
             else
-                LoadingJsonData();
+                result = LoadingJsonData();
         }
         else if (GetSettings().SaveStrategy == SaveStrategy.Class)
         {
@@ -37,9 +38,10 @@ public class YandexGameDataStorager : IGameDataStorage
             throw new NotImplementedException();
         }
         PRLog.WriteDebug(this, $"Loading end.");
+        return result;
     }
 
-    private void LoadingJsonEncryptedData()
+    private bool LoadingJsonEncryptedData()
     {
         PRLog.WriteDebug(this, $"Use Encryption");
         PRSaveData result;
@@ -49,16 +51,19 @@ public class YandexGameDataStorager : IGameDataStorage
             {
                 saveData = result;
                 PRLog.WriteDebug(this, $"Success loading data.");
+                return true;
             }
             else if(PRJsonUtils.TryDeserializeObjectDecrypt(YG2.saves.RawData, out result))
             {
                 saveData = result;
                 PRLog.WriteDebug(this, $"Cannot convert data");
                 PRLog.WriteDebug(this, $"Success loading encryption data.");
+                return true;
             }
             else
             {
                 PRLog.WriteError(this, $"Cannot loading data");
+                return false;
             }
         }
         else if (GetSettings().EncryptionStrategy == EncryptionLoadingStrategy.OnlyEncryption)
@@ -67,10 +72,12 @@ public class YandexGameDataStorager : IGameDataStorage
             {
                 saveData = result;
                 PRLog.WriteDebug(this, $"Success loading encryption data.");
+                return true;
             }
             else
             {
                 PRLog.WriteError(this, $"Cannot loading data");
+                return false;
             }
         }
         else
@@ -79,23 +86,26 @@ public class YandexGameDataStorager : IGameDataStorage
         }
     }
 
-    private void LoadingJsonData()
+    private bool LoadingJsonData()
     {
         PRSaveData result;
         if (PRJsonUtils.TryDeserializeObjectDecrypt(YG2.saves.RawData, out result))
         {
             saveData = result;
             PRLog.WriteDebug(this, $"Success loading encryption data.");
+            return true;
         }
         if (PRJsonUtils.TryDeserializeObject<PRSaveData>(YG2.saves.RawData, out result))
         {
             saveData = result;
             PRLog.WriteDebug(this, $"Cannot convert encryption data");
             PRLog.WriteDebug(this, $"Success loading data.");
+            return true;
         }
         else
         {
             PRLog.WriteError(this, $"Cannot loading data");
+            return false;
         }
     }
 

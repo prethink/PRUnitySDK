@@ -29,7 +29,7 @@ public class GameSettingsStorage : GameStorageBase
 
     public float GetSensitivity()
     {
-        return GetValue<float>(GameSettingsEnumerationProvider.Sensitivity, PRUnitySDK.Settings.Default.Control.Sensitivity);
+        return 1;//return GetValue<float>(GameSettingsEnumerationProvider.Sensitivity, PRUnitySDK.Settings.Default.Control.Sensitivity);
     }
 }
 

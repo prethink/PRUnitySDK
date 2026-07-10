@@ -42,7 +42,6 @@ public partial class PRUnitySDK
             return;
         }
 
-
         GameRules.Initialize();
         InitializeConverters();
         InitializeSingletons();

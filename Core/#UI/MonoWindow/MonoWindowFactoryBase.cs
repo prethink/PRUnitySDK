@@ -5,6 +5,7 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
     where T : MonoWindowBase
 {
     public abstract bool UseSharedCanvas { get; }
+    public abstract bool WorldPositionStays { get; }
 
     public abstract string ResourcePath { get; }
 
@@ -15,7 +16,7 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
             ? PRUnitySDK.Windows.SharedCanvas.transform
             : PRUnitySDK.Windows.Container.transform;
 
-        instance.GameObject().transform.SetParent(parent);
+        instance.GameObject().transform.SetParent(parent, WorldPositionStays);
         return instance.GetComponent<T>();
     }
 }

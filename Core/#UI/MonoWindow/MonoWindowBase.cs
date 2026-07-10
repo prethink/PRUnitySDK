@@ -6,6 +6,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     public abstract Enumeration Key { get; }
 
     [Header("Заголовок")]
+    [SerializeField] protected GameObject container;
     [SerializeField] protected RectTransform header;
     [SerializeField] protected Image iconHeader;
     [SerializeField] protected LocalizationObserver titleHeader;
@@ -16,10 +17,12 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     [SerializeField] protected bool setPauseWhenOpen;
 
+    
+
     public virtual void Show(MonoWindowArgs args)
     {
-        gameObject.SetActive(true);
-        gameObject.RefreshLayoutGroupsImmediateAndRecursive();
+        GetContainer().SetActive(true);
+        GetContainer().RefreshLayoutGroupsImmediateAndRecursive();
         PRUnitySDK.SetWindowsState(true);
         if (setPauseWhenOpen)
             PRUnitySDK.PauseManager.SetLogicPaused(true, this);
@@ -29,16 +32,21 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     public virtual void Hide(bool isForceClose = false)
     {
-        if (gameObject.activeSelf)
+        if (GetContainer().activeSelf)
             GameManager.Instance.StartSaveTask();
 
         PRUnitySDK.SetWindowsState(false);
-        gameObject.SetActive(false);
+        GetContainer().SetActive(false);
         PRUnitySDK.PauseManager.SetLogicPaused(false, this);
         GameManager.Instance.LoadingUserCursorState();
     }
 
-
+    protected GameObject GetContainer()
+    {
+        return container != null 
+            ? container 
+            : gameObject;
+    }
 
     public abstract void InitTranslate();
 

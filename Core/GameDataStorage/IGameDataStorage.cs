@@ -3,7 +3,7 @@ public interface IGameDataStorage
     /// <summary>
     /// Загружает данные игры (например, настройки или прогресс).
     /// </summary>
-    void Load();
+    bool TryLoad();
 
     /// <summary>
     /// Сохраняет текущие данные игры (например, настройки или прогресс).

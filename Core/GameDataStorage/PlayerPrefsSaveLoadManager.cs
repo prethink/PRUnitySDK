@@ -17,10 +17,10 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
     /// <summary>
     /// Загружает данные игры из PlayerPrefs.
     /// </summary>
-    public void Load()
+    public bool TryLoad()
     {
         saveData = new PRSaveData();
-
+        bool result = false;
         // Загружаем GameSettings
         if (PlayerPrefs.HasKey(GameSettingsKey))
         {
@@ -29,6 +29,7 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
             {
                 saveData.GameSettings = JsonUtility.FromJson<GameSettings>(json);
                 PRLog.WriteDebug(this, "GameSettings loaded from PlayerPrefs.");
+                result = true;
             }
             catch
             {
@@ -44,6 +45,7 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
             {
                 saveData.ProjectData = JsonUtility.FromJson<ProjectData>(json);
                 PRLog.WriteDebug(this, "ProjectData loaded from PlayerPrefs.");
+                result = true;
             }
             catch
             {
@@ -52,6 +54,7 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
         }
 
         Ready?.Invoke();
+        return result;
     }
 
     /// <summary>
