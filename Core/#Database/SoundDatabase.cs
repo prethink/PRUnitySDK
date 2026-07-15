@@ -5,6 +5,8 @@ using UnityEngine;
 [Serializable]
 public class SoundDatabase 
 {
+    public static SoundDatabase Instance => PRUnitySDK.Database.Sounds;
+
     [SerializeField] private List<KeyValueWrapper<string, AudioClip>> backgroundMusic;
 
     [SerializeField] private List<KeyValueWrapper<string, AudioClip>> ui;

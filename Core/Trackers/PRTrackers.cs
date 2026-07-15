@@ -9,6 +9,7 @@ public partial class PRTrackers
     public EntityTracker Entities => EntityService.Instance;
 
     public MonoWindowsTracker MonoWindows => MonoWindowsService.Instance;
+    public NotifierTracker Notifiers => NotifierService.Instance;
 
     public CameraTracker CameraTracker => CameraTracker.Instance;
 

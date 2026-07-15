@@ -38,7 +38,8 @@ public class LocalizationObserver : PRMonoBehaviour
         if (TextMeshProUGUI == null)
             return;
 
-        TextMeshProUGUI.text = GetTranslate(langKey);
+        TextMeshProUGUI.SetText(GetTranslate(langKey));
+        TextMeshProUGUI.ForceMeshUpdate();
     }
 
     private string GetTranslate(string langKey)

@@ -9,6 +9,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     public const float DefaultTimeScale = 1f;
     private HashSet<Enumeration> activeTaskTimeScaleTemporaly = new();
     private TimeScaleCombineMode? combineMode;
+    private bool isInitialize;
 
     public int InitializeOrder => -1;
 
@@ -22,6 +23,9 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public float GetGlobalTimeScale()
     {
+        if(!isInitialize)
+            return DefaultTimeScale;
+
         return layers[PRTimeScaleEnumerationProvider.Global];
     }
 
@@ -77,6 +81,9 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public float Resolve(Enumeration layer = null)
     {
+        if (!isInitialize)
+            return DefaultTimeScale;
+
         if (layer == null)
             return layers[PRTimeScaleEnumerationProvider.Global];
 
@@ -102,5 +109,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         var options = new PRTimeScaleEnumerationProvider().GetOptions();
         foreach (var item in options)
             layers.Add(item, DefaultTimeScale);
+
+        isInitialize = true;
     }
 }

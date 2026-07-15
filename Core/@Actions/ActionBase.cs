@@ -14,12 +14,13 @@ public abstract class ActionBase : ScriptableObject, IIconProvider
     /// <summary>
     /// Выполнить действие.
     /// </summary>
-    public virtual void Execute()
+    public virtual bool Execute()
     {
-        if(CanExecute())
-        {
-            Action();
-        }
+        if(!CanExecute())
+            return false;
+
+        Action();
+        return true;
     }
 
     /// <summary>

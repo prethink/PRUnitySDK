@@ -14,4 +14,9 @@ public static class QualityExtension
         // —равниваем пор€дковые значени€ типов качества
         return (int)currentType > (int)anotherType;
     }
+
+    public static string GetTranslate(this QualityType qualityType, LangType langType)
+    {
+        return new QualityLocalizationProvider(qualityType).GetTranslate(langType);
+    }
 }

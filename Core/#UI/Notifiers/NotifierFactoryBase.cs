@@ -5,9 +5,18 @@ public abstract class NotifierFactoryBase<T> : INotifierFactory
 {
     public abstract string ResourcePath { get; }
 
+    public abstract bool IsSingleton { get; }
+
+    public bool WorldPositionStays => false;
+
+    private static T instance;
+
     public virtual T Create()
     {
-        var instance = Object.Instantiate(Resources.Load<T>(ResourcePath));
+        if (IsSingleton && instance != null)
+            return instance;
+
+        instance = Object.Instantiate(Resources.Load<T>(ResourcePath));
         instance.gameObject.transform.SetParent(PRUnitySDK.Windows.Notifiers.transform);
         return instance;
     }

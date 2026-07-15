@@ -11,17 +11,17 @@ public partial class ProjectData : ICloneable
     /// <summary>
     /// Свойства проекта.
     /// </summary>
-    public ProjectProperties ProjectProperties;
+    public ProjectProperties ProjectProperties { get; set; } = new();
 
     /// <summary>
     /// Идентификаторы открытых предметов.
     /// </summary>
-    public List<ItemStack> OpenedItems = new();
+    public List<ItemStack> OpenedItems { get; set; } = new();
 
     /// <summary>
     /// Идентификаторы открытых предметов.
     /// </summary>
-    public Dictionary<string, long> Resources = new();
+    public Dictionary<string, long> Resources { get; set; } = new();
 
     /// <summary>
     /// Временная переменная для клонирования. Используется для partial классов.
@@ -77,10 +77,10 @@ public class PlayerSelectedData : ICloneable
 {
     public int PlayerId { get; set; }
 
-    public Dictionary<string, ISelectableItem> SelectedItems = new();
+    public Dictionary<string, ISelectableItem> SelectedItems { get; set; } = new();
 
     [JsonConverter(typeof(HashSetConverter<ISelectableItem>))]
-    public HashSet<ISelectableItem> SelectedPets = new();
+    public HashSet<ISelectableItem> SelectedPets { get; set; } = new();
 
     public object Clone()
     {

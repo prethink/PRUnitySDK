@@ -5,6 +5,8 @@ using UnityEngine;
 [Serializable]
 public class RewardDatabase 
 {
+    public static RewardDatabase Instance => PRUnitySDK.Database.Rewards;
+
     [SerializeField] private List<KeyValueWrapper<string, RewardAction>> actions;
     [SerializeField] private List<KeyValueWrapper<string, RewardResource>> resources;
     [SerializeField] private List<KeyValueWrapper<string, RewardItemBase>> items;

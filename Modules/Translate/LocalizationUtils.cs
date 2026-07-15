@@ -52,4 +52,21 @@ public static class LocalizationUtils
     {
         return new LocalizationControl(new Guid().ToString(), dictionary);
     }
+
+    public static int GetMaxSizeMessage(ILocalizationProvider localization)
+    {
+        int maxSize = 0;
+        foreach (var item in localization.LocalizationValues)
+        {
+            if(item.Value.Length > maxSize)
+                maxSize = item.Value.Length;
+        }
+
+        return maxSize;
+    }
+
+    //public static IEnumerable<ILocalizationProvider> SplitLocalization(IEnumerable<int> chunkSize, ILocalizationProvider)
+    //{
+
+    //}
 }

@@ -1,4 +1,4 @@
-public interface INotifierFactory : IResourcePathProvider
+public interface INotifierFactory : IMonoBehaviourFactory
 {
 
 }

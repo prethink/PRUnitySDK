@@ -689,7 +689,7 @@ public class ObjectPoolManager : MonoBehaviour
     #endregion
 }
 
-public class ObjectPoolManagerFactory : MonoBehaviourFactoryBase<ObjectPoolManager>
+public class ObjectPoolManagerFactory : SingletonMonoBehaviourFactoryBase<ObjectPoolManager>
 {
     public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/ObjectPoolManager";
 }

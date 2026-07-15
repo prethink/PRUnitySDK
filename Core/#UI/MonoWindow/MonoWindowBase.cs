@@ -17,8 +17,6 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     [SerializeField] protected bool setPauseWhenOpen;
 
-    
-
     public virtual void Show(MonoWindowArgs args)
     {
         GetContainer().SetActive(true);

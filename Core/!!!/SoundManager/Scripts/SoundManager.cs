@@ -316,7 +316,7 @@ public class SoundManager : MonoBehaviour
     #endregion
 }
 
-public class SoundManagerFactory : MonoBehaviourFactoryBase<SoundManager>
+public class SoundManagerFactory : SingletonMonoBehaviourFactoryBase<SoundManager>
 {
     public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/SoundManager";
 }

@@ -20,6 +20,7 @@ public partial class PRWindowsContainer
     public PRContainer Notifiers;
 
     public RewardNotifier RewardNotifier;
+    public ToastMessageNotifier ToastMessageNotifier;
 
     public void Initialize()
     {
@@ -49,6 +50,7 @@ public partial class PRWindowsContainer
         var graphicRaycaster = SharedCanvas.AddComponent<GraphicRaycaster>();
 
         var settingsWindows = new SettingsMonoWindowFactory().CreateMonoWindow();
+        var test = new DashboardMessagesFactory().Create(SharedCanvas.transform);
     }
 
     private void InitializeNotifiers()
@@ -56,5 +58,6 @@ public partial class PRWindowsContainer
         Notifiers = MonoBehaviourUtils.CreateContainer("Notifiers");
 
         RewardNotifier = new RewardNotifierFactory().Create();
+        ToastMessageNotifier = new ToastMessageNotifierFactory().Create();
     }
 }

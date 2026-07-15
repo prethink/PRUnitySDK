@@ -32,4 +32,16 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>
     {
         TryShowWindow(key, new MonoWindowsArgsEmpty());
     }
+
+    public bool TryGetWindow<T>(Enumeration key, out T window) 
+        where T : MonoWindowBase
+    {
+        window = null;
+
+        var searchWindow = elements.FirstOrDefault(x => x.Key == key);
+        if(searchWindow == null)
+            return false;
+        searchWindow.TryGetComponent<T>(out window);
+        return window != null;
+    }
 }

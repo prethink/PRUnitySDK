@@ -9,9 +9,17 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
 
     public abstract string ResourcePath { get; }
 
+    public abstract bool IsSingleton { get; }
+
+    private static T instance;
+
     public virtual T CreateMonoWindow()
     {
-        var instance = Object.Instantiate(Resources.Load(ResourcePath));
+        if (IsSingleton && instance != null)
+            return instance;
+
+        instance = Object.Instantiate(Resources.Load<T>(ResourcePath));
+
         var parent = UseSharedCanvas
             ? PRUnitySDK.Windows.SharedCanvas.transform
             : PRUnitySDK.Windows.Container.transform;

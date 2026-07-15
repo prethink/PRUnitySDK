@@ -171,7 +171,7 @@ public class AudioMixerManager : MonoBehaviour, IReadyGameEvent, IPauseStateList
     }
 }
 
-public class AudioMixerManagerFactory : MonoBehaviourFactoryBase<AudioMixerManager>
+public class AudioMixerManagerFactory : SingletonMonoBehaviourFactoryBase<AudioMixerManager>
 {
     public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/AudioMixer";
 }

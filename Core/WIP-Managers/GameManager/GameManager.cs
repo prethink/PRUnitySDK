@@ -108,7 +108,6 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
     private void InitializeDefaultData()
     {
-        Debug.Log("INIT DEFAULT");
         var defaultSettings = PRUnitySDK.Settings.Default;
 
         gameSettings.Sensitivity = defaultSettings.Sensitivity;

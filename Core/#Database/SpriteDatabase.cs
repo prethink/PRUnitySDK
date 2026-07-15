@@ -5,6 +5,7 @@ using UnityEngine;
 public class SpriteDatabase : Database<KeyValueWrapper<string, Sprite>>
 {
     [field: SerializeField] public EntitySprites Entities;
+    public static SpriteDatabase Instance => PRUnitySDK.Database.Sprites;
 }
 
 [Serializable]

@@ -50,7 +50,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
 }
 
 
-public class ScreenFadeFactory : MonoBehaviourFactoryBase<ScreenFade>
+public class ScreenFadeFactory : SingletonMonoBehaviourFactoryBase<ScreenFade>
 {
     public override string ResourcePath => $"{PRUnitySDK.ResourcePaths.PrefabsPath}/ScreenFader";
 }
