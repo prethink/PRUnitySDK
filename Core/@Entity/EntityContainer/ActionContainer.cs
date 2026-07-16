@@ -11,12 +11,6 @@ public class ActionContainer : ContainerEntityBase<ActionBase>
         return base.GetPoolKey() + containerItem.name;
     }
 
-    protected override void InitializeEntityInfo()
-    {
-        //TODO:
-        throw new NotImplementedException();
-    }
-
     protected override bool TryPickup(PlayerBase player)
     {
         containerItem.Execute();

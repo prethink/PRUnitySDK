@@ -16,12 +16,6 @@ public class ResourceContainer : ContainerEntityBase<ResourceItemDefinition>
         return (canPickup & PlayerBase.ConvertToFlag(player.PlayerType)) != 0;
     }
 
-    protected override void InitializeEntityInfo()
-    {
-        //TODO:
-        throw new NotImplementedException();
-    }
-
     protected override bool TryPickup(PlayerBase player)
     {
         if (player.gameObject.TryGetComponentInChildren<IPickupResource>(out var pickup))

@@ -4,7 +4,7 @@ using UnityEngine;
 /// Контейнер для хранения эффекта.
 /// </summary>
 [RequireComponent(typeof(BoxCollider), typeof(Rigidbody))]
-public abstract class ContainerEntityBase : EntityBase 
+public abstract class ContainerEntityBase : RuntimeEntityBase
 {
     [SerializeField] protected PlayerTypeFlags canPickup;
     [SerializeField] protected Rigidbody rb;

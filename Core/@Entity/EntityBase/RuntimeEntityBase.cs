@@ -1,17 +1,9 @@
 using AYellowpaper.SerializedCollections;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CommonEntity : EntityBase, IEntityInfo
+public abstract class RuntimeEntityBase : EntityBase, IEntityInfo
 {
-    public override Enumeration EntityType => Enumeration.GetOrCreate(EntityTypeValue);
-
-    public override string Name => EntityName;
-
-    [field: SerializeField, Header("EntityInfo")] public string EntityName { get; protected set; }
-    [field: SerializeField] public string EntityTypeValue { get; protected set; }
-
     [field: SerializeField] public Sprite Icon { get; protected set; }
 
     [field: SerializeField] public string LocalizationKey { get; protected set; }
