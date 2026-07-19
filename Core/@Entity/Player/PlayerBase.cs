@@ -85,18 +85,16 @@ public abstract class PlayerBase : EntityBase, IPlayer
     #endregion
 
     #region MonoBehaviour
-    protected override void OnDestroy()
-    {
-        PRUnitySDK.Trackers.Players.Unregister(this);
-    }
 
-    protected override void Start()
+    protected override void RegisterEntity()
     {
         PRUnitySDK.Trackers.Players.Register(this);
-
-        //InitHealth();
-        //OnSpawnInvoke(EntityGameObject.transform.position);
         OnPlayerInit?.Invoke(this);
+    }
+
+    protected override void UnregisterEntity()
+    {
+        PRUnitySDK.Trackers.Players.Unregister(this);
     }
 
     #endregion
@@ -245,6 +243,11 @@ public abstract class PlayerBase : EntityBase, IPlayer
     public void GeneratePlayerId(Func<long> register)
     {
         PlayerId = register();
+    }
+
+    public virtual PlayerInputState GetInput()
+    {
+        return InputTranslator.Instance.GetPlayer(PlayerId);
     }
 
     #endregion

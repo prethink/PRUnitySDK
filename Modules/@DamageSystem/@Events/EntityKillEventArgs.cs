@@ -1,11 +1,11 @@
-public class KillEvent : CombatEventBase
+public class EntityKillEventArgs : CombatEventBase
 {
-    public KillEvent(IEntity attacker, IEntity victim, IWeapon weapon) 
+    public EntityKillEventArgs(IEntity attacker, IEntity victim, IWeapon weapon) 
         : base(attacker, victim, weapon)
     {
     }
 
-    public KillEvent(IEntity attacker, IEntity victim) 
+    public EntityKillEventArgs(IEntity attacker, IEntity victim) 
         : base(attacker, victim, null)
     {
         

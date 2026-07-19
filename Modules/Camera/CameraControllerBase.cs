@@ -3,6 +3,9 @@ using UnityEngine;
 public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
 {
     [field: SerializeField] public Camera CurrentCamera { get; protected set; }
+    public bool IsCurrent { get; protected set; }
+
+    public abstract bool CanPushStack { get; }
 
     protected override void PRUpdate()
     {
@@ -13,18 +16,33 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
     protected abstract void HandleCamera();
 
-    public virtual void SetMainCamera(bool pushInStack = true)
+    public virtual void SetMain(bool pushInStack = true)
     {
         if (this.IsNull())
             return;
+
+        SetCameraHandler();
 
         CurrentCamera = CameraEvents.InvokeChangeCamera(this.gameObject);
         if(pushInStack)
             CameraTracker.Instance.Push(this);
     }
 
+    protected virtual void SetCameraHandler()
+    {
+        CurrentCamera = CameraTracker.Instance.MainCamera;
+        CameraTracker.Instance.SetCurrent(this);
+        CameraTracker.Instance.ShowMainCamera();
+    }
+
+    public void SetCurrent(bool value)
+    {
+        IsCurrent = value;
+    }
+
     public void ClearCamera()
     {
+        IsCurrent = false;
         CurrentCamera = null;
     }
 
@@ -52,7 +70,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
             return;
         }
 
-        previous.SetMainCamera(false);
+        previous.SetMain(false);
     }
 
     public void Track(GameplayEventArgsBase args)

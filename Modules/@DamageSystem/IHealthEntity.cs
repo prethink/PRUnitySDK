@@ -36,7 +36,7 @@ public interface IHealthEntity
     /// Убить сущность..
     /// </summary>
     /// <param name="killer">Убийца.</param>
-    public bool Kill(IEntity killer);
+    public bool IsKill(IEntity killer);
 
     /// <summary>
     /// Оживить entity.

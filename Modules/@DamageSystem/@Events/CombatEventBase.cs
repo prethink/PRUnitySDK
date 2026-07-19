@@ -24,3 +24,13 @@ public abstract class CombatEventBase : GameplayEventArgsBase
         return new CategoryPath(base.GetEventId(), "Combat");
     }
 }
+
+public interface IEntityKillEvent : IGlobalSubscriber
+{
+    void OnKill(EntityKillEventArgs args);
+}
+
+public interface IOnTakeDamageEvents : IGlobalSubscriber
+{
+    void OnTakeDamage(TakeDamageEvent args);
+}

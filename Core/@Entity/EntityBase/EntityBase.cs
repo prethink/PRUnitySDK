@@ -106,6 +106,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
         };
     }
 
+    protected virtual void RegisterEntity()
+    {
+        PRUnitySDK.Trackers.Entities.Register(this);
+    }
+
+    protected virtual void UnregisterEntity()
+    {
+        PRUnitySDK.Trackers.Entities.Unregister(this);
+    }
+
     #endregion
 
     #region Ìועמהû
@@ -130,10 +140,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region MonoBehaviour
 
-    protected virtual void OnDestroy()
-    {
-        PRUnitySDK.Trackers.Entities.Unregister(this);
-    }
 
     protected override void OnEnable()
     {
@@ -151,15 +157,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region Ìועמהû
 
-    public virtual void RegisterEntity()
-    {
-        PRUnitySDK.Trackers.Entities.Register(this);
-    }
-
     protected override void Start()
     {
         RegisterEntity();
         base.Start();
+    }
+
+    protected override void UnRegisterEventsOnDestroy()
+    {
+        UnregisterEntity();
+        base.UnRegisterEventsOnDestroy();
     }
 
     #endregion

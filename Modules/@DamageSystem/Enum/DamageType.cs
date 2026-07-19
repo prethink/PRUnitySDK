@@ -59,5 +59,4 @@ public enum DamageType
     /// Временный периодический урон.
     /// </summary>
     TimeBased = 1 << 12,
-
 }

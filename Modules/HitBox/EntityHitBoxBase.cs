@@ -1,6 +1,3 @@
-
-
-using System.Drawing;
 using UnityEngine;
 
 [RequireComponent(typeof(EntityLink))]

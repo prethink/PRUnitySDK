@@ -102,8 +102,8 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
         if (nextHealth <= 0)
         {
-            //if (Kill(attacker))
-            //    EventBus.RaiseEvent<IEntityDeathEvents>(x => x.OnDeath(attacker, weapon, this));
+            if (IsKill(attacker))
+                CombatEvents.RaiseOnKill(new EntityKillEventArgs(attacker, this.Entity, weapon));
 
             return DamageResult.Killed;
         }
@@ -111,7 +111,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         {
             Health = nextHealth;
         }
-        //EventBus.RaiseEvent<IEntityTakeDamageEvents>(x => x.OnTakeDamage(attacker, weapon, this, damageHook.DamageProvider));
+        CombatEvents.RaiseOnTakeDamage(new TakeDamageEvent(attacker, this.Entity, currentDamage, weapon));
         return DamageResult.Damaged;
     }
 
@@ -176,7 +176,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// </summary>
     /// <param name="killer">Убийца.</param>
     /// <returns>True - удачно, false нет.</returns>
-    public virtual bool Kill(IEntity killer)
+    public virtual bool IsKill(IEntity killer)
     {
         if (!IsAlive())
             return false;
@@ -201,7 +201,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// <returns>True - удачно, false нет.</returns>
     public virtual bool Kill()
     {
-        return Kill(GameEventEntityFactory.CreateEventGame());
+        return IsKill(GameEventEntityFactory.CreateEventGame());
     }
 
     /// <summary>
@@ -299,7 +299,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// <returns>True - удачно, false нет.</returns>
     public virtual bool Suicide()
     {
-        return Kill(GameEventEntityFactory.CreateEventSuicide());
+        return IsKill(GameEventEntityFactory.CreateEventSuicide());
     }
 
     public virtual void Spawn(Vector3 spawnPosition)

@@ -1,11 +1,21 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using static UnityEditor.Progress;
 
 public class CameraTracker : SingletonProviderBase<CameraTracker>
 {
     protected Stack<CameraControllerBase> cameraStack = new();
+    protected HashSet<PlayerCamera> playerCameras = new();
+    public Camera MainCamera { get; protected set; }
+    public IEnumerable<PlayerCamera> PlayerCameras => playerCameras.ToList();
 
     public void Push(CameraControllerBase cameraController)
     {
+        if (cameraStack.Count > 0 && cameraStack.Peek() == cameraController)
+            return;
+
         cameraStack.Push(cameraController);
     }
 
@@ -23,8 +33,47 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
         return cameraStack.Pop();
     }
 
+    public void ShowMainCamera()
+    {
+        foreach (var item in playerCameras)
+            item.CurrentCamera?.gameObject.SetActive(false);
+    }
+
+    public void RestorePlayerCameras()
+    {
+        foreach (var item in playerCameras)
+            item.CurrentCamera?.gameObject.SetActive(true);
+    }
+
+    public void AddPlayerCamera(PlayerCamera camera)
+    {
+        playerCameras.Add(camera);
+    }
+
+    public void RemovePlayerCamera(PlayerCamera camera)
+    {
+        playerCameras.Remove(camera);
+    }
+
     public CameraControllerBase Peek()
     {
-        return cameraStack.Count > 0 ? cameraStack.Peek() : null;
+        return cameraStack.Count > 0 
+            ? cameraStack.Peek() 
+            : null;
+    }
+
+    internal void SetMainCamera(Camera camera)
+    {
+        MainCamera = camera;
+    }
+
+    internal void SetCurrent(CameraControllerBase cameraControllerBase)
+    {
+        cameraControllerBase.SetCurrent(true);
+
+        foreach (var item in cameraStack)
+        {
+            item.SetCurrent(item == cameraControllerBase);
+        }
     }
 }

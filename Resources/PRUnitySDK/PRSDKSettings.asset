@@ -28,11 +28,17 @@ MonoBehaviour:
     <PhysicsDebug>k__BackingField: 1
     <TimeScaleCombineMode>k__BackingField: 0
   <Default>k__BackingField:
-    <Control>k__BackingField:
-      <Sensitivity>k__BackingField: 0.4
-      <InvertHorizontalInput>k__BackingField: 0
-      <InvertVerticalInput>k__BackingField: 0
-    <GameSettings>k__BackingField: {fileID: 0}
+    <Sensitivity>k__BackingField: 0.3
+    <InvertHorizontalInput>k__BackingField: 0
+    <InvertVerticalInput>k__BackingField: 0
+    <MasterVolume>k__BackingField: 1
+    <MusicVolume>k__BackingField: 1
+    <EffectVolume>k__BackingField: 1
+    <OffMusic>k__BackingField: 0
+    <OffSound>k__BackingField: 0
+    <UIVolume>k__BackingField: 1
+    <OffEffect>k__BackingField: 0
+    <IsShowCursor>k__BackingField: 1
   <SceneTransition>k__BackingField:
     <UseFadeOnChange>k__BackingField: 1
     <LoaderTimeout>k__BackingField: 0
@@ -78,7 +84,7 @@ MonoBehaviour:
     <TimeOnGround>k__BackingField: 10
   <LuckyBox>k__BackingField:
     <PreviewCount>k__BackingField: 25
-    <UseCameraFocus>k__BackingField: 0
+    <UseCameraFocus>k__BackingField: 1
     <IterationSound>k__BackingField: {fileID: 8300000, guid: 837dc73372ad7b148b636a85bd8b91d2,
       type: 3}
     <OpenedSound>k__BackingField: {fileID: 8300000, guid: c0153bbb78c61054db1fc67bb94fa416,
@@ -125,3 +131,12 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  <DashboardMessageSettings>k__BackingField:
+    <BaseLifeTime>k__BackingField: 5
+    <BaseImageWidth>k__BackingField: 24
+    <MaxLineWidth>k__BackingField: 800
+    <MinLineHeight>k__BackingField: 25
+    <MaxLineHeight>k__BackingField: 25
+    <MaxMessageCount>k__BackingField: 5
+    <WarningIcon>k__BackingField: {fileID: 0}
+    <ErrorIcon>k__BackingField: {fileID: 0}
