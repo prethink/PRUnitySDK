@@ -31,7 +31,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     protected virtual void SetCameraHandler()
     {
         CurrentCamera = CameraTracker.Instance.MainCamera;
-        CameraTracker.Instance.SetCurrent(this);
+        CameraTracker.Instance.SetCurrent(this, CurrentCamera);
         CameraTracker.Instance.ShowMainCamera();
     }
 

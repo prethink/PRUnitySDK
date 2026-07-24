@@ -6,7 +6,7 @@ using UnityEngine.Events;
 /// <summary>
 /// Базовая сущность игрока.
 /// </summary>
-public abstract class PlayerBase : EntityBase, IPlayer
+public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 {
     #region Поля и свойства
 
@@ -249,6 +249,10 @@ public abstract class PlayerBase : EntityBase, IPlayer
     {
         return InputTranslator.Instance.GetPlayer(PlayerId);
     }
+
+    protected readonly ReadySignal readySignal = new ReadySignal();
+    public IReadySignal ReadySignal => readySignal;
+
 
     #endregion
 }

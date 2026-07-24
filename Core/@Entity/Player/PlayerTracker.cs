@@ -170,6 +170,11 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
         return localPlayer;
     }
 
+    public List<PlayerLocal> GetLocalPlayers()
+    {
+        return playerLocals.Select(x => x.Value).ToList();
+    }
+
     private int FindFreeSlotId()
     {
         for (int i = 0; i < MaxLocalPlayer; i++)

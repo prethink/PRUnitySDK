@@ -1,6 +1,5 @@
 public static class PRGameStorageService 
 {
-    public static bool IsReady => PRUnitySDK.IsInitialized;
 
     public static GameSettingsStorage GameSettings = new GameSettingsStorage();
 

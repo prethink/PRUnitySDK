@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using static UnityEditor.Progress;
 
 public class CameraTracker : SingletonProviderBase<CameraTracker>
 {
@@ -10,6 +8,8 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     protected HashSet<PlayerCamera> playerCameras = new();
     public Camera MainCamera { get; protected set; }
     public IEnumerable<PlayerCamera> PlayerCameras => playerCameras.ToList();
+
+    public Camera Current { get; protected set; }
 
     public void Push(CameraControllerBase cameraController)
     {
@@ -67,9 +67,10 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
         MainCamera = camera;
     }
 
-    internal void SetCurrent(CameraControllerBase cameraControllerBase)
+    internal void SetCurrent(CameraControllerBase cameraControllerBase, Camera camera)
     {
         cameraControllerBase.SetCurrent(true);
+        Current = camera;
 
         foreach (var item in cameraStack)
         {

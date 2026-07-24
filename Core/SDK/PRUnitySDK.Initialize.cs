@@ -25,6 +25,16 @@ public partial class PRUnitySDK
     public static bool IsStartInitialize { get; private set; }
 
     /// <summary>
+    /// Сигнал готовности SDK.
+    /// </summary>
+    public static IReadySignal ReadySignal => readySignal;
+
+    /// <summary>
+    /// Сигнал готовности SDK.
+    /// </summary>
+    private static ReadySignal readySignal = new ReadySignal();
+
+    /// <summary>
     /// Инициализация SDK.
     /// </summary>
     public static void InitializeSDK()
@@ -54,6 +64,8 @@ public partial class PRUnitySDK
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete.");
+
+        readySignal.SetReady();
     }
 
     private static void InitializeSingletons()
