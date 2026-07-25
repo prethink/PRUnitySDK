@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
-/// Реализация сигнала готовности, который уведомляет подписчиков, когда операция или ресурс готовы к использованию.
+/// Реализация сигнала готовности с защитой от дубликатов подписок.
 /// </summary>
 public class ReadySignal : IReadySignal
 {
     private readonly object _lock = new object();
-    private event Action _onReadyEvent;
+    private readonly HashSet<Action> onReadyCallbacks = new();
 
     /// <summary>
     /// Получает значение, указывающее, был ли сигнал помечен как готовый.
@@ -18,7 +20,7 @@ public class ReadySignal : IReadySignal
     /// </summary>
     /// <remarks>
     /// Если уже помечен как готовый, метод не имеет эффекта.
-    /// После вызова всех callback'ов, событие очищается для предотвращения утечек памяти.
+    /// После вызова всех callback'ов, они очищаются для предотвращения утечек памяти.
     /// </remarks>
     public void SetReady()
     {
@@ -28,8 +30,14 @@ public class ReadySignal : IReadySignal
                 return;
 
             IsReady = true;
-            _onReadyEvent?.Invoke();
-            _onReadyEvent = null;
+
+            // Вызываем все callback'и
+            foreach (var callback in onReadyCallbacks)
+            {
+                callback?.Invoke();
+            }
+
+            onReadyCallbacks.Clear();
         }
     }
 
@@ -38,6 +46,9 @@ public class ReadySignal : IReadySignal
     /// </summary>
     /// <param name="onReadyCallback">Действие для вызова при готовности. Если уже готово, вызывается немедленно.</param>
     /// <returns>Возвращает этот экземпляр для цепочки методов.</returns>
+    /// <remarks>
+    /// Попытка подписать один и тот же callback дважды игнорируется с предупреждением.
+    /// </remarks>
     public IReadySignal SubscribeOnReady(Action onReadyCallback)
     {
         if (onReadyCallback == null)
@@ -51,7 +62,7 @@ public class ReadySignal : IReadySignal
                 return this;
             }
 
-            _onReadyEvent += onReadyCallback;
+            onReadyCallbacks.Add(onReadyCallback);
         }
 
         return this;
@@ -61,6 +72,9 @@ public class ReadySignal : IReadySignal
     /// Отписывает callback от события готовности.
     /// </summary>
     /// <param name="onReadyCallback">Действие для удаления из списка подписок.</param>
+    /// <remarks>
+    /// Если callback не подписан, метод не имеет эффекта.
+    /// </remarks>
     public void UnSubscribe(Action onReadyCallback)
     {
         if (onReadyCallback == null)
@@ -68,7 +82,7 @@ public class ReadySignal : IReadySignal
 
         lock (_lock)
         {
-            _onReadyEvent -= onReadyCallback;
+            onReadyCallbacks.Remove(onReadyCallback);
         }
     }
 
@@ -83,7 +97,7 @@ public class ReadySignal : IReadySignal
         lock (_lock)
         {
             IsReady = false;
-            _onReadyEvent = null;
+            onReadyCallbacks.Clear();
         }
     }
 
@@ -95,7 +109,18 @@ public class ReadySignal : IReadySignal
         lock (_lock)
         {
             IsReady = false;
-            _onReadyEvent = null;
+            onReadyCallbacks.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Возвращает количество активных подписчиков.
+    /// </summary>
+    public int GetSubscribersCount()
+    {
+        lock (_lock)
+        {
+            return onReadyCallbacks.Count;
         }
     }
 }

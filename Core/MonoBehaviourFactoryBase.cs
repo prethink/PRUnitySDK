@@ -19,15 +19,18 @@ public abstract class MonoBehaviourFactoryBase<T> : IMonoBehaviourFactory
         if (IsSingleton && instance != null)
             return instance;
 
-        instance = UnityEngine.Object.Instantiate(Resources.Load<T>(ResourcePath));
+        var created = UnityEngine.Object.Instantiate(Resources.Load<T>(ResourcePath));
 
-        if(DonDestroyOnLoad)
-            MonoBehaviour.DontDestroyOnLoad(instance);
+        if (DonDestroyOnLoad)
+            MonoBehaviour.DontDestroyOnLoad(created);
 
         if (parent != null)
-            instance.transform.SetParent(parent, WorldPositionStays);
+            created.transform.SetParent(parent, WorldPositionStays);
 
-        return instance;
+        if (IsSingleton)
+            instance = created;
+
+        return created;
     }
 }
 
