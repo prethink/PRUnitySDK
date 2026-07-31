@@ -17,7 +17,7 @@ public class TextureOffsetScroller : PRMonoBehaviour
 
     protected override void PRUpdate()
     {
-        offset += speed * Time.deltaTime;
+        offset += speed * PRTime.Instance.GameDeltaTime;
         renderer.material.mainTextureOffset = offset;
     }
 }

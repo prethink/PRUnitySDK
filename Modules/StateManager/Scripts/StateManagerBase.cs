@@ -14,7 +14,17 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// <summary>
     /// Ñîñòîÿíèÿ.
     /// </summary>
-    protected Dictionary<Enumeration, IBaseState<T>> States = new();
+    protected Dictionary<Enumeration, IBaseState<T>> states = new();
+
+    /// <summary>
+    /// Ñîñòîÿíèå ñ âîçìîæíîñòüş âûçîâà â ñëó÷àéíûé ïğîìåæóòîê âğåìåíè.
+    /// </summary>
+    protected HashSet<IRandomState> randomStates = new();
+
+    /// <summary>
+    /// Ïğèçíàê òîãî, ÷òî 
+    /// </summary>
+    public bool ÑanTryExecuteRandomState { get; protected set; }
 
     /// <summary>
     /// Òåêóùåå ñîñòîÿíèå.
@@ -64,7 +74,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// </summary>
     private void StartStateMachine()
     {
-        CurrentState = States.Single(x => x.Value.IsStartState == true).Value;
+        CurrentState = states.Single(x => x.Value.IsStartState == true).Value;
 
         if (CurrentState == null)
             throw new NullReferenceException($"{nameof(CurrentState)} is null.");
@@ -79,28 +89,73 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// </summary>
     protected virtual void InitStateMachine()
     {
-        var monoBehaviourStates = GetComponents<IBaseState<T>>();
-        foreach (var monoBehaviourState in monoBehaviourStates)
-        {
-            States.Add(monoBehaviourState.StateKey, monoBehaviourState);
+        RegisterMonoBehaviourStates();
+        RegisterStates();
 
-            if (monoBehaviourState.IsStartState)
-            {
-                CurrentState = monoBehaviourState;
-                PreviousState = CurrentState;
-            }
-        }
-
-        foreach (var state in States)
+        foreach (var state in states)
             state.Value.LinkToStateManager(this as T);
 
         StartStateMachine();
     }
 
+    protected override void InitializationComponents()
+    {
+        base.InitializationComponents();
+        InitializeStateManager();
+    }
+
+    protected abstract void InitializeStateManager();
+
+    public Enumeration GetDefaultStateKey()
+    {
+        return states.Single(x => x.Value.IsStartState).Key;
+    }
+
+    protected virtual void RegisterMonoBehaviourStates()
+    {
+        var monoBehaviourStates = GetComponents<IBaseState<T>>();
+        foreach (var monoBehaviourState in monoBehaviourStates)
+            RegisterState(monoBehaviourState);
+    }
+
+    protected virtual void RegisterState(IBaseState<T> state)
+    {
+        states.Add(state.StateKey, state);
+
+        var startStates = states.Where(x => x.Value.IsStartState);
+
+        if (startStates.Count() > 1)
+        {
+            var startStatesNames = startStates.Select(x => x.Key.Value);
+            throw new InvalidOperationException($"More one states with property {nameof(IBaseState.IsStartState)}. States {string.Join(',', startStatesNames)}");
+        }
+
+        if (state.IsStartState)
+        {
+            CurrentState = state;
+            PreviousState = CurrentState;
+        }
+
+        if(state is IRandomState randomState)
+            randomStates.Add(randomState);
+    }
+
+    protected abstract void RegisterStates();
+
     public virtual void SetDefaultState()
     {
-        var defaultState = States.Single(States => States.Value.IsStartState);
+        var defaultState = states.Single(States => States.Value.IsStartState);
         SetState(defaultState.Key);
+    }
+
+    public void SetÑanTryExecuteRandomState()
+    {
+        ÑanTryExecuteRandomState = true;
+    }
+
+    public void BlockÑanTryExecuteRandomState()
+    {
+        ÑanTryExecuteRandomState = false;
     }
 
     public virtual void StopWork(bool setDefaultState = false)
@@ -125,10 +180,10 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
 
         PreUpdate();
 
-        foreach (var state in States)
+        foreach (var state in states)
             state.Value.BackgroundUpdate();
 
-        GlobalStateUpdate();
+        UpdateStateManager();
 
         var nextStateKey = CurrentState.GetNextState();
 
@@ -146,7 +201,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
         PostUpdate();
     }
 
-    protected virtual void GlobalStateUpdate()
+    protected virtual void UpdateStateManager()
     {
 
     }
@@ -154,6 +209,15 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     protected virtual void TickRate()
     {
         CurrentState.Tick();
+
+        if(ÑanTryExecuteRandomState && randomStates.Any())
+        {
+            foreach (var state in randomStates)
+            {
+                if (state.TryRandomStateTrigger())
+                    break;
+            }
+        }
     }
 
     #endregion
@@ -175,7 +239,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
 
     public void AddState(IBaseState<T> state)
     {
-        States.Add(state.StateKey, state);
+        states.Add(state.StateKey, state);
     }
 
     /// <summary>
@@ -194,10 +258,15 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// <param name="statekey">Êëş÷ ñîñòîÿíèÿ.</param>
     public Enumeration SetState(Enumeration statekey)
     {
-        if(States.ContainsKey(statekey))
+        if(states.ContainsKey(statekey))
             return TransitionToState(statekey);
         else
             throw new Exception($"Â êîëëåêöèè ñîñòîÿíèé îòñóòñòâóåò - {statekey}");
+    }
+
+    public Enumeration SetState(IBaseState<T> state)
+    {
+        return SetState(state.StateKey);
     }
 
     /// <summary>
@@ -207,15 +276,15 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     private Enumeration TransitionToState(Enumeration statekey)
     {
         IsTransitionState = true;
+        ÑanTryExecuteRandomState = false;
         CurrentState.ExitState();
         PreviousState = CurrentState;
-        CurrentState = States[statekey];
+        CurrentState = states[statekey];
         CurrentStateKey = statekey;
         NotifyStateChange(statekey);
         CurrentState.EnterState();
         IsTransitionState = false;
         return statekey;
-
     }
 
     /// <summary>

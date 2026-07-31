@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// Реализация сигнала готовности с защитой от дубликатов подписок.
@@ -14,6 +13,11 @@ public class ReadySignal : IReadySignal
     /// Получает значение, указывающее, был ли сигнал помечен как готовый.
     /// </summary>
     public bool IsReady { get; private set; }
+
+    /// <summary>
+    /// Имя сигнала.
+    /// </summary>
+    public string Name { get; protected set; }
 
     /// <summary>
     /// Помечает сигнал как готовый и вызывает все подписанные callback'и.
@@ -30,7 +34,7 @@ public class ReadySignal : IReadySignal
                 return;
 
             IsReady = true;
-
+            ReadySignalEvents.RaiseReadySignal(Name);
             // Вызываем все callback'и
             foreach (var callback in onReadyCallbacks)
             {
@@ -123,4 +127,13 @@ public class ReadySignal : IReadySignal
             return onReadyCallbacks.Count;
         }
     }
+
+    public ReadySignal(string Name)
+    {
+        this.Name = Name;
+    }
+
+    public ReadySignal(Enumeration enumeration) : this(enumeration.Value) {}
+    public ReadySignal(Type type) : this(type.Name) { }
+    public ReadySignal(object obj) : this(obj.GetType().Name) { }
 }

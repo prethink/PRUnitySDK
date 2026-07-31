@@ -30,7 +30,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
         base.Start();
     }
 
-    private IEnumerator Fade(float targetAlpha, bool blockRayCast, System.Action onComplete)
+    private IEnumerator Fade(float targetAlpha, bool blockRayCast, Action onComplete)
     {
         float startAlpha = fadeImage.color.a;
         float time = 0;
@@ -38,7 +38,8 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
         fadeImage.raycastTarget = blockRayCast;
         while (time < fadeDuration)
         {
-            time += Time.deltaTime;
+            yield return WaitPause.Instance;
+            time += PRTime.instance.GameDeltaTime;
             float alpha = Mathf.Lerp(startAlpha, targetAlpha, time / fadeDuration);
             fadeImage.color = new Color(0, 0, 0, alpha);
             yield return null;

@@ -35,4 +35,14 @@ public abstract class PRCoroutineBase
 
         return true;
     }
+
+    protected PRCoroutineBase()
+    {
+        
+    }
+
+    protected PRCoroutineBase(MonoBehaviour instance)
+    {
+        this.instance = instance;
+    }
 }

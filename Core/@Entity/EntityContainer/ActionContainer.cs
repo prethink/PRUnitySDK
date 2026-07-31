@@ -1,6 +1,6 @@
 using System;
 
-public class ActionContainer : ContainerEntityBase<ActionBase>
+public class ActionContainer : ContainerEntityBase<IconActionBase>
 {
     public override Enumeration EntityType => ContainerTypeEnumerationProvider.ActionContainer;
 

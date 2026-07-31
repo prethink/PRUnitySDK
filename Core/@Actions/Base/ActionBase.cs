@@ -4,13 +4,8 @@ using UnityEngine;
 /// Базовый объект действия.
 /// Может быть клик по ссылке, загрузка сцены, или что-то другое.
 /// </summary>
-public abstract class ActionBase : ScriptableObject, IIconProvider
+public abstract class ActionBase : ScriptableObject, IAction
 {
-    /// <summary>
-    /// Иконка действия.
-    /// </summary>
-    [field: SerializeField] public Sprite Icon { get; protected set; }
-
     /// <summary>
     /// Выполнить действие.
     /// </summary>

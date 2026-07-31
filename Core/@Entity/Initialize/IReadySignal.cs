@@ -7,6 +7,11 @@ using System;
 public interface IReadySignal
 {
     /// <summary>
+    /// »м€ сигнала.
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
     /// ѕолучает значение, указывающее, был ли сигнал помечен как готовый.
     /// </summary>
     /// <remarks>

@@ -6,7 +6,6 @@ public class AnimatorPauseMonitor : MonoBehaviour, IPauseStateListener
     protected class AnimatorData
     {
         public float Speed;
-        public bool Enabled;
     }
 
     protected readonly HashSet<Animator> animators = new();
@@ -52,7 +51,6 @@ public class AnimatorPauseMonitor : MonoBehaviour, IPauseStateListener
             animatorStates[animator] = new AnimatorData
             {
                 Speed = animator.speed,
-                Enabled = animator.enabled
             };
 
             animator.speed = 0f;

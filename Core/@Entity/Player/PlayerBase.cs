@@ -250,8 +250,16 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
         return InputTranslator.Instance.GetPlayer(PlayerId);
     }
 
-    protected readonly ReadySignal readySignal = new ReadySignal();
-    public IReadySignal ReadySignal => readySignal;
+    protected ReadySignal readySignal;
+    public IReadySignal ReadySignal
+    {
+        get
+        {
+            if (readySignal == null)
+                readySignal = new ReadySignal(this);
+            return readySignal;
+        }
+    }
 
 
     #endregion

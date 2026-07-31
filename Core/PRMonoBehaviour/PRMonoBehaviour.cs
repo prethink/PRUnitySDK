@@ -13,11 +13,11 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void Start()  
     {
-        if(UseCoroutineLateFixedUpdate())
-            StartCoroutine(LateFixedUpdate());
+        if (UseCoroutineLateFixedUpdate())
+            new LateFixedUpdateCoroutine(() => PRLateFixedUpdate(), this).Execute();
 
         if (UseCoroutineWaitForEndOfFrame())
-            StartCoroutine(WaitForEndOfFrame());
+            new WaitForEndOfFrameCoroutine(() => PREndOfFrame(), this).Execute();
     }
 
     protected virtual void Update()
@@ -88,6 +88,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
         LastTriggerTick = PRTime.Instance.GameTime;
 
+        if (other.attachedRigidbody != null)
+            PROnTriggerStay(other, other.attachedRigidbody);
+
         PROnTriggerStay(other);
     }
 
@@ -98,6 +101,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
+        if (other.attachedRigidbody != null)
+            PROnTriggerEnter(other, other.attachedRigidbody);
 
         PROnTriggerEnter(other);
     }
@@ -109,6 +114,9 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
+
+        if (other.attachedRigidbody != null)
+            PROnTriggerExit(other, other.attachedRigidbody);
 
         PROnTriggerExit(other);
     }
@@ -281,6 +289,12 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void PROnTriggerExit(Collider other) { }
 
+    protected virtual void PROnTriggerStay(Collider other, Rigidbody rigidbody) { }
+
+    protected virtual void PROnTriggerEnter(Collider other, Rigidbody rigidbody) { }
+
+    protected virtual void PROnTriggerExit(Collider other, Rigidbody rigidbody) { }
+
     protected virtual void PROnCollisionEnter(Collision collision) { }
 
     protected virtual float PROnCollisionStayTimeout()
@@ -345,32 +359,11 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
         return false;
     }
 
-    IEnumerator LateFixedUpdate()
-    {
-        WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
-        while (true)
-        {
-            yield return WaitPause.Instance;
-            yield return waitForFixedUpdate;
-            PRLateFixedUpdate();
-        }
-    }
-
     protected virtual bool UseCoroutineWaitForEndOfFrame()
     {
         return false;
     }
 
-    IEnumerator WaitForEndOfFrame()
-    {
-        WaitForEndOfFrame waitForFrame = new WaitForEndOfFrame();
-        while (true)
-        {
-            yield return WaitPause.Instance;
-            yield return waitForFrame;
-            PREndOfFrame();
-        }
-    }
 
     public virtual async Task<bool> TrySaveData()
     {

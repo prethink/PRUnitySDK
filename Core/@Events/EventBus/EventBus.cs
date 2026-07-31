@@ -4,77 +4,144 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Шина событий.
+/// Шина событий с потокобезопасностью и защитой от дублей.
 /// </summary>
 public static class EventBus
 {
-    #region Поля и свойства
+    private static readonly object _lock = new object();
+    private static Dictionary<Type, SubscribersList<IGlobalSubscriber>> _subscribers =
+        new Dictionary<Type, SubscribersList<IGlobalSubscriber>>();
 
     /// <summary>
-    /// Подписчики событий.
+    /// Подписаться на события.
     /// </summary>
-    private static Dictionary<Type, SubscribersList<IGlobalSubscriber>> s_Subscribers = new Dictionary<Type, SubscribersList<IGlobalSubscriber>>();
-
-    #endregion
-
-    #region Методы
-
-    /// <summary>
-    /// Подписаться.
-    /// </summary>
-    /// <param name="subscriber">Подписчик.</param>
     public static void Subscribe(IGlobalSubscriber subscriber)
     {
-        List<Type> subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
-        foreach (Type type in subscriberTypes)
+        if (subscriber == null)
         {
-            if (!s_Subscribers.ContainsKey(type))
-                s_Subscribers[type] = new SubscribersList<IGlobalSubscriber>();
+            Debug.LogWarning("Попытка подписать null подписчика на EventBus");
+            return;
+        }
 
-            s_Subscribers[type].Add(subscriber);
+        lock (_lock)
+        {
+            List<Type> subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
+
+            foreach (Type type in subscriberTypes)
+            {
+                if (!_subscribers.ContainsKey(type))
+                    _subscribers[type] = new SubscribersList<IGlobalSubscriber>();
+
+                // Проверяем чтобы не было дубликатов
+                var list = _subscribers[type];
+                if (!list.List.Contains(subscriber))
+                {
+                    list.Add(subscriber);
+                    //Debug.Log($"[EventBus] Подписан {subscriber.GetType().Name} на {type.Name}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[EventBus] {subscriber.GetType().Name} уже подписан на {type.Name}");
+                }
+            }
         }
     }
 
     /// <summary>
-    /// Отписаться.
+    /// Отписаться от событий.
     /// </summary>
-    /// <param name="subscriber">Подписчик.</param>
     public static void Unsubscribe(IGlobalSubscriber subscriber)
     {
-        List<Type> subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
-        foreach (Type type in subscriberTypes)
+        if (subscriber == null)
+            return;
+
+        lock (_lock)
         {
-            if (s_Subscribers.ContainsKey(type))
-                s_Subscribers[type].Remove(subscriber);
+            List<Type> subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
+
+            foreach (Type type in subscriberTypes)
+            {
+                if (_subscribers.ContainsKey(type))
+                {
+                    _subscribers[type].Remove(subscriber);
+                    //Debug.Log($"[EventBus] Отписан {subscriber.GetType().Name} от {type.Name}");
+                }
+            }
         }
     }
 
     /// <summary>
-    /// Вызвать событие.
+    /// Вызвать событие для всех подписчиков.
     /// </summary>
-    /// <typeparam name="TSubscriber">Тип подписчика.</typeparam>
-    /// <param name="action">Метод вызова.</param>
-    public static void RaiseEvent<TSubscriber>(Action<TSubscriber> action) where TSubscriber : class, IGlobalSubscriber
+    public static void RaiseEvent<TSubscriber>(Action<TSubscriber> action)
+        where TSubscriber : class, IGlobalSubscriber
     {
-        if (!s_Subscribers.ContainsKey(typeof(TSubscriber)))
-            return;
-
-        SubscribersList<IGlobalSubscriber> subscribers = s_Subscribers[typeof(TSubscriber)];
-        subscribers.Executing = true;
-        foreach (IGlobalSubscriber subscriber in subscribers.List.ToList())
+        if (action == null)
         {
-            try
+            Debug.LogError("[EventBus] Action равна null в RaiseEvent");
+            return;
+        }
+
+        SubscribersList<IGlobalSubscriber> subscribers = null;
+
+        lock (_lock)
+        {
+            if (!_subscribers.ContainsKey(typeof(TSubscriber)))
+                return;
+
+            subscribers = _subscribers[typeof(TSubscriber)];
+            subscribers.Executing = true;
+        }
+
+        // Выполняем вне lock'а чтобы избежать deadlock
+        try
+        {
+            foreach (IGlobalSubscriber subscriber in subscribers.List.ToList())
             {
-                action.Invoke(subscriber as TSubscriber);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"{subscribers.GetType()} - {e}");
+                try
+                {
+                    action.Invoke(subscriber as TSubscriber);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[EventBus] Ошибка при вызове события для {subscriber?.GetType().Name}: {e}");
+                }
             }
         }
-        subscribers.Executing = false;
-        subscribers.Cleanup();
+        finally
+        {
+            lock (_lock)
+            {
+                subscribers.Executing = false;
+                subscribers.Cleanup();
+            }
+        }
     }
 
-    #endregion
+    /// <summary>
+    /// Возвращает количество подписчиков на тип события.
+    /// </summary>
+    public static int GetSubscriberCount<TSubscriber>()
+        where TSubscriber : class, IGlobalSubscriber
+    {
+        lock (_lock)
+        {
+            if (!_subscribers.ContainsKey(typeof(TSubscriber)))
+                return 0;
+
+            return _subscribers[typeof(TSubscriber)].List.Count;
+        }
+    }
+
+    /// <summary>
+    /// Очищает все подписки (используй осторожно!).
+    /// </summary>
+    public static void Clear()
+    {
+        lock (_lock)
+        {
+            _subscribers.Clear();
+            Debug.LogWarning("[EventBus] Все подписки очищены");
+        }
+    }
 }

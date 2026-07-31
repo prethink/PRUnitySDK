@@ -20,7 +20,7 @@ public class PauseManager : IPauseManager
     public bool IsTutorialPaused => isTutorialPaused;
 
     /// <inheritdoc />
-    public bool isTutorialPaused;
+    private bool isTutorialPaused;
 
     /// <inheritdoc />
     public bool IsCutScenePaused => isCutScenePaused;
@@ -88,7 +88,6 @@ public class PauseManager : IPauseManager
         property = isPaused;
         var pauseArgs = new PauseStateEventArgs()
         {
-            IsCutSceneStateChange = true,
             PreviousValue = previousValue,
             IsUserValue = isUserAction,
             Executer = executer

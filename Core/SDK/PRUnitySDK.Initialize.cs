@@ -32,7 +32,7 @@ public partial class PRUnitySDK
     /// <summary>
     /// Сигнал готовности SDK.
     /// </summary>
-    private static ReadySignal readySignal = new ReadySignal();
+    private static ReadySignal readySignal = new ReadySignal(typeof(PRUnitySDK));
 
     /// <summary>
     /// Инициализация SDK.
