@@ -9,8 +9,8 @@ public class TriggerProxy : PRMonoBehaviourProxy
 {
     // События UnityEvent для подписки в инспекторе
     public UnityEvent<Collider> OnTriggerEnterEvent;  // Вызывается при входе объекта в триггер
-    public UnityEvent<Collider> OnTriggerEnterExit;   // Вызывается при выходе объекта из триггера
-    public UnityEvent<Collider> OnTriggerEnterStay;   // Вызывается каждый кадр, пока объект в триггере
+    public UnityEvent<Collider> OnTriggerExit;   // Вызывается при выходе объекта из триггера
+    public UnityEvent<Collider> OnTriggerStay;   // Вызывается каждый кадр, пока объект в триггере
 
     /// <summary>
     /// Вызывается при входе объекта в триггер
@@ -31,7 +31,7 @@ public class TriggerProxy : PRMonoBehaviourProxy
     {
         base.PROnTriggerStay(other);
 
-        OnTriggerEnterStay?.Invoke(other);
+        OnTriggerStay?.Invoke(other);
 
         refObject?.InvokeOnTriggerStay(this, other);
     }
@@ -43,7 +43,7 @@ public class TriggerProxy : PRMonoBehaviourProxy
     {
         base.PROnTriggerExit(other);
 
-        OnTriggerEnterExit?.Invoke(other);
+        OnTriggerExit?.Invoke(other);
 
         refObject?.InvokeOnTriggerExit(this, other);
     }

@@ -101,6 +101,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
+        
         if (other.attachedRigidbody != null)
             PROnTriggerEnter(other, other.attachedRigidbody);
 

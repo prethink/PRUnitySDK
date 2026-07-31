@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// Менеджер состояний.
 /// </summary>
-public abstract class StateManagerBase<T> : PRMonoBehaviour 
+public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     where T : StateManagerBase<T>
 {
     #region Поля и свойства
@@ -237,7 +237,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
 
     }
 
-    public void AddState(IBaseState<T> state)
+    protected void AddState(IBaseState<T> state)
     {
         states.Add(state.StateKey, state);
     }
@@ -264,7 +264,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
             throw new Exception($"В коллекции состояний отсутствует - {statekey}");
     }
 
-    public Enumeration SetState(IBaseState<T> state)
+    public Enumeration SetState(IBaseState state)
     {
         return SetState(state.StateKey);
     }
@@ -291,7 +291,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     /// Оповестить об изменение состояния.
     /// </summary>
     /// <param name="statekey">Ключ состояния.</param>
-    public void NotifyStateChange(Enumeration statekey)
+    protected void NotifyStateChange(Enumeration statekey)
     {
         OnChangeState?.Invoke(statekey);
     }
@@ -337,5 +337,12 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour
     {
         CurrentState?.AnimationTriggerGameObject(data);
     }
+
+    public bool TryGetState<TState>(out TState state) where TState : class
+    {
+        state = states.Values.OfType<TState>().FirstOrDefault();
+        return state != null;
+    }
+
     #endregion
 }
