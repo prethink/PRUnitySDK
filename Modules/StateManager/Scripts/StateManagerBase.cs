@@ -27,6 +27,16 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     protected HashSet<IStateReaction> reactions = new();
 
     /// <summary>
+    /// Ðåàêöèè.
+    /// </summary>
+    protected HashSet<IStateBackgroundReaction> backgroundReactions = new();
+
+    /// <summary>
+    /// 
+    /// </summary>
+    protected HashSet<IStateReactionTrigger> triggerReactions = new();
+
+    /// <summary>
     /// Ïðèçíàê òîãî, ÷òî 
     /// </summary>
     public bool ÑanTryExecuteRandomState { get; protected set; }
@@ -146,6 +156,12 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
             reactions.Add(reaction);
             debugReactionsNames.Add(reaction.GetType().Name);
         }
+
+        if (reaction is IStateBackgroundReaction backgroundReaction)
+            backgroundReactions.Add(backgroundReaction);
+
+        if(reaction is IStateReactionTrigger triggerReaction)
+            triggerReactions.Add(triggerReaction);
     }
 
     protected virtual void RegisterState(IBaseState<T> state)
@@ -243,7 +259,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     {
         CurrentState.Tick();
 
-        foreach (var reaction in reactions)
+        foreach (var reaction in backgroundReactions)
         {
             if (reaction.TryReact())
                 break;
