@@ -22,6 +22,11 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     protected HashSet<IRandomState> randomStates = new();
 
     /// <summary>
+    /// Ğåàêöèè.
+    /// </summary>
+    protected HashSet<IStateReaction> reactions = new();
+
+    /// <summary>
     /// Ïğèçíàê òîãî, ÷òî 
     /// </summary>
     public bool ÑanTryExecuteRandomState { get; protected set; }
@@ -61,6 +66,10 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     /// </summary>
     [field: SerializeField] public Enumeration CurrentStateKey { get; protected set; }
 
+    protected string debugCurrentState;
+    protected List<string> debugReactionsNames = new();
+    protected List<string> debugStatesNames = new();
+
     #endregion
 
     #region Ñîáûòèÿ
@@ -89,8 +98,12 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     /// </summary>
     protected virtual void InitStateMachine()
     {
+        debugStatesNames.Clear();
+        debugReactionsNames.Clear();
+
         RegisterMonoBehaviourStates();
         RegisterStates();
+        RegisterReactions();
 
         foreach (var state in states)
             state.Value.LinkToStateManager(this as T);
@@ -118,6 +131,23 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
             RegisterState(monoBehaviourState);
     }
 
+    protected virtual void RegisterReactions()
+    {
+        var reactions = GetComponents<IStateReaction>();
+        foreach (var reaction in reactions)
+            RegisterReaction(reaction);
+    }
+
+    protected void RegisterReaction(IStateReaction reaction)
+    {
+        if (reaction is IStateReaction<T> typedReaction)
+        {
+            typedReaction.Initialize(this as T);
+            reactions.Add(reaction);
+            debugReactionsNames.Add(reaction.GetType().Name);
+        }
+    }
+
     protected virtual void RegisterState(IBaseState<T> state)
     {
         states.Add(state.StateKey, state);
@@ -138,6 +168,8 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
 
         if(state is IRandomState randomState)
             randomStates.Add(randomState);
+
+        debugStatesNames.Add(state.GetType().Name);
     }
 
     protected abstract void RegisterStates();
@@ -193,6 +225,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
             {
                 TickRate();
             });
+
             CurrentState.UpdateState();
         }
         else
@@ -209,6 +242,12 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     protected virtual void TickRate()
     {
         CurrentState.Tick();
+
+        foreach (var reaction in reactions)
+        {
+            if (reaction.TryReact())
+                break;
+        }
 
         if(ÑanTryExecuteRandomState && randomStates.Any())
         {
@@ -252,6 +291,11 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
         return CurrentState?.StateKey.Equals(stateKey) == true;
     }
 
+    public bool IsCurrentState(Type type)
+    {
+        return CurrentState?.StateKey.GetType().Equals(type) == true;
+    }
+
     /// <summary>
     /// Óñòàíîâèòü íîâîå ñîñòîÿíèå.
     /// </summary>
@@ -281,6 +325,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
         PreviousState = CurrentState;
         CurrentState = states[statekey];
         CurrentStateKey = statekey;
+        debugCurrentState = CurrentStateKey.Value;
         NotifyStateChange(statekey);
         CurrentState.EnterState();
         IsTransitionState = false;

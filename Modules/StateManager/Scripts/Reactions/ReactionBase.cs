@@ -1,0 +1,38 @@
+public abstract class ReactionBase<TStateManager> : IStateReaction<TStateManager>
+    where TStateManager : IStateManager
+{
+    public TStateManager stateManager { get; protected set; }
+
+    protected bool isInitialize;
+
+    public virtual bool CanReact()
+    {
+        return isInitialize;
+    }
+
+    public bool Initialize(TStateManager stateManager)
+    {
+        if(isInitialize)
+            return false;
+
+        this.stateManager = stateManager;
+        isInitialize = true;
+        return isInitialize;
+    }
+
+    public bool TryReact()
+    {
+        if (!CanReact())
+            return false;
+
+        InternalReact();
+        return true;
+    }
+
+    protected abstract void InternalReact();
+
+    public ReactionBase(TStateManager playerBotStateManager)
+    {
+        Initialize(playerBotStateManager);
+    }
+}

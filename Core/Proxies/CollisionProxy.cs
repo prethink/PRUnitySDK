@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -18,12 +19,7 @@ public class CollisionProxy : PRMonoBehaviourProxy
     protected override void PROnCollisionEnter(Collision collision)
     {
         base.PROnCollisionEnter(collision);
-
-        // Вызываем подписанные события
-        OnCollisionEnterEvent?.Invoke(collision);
-
-        // Делегируем вызов реальному объекту, если он указан
-        refObject?.InvokePROnCollisionEnter(this, collision);
+        Invoke(OnCollisionEnterEvent, collision, r => r.InvokePROnCollisionEnter(this, collision));
     }
 
     /// <summary>
@@ -32,10 +28,7 @@ public class CollisionProxy : PRMonoBehaviourProxy
     protected override void PROnCollisionStay(Collision collision)
     {
         base.PROnCollisionStay(collision);
-
-        OnCollisionStayEvent?.Invoke(collision);
-
-        refObject?.InvokePROnCollisionStay(this, collision);
+        Invoke(OnCollisionStayEvent, collision, r => r.InvokePROnCollisionStay(this, collision));
     }
 
     /// <summary>
@@ -44,9 +37,6 @@ public class CollisionProxy : PRMonoBehaviourProxy
     protected override void PROnCollisionExit(Collision collision)
     {
         base.PROnCollisionExit(collision);
-
-        OnCollisionEnterExitEvent?.Invoke(collision);
-
-        refObject?.InvokePROnCollisionExit(this, collision);
+        Invoke(OnCollisionEnterExitEvent, collision, r => r.InvokePROnCollisionExit(this, collision));
     }
 }

@@ -1,3 +1,5 @@
+using System;
+
 public interface IStateManager 
 {
     Enumeration CurrentStateKey { get; }
@@ -9,6 +11,8 @@ public interface IStateManager
     bool IsWork();
 
     bool IsCurrentState(Enumeration stateKey);
+
+    bool IsCurrentState(Type type);
 
     Enumeration SetState(Enumeration statekey);
     Enumeration SetState(IBaseState state);

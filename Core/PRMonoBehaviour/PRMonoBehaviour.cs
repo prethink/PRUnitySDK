@@ -315,42 +315,42 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     public void InvokePROnCollisionEnter(object invoker, Collision collision)
     {
-        PRLog.WriteDebug(invoker, nameof(InvokePROnCollisionEnter));
+        //PRLog.WriteDebug(invoker, nameof(InvokePROnCollisionEnter));
 
         PROnCollisionEnter(collision);
     }
 
     public void InvokePROnCollisionStay(object invoker, Collision collision)
     {
-        PRLog.WriteDebug(invoker, nameof(InvokePROnCollisionStay));
+        //PRLog.WriteDebug(invoker, nameof(InvokePROnCollisionStay));
 
         PROnCollisionStay(collision);
     }
 
     public void InvokePROnCollisionExit(object invoker, Collision collision)
     {
-        PRLog.WriteDebug(invoker, nameof(InvokePROnCollisionExit));
+        //PRLog.WriteDebug(invoker, nameof(InvokePROnCollisionExit));
 
         PROnCollisionExit(collision);
     }
 
     public void InvokeOnTriggerEnter(object invoker, Collider other)
     {
-        PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerEnter));
+        //PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerEnter));
 
         OnTriggerEnter(other);
     }
 
     public void InvokeOnTriggerStay(object invoker, Collider other)
     {
-        PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerStay));
+        //PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerStay));
 
         OnTriggerStay(other);
     }
 
     public void InvokeOnTriggerExit(object invoker, Collider other)
     {
-        PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerExit));
+        //PRLog.WriteDebug(invoker, nameof(InvokeOnTriggerExit));
 
         OnTriggerExit(other);
     }

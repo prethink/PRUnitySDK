@@ -18,10 +18,7 @@ public class TriggerProxy : PRMonoBehaviourProxy
     protected override void PROnTriggerEnter(Collider other)
     {
         base.PROnTriggerEnter(other);
-
-        OnTriggerEnterEvent?.Invoke(other);
-
-        refObject?.InvokeOnTriggerEnter(this, other);
+        Invoke(OnTriggerEnterEvent, other, r => r.InvokeOnTriggerEnter(this, other));
     }
 
     /// <summary>
@@ -30,10 +27,7 @@ public class TriggerProxy : PRMonoBehaviourProxy
     protected override void PROnTriggerStay(Collider other)
     {
         base.PROnTriggerStay(other);
-
-        OnTriggerStay?.Invoke(other);
-
-        refObject?.InvokeOnTriggerStay(this, other);
+        Invoke(OnTriggerStay, other, r => r.InvokeOnTriggerStay(this, other));
     }
 
     /// <summary>
@@ -42,9 +36,6 @@ public class TriggerProxy : PRMonoBehaviourProxy
     protected override void PROnTriggerExit(Collider other)
     {
         base.PROnTriggerExit(other);
-
-        OnTriggerExit?.Invoke(other);
-
-        refObject?.InvokeOnTriggerExit(this, other);
+        Invoke(OnTriggerExit, other, r => r.InvokeOnTriggerExit(this, other));
     }
 }
