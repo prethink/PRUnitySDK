@@ -12,3 +12,8 @@ public interface IBotSetPathEvent : IGlobalSubscriber
 {
     void SetPathEvent(BotSetPathEventArgs args);
 }
+
+public interface IBotSetTargetEvent : IGlobalSubscriber
+{
+    void SetPathEvent(BotSetTargetEventArgs args);
+}

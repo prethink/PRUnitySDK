@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public partial class BotEvents 
 {
     /// <summary>
@@ -11,4 +13,6 @@ public partial class BotEvents
 
     public static void SetPath(WaypointController route) => EventBus.RaiseEvent<IBotSetPathEvent>(x => x.SetPathEvent(new BotSetPathEventArgs(route)));
     public static void SetPath(WaypointController route, long botId) => EventBus.RaiseEvent<IBotSetPathEvent>(x => x.SetPathEvent(new BotSetPathEventArgs(route, botId)));
+    public static void SetTarget(Transform target) => EventBus.RaiseEvent<IBotSetTargetEvent>(x => x.SetPathEvent(new BotSetTargetEventArgs(target)));
+    public static void SetTarget(Transform target, long botId) => EventBus.RaiseEvent<IBotSetTargetEvent>(x => x.SetPathEvent(new BotSetTargetEventArgs(target, botId)));
 }

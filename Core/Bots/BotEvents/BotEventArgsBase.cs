@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 public abstract class BotEventArgsBase : EventArgsBase
 {
@@ -82,5 +83,22 @@ public class BotSetPathEventArgs : BotEventArgsBase
     {
         BotId = botId;
         this.Route = route;
+    }
+}
+
+public class BotSetTargetEventArgs : BotEventArgsBase
+{
+    public Transform Target { get; private set; }
+
+    public BotSetTargetEventArgs(Transform target)
+    {
+        All = true;
+        this.Target = target;
+    }
+
+    public BotSetTargetEventArgs(Transform target, long botId)
+    {
+        BotId = botId;
+        this.Target = target;
     }
 }
