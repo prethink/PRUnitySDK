@@ -30,6 +30,8 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 
     public abstract PlayerType PlayerType { get; }
 
+    public Guid InputGuid { get; protected set; } = Guid.NewGuid();
+
     public IPlayerTeam PlayerTeam => playerTeam;
 
     public long Points { get; protected set; }
@@ -247,7 +249,7 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 
     public virtual PlayerInputState GetInput()
     {
-        return InputTranslator.Instance.GetPlayer(PlayerId);
+        return InputTranslator.Instance.GetPlayer(InputGuid);
     }
 
     protected ReadySignal readySignal;

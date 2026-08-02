@@ -51,6 +51,23 @@ public class BotStartEventArgs : BotEventArgsBase
     }
 }
 
+public abstract class BotAlertEventArgsBase : BotEventArgsBase
+{
+    public long SourceBotId { get; protected set; }
+
+    public BotAlertEventArgsBase(long sourceBotId)
+    {
+        this.SourceBotId = sourceBotId;
+        All = true;
+    }
+
+    public BotAlertEventArgsBase(long sourceBotId, long botId)
+    {
+        this.SourceBotId = sourceBotId;
+        BotId = botId;
+    }
+}
+
 public class BotSetPathEventArgs : BotEventArgsBase
 {
     public WaypointController Route { get; private set; }

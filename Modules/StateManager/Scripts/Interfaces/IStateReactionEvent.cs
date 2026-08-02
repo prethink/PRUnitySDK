@@ -1,4 +1,4 @@
 public interface IStateReactionEvent
 {
-    bool TryReact(Enumeration enumeration);
+    bool TryReact(EnumerationReactionArgs args);
 }

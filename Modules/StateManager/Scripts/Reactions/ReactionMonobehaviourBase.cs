@@ -36,17 +36,17 @@ public abstract class TriggerReactionMonobehaviourBase<TStateManager> : Reaction
     public bool TryReact(Collider collider) => reactionContext.TryReact(collider, CanReact, InternalReact);
 }
 
-public abstract class EventReactionMonobehaviourBase<TStateManager> : ReactionMonobehaviourBase<TStateManager, Enumeration>, IStateReactionEvent
+public abstract class EventReactionMonobehaviourBase<TStateManager> : ReactionMonobehaviourBase<TStateManager, EnumerationReactionArgs>, IStateReactionEvent
         where TStateManager : IStateManager
 {
     public Enumeration EventKey { get; }
 
     public override bool CanReact()
     {
-        return base.CanReact() && reactionContext.Context == EventKey;
+        return base.CanReact() && reactionContext.Context.Enumeration == EventKey;
     }
 
-    public bool TryReact(Enumeration enumeration) => reactionContext.TryReact(enumeration, CanReact, InternalReact);
+    public bool TryReact(EnumerationReactionArgs enumeration) => reactionContext.TryReact(enumeration, CanReact, InternalReact);
 }
 
 

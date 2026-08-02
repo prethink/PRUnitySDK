@@ -54,7 +54,7 @@ public abstract class TriggerReactionBase<TStateManager> : ReactionBase<TStateMa
     public bool TryReact(Collider collider) => reactionContext.TryReact(collider, CanReact, InternalReact);
 }
 
-public abstract class EventReactionBase<TStateManager> : ReactionBase<TStateManager, Enumeration>, IStateReactionEvent
+public abstract class EventReactionBase<TStateManager> : ReactionBase<TStateManager, EnumerationReactionArgs>, IStateReactionEvent
         where TStateManager : IStateManager
 {
     public Enumeration EventKey { get; }
@@ -65,10 +65,10 @@ public abstract class EventReactionBase<TStateManager> : ReactionBase<TStateMana
 
     public override bool CanReact()
     {
-        return base.CanReact() && reactionContext.Context == EventKey;
+        return base.CanReact() && reactionContext.Context.Enumeration == EventKey;
     }
 
-    public bool TryReact(Enumeration enumeration) => reactionContext.TryReact(enumeration, CanReact, InternalReact);
+    public bool TryReact(EnumerationReactionArgs args) => reactionContext.TryReact(args, CanReact, InternalReact);
 }
 
 
