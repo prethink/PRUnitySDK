@@ -7,14 +7,15 @@ using UnityEngine;
 /// Сама логика стейта пишется один раз в наследнике BaseState&lt;T&gt; (Inner) -
 /// эта обёртка ничего не реализует сама, только пробрасывает вызовы.
 /// </summary>
-public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IStateBase<T>
-    where T : IStateManager
+public abstract class MonoBehaviourStateContainerBase<T, TStateManager> : MonoBehaviour, IStateBase
+    where T : IStateBase<TStateManager>
+    where TStateManager : IStateManager
 {
     /// <summary>Реальная логика стейта. Наследник задаёт конкретный тип через CreateInner().</summary>
-    protected BaseState<T> Inner { get; private set; }
+    protected T Inner { get; private set; }
 
     /// <summary>Наследник создаёт и возвращает свой экземпляр BaseState&lt;T&gt;-логики.</summary>
-    protected abstract BaseState<T> CreateInner();
+    protected abstract T CreateInner();
 
     protected virtual void Awake()
     {
@@ -25,7 +26,7 @@ public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IStateBase<T>
 
     public Enumeration StateKey => Inner.StateKey;
     public bool IsStartState => Inner.IsStartState;
-    public T StateManager => Inner.StateManager;
+    public TStateManager StateManager => Inner.StateManager;
 
     public void EnterState() => Inner.EnterState();
     public void ExitState() => Inner.ExitState();
@@ -40,7 +41,7 @@ public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IStateBase<T>
     public void AnimationTriggerString(string data) => Inner.AnimationTriggerString(data);
     public void AnimationTriggerGameObject(GameObject data) => Inner.AnimationTriggerGameObject(data);
 
-    public void LinkToStateManager(T stateManager) => Inner.LinkToStateManager(stateManager);
+    public void LinkToStateManager(TStateManager stateManager) => Inner.LinkToStateManager(stateManager);
     public void OnStateTriggerEnter(Collider other) => Inner.OnStateTriggerEnter(other);
     public void OnStateTriggerStay(Collider other) => Inner.OnStateTriggerStay(other);
     public void OnStateTriggerExit(Collider other) => Inner.OnStateTriggerExit(other);
