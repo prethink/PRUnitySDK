@@ -3,8 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Базовое состояние.
 /// </summary>
-public abstract class BaseState<T> : IBaseState<T> 
-    where T : StateManagerBase<T>
+public abstract class BaseState<T> : IStateBase<T> 
+    where T : IStateManager
 {
     #region IBaseState
 
@@ -32,13 +32,13 @@ public abstract class BaseState<T> : IBaseState<T>
     public abstract Enumeration GetNextState();
 
     /// <inheritdoc />
-    public virtual void OnTriggerEnter(Collider other) { }
+    public virtual void OnStateTriggerEnter(Collider other) { }
 
     /// <inheritdoc />
-    public virtual void OnTriggerStay(Collider other) { }
+    public virtual void OnStateTriggerStay(Collider other) { }
 
     /// <inheritdoc />
-    public virtual void OnTriggerExit(Collider other) { }
+    public virtual void OnStateTriggerExit(Collider other) { }
 
     /// <inheritdoc />
     public virtual void AnimationTrigger() { }

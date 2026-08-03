@@ -3,8 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Базовый интерфейс для состояний FSM (Finite State Machine).
 /// </summary>
-public interface IBaseState<T> : IBaseState
-    where T : StateManagerBase<T>
+public interface IStateBase<T> : IStateBase
+    where T : IStateManager
 {
     #region Поля и свойства
 
@@ -31,7 +31,7 @@ public interface IBaseState<T> : IBaseState
 /// <summary>
 /// Базовый интерфейс для состояний FSM (Finite State Machine).
 /// </summary>
-public interface IBaseState
+public interface IStateBase
 {
     #region Поля и свойства
 
@@ -88,19 +88,19 @@ public interface IBaseState
     /// Вызывается при входе другого коллайдера в триггер.
     /// </summary>
     /// <param name="other">Коллайдер, вошедший в триггер.</param>
-    public abstract void OnTriggerEnter(Collider other);
+    public abstract void OnStateTriggerEnter(Collider other);
 
     /// <summary>
     /// Вызывается, пока другой коллайдер находится в триггере.
     /// </summary>
     /// <param name="other">Коллайдер, находящийся в триггере.</param>
-    public abstract void OnTriggerStay(Collider other);
+    public abstract void OnStateTriggerStay(Collider other);
 
     /// <summary>
     /// Вызывается при выходе другого коллайдера из триггера.
     /// </summary>
     /// <param name="other">Коллайдер, вышедший из триггера.</param>
-    public abstract void OnTriggerExit(Collider other);
+    public abstract void OnStateTriggerExit(Collider other);
 
     /// <summary>
     /// Триггер анимационного события без параметров.

@@ -14,7 +14,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     /// <summary>
     /// Состояния.
     /// </summary>
-    protected Dictionary<Enumeration, IBaseState<T>> states = new();
+    protected Dictionary<Enumeration, IStateBase<T>> states = new();
 
     /// <summary>
     /// Состояние с возможностью вызова в случайный промежуток времени.
@@ -44,12 +44,12 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
     /// <summary>
     /// Текущее состояние.
     /// </summary>
-    public IBaseState<T> CurrentState { get; protected set; }
+    public IStateBase<T> CurrentState { get; protected set; }
 
     /// <summary>
     /// Предыдущее состояние.
     /// </summary>
-    public IBaseState<T> PreviousState { get; protected set; }
+    public IStateBase<T> PreviousState { get; protected set; }
 
     /// <summary>
     /// Интервал тика (в секундах). Если 0 — не использовать Tick.
@@ -136,7 +136,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
 
     protected virtual void RegisterMonoBehaviourStates()
     {
-        var monoBehaviourStates = GetComponents<IBaseState<T>>();
+        var monoBehaviourStates = GetComponents<IStateBase<T>>();
         foreach (var monoBehaviourState in monoBehaviourStates)
             RegisterState(monoBehaviourState);
     }
@@ -164,7 +164,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
             triggerReactions.Add(triggerReaction);
     }
 
-    protected virtual void RegisterState(IBaseState<T> state)
+    protected virtual void RegisterState(IStateBase<T> state)
     {
         states.Add(state.StateKey, state);
 
@@ -173,7 +173,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
         if (startStates.Count() > 1)
         {
             var startStatesNames = startStates.Select(x => x.Key.Value);
-            throw new InvalidOperationException($"More one states with property {nameof(IBaseState.IsStartState)}. States {string.Join(',', startStatesNames)}");
+            throw new InvalidOperationException($"More one states with property {nameof(IStateBase.IsStartState)}. States {string.Join(',', startStatesNames)}");
         }
 
         if (state.IsStartState)
@@ -292,7 +292,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
 
     }
 
-    protected void AddState(IBaseState<T> state)
+    protected void AddState(IStateBase<T> state)
     {
         states.Add(state.StateKey, state);
     }
@@ -324,7 +324,7 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
             throw new Exception($"В коллекции состояний отсутствует - {statekey}");
     }
 
-    public Enumeration SetState(IBaseState state)
+    public Enumeration SetState(IStateBase state)
     {
         return SetState(state.StateKey);
     }
@@ -359,17 +359,23 @@ public abstract class StateManagerBase<T> : PRMonoBehaviour , IStateManager
 
     protected override void PROnTriggerEnter(Collider other)
     {
-        CurrentState?.OnTriggerEnter(other);
+        CurrentState?.OnStateTriggerEnter(other);
+
+        if (other.TryGetComponent<IStateManagerAction>(out var action))
+            action.Action(this);
+
+        foreach (var triggerReaction in triggerReactions)
+            triggerReaction.TryReact(other);
     }
 
     protected override void PROnTriggerStay(Collider other)
     {
-        CurrentState?.OnTriggerStay(other);
+        CurrentState?.OnStateTriggerStay(other);
     }
 
     protected override void PROnTriggerExit(Collider other)
     {
-        CurrentState?.OnTriggerExit(other);
+        CurrentState?.OnStateTriggerExit(other);
     }
 
 

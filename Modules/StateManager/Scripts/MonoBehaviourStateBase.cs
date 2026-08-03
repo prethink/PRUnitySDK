@@ -1,68 +1,47 @@
 using UnityEngine;
 
 /// <summary>
-/// Базовое состояние используя компонентную систему MonoBehaviour.
+/// Обёртка, позволяющая повесить обычный BaseState&lt;T&gt; как компонент на
+/// GameObject - чтобы получать реальные Unity-колбэки (OnTriggerEnter и т.п.)
+/// напрямую от физики, без необходимости, чтобы StateManager их форвардил.
+/// Сама логика стейта пишется один раз в наследнике BaseState&lt;T&gt; (Inner) -
+/// эта обёртка ничего не реализует сама, только пробрасывает вызовы.
 /// </summary>
-public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IBaseState<T> 
-    where T : StateManagerBase<T>
+public abstract class MonoBehaviourStateBase<T> : MonoBehaviour, IStateBase<T>
+    where T : IStateManager
 {
-    #region IBaseState
+    /// <summary>Реальная логика стейта. Наследник задаёт конкретный тип через CreateInner().</summary>
+    protected BaseState<T> Inner { get; private set; }
 
-    /// <inheritdoc />
-    public abstract Enumeration StateKey { get; }
+    /// <summary>Наследник создаёт и возвращает свой экземпляр BaseState&lt;T&gt;-логики.</summary>
+    protected abstract BaseState<T> CreateInner();
 
-    /// <inheritdoc />
-    public abstract bool IsStartState { get; }
-
-    public T StateManager { get; protected set; }
-
-    /// <inheritdoc />
-    public abstract void EnterState();
-
-    /// <inheritdoc />
-    public abstract void ExitState();
-
-    /// <inheritdoc />
-    public abstract void UpdateState();
-
-    /// <inheritdoc />
-    public virtual void BackgroundUpdate() { }
-
-    /// <inheritdoc />
-    public abstract void Tick();
-
-    /// <inheritdoc />
-    public abstract Enumeration GetNextState();
-
-    /// <inheritdoc />
-    public abstract void OnTriggerEnter(Collider other);
-
-    /// <inheritdoc />
-    public abstract void OnTriggerStay(Collider other);
-
-    /// <inheritdoc />
-    public abstract void OnTriggerExit(Collider other);
-
-    /// <inheritdoc />
-    public virtual void AnimationTrigger() { }
-
-    /// <inheritdoc />
-    public virtual void AnimationTriggerFloat(float data) { }
-
-    /// <inheritdoc />
-    public virtual void AnimationTriggerInt(int data) { }
-
-    /// <inheritdoc />
-    public virtual void AnimationTriggerString(string data) { }
-
-    /// <inheritdoc />
-    public virtual void AnimationTriggerGameObject(GameObject data) { }
-
-    /// <inheritdoc />
-    public virtual void LinkToStateManager(T stateManager)
+    protected virtual void Awake()
     {
-        this.StateManager = stateManager;
+        Inner = CreateInner();
     }
 
-    #endregion
+    // === Пробрасываем всё через Inner - никакой отдельной логики здесь нет ===
+
+    public Enumeration StateKey => Inner.StateKey;
+    public bool IsStartState => Inner.IsStartState;
+    public T StateManager => Inner.StateManager;
+
+    public void EnterState() => Inner.EnterState();
+    public void ExitState() => Inner.ExitState();
+    public void UpdateState() => Inner.UpdateState();
+    public void Tick() => Inner.Tick();
+    public Enumeration GetNextState() => Inner.GetNextState();
+    public void BackgroundUpdate() => Inner.BackgroundUpdate();
+
+    public void AnimationTrigger() => Inner.AnimationTrigger();
+    public void AnimationTriggerFloat(float data) => Inner.AnimationTriggerFloat(data);
+    public void AnimationTriggerInt(int data) => Inner.AnimationTriggerInt(data);
+    public void AnimationTriggerString(string data) => Inner.AnimationTriggerString(data);
+    public void AnimationTriggerGameObject(GameObject data) => Inner.AnimationTriggerGameObject(data);
+
+    public void LinkToStateManager(T stateManager) => Inner.LinkToStateManager(stateManager);
+    public void OnStateTriggerEnter(Collider other) => Inner.OnStateTriggerEnter(other);
+    public void OnStateTriggerStay(Collider other) => Inner.OnStateTriggerStay(other);
+    public void OnStateTriggerExit(Collider other) => Inner.OnStateTriggerExit(other);
 }

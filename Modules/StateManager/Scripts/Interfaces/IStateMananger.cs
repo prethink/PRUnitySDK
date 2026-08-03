@@ -15,7 +15,7 @@ public interface IStateManager
     bool IsCurrentState(Type type);
 
     Enumeration SetState(Enumeration statekey);
-    Enumeration SetState(IBaseState state);
+    Enumeration SetState(IStateBase state);
 
     bool TryGetState<TState>(out TState state) where TState : class;
 }
