@@ -6,6 +6,8 @@ public abstract class CooldownBase
 
     private object initiator;
 
+    protected abstract PRTimeType timeType { get; }
+
     public bool TryExecute(float interval, Action action)
     {
         if (GetTime() >= lastTime + interval)
@@ -19,6 +21,11 @@ public abstract class CooldownBase
             PRLog.WriteDebug(initiator, $"Cooldown for {initiator} is not ready yet. Time left: {lastTime + interval - GetTime()}", new PRLogSettings { LevelDebug = 10 });
 
         return false;
+    }
+
+    public void ExecuteAfter(float timeout, Action action)
+    {
+        this.DelayAction(timeout, (t) => action?.Invoke(), timeType);
     }
 
     public T ExecuteWithResult<T>(float interval, Func<T> action, T fallback)
@@ -52,6 +59,8 @@ public abstract class CooldownBase
 
 public class CooldownRealTime : CooldownBase
 {
+    protected override PRTimeType timeType => PRTimeType.RealTime;
+
     protected override float GetTime()
     {
         return PRTime.Instance.RealTime;
@@ -60,6 +69,8 @@ public class CooldownRealTime : CooldownBase
 
 public class CooldownGameTime : CooldownBase
 {
+    protected override PRTimeType timeType => PRTimeType.GameTime;
+
     protected override float GetTime()
     {
         return PRTime.Instance.GameTime;

@@ -116,13 +116,21 @@ public partial class PRUnitySDK
     /// <param name="action">Кастомное действие.</param>
     public static void InitializeType<T>(Action action, string name = null)
     {
-        var result = InitializedTypes.Add((typeof(T)));
-        if(!result)
+        var result = InitializedTypes.Add(typeof(T));
+
+        if (!result)
+        {
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Type {typeof(T)} already initialized.");
-        else
-            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{(string.IsNullOrEmpty(name) ? typeof(T).Name : name)}</color>.");
-        
+            action?.Invoke();
+            return;
+        }
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         action?.Invoke();
+        stopwatch.Stop();
+
+        string displayName = string.IsNullOrEmpty(name) ? typeof(T).Name : name;
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{displayName}</color> in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
     }
 
     /// <summary>
@@ -132,14 +140,21 @@ public partial class PRUnitySDK
     /// <param name="initializeAction">Метод инициализации.</param>
     private static void InitializeModuleSDK<T>(string name, Func<T> initializeAction)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         try
         {
             InitializeType<T>(() => { RegisterService(initializeAction.Invoke()); }, name);
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
             PRLog.WriteError(typeof(PRUnitySDK), $"Cannot initialize module <color={Color.yellow}>{name}</color>. {exception}");
             throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            PRLog.WriteDebug(typeof(PRUnitySDK), $"Module <color={Color.yellow}>{name}</color> initialized in {stopwatch.ElapsedMilliseconds} ms");
         }
     }
 
