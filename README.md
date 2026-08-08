@@ -192,6 +192,7 @@ PRUnitySDK/
 - [Actions](Core/@Actions/README.md)
 - [Coroutines](Core/Coroutines/README.md)
 - [PauseSystem](Core/PauseSystem/README.md)
+- [SoundManager](Core/SoundManager/README.md)
 - [PRMonoBehaviour](Core/PRMonoBehaviour/README.md)
 - [Proxies](Core/Proxies/README.md)
 - [PRTime](Core/PRTime/README.md)
