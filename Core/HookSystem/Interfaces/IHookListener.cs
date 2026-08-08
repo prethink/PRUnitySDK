@@ -1,35 +1,45 @@
 /// <summary>
-/// Слушатель хуков.
+/// Р‘Р°Р·РѕРІС‹Р№ listener СЃРёСЃС‚РµРјС‹ hooks.
 /// </summary>
-public interface IHookListener 
+public interface IHookListener
 {
     /// <summary>
-    /// Приоритет выполнения.
-    /// Чем ниже приоритет, тем раньше вызывается хук.
+    /// РџРѕСЂСЏРґРѕРє РІС‹РїРѕР»РЅРµРЅРёСЏ. Listener СЃ РјРµРЅСЊС€РёРј Р·РЅР°С‡РµРЅРёРµРј РІС‹Р·С‹РІР°РµС‚СЃСЏ СЂР°РЅСЊС€Рµ.
+    /// РџСЂРё РѕРґРёРЅР°РєРѕРІРѕРј Р·РЅР°С‡РµРЅРёРё СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ РїРѕСЂСЏРґРѕРє СЂРµРіРёСЃС‚СЂР°С†РёРё.
     /// </summary>
     int Order { get; }
 
     /// <summary>
-    /// Регистрация слушателя хуков.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ listener РІ HookManager.
     /// </summary>
     void RegisterHook();
 
     /// <summary>
-    /// Удаление слушателя хуков.
+    /// РЈРґР°Р»СЏРµС‚ listener РёР· HookManager.
     /// </summary>
     void UnRegisterHook();
 }
 
 /// <summary>
-/// Слушатель хуков с типом аргументов.
+/// Listener, РІС‹Р·С‹РІР°РµРјС‹Р№ РїРµСЂРµРґ РѕСЂРёРіРёРЅР°Р»СЊРЅС‹Рј РґРµР№СЃС‚РІРёРµРј.
 /// </summary>
-/// <typeparam name="TArgs">Тип аргумента.</typeparam>
-public interface IHookListener<TArgs> : IHookListener 
+public interface IHookListener<in TArgs> : IHookListener
     where TArgs : HookEventArgsBase
 {
     /// <summary>
-    /// Обработка хук.
+    /// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ pre-hook.
     /// </summary>
-    /// <param name="eventArgs">Аргументы события.</param>
     void HandleHook(TArgs eventArgs);
+}
+
+/// <summary>
+/// Listener, РІС‹Р·С‹РІР°РµРјС‹Р№ РїРѕСЃР»Рµ РѕСЂРёРіРёРЅР°Р»СЊРЅРѕРіРѕ РґРµР№СЃС‚РІРёСЏ РёР»Рё РїРѕСЃР»Рµ РµРіРѕ Р±Р»РѕРєРёСЂРѕРІРєРё С‡РµСЂРµР· Supercede.
+/// </summary>
+public interface IHookPostListener<in TArgs> : IHookListener
+    where TArgs : HookEventArgsBase
+{
+    /// <summary>
+    /// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ post-hook.
+    /// </summary>
+    void HandlePostHook(TArgs eventArgs);
 }

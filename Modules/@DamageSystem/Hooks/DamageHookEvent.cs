@@ -30,14 +30,12 @@ public class DamageHookEvent : HookEventArgsBase
     public void BlockDamage(IHookListener modifier)
     {
         DamageResult = DamageResult.Blocked;
-        Modify(modifier);
-        Result = HookResult.HandledMain;
+        Supercede(modifier);
     }
 
     public void MissDamage(IHookListener modifier)
     {
         DamageResult = DamageResult.Miss;
-        Modify(modifier);
-        Result = HookResult.HandledMain;
+        Supercede(modifier);
     }
 }
