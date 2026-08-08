@@ -188,6 +188,7 @@ PRUnitySDK/
 Дополнительная документация:
 
 - [Core](Core/README.md)
+- [Attributes](Core/@Attributes/README.md)
 - [Actions](Core/@Actions/README.md)
 - [Coroutines](Core/Coroutines/README.md)
 - [PauseSystem](Core/PauseSystem/README.md)

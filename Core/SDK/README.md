@@ -117,6 +117,9 @@ Enemy enemy = PRUnitySDK.Instantiate(prefab, position, rotation, parent);
 соответствующего этапа. Перед добавлением нового глобального свойства рассмотрите
 регистрацию интерфейса в service resolver — это упрощает замену реализации.
 
+Подробное описание `MethodHook`, стадий и механизма замены сервисов находится в
+[документации Attributes](../@Attributes/README.md).
+
 ## Известные ограничения
 
 - `ScriptableObjectSingleton` содержит Editor API в runtime-файле под `#if UNITY_EDITOR`.
@@ -125,4 +128,3 @@ Enemy enemy = PRUnitySDK.Instantiate(prefab, position, rotation, parent);
   альтернативная ветка закомментирована.
 - Инициализация глобальна и не предоставляет штатного полного reset между Play-сессиями
   без domain reload.
-
