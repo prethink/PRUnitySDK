@@ -20,9 +20,12 @@ public class EnumerationReference<T> : EnumerationReference
 
     public void Set(Enumeration enumeration)
     {
+        if (enumeration == null)
+            throw new ArgumentNullException(nameof(enumeration));
+
         var available = GetOptions();
         if (!available.Any(e => e == enumeration))
-            throw new Exception($"Enumeration '{enumeration}' íå ñóùåñòâóåò â {typeof(T).Name}");
+            throw new ArgumentException($"Enumeration '{enumeration}' Ð½Ðµ ÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÐµÑ‚ Ð² {typeof(T).Name}.", nameof(enumeration));
 
         value = enumeration.Value;
     }
@@ -36,7 +39,7 @@ public class EnumerationReference
 
     public string Value => value;
 
-    public Enumeration ToEnumeration() => new Enumeration(value);
+    public Enumeration ToEnumeration() => Enumeration.GetOrCreate(value);
 
     public const string ProtectedStringValueName = nameof(value);
 }

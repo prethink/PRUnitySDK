@@ -1,6 +1,9 @@
-using System.Collections.Generic;
+using System;
 
-public interface IEnumerationOptionsProvider
+/// <summary>
+/// Устаревший alias IEnumerationProvider.
+/// </summary>
+[Obsolete("Use IEnumerationProvider instead.")]
+public interface IEnumerationOptionsProvider : IEnumerationProvider
 {
-    IEnumerable<Enumeration> GetOptions();
 }

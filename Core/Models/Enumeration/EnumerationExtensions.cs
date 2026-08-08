@@ -1,88 +1,108 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using UnityEngine;
-using static UnityEngine.ProBuilder.AutoUnwrapSettings;
 
+/// <summary>
+/// РњРµС‚РѕРґС‹ РїРѕР»СѓС‡РµРЅРёСЏ Р·РЅР°С‡РµРЅРёР№ РёР· РєР»Р°СЃСЃРѕРІ-РїСЂРѕРІР°Р№РґРµСЂРѕРІ Enumeration.
+/// </summary>
 public static class EnumerationExtensions
 {
-    private static readonly Dictionary<(Type, bool), IEnumerable<Enumeration>> cache = new();
+    private static readonly Dictionary<(Type, bool), Enumeration[]> enumerationCache = new();
+    private static readonly Dictionary<Type, IEnumerationProvider> providerCache = new();
 
     /// <summary>
-    /// Получить все Enumeration из типа.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕР±СЉСЏРІР»РµРЅРЅС‹Рµ РІ С‚РёРїРµ РїСѓР±Р»РёС‡РЅС‹Рµ СЃС‚Р°С‚РёС‡РµСЃРєРёРµ РїРѕР»СЏ Enumeration.
     /// </summary>
-    public static IEnumerable<Enumeration> GetEnumerations(this Type type, bool includeInherited = false)
+    public static IReadOnlyList<Enumeration> GetEnumerations(this Type type, bool includeInherited = false)
     {
-        var key = (type, includeInherited);
+        if (type == null)
+            throw new ArgumentNullException(nameof(type));
 
-        if (cache.TryGetValue(key, out var cached))
+        var key = (type, includeInherited);
+        if (enumerationCache.TryGetValue(key, out var cached))
             return cached;
 
-        var flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
-
-        var result = new List<List<Enumeration>>();
-
-        var currentType = type;
-
-        while (currentType != null)
+        var typeHierarchy = new List<Type>();
+        for (var currentType = type; currentType != null; currentType = currentType.BaseType)
         {
-            var fields = currentType
-                .GetFields(flags)
-                .Where(f => f.FieldType == typeof(Enumeration))
-                .Select(f => f.GetValue(null))
-                .Cast<Enumeration>();
-
-            fields.Reverse();
-            result.Add(new List<Enumeration>(fields));
-
+            typeHierarchy.Add(currentType);
             if (!includeInherited)
                 break;
-
-            currentType = currentType.BaseType;
         }
-        result.Reverse();
-        var final = result.SelectMany(x => x);
 
-        cache[key] = final;
-        return final;
+        typeHierarchy.Reverse();
+        var result = new List<Enumeration>();
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
+
+        foreach (var currentType in typeHierarchy)
+        {
+            var fields = currentType.GetFields(flags);
+            Array.Sort(fields, (left, right) => left.MetadataToken.CompareTo(right.MetadataToken));
+
+            foreach (var field in fields)
+            {
+                if (!typeof(Enumeration).IsAssignableFrom(field.FieldType))
+                    continue;
+
+                if (field.GetValue(null) is Enumeration enumeration)
+                    result.Add(enumeration);
+            }
+        }
+
+        var values = result.ToArray();
+        enumerationCache.Add(key, values);
+        return values;
     }
 
     /// <summary>
-    /// Получить все Enumeration с учётом IEnumerationProvider (если реализован).
+    /// РџРѕР»СѓС‡Р°РµС‚ Enumeration С‡РµСЂРµР· IEnumerationProvider РёР»Рё РЅР°РїСЂСЏРјСѓСЋ РёР· СЃС‚Р°С‚РёС‡РµСЃРєРёС… РїРѕР»РµР№ С‚РёРїР°.
     /// </summary>
     public static IEnumerable<Enumeration> GetEnumerationsSmart(this Type type, bool includeInherited = false)
     {
-        if (typeof(IEnumerationProvider).IsAssignableFrom(type))
+        if (type == null)
+            throw new ArgumentNullException(nameof(type));
+
+        if (!typeof(IEnumerationProvider).IsAssignableFrom(type))
+            return type.GetEnumerations(includeInherited);
+
+        if (!providerCache.TryGetValue(type, out var provider))
         {
-            var provider = Activator.CreateInstance(type) as IEnumerationProvider;
-            return provider.GetOptions();
+            provider = Activator.CreateInstance(type) as IEnumerationProvider
+                ?? throw new InvalidOperationException($"Cannot create enumeration provider '{type.FullName}'.");
+            providerCache.Add(type, provider);
         }
 
-        return type.GetEnumerations(includeInherited);
+        return provider.GetOptions();
     }
 
     /// <summary>
-    /// Получить значения Enumeration как строки.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃС‚СЂРѕРєРѕРІС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РІСЃРµС… РЅР°Р№РґРµРЅРЅС‹С… Enumeration.
     /// </summary>
     public static IEnumerable<string> GetEnumerationValues(this Type type, bool includeInherited = false)
     {
-        return type.GetEnumerations(includeInherited)
-                   .Select(e => e.Value);
+        foreach (var enumeration in type.GetEnumerations(includeInherited))
+            yield return enumeration.Value;
     }
 
     /// <summary>
-    /// Проверка: содержит ли тип конкретное значение.
+    /// РџСЂРѕРІРµСЂСЏРµС‚ РЅР°Р»РёС‡РёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ СЃС‚СЂРѕРєРѕРІРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ.
     /// </summary>
     public static bool ContainsEnumeration(this Type type, string value, bool includeInherited = false)
     {
-        return type.GetEnumerations(includeInherited)
-                   .Any(e => e.Value == value);
+        foreach (var enumeration in type.GetEnumerations(includeInherited))
+        {
+            if (StringComparer.Ordinal.Equals(enumeration.Value, value))
+                return true;
+        }
+
+        return false;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ClearCacheOnLoad()
     {
-        cache.Clear();
+        enumerationCache.Clear();
+        providerCache.Clear();
     }
 }

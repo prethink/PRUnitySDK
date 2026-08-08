@@ -185,22 +185,34 @@ PRUnitySDK/
 └── Core.Zenject.Integration~/  # Отключённая по умолчанию интеграция с Zenject
 ```
 
-Дополнительная документация:
+## Дополнительная документация
+
+### Ядро и расширение SDK
 
 - [Core](Core/README.md)
+- [SDK](Core/SDK/README.md)
 - [Attributes](Core/@Attributes/README.md)
 - [Actions](Core/@Actions/README.md)
-- [Coroutines](Core/Coroutines/README.md)
-- [PauseSystem](Core/PauseSystem/README.md)
-- [SoundManager](Core/SoundManager/README.md)
+- [HookSystem](Core/HookSystem/README.md)
+
+### Жизненный цикл и время
+
 - [PRMonoBehaviour](Core/PRMonoBehaviour/README.md)
-- [Proxies](Core/Proxies/README.md)
+- [Coroutines](Core/Coroutines/README.md)
+- [Yields](Core/Yields/README.md)
+- [PauseSystem](Core/PauseSystem/README.md)
 - [PRTime](Core/PRTime/README.md)
 - [PRTimeScale](Core/PRTimeScale/README.md)
-- [SDK](Core/SDK/README.md)
+
+### Модели, сервисы и утилиты
+
+- [Enumeration](Core/Models/Enumeration/README.md)
 - [Utils](Core/Utils/README.md)
-- [Yields](Core/Yields/README.md)
-- [HookSystem](Core/HookSystem/README.md)
+- [Proxies](Core/Proxies/README.md)
+- [SoundManager](Core/SoundManager/README.md)
+
+### Модули и интеграции
+
 - [Modules](Modules/README.md)
 - [DOTweenEffects](Modules/DOTweenEffects/README.md)
 - [YG2 Integration](YG2.Integration/README.md)

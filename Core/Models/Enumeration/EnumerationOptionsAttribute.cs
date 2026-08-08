@@ -4,12 +4,12 @@ using System;
 public class EnumerationOptionsAttribute : Attribute
 {
     /// <summary>
-    /// Тип класса, содержащего статический метод для возврата коллекции вариантов.
+    /// РўРёРї РєР»Р°СЃСЃР°, СЃРѕРґРµСЂР¶Р°С‰РµРіРѕ СЃС‚Р°С‚РёС‡РµСЃРєРёР№ РјРµС‚РѕРґ РґР»СЏ РІРѕР·РІСЂР°С‚Р° РєРѕР»Р»РµРєС†РёРё РІР°СЂРёР°РЅС‚РѕРІ.
     /// </summary>
     public Type OptionsType { get; }
 
     /// <summary>
-    /// Имя статического метода, возвращающего IEnumerable<Enumeration>. По умолчанию "GetAllOptions".
+    /// РРјСЏ СЃС‚Р°С‚РёС‡РµСЃРєРѕРіРѕ РјРµС‚РѕРґР°, РІРѕР·РІСЂР°С‰Р°СЋС‰РµРіРѕ IEnumerable<Enumeration>. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ "GetAllOptions".
     /// </summary>
     public string StaticMethodName { get; }
 

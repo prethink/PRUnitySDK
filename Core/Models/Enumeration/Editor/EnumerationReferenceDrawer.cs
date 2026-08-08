@@ -4,41 +4,82 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
+/// <summary>
+/// Отображает EnumerationReference как popup и сохраняет неизвестные старые значения.
+/// </summary>
 [CustomPropertyDrawer(typeof(EnumerationReference<>), true)]
 public class EnumerationReferenceDrawer : PropertyDrawer
 {
+    private static readonly Dictionary<Type, string[]> optionsCache = new();
+
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var valueProp = property.FindPropertyRelative("value");
-
-        var options = GetOptions();
-
-        if (options == null)
+        var valueProperty = property.FindPropertyRelative(EnumerationReference.ProtectedStringValueName);
+        if (valueProperty == null)
         {
-            EditorGUI.PropertyField(position, valueProp, label);
+            EditorGUI.LabelField(position, label, new GUIContent("Enumeration value field not found"));
             return;
         }
 
-        var optionsArray = options.Select(o => o.Value).ToArray();
+        var options = GetOptions();
+        if (options.Length == 0)
+        {
+            EditorGUI.PropertyField(position, valueProperty, label);
+            return;
+        }
 
-        int index = Mathf.Max(0, Array.IndexOf(optionsArray, valueProp.stringValue));
+        var currentValue = valueProperty.stringValue;
+        var currentIndex = Array.IndexOf(options, currentValue);
+        var hasMissingValue = !string.IsNullOrEmpty(currentValue) && currentIndex < 0;
+        var displayOptions = options;
+        var selectedIndex = currentIndex;
 
-        int newIndex = EditorGUI.Popup(position, label.text, index, optionsArray);
+        if (hasMissingValue)
+        {
+            displayOptions = new[] { $"Missing: {currentValue}" }.Concat(options).ToArray();
+            selectedIndex = 0;
+        }
+        else if (selectedIndex < 0)
+        {
+            selectedIndex = 0;
+        }
 
-        valueProp.stringValue = optionsArray[newIndex];
+        EditorGUI.BeginProperty(position, label, property);
+        EditorGUI.BeginChangeCheck();
+        EditorGUI.showMixedValue = valueProperty.hasMultipleDifferentValues;
+        var newIndex = EditorGUI.Popup(position, label.text, selectedIndex, displayOptions);
+        EditorGUI.showMixedValue = false;
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            var optionIndex = hasMissingValue ? newIndex - 1 : newIndex;
+            if (optionIndex >= 0 && optionIndex < options.Length)
+                valueProperty.stringValue = options[optionIndex];
+        }
+
+        EditorGUI.EndProperty();
     }
 
-    private IEnumerable<Enumeration> GetOptions()
+    private string[] GetOptions()
     {
-        var type = fieldInfo.FieldType;
+        var referenceType = fieldInfo.FieldType;
+        if (!referenceType.IsGenericType)
+            return Array.Empty<string>();
 
-        if (!type.IsGenericType)
-            return null;
+        var providerType = referenceType.GetGenericArguments()[0];
+        if (optionsCache.TryGetValue(providerType, out var cached))
+            return cached;
 
-        var genericType = type.GetGenericArguments()[0];
+        var provider = Activator.CreateInstance(providerType) as IEnumerationProvider;
+        var options = provider?.GetOptions()
+            ?.Where(option => option != null)
+            .Select(option => option.Value)
+            .Where(value => !string.IsNullOrEmpty(value))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray()
+            ?? Array.Empty<string>();
 
-        var provider = Activator.CreateInstance(genericType) as IEnumerationProvider;
-
-        return provider?.GetOptions();
+        optionsCache.Add(providerType, options);
+        return options;
     }
 }
