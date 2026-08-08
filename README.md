@@ -198,6 +198,7 @@ PRUnitySDK/
 - [PRTime](Core/PRTime/README.md)
 - [PRTimeScale](Core/PRTimeScale/README.md)
 - [SDK](Core/SDK/README.md)
+- [Utils](Core/Utils/README.md)
 - [Yields](Core/Yields/README.md)
 - [HookSystem](Core/HookSystem/README.md)
 - [Modules](Modules/README.md)
