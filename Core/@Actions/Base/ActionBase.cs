@@ -1,15 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// Базовый объект действия.
-/// Может быть клик по ссылке, загрузка сцены, или что-то другое.
+/// Р‘Р°Р·РѕРІС‹Р№ РѕР±СЉРµРєС‚ РґРµР№СЃС‚РІРёСЏ.
+/// РњРѕР¶РµС‚ Р±С‹С‚СЊ РєР»РёРє РїРѕ СЃСЃС‹Р»РєРµ, Р·Р°РіСЂСѓР·РєР° СЃС†РµРЅС‹, РёР»Рё С‡С‚Рѕ-С‚Рѕ РґСЂСѓРіРѕРµ.
 /// </summary>
 public abstract class ActionBase : ScriptableObject, IAction
 {
-    protected ActionExecuter executer = new();
+    /// <summary>
+    /// РћР±С‰РёР№ executor РїСЂРѕРІРµСЂРєРё Рё РІС‹РїРѕР»РЅРµРЅРёСЏ.
+    /// </summary>
+    protected readonly ActionExecuter executer = new();
 
     /// <summary>
-    /// Выполнить действие.
+    /// РџСЂРѕРІРµСЂСЏРµС‚ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ РІС‹РїРѕР»РЅРµРЅРёСЏ РґРµР№СЃС‚РІРёСЏ.
     /// </summary>
     public virtual bool CanExecute()
     {
@@ -17,17 +20,16 @@ public abstract class ActionBase : ScriptableObject, IAction
     }
 
     /// <summary>
-    /// Можно ли выполнить действие.
+    /// Р’С‹РїРѕР»РЅСЏРµС‚ РґРµР№СЃС‚РІРёРµ, РµСЃР»Рё CanExecute() РІРѕР·РІСЂР°С‰Р°РµС‚ true.
     /// </summary>
-    /// <returns></returns>
-
+    /// <returns>True, РµСЃР»Рё РґРµР№СЃС‚РІРёРµ Р±С‹Р»Рѕ РІС‹Р·РІР°РЅРѕ.</returns>
     public virtual bool Execute()
     {
-        return executer.Execute(() => Action());
+        return executer.Execute(CanExecute, Action);
     }
 
     /// <summary>
-    /// Само действие.
+    /// Р РµР°Р»РёР·Р°С†РёСЏ РґРµР№СЃС‚РІРёСЏ Р±РµР· РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹С… РїСЂРѕРІРµСЂРѕРє.
     /// </summary>
     protected abstract void Action();
 }

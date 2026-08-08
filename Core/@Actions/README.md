@@ -1,8 +1,6 @@
 # Actions
 
-Система Actions описывает переиспользуемые действия с единым контрактом проверки и
-выполнения. Действие можно хранить как `ScriptableObject`, размещать компонентом на
-GameObject или передавать через `IActionProvider`.
+Система `Actions` описывает переиспользуемые действия с единым контрактом проверки и выполнения. Действие можно хранить как `ScriptableObject`, размещать компонентом на `GameObject` или предоставлять через `IActionProvider`.
 
 ## Основные типы
 
@@ -10,32 +8,44 @@ GameObject или передавать через `IActionProvider`.
 | --- | --- |
 | `IAction` | Контракт с методами `CanExecute()` и `Execute()` |
 | `IActionProvider` | Предоставляет действие через свойство `Action` |
+| `ActionExecuter` | Общая механика проверки и выполнения для разных базовых Unity-типов |
 | `ActionBase` | Основа ScriptableObject-действий |
 | `ActionMonoBehaviourBase` | Основа действий-компонентов |
 | `IconActionBase` | ScriptableObject-действие с иконкой |
-| `OpenURLAction` | Открывает URL через `Application.OpenURL` |
+| `OpenURLAction` | Открывает проверенный HTTP/HTTPS URL |
 | `LangAction` | Переключает язык через LanguageManager SDK |
 
-## Жизненный цикл выполнения
+`ActionExecuter` намеренно используется через композицию: `ScriptableObject` и `MonoBehaviour` не могут наследоваться от одного общего класса действий, но должны выполнять одинаковую проверку.
 
-`Execute()` сначала вызывает `CanExecute()`. Базовые реализации запрещают выполнение,
-пока `PRUnitySDK.IsInitialized` равен `false`, и записывают предупреждение через `PRLog`.
-Если проверка пройдена, вызывается защищённый метод `Action()`.
+## Выполнение
+
+`Execute()` передаёт в executor виртуальный метод `CanExecute()` владельца. Поэтому переопределённые проверки всегда применяются и при прямом вызове `Execute()`.
 
 ```text
 Execute()
 └── CanExecute()
-    ├── false → действие не выполняется, результат false
+    ├── false → действие не вызывается, результат false
     └── true  → Action(), результат true
 ```
 
-## Создание ScriptableObject-действия
+Базовая проверка требует завершённой инициализации `PRUnitySDK`. Наследник расширяет её через `base.CanExecute()`:
+
+```csharp
+public override bool CanExecute()
+{
+    return base.CanExecute() && amount > 0;
+}
+```
+
+`true` означает, что внутреннее действие было вызвано. Исключения из действия не преобразуются в `false`: они передаются вызывающему коду.
+
+## ScriptableObject-действие
 
 ```csharp
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Game/Actions/Load level")]
-public class LoadLevelAction : ActionBase
+public sealed class LoadLevelAction : ActionBase
 {
     [SerializeField] private int sceneIndex;
 
@@ -51,14 +61,20 @@ public class LoadLevelAction : ActionBase
 }
 ```
 
-После компиляции создайте asset через `Create → Game → Actions → Load level` и
-передавайте его потребителям как `IAction` или `ActionBase`.
+После компиляции создайте asset через `Create → Game → Actions → Load level`.
 
-## Создание действия-компонента
+ScriptableObject-действия подходят для конфигурации, которая переиспользуется между сценами. Не храните изменяемое состояние конкретного вызова в общем asset: один экземпляр может одновременно использоваться несколькими объектами.
+
+## Действие-компонент
 
 ```csharp
-public class DisableObjectAction : ActionMonoBehaviourBase
+public sealed class DisableObjectAction : ActionMonoBehaviourBase
 {
+    public override bool CanExecute()
+    {
+        return base.CanExecute() && gameObject.activeSelf;
+    }
+
     protected override void Action()
     {
         gameObject.SetActive(false);
@@ -66,28 +82,40 @@ public class DisableObjectAction : ActionMonoBehaviourBase
 }
 ```
 
+`ActionMonoBehaviourBase` подходит для действий, зависящих от состояния конкретного `GameObject`.
+
 ## Использование через provider
 
 ```csharp
-public class ActionButton : MonoBehaviour, IActionProvider
+public sealed class ActionProvider : MonoBehaviour, IActionProvider
 {
-    [field: SerializeField] public ActionBase ActionAsset { get; private set; }
+    [SerializeField] private ActionBase action;
 
-    public IAction Action => ActionAsset;
-
-    public void Click()
-    {
-        Action?.Execute();
-    }
+    public IAction Action => action;
 }
 ```
 
+Потребитель работает только с интерфейсом:
+
+```csharp
+if (provider.Action?.Execute() == true)
+{
+    OnActionExecuted();
+}
+```
+
+Нет необходимости отдельно вызывать `CanExecute()` перед `Execute()`: `Execute()` повторно выполняет полную виртуальную проверку. Отдельный вызов полезен для отображения доступности кнопки, подсказки или интерактивного объекта.
+
+## OpenURLAction
+
+`OpenURLAction` выполняется только для абсолютных URL со схемой `http` или `https`. Пустые строки, относительные адреса и другие схемы отклоняются через `CanExecute()`.
+
 ## Рекомендации
 
-- Проверки доступности размещайте в `CanExecute()`, а эффект — в `Action()`.
-- Не вызывайте `Action()` напрямую: так будет пропущена проверка готовности SDK.
-- Для данных, переиспользуемых между сценами, выбирайте `ActionBase`.
-- Для действий, зависящих от конкретного GameObject, выбирайте `ActionMonoBehaviourBase`.
-- Не храните изменяемое runtime-состояние в общем ScriptableObject-действии, если один
-  asset используется несколькими объектами.
-
+- Условия доступности размещайте в `CanExecute()`.
+- Эффект размещайте в защищённом `Action()`.
+- В переопределённом `CanExecute()` обычно вызывайте `base.CanExecute()`.
+- Не вызывайте `Action()` напрямую: это обходит проверки.
+- Учитывайте результат `Execute()` в потребителях.
+- Проверяйте сериализованные ссылки на действие на `null`.
+- Для асинхронных операций и подробного результата потребуется отдельный async/result-контракт; текущий `IAction` является синхронным.

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "URL Action", menuName = "PRUnitySDK/Actions/Open url action")]
@@ -6,13 +7,20 @@ public class OpenURLAction : ActionBase
     #region ScriptableObject
 
     /// <summary>
-    /// Ссылка которую нужно открыть.
+    /// РЎСЃС‹Р»РєР° РєРѕС‚РѕСЂСѓСЋ РЅСѓР¶РЅРѕ РѕС‚РєСЂС‹С‚СЊ.
     /// </summary>
     [SerializeField] protected string URL;
 
     #endregion
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
+
+    public override bool CanExecute()
+    {
+        return base.CanExecute()
+            && Uri.TryCreate(URL, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+    }
 
     protected override void Action()
     {

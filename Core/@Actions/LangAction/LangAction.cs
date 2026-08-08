@@ -6,13 +6,13 @@ public class LangAction : ActionBase
     #region ScriptableObject
 
     /// <summary>
-    /// Язык.
+    /// РЇР·С‹Рє.
     /// </summary>
     [SerializeField] protected LangType lang;
 
     #endregion
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     protected override void Action()
     {

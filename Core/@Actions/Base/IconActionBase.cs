@@ -3,7 +3,7 @@ using UnityEngine;
 public abstract class IconActionBase : ActionBase, IIconProvider
 {
     /// <summary>
-    /// Иконка действия.
+    /// РРєРѕРЅРєР° РґРµР№СЃС‚РІРёСЏ.
     /// </summary>
     [field: SerializeField] public Sprite Icon { get; protected set; }
 }

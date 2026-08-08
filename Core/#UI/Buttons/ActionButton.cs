@@ -6,12 +6,12 @@ public class ActionButton : ButtonBase
 
     public override bool CanExecute()
     {
-        return base.CanExecute() && action.CanExecute();
+        return base.CanExecute() && action != null && action.CanExecute();
     }
 
     protected override void InternalExecute()
     {
-        action.Execute();
+        action?.Execute();
     }
 }
 
