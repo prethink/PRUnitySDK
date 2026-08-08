@@ -2,10 +2,19 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+/// <summary>
+///Одноразово ожидает заданный интервал, затем плавно уменьшает
+///<see cref="CanvasGroup.alpha"/> от единицы к нулю в игровом времени и вызывает
+///callback после завершения. При перезапуске через <see cref="StopAndExecute"/>
+///предварительно восстанавливает полную непрозрачность.
+///</summary>
 public class CanvasGroupFadeCoroutine : PRCoroutineBase
 {
     private CanvasGroup canvasGroup;
     private float fadeDuration;
+    /// <summary>
+    ///Задержка перед началом затухания в секундах.
+    ///</summary>
     public float AwaitTime;
     private Action callback;
 

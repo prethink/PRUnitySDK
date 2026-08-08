@@ -3,6 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+///Основа бесконечной корутины, вызывающей набор callback'ов после указанной Unity
+///yield-инструкции <typeparamref name="T"/>. Выполнение продолжается до явного
+///вызова <see cref="PRCoroutineBase.Stop"/> или уничтожения владельца корутины.
+///Повторяющиеся callback'и автоматически устраняются через <see cref="HashSet{T}"/>.
+///</summary>
+/// <typeparam name="T">Unity yield-инструкция с публичным конструктором без параметров.</typeparam>
 public abstract class UnityYieldCoroutineBase<T> : PRCoroutineBase where T : YieldInstruction, new()
 {
     protected HashSet<Action> callbacks = new();

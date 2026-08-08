@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+///Бесконечно вызывает зарегистрированные callback'и в конце каждого кадра,
+///после завершения обычных Update/LateUpdate и отрисовки кадра. Работает до
+///явной остановки или уничтожения переданного владельца.
+///</summary>
 public class WaitForEndOfFrameCoroutine : UnityYieldCoroutineBase<WaitForEndOfFrame>
 {
     public WaitForEndOfFrameCoroutine(Action callback) : base(callback)
