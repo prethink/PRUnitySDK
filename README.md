@@ -193,6 +193,7 @@ PRUnitySDK/
 - [SDK](Core/SDK/README.md)
 - [Attributes](Core/@Attributes/README.md)
 - [Actions](Core/@Actions/README.md)
+- [EventBus](Core/@Events/EventBus/README.md)
 - [HookSystem](Core/HookSystem/README.md)
 
 ### Жизненный цикл и время
