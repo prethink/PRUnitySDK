@@ -188,7 +188,15 @@ PRUnitySDK/
 Дополнительная документация:
 
 - [Core](Core/README.md)
+- [Actions](Core/@Actions/README.md)
+- [Coroutines](Core/Coroutines/README.md)
+- [PauseSystem](Core/PauseSystem/README.md)
+- [PRMonoBehaviour](Core/PRMonoBehaviour/README.md)
+- [Proxies](Core/Proxies/README.md)
 - [PRTime](Core/PRTime/README.md)
+- [PRTimeScale](Core/PRTimeScale/README.md)
+- [SDK](Core/SDK/README.md)
+- [Yields](Core/Yields/README.md)
 - [HookSystem](Core/HookSystem/README.md)
 - [Modules](Modules/README.md)
 - [DOTweenEffects](Modules/DOTweenEffects/README.md)
@@ -206,4 +214,3 @@ PRUnitySDK/
 ## Репозиторий
 
 [github.com/prethink/PRUnitySDK](https://github.com/prethink/PRUnitySDK)
-

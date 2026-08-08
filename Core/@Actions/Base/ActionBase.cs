@@ -6,31 +6,24 @@ using UnityEngine;
 /// </summary>
 public abstract class ActionBase : ScriptableObject, IAction
 {
+    protected ActionExecuter executer = new();
+
     /// <summary>
     /// Выполнить действие.
     /// </summary>
-    public virtual bool Execute()
+    public virtual bool CanExecute()
     {
-        if(!CanExecute())
-            return false;
-
-        Action();
-        return true;
+        return executer.CanExecute();
     }
 
     /// <summary>
     /// Можно ли выполнить действие.
     /// </summary>
     /// <returns></returns>
-    public virtual bool CanExecute()
-    {
-        if(!PRUnitySDK.IsInitialized)
-        {
-            PRLog.WriteWarning(GetType(), $"Can't execute action, SDK not initialized.");
-            return false;
-        }
 
-        return true;
+    public virtual bool Execute()
+    {
+        return executer.Execute(() => Action());
     }
 
     /// <summary>
