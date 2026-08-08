@@ -1,41 +1,57 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Игровые проекты.
+/// РРіСЂРѕРІС‹Рµ РїСЂРѕРµРєС‚С‹.
 /// </summary>
 public static class GameRules
 {
     /// <summary>
-    /// Набор правил.
+    /// РќР°Р±РѕСЂ РїСЂР°РІРёР».
     /// </summary>
-    private static readonly List<StatRuleBase> stateRules = new();
+    private static readonly Dictionary<Enumeration, List<StatRuleBase>> statRules = new();
+
+    // IStatRuleProvider lives in Assembly-CSharp, so its implementations cannot
+    // live in an asmdef assembly (Unity asmdefs cannot reference Assembly-CSharp).
+    // Scanning this one assembly avoids walking every Unity/package assembly.
+    private static Type[] providerTypes;
    
     /// <summary>
-    /// Инициализация.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ.
     /// </summary>
     public static void Initialize()
     {
-        stateRules.Clear();
+        statRules.Clear();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        providerTypes ??= FindProviderTypes();
 
-        var providers = ReflectionExtension.FindClassesImplementingInterface<IStatRuleProvider>();
-        foreach (var provider in providers)
+        foreach (var providerType in providerTypes)
         {
-            var instance = Activator.CreateInstance(provider) as IStatRuleProvider;
+            var instance = (IStatRuleProvider)Activator.CreateInstance(providerType);
             PRLog.WriteDebug(typeof(GameRules), $"Initialize rule <color={Color.yellow}>{instance.RuleName}</color>");
-            stateRules.AddRange(instance.GetRules());
+
+            foreach (var rule in instance.GetRules())
+            {
+                if (!statRules.TryGetValue(rule.Stat, out var rules))
+                {
+                    rules = new List<StatRuleBase>();
+                    statRules.Add(rule.Stat, rules);
+                }
+
+                rules.Add(rule);
+            }
         }
+        stopwatch.Stop();
+        PRLog.WriteDebug(typeof(GameRules), $"Initialize Rules complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
     }
 
     /// <summary>
-    /// Применяет все правила, относящиеся к указанной характеристике, к текущему значению.
+    /// РџСЂРёРјРµРЅСЏРµС‚ РІСЃРµ РїСЂР°РІРёР»Р°, РѕС‚РЅРѕСЃСЏС‰РёРµСЃСЏ Рє СѓРєР°Р·Р°РЅРЅРѕР№ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРµ, Рє С‚РµРєСѓС‰РµРјСѓ Р·РЅР°С‡РµРЅРёСЋ.
     /// </summary>
     public static float ApplyStatRules(Enumeration stat, float currentValue)
     {
-        var currentRules = stateRules.Where(x => x.Stat == stat);
-        if(!currentRules.Any())
+        if (stat == null || !statRules.TryGetValue(stat, out var currentRules))
             return currentValue;
 
         foreach (var rule in currentRules)
@@ -44,8 +60,23 @@ public static class GameRules
         return currentValue;
     }
 
+    private static Type[] FindProviderTypes()
+    {
+        var interfaceType = typeof(IStatRuleProvider);
+        var assemblyTypes = interfaceType.Assembly.GetTypes();
+        var result = new List<Type>();
+
+        foreach (var type in assemblyTypes)
+        {
+            if (!type.IsInterface && !type.IsAbstract && interfaceType.IsAssignableFrom(type))
+                result.Add(type);
+        }
+
+        return result.ToArray();
+    }
+
     /// <summary>
-    /// Применяет правила к характеристике и округляет результат до типа long.
+    /// РџСЂРёРјРµРЅСЏРµС‚ РїСЂР°РІРёР»Р° Рє С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРµ Рё РѕРєСЂСѓРіР»СЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РґРѕ С‚РёРїР° long.
     /// </summary>
     public static long ApplyLongStatRule(Enumeration stat, float currentValue)
     {
@@ -53,7 +84,7 @@ public static class GameRules
     }
 
     /// <summary>
-    /// Применяет правила к характеристике и округляет результат до типа int.
+    /// РџСЂРёРјРµРЅСЏРµС‚ РїСЂР°РІРёР»Р° Рє С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРµ Рё РѕРєСЂСѓРіР»СЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РґРѕ С‚РёРїР° int.
     /// </summary>
     public static int ApplyIntStatRule(Enumeration stat, float currentValue)
     {

@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -52,6 +53,9 @@ public partial class PRUnitySDK
             return;
         }
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+
         GameRules.Initialize();
         InitializeConverters();
         InitializeSingletons();
@@ -63,15 +67,18 @@ public partial class PRUnitySDK
         Windows.Initialize();
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
-        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete.");
-
         readySignal.SetReady();
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        stopwatch.Stop();
     }
 
     private static void InitializeSingletons()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         PRMonoBehaviourHost.Instance.SingletonInitialize();
         PRTimeScale.Instance.SingletonInitialize();
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize InitializeSingletons complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        stopwatch.Stop();
     }
 
     /// <summary>
@@ -169,7 +176,10 @@ public partial class PRUnitySDK
     
     private static void RegisterFactories()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         ScreenFade.RegisterFactory(new ScreenFadeFactory());
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.RegisterFactories);
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize RegisterFactories complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        stopwatch.Stop();
     }
 }

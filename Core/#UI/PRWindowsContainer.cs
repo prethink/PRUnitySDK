@@ -34,6 +34,7 @@ public partial class PRWindowsContainer
 
     private void InitializeWindows()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         Container      = MonoBehaviourUtils.CreateContainer("Windows");
 
         SharedCanvas   = MonoBehaviourUtils.CreateContainer("Windows.SharedCanvas");
@@ -51,13 +52,20 @@ public partial class PRWindowsContainer
 
         var settingsWindows = new SettingsMonoWindowFactory().CreateMonoWindow();
         var test = new DashboardMessagesFactory().Create(SharedCanvas.transform);
+
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Windows complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        stopwatch.Stop();
     }
 
     private void InitializeNotifiers()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         Notifiers = MonoBehaviourUtils.CreateContainer("Notifiers");
 
         RewardNotifier = new RewardNotifierFactory().Create();
         ToastMessageNotifier = new ToastMessageNotifierFactory().Create();
+
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Notifiers complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        stopwatch.Stop();
     }
 }

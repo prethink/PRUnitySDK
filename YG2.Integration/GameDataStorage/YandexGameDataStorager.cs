@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using YG;
 
 /// <summary>
@@ -17,6 +18,8 @@ public class YandexGameDataStorager : IGameDataStorage
 
     public bool TryLoad()
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         PRLog.WriteDebug(this, $"Try loading data use strategy {GetSettings().SaveStrategy}");
         saveData = new PRSaveData();
         bool result = false;
@@ -37,7 +40,8 @@ public class YandexGameDataStorager : IGameDataStorage
         {
             throw new NotImplementedException();
         }
-        PRLog.WriteDebug(this, $"Loading end.");
+        stopwatch.Stop();
+        PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         return result;
     }
 
