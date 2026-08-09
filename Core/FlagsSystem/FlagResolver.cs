@@ -11,6 +11,37 @@ public enum FlagDecision
     Deny
 }
 
+public readonly struct FlagInfluenceDebugInfo
+{
+    public object Source { get; }
+    public FlagDecision Decision { get; }
+    public bool IsFrame { get; }
+
+    public FlagInfluenceDebugInfo(object source, FlagDecision decision, bool isFrame)
+    {
+        Source = source;
+        Decision = decision;
+        IsFrame = isFrame;
+    }
+}
+
+public sealed class FlagDebugInfo
+{
+    public Enumeration Key { get; }
+    public FlagDecision Decision { get; }
+    public IReadOnlyList<FlagInfluenceDebugInfo> Influences { get; }
+
+    public FlagDebugInfo(
+        Enumeration key,
+        FlagDecision decision,
+        IReadOnlyList<FlagInfluenceDebugInfo> influences)
+    {
+        Key = key;
+        Decision = decision;
+        Influences = influences;
+    }
+}
+
 /// <summary>
 /// Объединяет независимые влияния на флаги. Deny имеет абсолютный приоритет,
 /// затем Allow, а при отсутствии живых влияний возвращается Unspecified.
@@ -146,6 +177,31 @@ public class FlagResolver
     }
 
     public bool HasAny(Enumeration key) => Resolve(key) != FlagDecision.Unspecified;
+
+    /// <summary>
+    /// Создаёт read-only snapshot для диагностических инструментов.
+    /// </summary>
+    public IReadOnlyList<FlagDebugInfo> GetDebugSnapshot()
+    {
+        var result = new List<FlagDebugInfo>(flags.Count);
+
+        foreach (var item in flags)
+        {
+            var influences = new List<FlagInfluenceDebugInfo>(
+                item.Value.Persistent.Count + item.Value.Frame.Count);
+
+            AddDebugInfluences(item.Value.Persistent, false, influences);
+            AddDebugInfluences(item.Value.Frame, true, influences);
+
+            if (influences.Count == 0)
+                continue;
+
+            result.Add(new FlagDebugInfo(item.Key, Resolve(item.Key), influences));
+        }
+
+        result.Sort((left, right) => string.CompareOrdinal(left.Key.Value, right.Key.Value));
+        return result;
+    }
 
     /// <summary>
     /// Удаляет все влияния и сообщает об изменении каждого затронутого решения.
@@ -319,6 +375,18 @@ public class FlagResolver
             influences.Remove(source);
 
         return true;
+    }
+
+    private static void AddDebugInfluences(
+        Dictionary<object, FlagDecision> source,
+        bool isFrame,
+        List<FlagInfluenceDebugInfo> target)
+    {
+        foreach (var item in source)
+        {
+            if (!IsDeadSource(item.Key))
+                target.Add(new FlagInfluenceDebugInfo(item.Key, item.Value, isFrame));
+        }
     }
 
     private void NotifyIfChanged(Enumeration key, FlagDecision previous)

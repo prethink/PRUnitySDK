@@ -1,220 +1,124 @@
-using System.Linq;
+using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 public partial class PRDebugEditor : ExtendedEditorWindow
 {
-    /// <summary>
-    /// Интервал автообновления окна в секундах.
-    /// </summary>
-    private const double RefreshIntervalSeconds = 1.0;
+    private const string AutoRefreshKey = "PRDebugEditor.AutoRefresh";
+    private const string RefreshIntervalKey = "PRDebugEditor.RefreshInterval";
 
-    private double nextUpdate;
-    private bool showPlayerList = true;
-    private bool showEntityDetails = true;
+    private readonly List<PlayerRow> players = new();
+    private readonly List<EntityRow> entities = new();
+    private readonly List<PoolSystemTableData> pools = new();
+    private readonly List<FlagResolverRow> flagResolvers = new();
 
-    [MenuItem("PRUnitySDK/Debug window")]
+    private Vector2 scroll;
+    private string search = string.Empty;
+    private string snapshotError;
+    private bool autoRefresh = true;
+    private double refreshInterval = 1d;
+    private double nextRefresh;
+    private DateTime lastRefreshUtc;
+    private PauseSnapshot pause;
+    private int humanCount;
+    private int aiCount;
+    private long entityTotal;
+    private long entityOnScene;
+    private long entityInPool;
+
+    [MenuItem("PRUnitySDK/Tools/Debug Window")]
     public static void ShowWindow()
     {
-        GetWindow<PRDebugEditor>("Debug window");
+        var window = GetWindow<PRDebugEditor>("PRUnitySDK Debug");
+        window.minSize = new Vector2(720f, 360f);
     }
 
     private void OnEnable()
     {
-        nextUpdate = EditorApplication.timeSinceStartup + RefreshIntervalSeconds;
+        autoRefresh = SessionState.GetBool(AutoRefreshKey, true);
+        refreshInterval = SessionState.GetFloat(RefreshIntervalKey, 1f);
         EditorApplication.update += AutoRefresh;
-        //UpdateStateGame();
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        RefreshSnapshot();
     }
 
     private void OnDisable()
     {
-        // Без отписки делегат продолжает держать ссылку на уничтоженное окно
-        // после его закрытия — Repaint() будет дёргаться на мёртвом объекте до перезагрузки домена.
         EditorApplication.update -= AutoRefresh;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        SessionState.SetBool(AutoRefreshKey, autoRefresh);
+        SessionState.SetFloat(RefreshIntervalKey, (float)refreshInterval);
+    }
+
+    private void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredPlayMode || state == PlayModeStateChange.EnteredEditMode)
+            RefreshSnapshot();
     }
 
     private void AutoRefresh()
     {
-        if (EditorApplication.timeSinceStartup < nextUpdate)
+        if (!autoRefresh || EditorApplication.timeSinceStartup < nextRefresh)
             return;
 
-        nextUpdate = EditorApplication.timeSinceStartup + RefreshIntervalSeconds;
+        RefreshSnapshot();
         Repaint();
     }
 
     private void OnGUI()
     {
+        DrawToolbar();
+
+        if (!EditorApplication.isPlaying)
+        {
+            EditorGUILayout.HelpBox("Runtime diagnostics are available in Play Mode.", MessageType.Info);
+            return;
+        }
+
         if (!PRUnitySDK.IsInitialized)
         {
-            EditorGUILayout.LabelField("PRUnitySDK еще не инициализирован.");
+            EditorGUILayout.HelpBox("PRUnitySDK is not initialized yet.", MessageType.Warning);
             return;
         }
 
-        DrawPauseState();
-        DrawPlayersInfo();
-        DrawEntitiesInfo();
-        DrawPoolSystem();
+        if (!string.IsNullOrEmpty(snapshotError))
+            EditorGUILayout.HelpBox(snapshotError, MessageType.Error);
+
+        scroll = EditorGUILayout.BeginScrollView(scroll);
+        Tabs(
+            ("Overview", DrawOverview),
+            ($"Players ({players.Count})", DrawPlayers),
+            ($"Entities ({entityTotal})", DrawEntities),
+            ($"Pools ({pools.Count})", DrawPools),
+            ($"Flags ({flagResolvers.Count})", DrawFlags));
+        EditorGUILayout.EndScrollView();
     }
 
-    #region Общие хелперы отрисовки таблиц
-
-    /// <summary>
-    /// Рисует одну строку таблицы из пар (значение, ширина), не дублируя вызовы EditorGUILayout на каждую колонку.
-    /// </summary>
-    private static void DrawTableRow(params (string value, float width)[] columns)
+    private void DrawToolbar()
     {
-        EditorGUILayout.BeginHorizontal();
-        foreach (var (value, width) in columns)
-            EditorGUILayout.LabelField(value, GUILayout.Width(width));
-        EditorGUILayout.EndHorizontal();
-    }
-
-    /// <summary>
-    /// Рисует одну строку таблицы с иконкой в первой колонке.
-    /// </summary>
-    private static void DrawTableRowWithIcon(Texture icon, params (string value, float width)[] columns)
-    {
-        GUILayout.BeginHorizontal();
-        if (icon != null)
-            GUILayout.Label(icon, GUILayout.Width(16), GUILayout.Height(16));
-        foreach (var (value, width) in columns)
-            EditorGUILayout.LabelField(value, GUILayout.Width(width));
-        GUILayout.EndHorizontal();
-    }
-
-    #endregion
-
-    private void DrawPoolSystem()
-    {
-        EditorGUILayout.LabelField("PoolSystem", EditorStyles.boldLabel);
-        EditorGUILayout.BeginVertical("box");
-
-        DrawTableRow(
-            ("Root", 150), ("Категория", 150),
-            ("Всего", 100), ("На сцене", 100), ("Спрятанных", 100));
-
-        foreach (var item in PRUnitySDK.Managers.ObjectPool.GenerateReport())
+        CreateHorizontalToolBar(() =>
         {
-            DrawTableRow(
-                (item.Type, 150), (item.Category, 150),
-                (item.TotalCount.ToString(), 100),
-                (item.ShowCount.ToString(), 100),
-                (item.HideCount.ToString(), 100));
-        }
+            if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(65f)))
+                RefreshSnapshot();
 
-        EditorGUILayout.EndVertical();
-    }
+            autoRefresh = GUILayout.Toggle(autoRefresh, "Auto", EditorStyles.toolbarButton, GUILayout.Width(45f));
+            GUILayout.Label("Interval", GUILayout.Width(45f));
+            refreshInterval = Math.Max(0.1d, EditorGUILayout.DoubleField(refreshInterval, GUILayout.Width(42f)));
+            GUILayout.Space(8f);
 
-    private void DrawPauseState()
-    {
-        GUILayout.Label("Состояния паузы:");
-        GUI.enabled = false; // Делаем UI неактивным
-        GUILayout.Toggle(PRUnitySDK.PauseManager.IsProjectPaused, nameof(PauseManager.IsProjectPaused));
-        GUILayout.Toggle(PRUnitySDK.PauseManager.IsLogicPaused, nameof(PauseManager.IsLogicPaused));
-        GUILayout.Toggle(PRUnitySDK.PauseManager.IsFocusPaused, nameof(PauseManager.IsFocusPaused));
-        GUILayout.Toggle(PRUnitySDK.PauseManager.IsMusicPaused, nameof(PauseManager.IsMusicPaused));
-        GUILayout.Toggle(PRUnitySDK.PauseManager.IsTutorialPaused, nameof(PauseManager.IsTutorialPaused));
-        GUILayout.Toggle(PRUnitySDK.PauseManager.IsCutScenePaused, nameof(PauseManager.IsCutScenePaused));
-        GUI.enabled = true; // Включаем UI обратно
-    }
+            search = GUILayout.TextField(search ?? string.Empty, EditorStyles.toolbarSearchField,
+                GUILayout.MinWidth(140f), GUILayout.MaxWidth(320f));
+            if (!string.IsNullOrEmpty(search) && GUILayout.Button("Г—", EditorStyles.toolbarButton, GUILayout.Width(22f)))
+                search = string.Empty;
 
-    private void DrawPlayersInfo()
-    {
-        var tracker = PRUnitySDK.Trackers.Players;
-        EditorGUILayout.LabelField("Players", EditorStyles.boldLabel);
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("Людей:", tracker.HumanCount.ToString());
-        EditorGUILayout.LabelField("Ботов:", tracker.AICount.ToString());
-        EditorGUILayout.EndHorizontal();
-        EditorGUILayout.BeginHorizontal();
-        //EditorGUILayout.LabelField("Живых:", gameSessionManager.PlayerTracker.AliveCount.ToString());
-        //EditorGUILayout.LabelField("Мертвых:", gameSessionManager.PlayerTracker.DeadCount.ToString());
-        EditorGUILayout.EndHorizontal();
-        EditorGUILayout.Space();
-
-        showPlayerList = EditorGUILayout.Foldout(showPlayerList, $"Player List ({tracker.PlayersCount})");
-        if (!showPlayerList)
-            return;
-
-        var players = tracker.Players;
-        EditorGUILayout.BeginVertical("box");
-
-        DrawTableRow(
-            ("HumanId", 80), ("Имя", 150), ("Команда", 100),
-            ("Очков", 100), ("Убийств", 60), ("Смертей", 60),
-            ("Статус", 100), ("Действие", 70));
-
-        foreach (var player in players)
-        {
-            // GetIcon()/PlayerTeam могут отсутствовать у некорректно настроенного игрока —
-            // защищаемся от NRE, чтобы одна битая запись не ломала всё окно.
-            var icon = player.Info?.GetIcon().texture;
-            var teamName = player.PlayerTeam != null ? player.PlayerTeam.Name : "-";
-
-            //string isAliveStatus = player.IsAlive ? L.Tr(PlayerTranslateKeys.ALIVE_KEY) : L.Tr(PlayerTranslateKeys.DEAD_KEY);
-            //string isBot = player.PlayerType == PlayerType.AI ? L.Tr(PlayerTranslateKeys.BOT_KEY) : L.Tr(PlayerTranslateKeys.HUMAN_KEY);
-
-            DrawTableRowWithIcon(icon,
-                ($"{player.HumanId}", 58),
-                (player.Info?.GetName() ?? "-", 150),
-                (teamName, 100),
-                (player.Points.ToString(), 100),
-                (player.Kills.ToString(), 60),
-                (player.Deaths.ToString(), 60));
-
-            //if (!player.IsAlive && GUILayout.Button(L.Tr(PlayerTranslateKeys.REVIVE_KEY), GUILayout.Width(70)))
-            //{
-            //    player.Revive();
-            //}
-        }
-
-        EditorGUILayout.EndVertical();
-    }
-
-    private void DrawEntitiesInfo()
-    {
-        EditorGUILayout.LabelField("Entities", EditorStyles.boldLabel);
-        var tracker = PRUnitySDK.Trackers.Entities;
-        var existsEntities = tracker.GetExistsEntityCount();
-        var onSceneEntities = tracker.GetEntityOnSceneCount();
-        var onPoolEntities = tracker.GetEntityInPoolCount();
-        var hideEntities = existsEntities - onSceneEntities;
-
-        EditorGUILayout.BeginVertical("box");
-
-        DrawTableRow(
-            ("Всего сущностей", 170), ("На сцене", 70),
-            ("Спрятанных", 100), ("Спрятанных в pool", 170));
-
-        DrawTableRow(
-            (existsEntities.ToString(), 170), (onSceneEntities.ToString(), 70),
-            (hideEntities.ToString(), 100), (onPoolEntities.ToString(), 170));
-
-        showEntityDetails = EditorGUILayout.Foldout(showEntityDetails, $"EntityDetails ({tracker.GetEntitiesCount()})");
-        if (showEntityDetails)
-        {
-            DrawTableRow(
-                ("Тип сущности", 170), ("Всего", 70), ("На сцене", 70),
-                ("Спрятанных", 100), ("Спрятанных в pool", 170));
-
-            var icon = EditorGUIUtility.IconContent("d_Prefab Icon").image;
-            var entityDetails = tracker.RegisteredEntity.OrderByDescending(x => x.Value);
-
-            foreach (var entity in entityDetails)
-            {
-                var onSceneEntity = tracker.GetExactEntityOnSceneCount(entity.Key);
-                var inPoolEntity = tracker.GetExactEntityInPoolCount(entity.Key);
-                var hideEntity = entity.Value - onSceneEntity;
-
-                DrawTableRowWithIcon(icon,
-                    (entity.Key.ToString(), 150),
-                    (entity.Value.ToString(), 70),
-                    (onSceneEntity.ToString(), 70),
-                    (hideEntity.ToString(), 100),
-                    (inPoolEntity.ToString(), 170));
-            }
-        }
-
-        EditorGUILayout.EndVertical();
+            GUILayout.FlexibleSpace();
+            string mode = EditorApplication.isPlaying
+                ? (EditorApplication.isPaused ? "PLAY вЂў PAUSED" : "PLAY")
+                : "EDIT";
+            GUILayout.Label(mode, EditorStyles.miniBoldLabel, GUILayout.Width(90f));
+            if (lastRefreshUtc != default)
+                GUILayout.Label(lastRefreshUtc.ToLocalTime().ToString("HH:mm:ss"), GUILayout.Width(55f));
+        });
     }
 }

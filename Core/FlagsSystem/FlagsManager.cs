@@ -13,6 +13,8 @@ public class FlagsManager : MonoBehaviourSingletonBase<FlagsManager>
     /// </summary>
     public FlagResolver Global => ProjectFlags;
 
+    public IReadOnlyCollection<FlagResolver> Scenes => SceneFlags;
+
     public bool AddSceneFlags(FlagResolver flagResolver)
     {
         return flagResolver != null && SceneFlags.Add(flagResolver);
