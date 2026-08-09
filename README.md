@@ -195,6 +195,7 @@ PRUnitySDK/
 - [Actions](Core/@Actions/README.md)
 - [EventBus](Core/@Events/EventBus/README.md)
 - [HookSystem](Core/HookSystem/README.md)
+- [FlagsSystem](Core/FlagsSystem/README.md)
 
 ### Жизненный цикл и время
 
