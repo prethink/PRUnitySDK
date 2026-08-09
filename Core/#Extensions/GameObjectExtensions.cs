@@ -4,6 +4,9 @@ using UnityEngine.UI;
 
 public static class GameObjectExtensions 
 {
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ РєРѕРјРїРѕРЅРµРЅС‚ РёР»Рё РґРѕР±Р°РІР»СЏРµС‚ РЅРѕРІС‹Р№.
+    /// </summary>
     public static T GetOrAddComponent<T>(this GameObject go) where T : Component
     {
         //Attempt to find the component on the object
@@ -19,60 +22,74 @@ public static class GameObjectExtensions
         return newComponent;
     }
 
+    /// <summary>
+    /// РџС‹С‚Р°РµС‚СЃСЏ РЅР°Р№С‚Рё РєРѕРјРїРѕРЅРµРЅС‚ СЃСЂРµРґРё РѕР±СЉРµРєС‚Р° Рё РµРіРѕ РїРѕС‚РѕРјРєРѕРІ.
+    /// </summary>
     public static bool TryGetComponentInChildren<T>(this GameObject gameObject, out T result, bool includeInactive = false)
     {
         result = gameObject.GetComponentInChildren<T>(includeInactive);
         return result != null;
     }
 
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРµСЂРІС‹Р№ РєРѕРјРїРѕРЅРµРЅС‚ СЃСЂРµРґРё РѕР±СЉРµРєС‚Р° Рё РµРіРѕ РїРѕС‚РѕРјРєРѕРІ.
+    /// </summary>
     public static T GetComponentInChildren<T>(this GameObject gameObject, bool includeInactive = false)
     {
         return gameObject.GetComponentInChildren<T>(includeInactive);
     }
 
+    /// <summary>
+    /// РС‰РµС‚ РєРѕРјРїРѕРЅРµРЅС‚ СЃРЅР°С‡Р°Р»Р° РЅР° РѕР±СЉРµРєС‚Рµ, Р·Р°С‚РµРј СЃСЂРµРґРё РµРіРѕ РїРѕС‚РѕРјРєРѕРІ.
+    /// </summary>
     public static T GetComponentInSelfOrChildren<T>(this GameObject gameObject, bool includeInactive = false) where T : Component
     {
-        // Сначала пытаемся найти компонент на самом объекте
         T component = gameObject.GetComponent<T>();
         if (component != null)
             return component;
 
-        // Если не нашли — ищем среди дочерних
         return gameObject.GetComponentInChildren<T>(includeInactive);
     }
 
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРјРїРѕРЅРµРЅС‚С‹ РѕР±СЉРµРєС‚Р° Рё РµРіРѕ РїРѕС‚РѕРјРєРѕРІ Р±РµР· РїРѕРІС‚РѕСЂРѕРІ РєРѕРјРїРѕРЅРµРЅС‚РѕРІ РєРѕСЂРЅСЏ.
+    /// </summary>
     public static List<T> GetComponentsInSelfOrChildren<T>(this GameObject gameObject, bool includeInactive = false) where T : Component
     {
-        var result = new List<T>();
-
-        // Добавляем компоненты на самом объекте
-        result.AddRange(gameObject.GetComponents<T>());
-
-        // Добавляем компоненты в дочерних объектах
-        result.AddRange(gameObject.GetComponentsInChildren<T>(includeInactive));
-
-        return result;
+        return new List<T>(gameObject.GetComponentsInChildren<T>(includeInactive));
     }
 
 
+    /// <summary>
+    /// РС‰РµС‚ РєРѕРјРїРѕРЅРµРЅС‚ РІ РїРѕС‚РѕРјРєР°С… СЂРѕРґРёС‚РµР»СЏ; РїСЂРё РѕС‚СЃСѓС‚СЃС‚РІРёРё СЂРѕРґРёС‚РµР»СЏ РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР°Рј РѕР±СЉРµРєС‚.
+    /// </summary>
     public static T ParentGetComponentInChildren<T>(this GameObject gameObject)
     {
         var parent = gameObject.transform.parent != null ? gameObject.transform.parent : gameObject.transform;
         return parent.gameObject.GetComponentInChildren<T>();
     }
 
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРјРїРѕРЅРµРЅС‚С‹ РёР· РїРѕС‚РѕРјРєРѕРІ СЂРѕРґРёС‚РµР»СЏ; РїСЂРё РѕС‚СЃСѓС‚СЃС‚РІРёРё СЂРѕРґРёС‚РµР»СЏ РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР°Рј РѕР±СЉРµРєС‚.
+    /// </summary>
     public static T[] ParentGetComponentsInChildren<T>(this GameObject gameObject)
     {
         var parent = gameObject.transform.parent != null ? gameObject.transform.parent : gameObject.transform;
         return parent.gameObject.GetComponentsInChildren<T>();
     }
 
+    /// <summary>
+    /// РС‰РµС‚ РєРѕРјРїРѕРЅРµРЅС‚ РЅР° СЂРѕРґРёС‚РµР»Рµ; РїСЂРё РѕС‚СЃСѓС‚СЃС‚РІРёРё СЂРѕРґРёС‚РµР»СЏ РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР°Рј РѕР±СЉРµРєС‚.
+    /// </summary>
     public static T ParentGetComponent<T>(this GameObject gameObject)
     {
         var parent = gameObject.transform.parent != null ? gameObject.transform.parent : gameObject.transform;
         return parent.gameObject.GetComponent<T>();
     }
 
+    /// <summary>
+    /// РџСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РїРµСЂРµСЃС‚СЂР°РёРІР°РµС‚ Р°РєС‚РёРІРЅС‹Рµ RectTransform РІ РёРµСЂР°СЂС…РёРё РѕР±СЉРµРєС‚Р°.
+    /// </summary>
     public static void RefreshLayoutGroupsImmediateAndRecursive(this GameObject root)
     {
         foreach (var layoutGroup in root.GetComponentsInChildren<RectTransform>())
@@ -84,12 +101,7 @@ public static class GameObjectExtensions
 
 
     ///// <summary>
-    ///// Попытаться найти компонент в иерархии объектов (для Component).
     ///// </summary>
-    ///// <typeparam name="T">Тип компонента.</typeparam>
-    ///// <param name="obj">Компонент на котором происходит поиск.</param>
-    ///// <param name="component">Искомый компонент.</param>
-    ///// <returns>Компонент или null.</returns>
     //public static bool TryGetComponentRecursive<T>(this GameObject obj, out T component)
     //    where T : Component
     //{
@@ -102,11 +114,8 @@ public static class GameObjectExtensions
     //}
 
     /// <summary>
-    /// Получить компонент в иерархии объектов (для GameObject).
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРјРїРѕРЅРµРЅС‚, РЅР°Р№РґРµРЅРЅС‹Р№ РЅР° РѕР±СЉРµРєС‚Рµ Р»РёР±Рѕ РІ РёРµСЂР°СЂС…РёРё РѕС‚ РµС‘ РєРѕСЂРЅСЏ.
     /// </summary>
-    /// <typeparam name="T">Тип компонента.</typeparam>
-    /// <param name="obj">GameObject на котором происходит поиск.</param>
-    /// <returns>Компонент или null.</returns>
     public static T GetComponentInObjectHierarchy<T>(this GameObject obj)
         where T : Component
     {
@@ -116,12 +125,8 @@ public static class GameObjectExtensions
     }
 
     /// <summary>
-    /// Попытаться найти компонент в иерархии объектов (для Component).
+    /// РџС‹С‚Р°РµС‚СЃСЏ РЅР°Р№С‚Рё РєРѕРјРїРѕРЅРµРЅС‚ РЅР° РѕР±СЉРµРєС‚Рµ Р»РёР±Рѕ РІ РёРµСЂР°СЂС…РёРё РѕС‚ РµС‘ РєРѕСЂРЅСЏ.
     /// </summary>
-    /// <typeparam name="T">Тип компонента.</typeparam>
-    /// <param name="obj">Компонент на котором происходит поиск.</param>
-    /// <param name="component">Искомый компонент.</param>
-    /// <returns>Компонент или null.</returns>
     public static bool TryFindComponentInObjectHierarchy<T>(this GameObject obj, out T component)
         where T : Component
     {
@@ -129,12 +134,7 @@ public static class GameObjectExtensions
     }
 
     ///// <summary>
-    ///// Попытаться найти компонент в иерархии объектов (для GameObject).
     ///// </summary>
-    ///// <typeparam name="T">Тип компонента.</typeparam>
-    ///// <param name="obj">GameObject на котором происходит поиск.</param>
-    ///// <param name="component">Искомый компонент.</param>
-    ///// <returns>Компонент или null.</returns>
     //public static bool TryFindComponentInObjectHierarchy<T>(this GameObject obj, Transform root, out T component)
     //    where T : Component
     //{
@@ -147,28 +147,29 @@ public static class GameObjectExtensions
     //}
 
     /// <summary>
-    /// Попытаться найти компонент в иерархии объектов (для Component).
+    /// РџСЂРѕРІРµСЂСЏРµС‚ РѕР±СЉРµРєС‚, Р·Р°С‚РµРј РёС‰РµС‚ РєРѕРјРїРѕРЅРµРЅС‚ СЃСЂРµРґРё РїРѕС‚РѕРјРєРѕРІ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РєРѕСЂРЅСЏ.
     /// </summary>
-    /// <typeparam name="T">Тип компонента.</typeparam>
-    /// <param name="obj">Компонент на котором происходит поиск.</param>
-    /// <param name="component">Искомый компонент.</param>
-    /// <returns>Компонент или null.</returns>
+    /// <param name="root">РљРѕСЂРµРЅСЊ РѕР±Р»Р°СЃС‚Рё РїРѕРёСЃРєР°.</param>
     public static bool TryFindComponentInObjectChildren<T>(this GameObject obj, Transform root, out T component)
         where T : Component
     {
+        if (obj == null)
+            throw new System.ArgumentNullException(nameof(obj));
+
+        if (root == null)
+            throw new System.ArgumentNullException(nameof(root));
+
         component = obj.GetComponent<T>();
 
         if (component == null)
-            component = obj.GetComponentInChildren<T>();
+            component = root.GetComponentInChildren<T>();
 
         return component != null;
     }
 
 
     ///// <summary>
-    ///// Установить родительский объект System (для GameObject).
     ///// </summary>
-    ///// <param name="obj">GameObject которому будет выставлен родитель.</param>
     //public static void SetParentSystem(this GameObject obj)
     //{
     //    var systemTransform = InstanceUtils.GetOrCreateEmptySystemObject();
@@ -176,12 +177,7 @@ public static class GameObjectExtensions
     //}
 
     ///// <summary>
-    ///// Попытаться найти компонент от корня (для GameObject).
     ///// </summary>
-    ///// <typeparam name="T">Тип компонента.</typeparam>
-    ///// <param name="obj">GameObject на котором происходит поиск.</param>
-    ///// <param name="component">Искомый компонент.</param>
-    ///// <returns>Компонент или null.</returns>
     //public static bool TryFindComponentFromRoot<T>(this GameObject obj, out T component)
     //    where T : Component
     //{
@@ -195,12 +191,7 @@ public static class GameObjectExtensions
     //}
 
     ///// <summary>
-    ///// Попытаться найти компоненты в иерархии объектов (для GameObject).
     ///// </summary>
-    ///// <typeparam name="T">Тип компонента.</typeparam>
-    ///// <param name="obj">GameObject на котором происходит поиск.</param>
-    ///// <param name="components">Искомая коллекция компонентов.</param>
-    ///// <returns>Компоненты или пустая коллекция.</returns>
     //public static bool TryFindComponentsInObjectHierarchy<T>(this GameObject obj, out List<T> components)
     //    where T : Component
     //{

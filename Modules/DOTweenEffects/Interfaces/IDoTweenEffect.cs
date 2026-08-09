@@ -1,23 +1,52 @@
 using DG.Tweening;
-using UnityEngine;
 
+/// <summary>
+/// Управляемый DOTween-эффект, реагирующий на логическую паузу SDK.
+/// </summary>
 public interface IDoTweenEffect : IPauseStateListener
 {
-    public Ease Ease { get; }
+    /// <summary>
+    /// Функция сглаживания эффекта.
+    /// </summary>
+    Ease Ease { get; }
 
-    public LoopType LoopType { get; }
+    /// <summary>
+    /// Тип повторения эффекта.
+    /// </summary>
+    LoopType LoopType { get; }
 
-    public int LoopCount { get; }
+    /// <summary>
+    /// Количество циклов. Значение -1 означает бесконечное повторение.
+    /// </summary>
+    int LoopCount { get; }
 
-    public float Duration { get; }
+    /// <summary>
+    /// Длительность одного цикла в секундах.
+    /// </summary>
+    float Duration { get; }
 
-    public bool PlayAnimationOnStart { get; }
+    /// <summary>
+    /// Нужно ли создать эффект автоматически в Start().
+    /// </summary>
+    bool PlayAnimationOnStart { get; }
 
-    public Tween CreateAnimation();
+    /// <summary>
+    /// Пересоздаёт DOTween-анимацию и возвращает её экземпляр.
+    /// </summary>
+    Tween CreateAnimation();
 
-    public void StartAnimation();
+    /// <summary>
+    /// Возобновляет уже созданную анимацию.
+    /// </summary>
+    void StartAnimation();
 
-    public void StopAnimation();
+    /// <summary>
+    /// Приостанавливает анимацию с сохранением прогресса.
+    /// </summary>
+    void StopAnimation();
 
-    public void DestroyAnimation();
+    /// <summary>
+    /// Уничтожает анимацию.
+    /// </summary>
+    void DestroyAnimation();
 }

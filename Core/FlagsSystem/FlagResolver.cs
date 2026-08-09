@@ -1,212 +1,347 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Контейнер влияний на флаги.
-/// Поддерживает Allow / Deny / Default.
-/// Один source может иметь только одно влияние.
+/// Итог голосования источников по флагу без применения значения по умолчанию.
+/// </summary>
+public enum FlagDecision
+{
+    Unspecified,
+    Allow,
+    Deny
+}
+
+/// <summary>
+/// Объединяет независимые влияния на флаги. Deny имеет абсолютный приоритет,
+/// затем Allow, а при отсутствии живых влияний возвращается Unspecified.
 /// </summary>
 public class FlagResolver
 {
-    private enum Influence
+    private sealed class FlagInfluences
     {
-        Allow,
-        Deny
+        public readonly Dictionary<object, FlagDecision> Persistent = new();
+        public readonly Dictionary<object, FlagDecision> Frame = new();
+
+        public bool IsEmpty => Persistent.Count == 0 && Frame.Count == 0;
     }
 
-    private readonly struct FlagState
-    {
-        public readonly Influence Decision;
-        public readonly bool IsFrame;
+    private readonly Dictionary<Enumeration, FlagInfluences> flags = new();
 
-        public FlagState(Influence decision, bool isFrame)
-        {
-            Decision = decision;
-            IsFrame = isFrame;
-        }
-    }
+    /// <summary>
+    /// Указывает, что контейнер менялся или может содержать уничтоженные Unity sources.
+    /// Сбрасывается методом <see cref="Cleanup"/>.
+    /// </summary>
+    public bool IsDirty { get; private set; }
 
-    public bool IsDirty { get; protected set; }
-
-    private readonly Dictionary<Enumeration, Dictionary<object, FlagState>> flags = new();
-
+    /// <summary>
+    /// Совместимое событие. Вызывается при изменении решения; true означает Allow,
+    /// false означает Deny или Unspecified. Для нового кода предпочтительнее
+    /// <see cref="OnChangeFlagDecision"/>.
+    /// </summary>
     public event Action<Enumeration, bool> OnChangeFlagState;
 
     /// <summary>
-    /// Добавить или обновить влияние на флаг.
+    /// Вызывается только когда итоговое решение действительно изменилось.
     /// </summary>
-    public void Add(Enumeration key, object source, bool value)
-    {
-        Add(key, source, value, false);
-    }
+    public event Action<Enumeration, FlagDecision> OnChangeFlagDecision;
+
+    public void Allow(Enumeration key, object source) => Set(key, source, FlagDecision.Allow, false);
+
+    public void Deny(Enumeration key, object source) => Set(key, source, FlagDecision.Deny, false);
+
+    public void AllowFrame(Enumeration key, object source) => Set(key, source, FlagDecision.Allow, true);
+
+    public void DenyFrame(Enumeration key, object source) => Set(key, source, FlagDecision.Deny, true);
 
     /// <summary>
-    /// Добавить или обновить влияние на флаг.
+    /// Совместимый API: true = Allow, false = Deny.
     /// </summary>
-    public void Add(Enumeration key, object source, bool value, bool isFlagFrame)
+    public void Add(Enumeration key, object source, bool value) =>
+        Set(key, source, ToDecision(value), false);
+
+    /// <summary>
+    /// Совместимый API с явным lifetime.
+    /// </summary>
+    public void Add(Enumeration key, object source, bool value, bool isFlagFrame) =>
+        Set(key, source, ToDecision(value), isFlagFrame);
+
+    public void AddFrame(Enumeration key, object source, bool value) =>
+        Set(key, source, ToDecision(value), true);
+
+    private void Set(Enumeration key, object source, FlagDecision decision, bool isFrame)
     {
-        if (!flags.TryGetValue(key, out var sources))
+        ValidateKeyAndSource(key, source);
+
+        FlagDecision previous = Resolve(key);
+
+        if (!flags.TryGetValue(key, out var influences))
         {
-            sources = new Dictionary<object, FlagState>();
-            flags[key] = sources;
+            influences = new FlagInfluences();
+            flags.Add(key, influences);
         }
 
-        sources[source] = value 
-            ? new FlagState(Influence.Allow, isFlagFrame)
-            : new FlagState(Influence.Deny, isFlagFrame);
+        Dictionary<object, FlagDecision> target = isFrame
+            ? influences.Frame
+            : influences.Persistent;
 
-        this.ChangeFlagState(key, Get(key));
-    }
+        if (target.TryGetValue(source, out var current) && current == decision)
+            return;
 
-    public void AddFrame(Enumeration key, object source, bool value)
-    {
-        Add(key, source, value, true);
+        target[source] = decision;
+        IsDirty = true;
+        NotifyIfChanged(key, previous);
     }
 
     /// <summary>
-    /// Удалить влияние источника.
+    /// Удаляет и постоянное, и frame-влияние source на указанный флаг.
     /// </summary>
     public void Remove(Enumeration key, object source)
     {
-        if (!flags.TryGetValue(key, out var sources))
+        if (key == null || source == null || !flags.TryGetValue(key, out var influences))
             return;
 
-        sources.Remove(source);
+        FlagDecision previous = Resolve(key);
+        bool removed = influences.Persistent.Remove(source);
+        removed |= influences.Frame.Remove(source);
 
-        if (sources.Count == 0)
+        if (!removed)
+            return;
+
+        if (influences.IsEmpty)
             flags.Remove(key);
+
+        IsDirty = true;
+        NotifyIfChanged(key, previous);
     }
 
     /// <summary>
-    /// Получить итоговое значение флага.
+    /// Возвращает результат голосования без значения по умолчанию.
     /// </summary>
-    public bool Get(Enumeration key, bool defaultValue = true)
+    public FlagDecision Resolve(Enumeration key)
     {
-        if (!flags.TryGetValue(key, out var sources))
-            return defaultValue;
+        if (key == null || !flags.TryGetValue(key, out var influences))
+            return FlagDecision.Unspecified;
 
         bool hasAllow = false;
 
-        // Список удаляемых источников
-        var deadSources = new List<object>();
+        Evaluate(influences.Persistent, ref hasAllow, out bool denied);
+        if (denied)
+            return FlagDecision.Deny;
 
-        foreach (var kvp in sources)
-        {
-            var source = kvp.Key;
+        Evaluate(influences.Frame, ref hasAllow, out denied);
+        if (denied)
+            return FlagDecision.Deny;
 
-            // ❗ Проверка на уничтоженные Unity-объекты
-            if (source.IsNull())
-            {
-                deadSources.Add(source);
-                continue;
-            }
-
-            var influence = kvp.Value;
-
-            if (influence.Decision == Influence.Deny)
-                return false;
-
-            if (influence.Decision == Influence.Allow)
-                hasAllow = true;
-        }
-
-        // Удаляем "мёртвые" источники
-        foreach (var dead in deadSources)
-            sources.Remove(dead);
-
-        return hasAllow ? true : defaultValue;
+        return hasAllow ? FlagDecision.Allow : FlagDecision.Unspecified;
     }
 
-    /// <summary>
-    /// Проверка наличия влияний.
-    /// </summary>
-    public bool HasAny(Enumeration key)
+    public bool Get(Enumeration key, bool defaultValue = true)
     {
-        return flags.ContainsKey(key);
+        return Resolve(key) switch
+        {
+            FlagDecision.Allow => true,
+            FlagDecision.Deny => false,
+            _ => defaultValue
+        };
     }
 
+    public bool HasAny(Enumeration key) => Resolve(key) != FlagDecision.Unspecified;
+
     /// <summary>
-    /// Очистить всё.
+    /// Удаляет все влияния и сообщает об изменении каждого затронутого решения.
     /// </summary>
     public void Clear()
     {
+        if (flags.Count == 0)
+            return;
+
+        var previous = new Dictionary<Enumeration, FlagDecision>(flags.Count);
         foreach (var item in flags)
-            this.ChangeFlagState(item.Key, false);
+            previous[item.Key] = Resolve(item.Key);
 
         flags.Clear();
-    }
+        IsDirty = false;
 
-    public void ClearFrameFlags()
-    {
-
-    }
-
-    public void SetDirty()
-    {
-        IsDirty = true;
+        foreach (var item in previous)
+            NotifyIfChanged(item.Key, item.Value);
     }
 
     /// <summary>
-    /// Очистить все влияния конкретного источника.
+    /// Удаляет все влияния, добавленные через AddFrame/AllowFrame/DenyFrame.
+    /// Постоянные влияния тех же sources сохраняются.
+    /// </summary>
+    public void ClearFrameFlags()
+    {
+        if (flags.Count == 0)
+            return;
+
+        var changed = new List<(Enumeration Key, FlagDecision Previous)>();
+        var emptyKeys = new List<Enumeration>();
+
+        foreach (var item in flags)
+        {
+            if (item.Value.Frame.Count == 0)
+                continue;
+
+            changed.Add((item.Key, Resolve(item.Key)));
+            item.Value.Frame.Clear();
+
+            if (item.Value.IsEmpty)
+                emptyKeys.Add(item.Key);
+        }
+
+        foreach (var key in emptyKeys)
+            flags.Remove(key);
+
+        if (changed.Count == 0)
+            return;
+
+        IsDirty = true;
+        foreach (var item in changed)
+            NotifyIfChanged(item.Key, item.Previous);
+    }
+
+    public void SetDirty() => IsDirty = true;
+
+    /// <summary>
+    /// Удаляет все постоянные и frame-влияния указанного source.
     /// </summary>
     public void ClearSource(object source)
     {
-        var keysToRemove = new List<Enumeration>();
+        if (source == null || flags.Count == 0)
+            return;
 
-        foreach (var kvp in flags)
+        var changed = new List<(Enumeration Key, FlagDecision Previous)>();
+        var emptyKeys = new List<Enumeration>();
+
+        foreach (var item in flags)
         {
-            kvp.Value.Remove(source);
+            FlagDecision previous = Resolve(item.Key);
+            bool removed = item.Value.Persistent.Remove(source);
+            removed |= item.Value.Frame.Remove(source);
 
-            if (kvp.Value.Count == 0)
-                keysToRemove.Add(kvp.Key);
+            if (!removed)
+                continue;
+
+            changed.Add((item.Key, previous));
+            if (item.Value.IsEmpty)
+                emptyKeys.Add(item.Key);
         }
 
-        foreach (var key in keysToRemove)
-        {
-            this.ChangeFlagState(key, false);
+        foreach (var key in emptyKeys)
             flags.Remove(key);
-        }
+
+        if (changed.Count == 0)
+            return;
+
+        IsDirty = true;
+        foreach (var item in changed)
+            NotifyIfChanged(item.Key, item.Previous);
     }
 
-    protected void ChangeFlagState(Enumeration enumeration, bool value)
-    {
-        OnChangeFlagState?.Invoke(enumeration, value);
-    }
-
+    /// <summary>
+    /// Удаляет уничтоженные Unity-объекты, использованные как source.
+    /// Обычные CLR-объекты удаляются явно через Remove/ClearSource.
+    /// </summary>
     public void Cleanup()
     {
-        var keysToRemove = new List<Enumeration>();
-
-        foreach (var kvp in flags)
+        if (flags.Count == 0)
         {
-            var sources = kvp.Value;
-
-            var deadSources = new List<object>();
-
-            foreach (var source in sources.Keys)
-            {
-                // Unity null-safe проверка
-                if (source.IsNull())
-                {
-                    deadSources.Add(source);
-                }
-            }
-
-            // удаляем мёртвые источники
-            foreach (var dead in deadSources)
-                sources.Remove(dead);
-
-            // если больше нет влияний — удаляем ключ
-            if (sources.Count == 0)
-                keysToRemove.Add(kvp.Key);
+            IsDirty = false;
+            return;
         }
 
-        foreach (var key in keysToRemove)
+        var changed = new List<(Enumeration Key, FlagDecision Previous)>();
+        var emptyKeys = new List<Enumeration>();
+
+        foreach (var item in flags)
         {
-            this.ChangeFlagState(key, false);
+            FlagDecision previous = Resolve(item.Key);
+            bool removed = RemoveDeadSources(item.Value.Persistent);
+            removed |= RemoveDeadSources(item.Value.Frame);
+
+            if (!removed)
+                continue;
+
+            changed.Add((item.Key, previous));
+            if (item.Value.IsEmpty)
+                emptyKeys.Add(item.Key);
+        }
+
+        foreach (var key in emptyKeys)
             flags.Remove(key);
-        }
 
         IsDirty = false;
+        foreach (var item in changed)
+            NotifyIfChanged(item.Key, item.Previous);
+    }
+
+    private static void Evaluate(
+        Dictionary<object, FlagDecision> influences,
+        ref bool hasAllow,
+        out bool denied)
+    {
+        denied = false;
+
+        foreach (var item in influences)
+        {
+            if (IsDeadSource(item.Key))
+                continue;
+
+            if (item.Value == FlagDecision.Deny)
+            {
+                denied = true;
+                return;
+            }
+
+            if (item.Value == FlagDecision.Allow)
+                hasAllow = true;
+        }
+    }
+
+    private static bool RemoveDeadSources(Dictionary<object, FlagDecision> influences)
+    {
+        List<object> deadSources = null;
+
+        foreach (var source in influences.Keys)
+        {
+            if (!IsDeadSource(source))
+                continue;
+
+            deadSources ??= new List<object>();
+            deadSources.Add(source);
+        }
+
+        if (deadSources == null)
+            return false;
+
+        foreach (var source in deadSources)
+            influences.Remove(source);
+
+        return true;
+    }
+
+    private void NotifyIfChanged(Enumeration key, FlagDecision previous)
+    {
+        FlagDecision current = Resolve(key);
+        if (current == previous)
+            return;
+
+        OnChangeFlagDecision?.Invoke(key, current);
+        OnChangeFlagState?.Invoke(key, current == FlagDecision.Allow);
+    }
+
+    private static FlagDecision ToDecision(bool value) =>
+        value ? FlagDecision.Allow : FlagDecision.Deny;
+
+    private static bool IsDeadSource(object source) => source == null || source.IsNull();
+
+    private static void ValidateKeyAndSource(Enumeration key, object source)
+    {
+        if (key == null)
+            throw new ArgumentNullException(nameof(key));
+
+        if (source == null || source.IsNull())
+            throw new ArgumentNullException(nameof(source), "Flag source must be a live object.");
     }
 }

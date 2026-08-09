@@ -115,6 +115,8 @@ public class YandexGameDataStorager : IGameDataStorage
 
     public void Save()
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         PRLog.WriteDebug(this, $"Try save data use strategy {GetSettings().SaveStrategy}");
         if (GetSettings().SaveStrategy == SaveStrategy.Serialize)
         {
@@ -137,6 +139,9 @@ public class YandexGameDataStorager : IGameDataStorage
         {
             throw new NotImplementedException();
         }
+
+        stopwatch.Stop();
+        PRLog.WriteDebug(this, $"Save end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
 
     }
 

@@ -3,34 +3,34 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// ���������� ������ DOTween-��������.
-/// ��������� ���������������:
-/// - �������������� Tween'�
-/// - ��������� �� ��������� ������
-/// - ������������� ����������� �� ����� ����
+/// Глобальный трекер DOTween-анимаций.
+/// Позволяет централизованно:
+/// - регистрировать Tween'ы
+/// - управлять их жизненным циклом
+/// - автоматически реагировать на паузу игры
 /// </summary>
 public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseStateListener, IOnPRTimeScaleChange
 {
     /// <summary>
-    /// ��� ������������������ tween'� �� ����������� ��������������.
+    /// Все зарегистрированные tween'ы по уникальному идентификатору.
     /// </summary>
-    private Dictionary<Guid, TweenTimeScaleDTO> tweens = new Dictionary<Guid, TweenTimeScaleDTO>();
+    private readonly Dictionary<Guid, TweenTimeScaleDTO> tweens = new();
 
     /// <summary>
-    /// ����� ������� tween'� �� �����:
-    /// true  � tween ����� ��������� �� ����� / ��������������
-    /// false � tween ���������� �����
+    /// Флаги реакции tween'а на паузу:
+    /// true  — tween будет ставиться на паузу / возобновляться
+    /// false — tween игнорирует паузу
     /// </summary>
-    private Dictionary<Guid, bool> pauseData = new Dictionary<Guid, bool>();
+    private readonly Dictionary<Guid, bool> pauseData = new();
 
     /// <summary>
-    /// ������������ tween � �������.
+    /// Регистрирует tween в трекере.
     /// </summary>
-    /// <param name="tween">DOTween-��������</param>
+    /// <param name="tween">DOTween-анимация</param>
     /// <param name="reactionOnPause">
-    /// ������ �� tween ����������� �� ����� ����
+    /// Должен ли tween реагировать на паузу игры
     /// </param>
-    /// <returns>Guid � ������������� tween'�</returns>
+    /// <returns>Guid — идентификатор tween'а</returns>
     public Guid Register(Tween tween, Enumeration layer = null, bool reactionOnPause = true)
     {
         if (tween == null)
@@ -41,107 +41,170 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
 
         Guid guid = Guid.NewGuid();
 
-        tweens[guid] = new TweenTimeScaleDTO(tween, layer);
-        pauseData[guid] = reactionOnPause;
-
         tween.SetId(guid);
-        tween.timeScale = PRTimeScale.instance.GetTimeScale(layer);
+        tween.timeScale = PRTimeScale.Instance.Resolve(layer);
+
+        // Снимаем запись, только если она всё ещё указывает на ЭТОТ твин - защищает
+        // от случая, когда для этого же guid успели зарегистрировать другой твин
+        // (например, через RegisterOrReplace) раньше, чем сработал OnKill старого.
         tween.OnKill(() =>
         {
-            tweens.Remove(guid);
-            pauseData.Remove(guid);
+            if (tweens.TryGetValue(guid, out var current) && current.Tween == tween)
+            {
+                tweens.Remove(guid);
+                pauseData.Remove(guid);
+            }
         });
 
-        return guid;
-    }
-
-    public Guid RegisterOrReplace(Guid guid, Tween tween, Enumeration layer = null, bool reactionOnPause = true)
-    {
-        if (layer == null)
-            layer = PRTimeScaleEnumerationProvider.Global;
-
-        DOTween.Kill(guid);
-        tween.SetId(guid);
-        tween.timeScale = PRTimeScale.instance.GetTimeScale(layer);
-        tween.OnKill(() =>
+        var dto = new TweenTimeScaleDTO(tween, layer);
+        if (reactionOnPause && PRUnitySDK.PauseManager.IsLogicPaused)
         {
-            tweens.Remove(guid);
-            pauseData.Remove(guid);
-        });
+            dto.WasPlayingBeforePause = tween.IsPlaying();
+            tween.Pause();
+        }
 
-        tweens[guid]  = new TweenTimeScaleDTO(tween, layer);
+        tweens[guid] = dto;
         pauseData[guid] = reactionOnPause;
 
         return guid;
     }
 
     /// <summary>
-    /// ������������� ������� tween � ������� ��� �� �������.
+    /// Регистрирует tween под конкретным guid, убивая предыдущий tween с тем же id,
+    /// если он был. Старый tween убивается ДО подписки колбэков нового - иначе
+    /// асинхронный OnKill старого tween'а мог сработать уже после того, как
+    /// новый tween был записан в tweens, и случайно удалить актуальную запись
+    /// (гонка между Kill старого и записью нового под одним и тем же guid).
     /// </summary>
-    /// <param name="guid">������������� tween'�</param>
+    public Guid RegisterOrReplace(Guid guid, Tween tween, Enumeration layer = null, bool reactionOnPause = true)
+    {
+        if (tween == null)
+            throw new ArgumentNullException(nameof(tween));
+
+        if (layer == null)
+            layer = PRTimeScaleEnumerationProvider.Global;
+
+        if (tweens.TryGetValue(guid, out var existing))
+        {
+            tweens.Remove(guid);
+            pauseData.Remove(guid);
+            existing.Tween?.Kill();
+        }
+
+        tween.SetId(guid);
+        tween.timeScale = PRTimeScale.Instance.Resolve(layer);
+
+        tween.OnKill(() =>
+        {
+            if (tweens.TryGetValue(guid, out var current) && current.Tween == tween)
+            {
+                tweens.Remove(guid);
+                pauseData.Remove(guid);
+            }
+        });
+
+        var dto = new TweenTimeScaleDTO(tween, layer);
+        if (reactionOnPause && PRUnitySDK.PauseManager.IsLogicPaused)
+        {
+            dto.WasPlayingBeforePause = tween.IsPlaying();
+            tween.Pause();
+        }
+
+        tweens[guid] = dto;
+        pauseData[guid] = reactionOnPause;
+
+        return guid;
+    }
+
+    /// <summary>
+    /// Принудительно убивает tween и удаляет его из трекера.
+    /// </summary>
+    /// <param name="guid">Идентификатор tween'а</param>
     public void Kill(Guid guid)
     {
         if (tweens.TryGetValue(guid, out TweenTimeScaleDTO tweenDTO))
         {
-            // ��������� ������� tween
-            tweenDTO?.Tween?.Kill();
+            // Убираем запись ДО Kill() - OnKill-колбэк того же твина затем увидит,
+            // что в tweens либо ничего нет под этим guid, либо там уже другой твин,
+            // и корректно не тронет посторонние данные.
+            tweens.Remove(guid);
+            pauseData.Remove(guid);
 
-            // ������� ��� ��������� ������
+            tweenDTO?.Tween?.Kill();
+        }
+    }
+
+    /// <summary>
+    /// Колбэк от системы паузы.
+    /// Вызывается при изменении состояния паузы игры.
+    /// </summary>
+    public void OnPauseStateChanged(PauseStateEventArgs args)
+    {
+        List<Guid> toRemove = new List<Guid>();
+
+        // Итерируем по снимку ключей, а не по самому словарю - если Pause()/Play()
+        // синхронно вызовет колбэк, который трогает tweens (например, OnComplete
+        // мгновенно завершённого твина дёргает Kill() трекера), прямая итерация
+        // по tweens упала бы с InvalidOperationException.
+        foreach (var guid in new List<Guid>(tweens.Keys))
+        {
+            if (!tweens.TryGetValue(guid, out var dto))
+                continue; // запись уже удалена в течение этой же итерации
+
+            if (!pauseData.TryGetValue(guid, out var pauseRequired) || !pauseRequired)
+                continue;
+
+            // dto.Tween.active - твин действительно ещё жив и не был убит/переиспользован
+            // пулом DOTween в обход трекера (например, через DOTween.Kill(guid) напрямую).
+            if (dto?.Tween == null || !dto.Tween.active)
+            {
+                toRemove.Add(guid);
+                continue;
+            }
+
+            if (PRUnitySDK.PauseManager.IsLogicPaused)
+            {
+                dto.WasPlayingBeforePause = dto.Tween.IsPlaying();
+                dto.Tween.Pause();
+            }
+            else if (dto.WasPlayingBeforePause)
+            {
+                dto.Tween.Play();
+                dto.WasPlayingBeforePause = false;
+            }
+        }
+
+        foreach (var guid in toRemove)
+        {
             tweens.Remove(guid);
             pauseData.Remove(guid);
         }
     }
 
     /// <summary>
-    /// ������ �� ������� �����.
-    /// ���������� ��� ��������� ��������� ����� ����.
+    /// Пересчитывает resolved time scale затронутых tween.
+    /// Изменение глобального слоя обновляет все зарегистрированные tween.
     /// </summary>
-    public void OnPauseStateChanged(PauseStateEventArgs args)
-    {
-        // ������ tween'��, ������� ����� ������� (���� ��� ����� null)
-        List<Guid> toRemove = new List<Guid>();
-
-        foreach (var kvp in tweens)
-        {
-            // ���������, ������ �� tween ����������� �� �����
-            if (pauseData.TryGetValue(kvp.Key, out var pauseRequired) && pauseRequired)
-            {
-                // ���� tween ��� ��������� ����� � �������� �� ��������
-                if (kvp.Value == null)
-                {
-                    toRemove.Add(kvp.Key);
-                    continue;
-                }
-
-                // ��������� tween'�� � ����������� �� ��������� �����
-                if (PRUnitySDK.PauseManager.IsLogicPaused)
-                    kvp.Value.Tween.Pause();
-                else
-                    kvp.Value.Tween.Play();
-            }
-        }
-
-        // ������� "�����" tween'�
-        foreach (var guid in toRemove)
-        {
-            tweens.Remove(guid);
-        }
-    }
-
     public void OnPRTimeScaleChange(Enumeration layer, float value)
     {
-        foreach (var data in tweens)
+        foreach (var guid in new List<Guid>(tweens.Keys))
         {
-            if (data.Value.Layer != layer)
+            if (!tweens.TryGetValue(guid, out var dto))
                 continue;
 
-            data.Value.Tween.timeScale = value;
+            if (layer != PRTimeScaleEnumerationProvider.Global && dto.Layer != layer)
+                continue;
+
+            if (dto.Tween == null || !dto.Tween.active)
+                continue;
+
+            dto.Tween.timeScale = PRTimeScale.Instance.Resolve(dto.Layer);
         }
     }
 
     /// <summary>
-    /// �����������.
-    /// ������������� �� ������� ������� �����.
+    /// Конструктор.
+    /// Подписывается на события системы паузы.
     /// </summary>
     public DoTweenTracker()
     {
@@ -150,11 +213,29 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
 }
 
 
-public class TweenTimeScaleDTO 
+/// <summary>
+/// Runtime-данные зарегистрированного tween и его слоя времени.
+/// </summary>
+public class TweenTimeScaleDTO
 {
-    public Tween Tween { get; protected set; }
-    public Enumeration Layer { get; protected set; }
+    /// <summary>
+    /// Зарегистрированная DOTween-анимация.
+    /// </summary>
+    public Tween Tween { get; }
 
+    /// <summary>
+    /// Слой PRTimeScale анимации.
+    /// </summary>
+    public Enumeration Layer { get; }
+
+    /// <summary>
+    /// Была ли анимация запущена перед логической паузой.
+    /// </summary>
+    public bool WasPlayingBeforePause { get; set; }
+
+    /// <summary>
+    /// Создаёт runtime-описание tween.
+    /// </summary>
     public TweenTimeScaleDTO(Tween tween, Enumeration layer)
     {
         Tween = tween;

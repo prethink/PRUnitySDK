@@ -1,22 +1,25 @@
 using DG.Tweening;
 using UnityEngine;
 
+/// <summary>
+/// Перемещает Transform к абсолютной мировой позиции.
+/// </summary>
 public class DoTweenMovementMonoBehaviour : DoTweenBaseEffectMonoBehaviour
 {
-    private Vector3 startPosition;
-
-    [Header("Rotate")]
+    [Header("Movement")]
     [SerializeField] private Vector3 movement;
 
+    /// <summary>
+    /// Пересоздаёт анимацию перемещения.
+    /// </summary>
     public override Tween CreateAnimation()
     {
-        IsCreated = true;
         tween?.Kill();
-        if(startPosition == Vector3.zero)
-            startPosition = gameObject.transform.position;
 
-        tween = transform.DOMove(movement, 1 / duration)
+        tween = transform.DOMove(movement, duration)
+            .SetLoops(loopCount, loopType)
             .SetEase(ease);
+        IsCreated = true;
 
         return tween;
     }

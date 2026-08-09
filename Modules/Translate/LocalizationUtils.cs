@@ -4,10 +4,10 @@ using System.Collections.Generic;
 public static class LocalizationUtils 
 {
     /// <summary>
-    /// Получить ключ языка в формате строки используя enum.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ enum.
     /// </summary>
-    /// <param name="language">enum ключ языка.</param>
-    /// <returns>Строковое значение ключа языка.</returns>
+    /// <param name="language">enum пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <returns>пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.</returns>
     public static string GetLanguageCode(LangType language)
     {
         switch (language)
@@ -19,15 +19,15 @@ public static class LocalizationUtils
             case LangType.Turkey:
                 return LangDropDown.TR;
             default:
-                return PRUnitySDK.DefaultLanguage; // По умолчанию английский
+                return PRUnitySDK.DefaultLanguage; // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         }
     }
 
     /// <summary>
-    /// Получить enum значения языка используя ключ языка.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ enum пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
-    /// <param name="languageCode">Ключ языка.</param>
-    /// <returns>Ключ языка в формате enum.</returns>
+    /// <param name="languageCode">пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <returns>пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ enum.</returns>
     public static LangType GetLanguageEnum(string languageCode)
     {
         switch (languageCode)
@@ -50,7 +50,7 @@ public static class LocalizationUtils
 
     public static ILocalizationProvider CreateLocalization(Dictionary<LangType, string> dictionary)
     {
-        return new LocalizationControl(new Guid().ToString(), dictionary);
+        return new LocalizationControl(Guid.NewGuid().ToString(), dictionary);
     }
 
     public static int GetMaxSizeMessage(ILocalizationProvider localization)

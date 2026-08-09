@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 public static class ListExtensions
 {
+    /// <summary>
+    /// Перемещает индекс вперёд по кольцу и возвращает новый текущий элемент.
+    /// </summary>
     public static T GetNext<T>(this List<T> list, ref int currentIndex)
     {
         if (list.Count == 0)
@@ -13,6 +16,9 @@ public static class ListExtensions
         return list[currentIndex];
     }
 
+    /// <summary>
+    /// Перемещает индекс назад по кольцу и возвращает новый текущий элемент.
+    /// </summary>
     public static T GetPrevious<T>(this List<T> list, ref int currentIndex)
     {
         if (list.Count == 0)
@@ -23,6 +29,9 @@ public static class ListExtensions
         return list[currentIndex];
     }
 
+    /// <summary>
+    /// Перемещает индекс на заданный шаг по кольцу и возвращает элемент.
+    /// </summary>
     public static T GetByStep<T>(this List<T> list, ref int currentIndex, int step)
     {
         if (list.Count == 0)
@@ -36,6 +45,9 @@ public static class ListExtensions
         return list[currentIndex];
     }
 
+    /// <summary>
+    /// Возвращает элемент по текущему индексу, затем перемещает индекс вперёд по кольцу.
+    /// </summary>
     public static T GetWithUpdateIndex<T>(this List<T> list, ref int currentIndex)
     {
         if (list.Count == 0)
@@ -52,6 +64,9 @@ public static class ListExtensions
         return list[previousIndex];
     }
 
+    /// <summary>
+    /// Перемещает индекс вперёд по кольцу и возвращает его новое значение.
+    /// </summary>
     public static int GetNextIndex<T>(this List<T> list, ref int currentIndex)
     {
         if (list.Count == 0)
@@ -63,7 +78,9 @@ public static class ListExtensions
     }
 
     /// <summary>
+    /// Добавляет элемент либо заменяет первый элемент с тем же ключом.
     /// </summary>
+    /// <param name="keySelector">Функция получения ключа для сравнения элементов.</param>
     public static void AddOrReplace<T, TKey>(this IList<T> list, Func<T, TKey> keySelector, T item)
     {
         if (list == null)

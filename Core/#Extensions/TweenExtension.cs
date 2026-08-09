@@ -5,36 +5,26 @@ using UnityEngine;
 public static class TweenExtension
 {
     /// <summary>
-    /// Анимация уменьшения и увеличения объекта.
+    /// Р—Р°С†РёРєР»РёРІР°РµС‚ СѓРјРµРЅСЊС€РµРЅРёРµ РґРѕ <paramref name="minScale"/> Рё РІРѕР·РІСЂР°С‚ Рє РёСЃС…РѕРґРЅРѕРјСѓ РјР°СЃС€С‚Р°Р±Сѓ.
     /// </summary>
-    /// <param name="gameObject">Целевой объект, которому будет применена анимация.</param>
-    /// <param name="minScale">Минимальный масштаб, до которого объект будет уменьшен.</param>
-    /// <param name="duration">Продолжительность анимации для уменьшения или увеличения.</param>
-    /// <returns>Возвращает Tween для дальнейшего контроля анимации.</returns>
+    /// <remarks>Р’Р»Р°РґРµР»РµС† Tween РґРѕР»Р¶РµРЅ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РµРіРѕ С‡РµСЂРµР· Kill, РєРѕРіРґР° Р°РЅРёРјР°С†РёСЏ Р±РѕР»СЊС€Рµ РЅРµ РЅСѓР¶РЅР°.</remarks>
     public static Tween DoScaleUpDown(this GameObject gameObject, float minScale, float duration)
     {
-        // Сохраняем текущий масштаб объекта
         Vector3 originalScale = gameObject.transform.localScale;
 
-        // Создаем последовательность анимаций
         Sequence scaleSequence = DOTween.Sequence();
 
-        // Добавляем анимации уменьшения и увеличения в последовательность
         scaleSequence.Append(gameObject.transform.DOScale(minScale, duration).SetEase(Ease.InOutQuad))
                      .Append(gameObject.transform.DOScale(originalScale, duration).SetEase(Ease.InOutQuad))
-                     .SetLoops(-1, LoopType.Yoyo);
+                     .SetLoops(-1, LoopType.Restart);
 
         return scaleSequence;
     }
 
 
     /// <summary>
-    /// Плавно изменяет масштаб объекта до Vector3.one и вызывает callback после завершения.
+    /// РџР»Р°РІРЅРѕ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РµРґРёРЅРёС‡РЅС‹Р№ РјР°СЃС€С‚Р°Р± Рё РІС‹Р·С‹РІР°РµС‚ callback РїРѕСЃР»Рµ Р·Р°РІРµСЂС€РµРЅРёСЏ.
     /// </summary>
-    /// <param name="target">Transform объекта, который будет анимироваться.</param>
-    /// <param name="duration">Длительность анимации.</param>
-    /// <param name="onComplete">Callback, вызываемый после завершения анимации.</param>
-    /// <returns>Tween, который можно дополнительно контролировать (kill, pause, etc.).</returns>
     public static Tween ScaleToOneTween(this GameObject target, float duration, Action onComplete = null)
     {
         return target.transform
