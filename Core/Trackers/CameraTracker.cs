@@ -3,42 +3,84 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Управляет стеком камер и отслеживает игровые камеры.
-/// Потокобезопасен для базовых операций.
+/// РЈРїСЂР°РІР»СЏРµС‚ СЃС‚РµРєРѕРј РєР°РјРµСЂ Рё РѕС‚СЃР»РµР¶РёРІР°РµС‚ РёРіСЂРѕРІС‹Рµ РєР°РјРµСЂС‹.
+/// РџРѕС‚РѕРєРѕР±РµР·РѕРїР°СЃРµРЅ РґР»СЏ Р±Р°Р·РѕРІС‹С… РѕРїРµСЂР°С†РёР№.
 /// </summary>
 public class CameraTracker : SingletonProviderBase<CameraTracker>
 {
+    /// <summary>
+    /// LIFO-СЃС‚РµРє РІСЂРµРјРµРЅРЅРѕ Р°РєС‚РёРІРЅС‹С… РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ РєР°РјРµСЂ.
+    /// </summary>
     private readonly Stack<CameraControllerBase> _cameraStack = new();
+
+    /// <summary>
+    /// Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРЅС‹Рµ РєР°РјРµСЂС‹ РёРіСЂРѕРєРѕРІ.
+    /// </summary>
     private readonly HashSet<PlayerCamera> _playerCameras = new();
+
+    /// <summary>
+    /// РћР±СЉРµРєС‚ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё РґРѕСЃС‚СѓРїР° Рє РєРѕР»Р»РµРєС†РёСЏРј Рё С‚РµРєСѓС‰РµРјСѓ СЃРѕСЃС‚РѕСЏРЅРёСЋ РєР°РјРµСЂ.
+    /// </summary>
     private readonly object _lock = new object();
 
+    /// <summary>
+    /// РљРѕРЅС‚СЂРѕР»Р»РµСЂ, РєРѕС‚РѕСЂРѕРјСѓ РІ РґР°РЅРЅС‹Р№ РјРѕРјРµРЅС‚ РїРµСЂРµРґР°РЅРѕ СѓРїСЂР°РІР»РµРЅРёРµ РєР°РјРµСЂРѕР№.
+    /// </summary>
     private CameraControllerBase _currentController;
+
+    /// <summary>
+    /// РЈРєР°Р·С‹РІР°РµС‚, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р»Рё СЃРµР№С‡Р°СЃ РѕСЃРЅРѕРІРЅР°СЏ РєР°РјРµСЂР° РІРјРµСЃС‚Рѕ РєР°РјРµСЂС‹ РёРіСЂРѕРєР°.
+    /// </summary>
     private bool _isMainCameraActive = true;
 
+    /// <summary>
+    /// РћСЃРЅРѕРІРЅР°СЏ РєР°РјРµСЂР° СЃС†РµРЅС‹, РёСЃРїРѕР»СЊР·СѓРµРјР°СЏ РІРЅРµ РёРіСЂРѕРІС‹С… РєР°РјРµСЂ РёРіСЂРѕРєРѕРІ.
+    /// </summary>
     public Camera MainCamera { get; protected set; }
+
+    /// <summary>
+    /// РљР°РјРµСЂР°, РІС‹Р±СЂР°РЅРЅР°СЏ С‚СЂРµРєРµСЂРѕРј РІ РєР°С‡РµСЃС‚РІРµ С‚РµРєСѓС‰РµР№.
+    /// </summary>
     public Camera Current { get; protected set; }
-    public int Count => _cameraStack.Count;
+    /// <summary>
+    /// РљРѕР»РёС‡РµСЃС‚РІРѕ РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ РІ СЃС‚РµРєРµ РєР°РјРµСЂ.
+    /// </summary>
+    public int Count
+    {
+        get
+        {
+            lock (_lock)
+                return _cameraStack.Count;
+        }
+    }
+    /// <summary>
+    /// РЈРєР°Р·С‹РІР°РµС‚, Р°РєС‚РёРІРЅР° Р»Рё РѕСЃРЅРѕРІРЅР°СЏ РєР°РјРµСЂР° СЃС†РµРЅС‹.
+    /// </summary>
     public bool IsMainCameraActive => _isMainCameraActive;
 
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРЅРёРјРѕРє Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРЅС‹С… Р¶РёРІС‹С… РєР°РјРµСЂ РёРіСЂРѕРєРѕРІ.
+    /// </summary>
     public IEnumerable<PlayerCamera> PlayerCameras
     {
         get
         {
             lock (_lock)
             {
+                _playerCameras.RemoveWhere(camera => camera == null);
                 return _playerCameras.ToList();
             }
         }
     }
 
     /// <summary>
-    /// Добавляет камеру в стек, если она не уже на вершине.
+    /// Р”РѕР±Р°РІР»СЏРµС‚ РєР°РјРµСЂСѓ РІ СЃС‚РµРє, РµСЃР»Рё РѕРЅР° РЅРµ СѓР¶Рµ РЅР° РІРµСЂС€РёРЅРµ.
     /// </summary>
     public void Push(CameraControllerBase cameraController)
     {
         if (cameraController == null)
         {
-            Debug.LogWarning("Попытка добавить null камеру в стек");
+            Debug.LogWarning("РџРѕРїС‹С‚РєР° РґРѕР±Р°РІРёС‚СЊ null РєР°РјРµСЂСѓ РІ СЃС‚РµРє");
             return;
         }
 
@@ -67,38 +109,48 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
         }
     }
 
+    /// <summary>
+    /// РР·РІР»РµРєР°РµС‚ РїРµСЂРІС‹Р№ Р¶РёРІРѕР№ РєРѕРЅС‚СЂРѕР»Р»РµСЂ СЃ РІРµСЂС€РёРЅС‹ СЃС‚РµРєР°.
+    /// </summary>
     public CameraControllerBase Pop()
     {
         lock (_lock)
         {
-            return _cameraStack.Count > 0 ? _cameraStack.Pop() : null;
-        }
-    }
+            while (_cameraStack.Count > 0)
+            {
+                var controller = _cameraStack.Pop();
+                if (controller != null)
+                    return controller;
+            }
 
-    public CameraControllerBase Peek()
-    {
-        lock (_lock)
-        {
-            return _cameraStack.Count > 0 ? _cameraStack.Peek() : null;
+            return null;
         }
     }
 
     /// <summary>
-    /// Очищает мертвые ссылки из стека (уничтоженные контроллеры).
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРµСЂРІС‹Р№ Р¶РёРІРѕР№ РєРѕРЅС‚СЂРѕР»Р»РµСЂ, РЅРµ СѓРґР°Р»СЏСЏ РµРіРѕ РёР· СЃС‚РµРєР°.
+    /// </summary>
+    public CameraControllerBase Peek()
+    {
+        return PeekAlive();
+    }
+
+    /// <summary>
+    /// РћС‡РёС‰Р°РµС‚ РјРµСЂС‚РІС‹Рµ СЃСЃС‹Р»РєРё РёР· СЃС‚РµРєР° (СѓРЅРёС‡С‚РѕР¶РµРЅРЅС‹Рµ РєРѕРЅС‚СЂРѕР»Р»РµСЂС‹).
     /// </summary>
     private void CleanDeadReferences()
     {
         lock (_lock)
         {
-            // Преобразуем в список для безопасного удаления
+            // РџСЂРµРѕР±СЂР°Р·СѓРµРј РІ СЃРїРёСЃРѕРє РґР»СЏ Р±РµР·РѕРїР°СЃРЅРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ
             var deadControllers = _cameraStack.Where(c => c == null || c.gameObject == null).ToList();
 
             if (deadControllers.Count == 0)
                 return;
 
-            Debug.LogWarning($"Найдено {deadControllers.Count} мертвых ссылок в стеке камер, очищаем...");
+            Debug.LogWarning($"РќР°Р№РґРµРЅРѕ {deadControllers.Count} РјРµСЂС‚РІС‹С… СЃСЃС‹Р»РѕРє РІ СЃС‚РµРєРµ РєР°РјРµСЂ, РѕС‡РёС‰Р°РµРј...");
 
-            // Создаем новый стек без мертвых ссылок
+            // РЎРѕР·РґР°РµРј РЅРѕРІС‹Р№ СЃС‚РµРє Р±РµР· РјРµСЂС‚РІС‹С… СЃСЃС‹Р»РѕРє
             var tempStack = new Stack<CameraControllerBase>();
             while (_cameraStack.Count > 0)
             {
@@ -109,7 +161,7 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
                 }
             }
 
-            // Восстанавливаем стек в правильном порядке
+            // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃС‚РµРє РІ РїСЂР°РІРёР»СЊРЅРѕРј РїРѕСЂСЏРґРєРµ
             while (tempStack.Count > 0)
             {
                 _cameraStack.Push(tempStack.Pop());
@@ -118,7 +170,7 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     }
 
     /// <summary>
-    /// Получает первый живой контроллер с вершины стека.
+    /// РџРѕР»СѓС‡Р°РµС‚ РїРµСЂРІС‹Р№ Р¶РёРІРѕР№ РєРѕРЅС‚СЂРѕР»Р»РµСЂ СЃ РІРµСЂС€РёРЅС‹ СЃС‚РµРєР°.
     /// </summary>
     private CameraControllerBase PeekAlive()
     {
@@ -128,12 +180,12 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
             {
                 var controller = _cameraStack.Peek();
 
-                // Если контроллер жив, возвращаем
+                // Р•СЃР»Рё РєРѕРЅС‚СЂРѕР»Р»РµСЂ Р¶РёРІ, РІРѕР·РІСЂР°С‰Р°РµРј
                 if (controller != null && controller.gameObject != null)
                     return controller;
 
-                // Если мертв, удаляем и продолжаем
-                Debug.LogWarning("Удаляем мертвую ссылку из стека камер");
+                // Р•СЃР»Рё РјРµСЂС‚РІ, СѓРґР°Р»СЏРµРј Рё РїСЂРѕРґРѕР»Р¶Р°РµРј
+                Debug.LogWarning("РЈРґР°Р»СЏРµРј РјРµСЂС‚РІСѓСЋ СЃСЃС‹Р»РєСѓ РёР· СЃС‚РµРєР° РєР°РјРµСЂ");
                 _cameraStack.Pop();
             }
 
@@ -142,15 +194,16 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     }
 
     /// <summary>
-    /// Деактивирует все игровые камеры (переходит на основную камеру).
+    /// Р”РµР°РєС‚РёРІРёСЂСѓРµС‚ РІСЃРµ РёРіСЂРѕРІС‹Рµ РєР°РјРµСЂС‹ (РїРµСЂРµС…РѕРґРёС‚ РЅР° РѕСЃРЅРѕРІРЅСѓСЋ РєР°РјРµСЂСѓ).
     /// </summary>
     public void HidePlayerCameras()
     {
         lock (_lock)
         {
+            _playerCameras.RemoveWhere(camera => camera == null);
             foreach (var camera in _playerCameras)
             {
-                if (camera?.CurrentCamera != null)
+                if (camera.CurrentCamera != null)
                 {
                     camera.CurrentCamera.gameObject.SetActive(false);
                 }
@@ -160,15 +213,16 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     }
 
     /// <summary>
-    /// Активирует все игровые камеры.
+    /// РђРєС‚РёРІРёСЂСѓРµС‚ РІСЃРµ РёРіСЂРѕРІС‹Рµ РєР°РјРµСЂС‹.
     /// </summary>
     public void ShowPlayerCameras()
     {
         lock (_lock)
         {
+            _playerCameras.RemoveWhere(camera => camera == null);
             foreach (var camera in _playerCameras)
             {
-                if (camera?.CurrentCamera != null)
+                if (camera.CurrentCamera != null)
                 {
                     camera.CurrentCamera.gameObject.SetActive(true);
                 }
@@ -177,11 +231,14 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
         }
     }
 
+    /// <summary>
+    /// Р”РѕР±Р°РІР»СЏРµС‚ РёРіСЂРѕРІСѓСЋ РєР°РјРµСЂСѓ, РµСЃР»Рё РѕРЅР° РµС‰С‘ РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅР°.
+    /// </summary>
     public void AddPlayerCamera(PlayerCamera camera)
     {
         if (camera == null)
         {
-            Debug.LogWarning("Попытка добавить null PlayerCamera");
+            Debug.LogWarning("РџРѕРїС‹С‚РєР° РґРѕР±Р°РІРёС‚СЊ null PlayerCamera");
             return;
         }
 
@@ -191,9 +248,12 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
         }
     }
 
+    /// <summary>
+    /// РЈРґР°Р»СЏРµС‚ РёРіСЂРѕРІСѓСЋ РєР°РјРµСЂСѓ РёР· СЂРµРµСЃС‚СЂР°.
+    /// </summary>
     public void RemovePlayerCamera(PlayerCamera camera)
     {
-        if (camera == null)
+        if (object.ReferenceEquals(camera, null))
             return;
 
         lock (_lock)
@@ -206,26 +266,27 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     {
         if (camera == null)
         {
-            Debug.LogError("Попытка установить null как MainCamera");
+            Debug.LogError("РџРѕРїС‹С‚РєР° СѓСЃС‚Р°РЅРѕРІРёС‚СЊ null РєР°Рє MainCamera");
             return;
         }
-        MainCamera = camera;
+        lock (_lock)
+            MainCamera = camera;
     }
 
     /// <summary>
-    /// Устанавливает текущую камеру и обновляет состояние всех контроллеров.
+    /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ С‚РµРєСѓС‰СѓСЋ РєР°РјРµСЂСѓ Рё РѕР±РЅРѕРІР»СЏРµС‚ СЃРѕСЃС‚РѕСЏРЅРёРµ РІСЃРµС… РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ.
     /// </summary>
     internal void SetCurrent(CameraControllerBase cameraControllerBase, Camera camera)
     {
         if (cameraControllerBase == null || camera == null)
         {
-            Debug.LogError("SetCurrent получил null параметры");
+            Debug.LogError("SetCurrent РїРѕР»СѓС‡РёР» null РїР°СЂР°РјРµС‚СЂС‹");
             return;
         }
 
         lock (_lock)
         {
-            // Отмечаем предыдущий контроллер как неактивный
+            // РћС‚РјРµС‡Р°РµРј РїСЂРµРґС‹РґСѓС‰РёР№ РєРѕРЅС‚СЂРѕР»Р»РµСЂ РєР°Рє РЅРµР°РєС‚РёРІРЅС‹Р№
             if (_currentController != null && _currentController != cameraControllerBase)
             {
                 _currentController.SetCurrent(false);
@@ -235,10 +296,10 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
             _currentController.SetCurrent(true);
             Current = camera;
 
-            // Обновляем состояние только для контроллеров в стеке
+            // РћР±РЅРѕРІР»СЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ С‚РѕР»СЊРєРѕ РґР»СЏ РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ РІ СЃС‚РµРєРµ
             foreach (var item in _cameraStack)
             {
-                if (item != null)  // Проверяем на null
+                if (item != null)  // РџСЂРѕРІРµСЂСЏРµРј РЅР° null
                 {
                     item.SetCurrent(item == cameraControllerBase);
                 }
@@ -247,7 +308,7 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     }
 
     /// <summary>
-    /// Удаляет контроллер из стека независимо от его позиции.
+    /// РЈРґР°Р»СЏРµС‚ РєРѕРЅС‚СЂРѕР»Р»РµСЂ РёР· СЃС‚РµРєР° РЅРµР·Р°РІРёСЃРёРјРѕ РѕС‚ РµРіРѕ РїРѕР·РёС†РёРё.
     /// </summary>
     public void RemoveFromStack(CameraControllerBase controller)
     {
@@ -256,52 +317,52 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
 
         lock (_lock)
         {
-            // Преобразуем в список, удаляем контроллер, восстанавливаем стек
+            // РџСЂРµРѕР±СЂР°Р·СѓРµРј РІ СЃРїРёСЃРѕРє, СѓРґР°Р»СЏРµРј РєРѕРЅС‚СЂРѕР»Р»РµСЂ, РІРѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃС‚РµРє
             var tempList = _cameraStack.ToList();
             tempList.Remove(controller);
 
             _cameraStack.Clear();
 
-            // Восстанавливаем в обратном порядке (стек работает LIFO)
+            // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј РІ РѕР±СЂР°С‚РЅРѕРј РїРѕСЂСЏРґРєРµ (СЃС‚РµРє СЂР°Р±РѕС‚Р°РµС‚ LIFO)
             for (int i = tempList.Count - 1; i >= 0; i--)
             {
                 _cameraStack.Push(tempList[i]);
             }
 
-            Debug.Log($"Удален контроллер из стека. Осталось: {_cameraStack.Count}");
+            Debug.Log($"РЈРґР°Р»РµРЅ РєРѕРЅС‚СЂРѕР»Р»РµСЂ РёР· СЃС‚РµРєР°. РћСЃС‚Р°Р»РѕСЃСЊ: {_cameraStack.Count}");
         }
     }
 
     /// <summary>
-    /// Восстанавливает предыдущую камеру, пропуская мертвые ссылки.
+    /// Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РїСЂРµРґС‹РґСѓС‰СѓСЋ РєР°РјРµСЂСѓ, РїСЂРѕРїСѓСЃРєР°СЏ РјРµСЂС‚РІС‹Рµ СЃСЃС‹Р»РєРё.
     /// </summary>
     public void RestorePreviousCamera()
     {
         lock (_lock)
         {
-            // Сначала очищаем мертвые ссылки
+            // РЎРЅР°С‡Р°Р»Р° РѕС‡РёС‰Р°РµРј РјРµСЂС‚РІС‹Рµ СЃСЃС‹Р»РєРё
             CleanDeadReferences();
 
             if (_cameraStack.Count == 0)
             {
-                Debug.Log("Стек камер пуст, показываем игровые камеры");
+                Debug.Log("РЎС‚РµРє РєР°РјРµСЂ РїСѓСЃС‚, РїРѕРєР°Р·С‹РІР°РµРј РёРіСЂРѕРІС‹Рµ РєР°РјРµСЂС‹");
                 ShowPlayerCameras();
                 return;
             }
 
-            // Получаем первого живого контроллера
+            // РџРѕР»СѓС‡Р°РµРј РїРµСЂРІРѕРіРѕ Р¶РёРІРѕРіРѕ РєРѕРЅС‚СЂРѕР»Р»РµСЂР°
             var previous = PeekAlive();
 
             if (previous == null)
             {
-                Debug.LogWarning("Не найдено живых контроллеров камер в стеке");
+                Debug.LogWarning("РќРµ РЅР°Р№РґРµРЅРѕ Р¶РёРІС‹С… РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ РєР°РјРµСЂ РІ СЃС‚РµРєРµ");
                 ShowPlayerCameras();
                 return;
             }
 
-            Debug.Log($"Восстанавливаем камеру: {previous.gameObject.name}");
+            Debug.Log($"Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј РєР°РјРµСЂСѓ: {previous.gameObject.name}");
 
-            // Активируем найденную камеру
+            // РђРєС‚РёРІРёСЂСѓРµРј РЅР°Р№РґРµРЅРЅСѓСЋ РєР°РјРµСЂСѓ
             previous.SetMain(pushInStack: false);
         }
     }

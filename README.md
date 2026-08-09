@@ -208,7 +208,9 @@ PRUnitySDK/
 
 ### Модели, сервисы и утилиты
 
+- [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [Enumeration](Core/Models/Enumeration/README.md)
+- [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [Utils](Core/Utils/README.md)
 - [Proxies](Core/Proxies/README.md)
 - [SoundManager](Core/SoundManager/README.md)
