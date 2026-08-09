@@ -8,7 +8,6 @@ public static class ListExtensions
         if (list.Count == 0)
             throw new InvalidOperationException("The list is empty.");
 
-        // Исправляем индекс, если он выходит за пределы списка
         currentIndex = (currentIndex + 1) % list.Count;
 
         return list[currentIndex];
@@ -19,7 +18,6 @@ public static class ListExtensions
         if (list.Count == 0)
             throw new InvalidOperationException("The list is empty.");
 
-        // Двигаемся назад и корректируем индекс, чтобы он был в пределах списка
         currentIndex = (currentIndex - 1 + list.Count) % list.Count;
 
         return list[currentIndex];
@@ -30,10 +28,8 @@ public static class ListExtensions
         if (list.Count == 0)
             throw new InvalidOperationException("The list is empty.");
 
-        // Корректируем индекс с шагом и wrap-around
         currentIndex = (currentIndex + step) % list.Count;
 
-        // Если currentIndex стал отрицательным, поднимаем его в диапазон [0, Count-1]
         if (currentIndex < 0)
             currentIndex += list.Count;
 
@@ -45,9 +41,12 @@ public static class ListExtensions
         if (list.Count == 0)
             throw new InvalidOperationException("The list is empty.");
 
+        currentIndex %= list.Count;
+        if (currentIndex < 0)
+            currentIndex += list.Count;
+
         var previousIndex = currentIndex;
 
-        // Исправляем индекс, если он выходит за пределы списка
         currentIndex = (currentIndex + 1) % list.Count;
 
         return list[previousIndex];
@@ -58,16 +57,14 @@ public static class ListExtensions
         if (list.Count == 0)
             throw new InvalidOperationException("The list is empty.");
 
-        // Исправляем индекс, если он выходит за пределы списка
         currentIndex = (currentIndex + 1) % list.Count;
 
         return currentIndex;
     }
 
     /// <summary>
-    /// Добавляет элемент или заменяет существующий по ключу.
     /// </summary>
-    public static void AddOrReplace<T, TKey>(this IList<T> list,Func<T, TKey> keySelector, T item)
+    public static void AddOrReplace<T, TKey>(this IList<T> list, Func<T, TKey> keySelector, T item)
     {
         if (list == null)
             throw new ArgumentNullException(nameof(list));
