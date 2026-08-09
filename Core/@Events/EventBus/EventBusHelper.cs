@@ -1,24 +1,48 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
+/// <summary>
+/// Находит и кэширует event-интерфейсы, реализованные подписчиком.
+/// </summary>
 internal static class EventBusHelper
 {
-    private static Dictionary<Type, List<Type>> s_CashedSubscriberTypes = new Dictionary<Type, List<Type>>();
+    /// <summary>
+    /// Объект синхронизации кэша типов.
+    /// </summary>
+    private static readonly object cacheLock = new();
 
-    public static List<Type> GetSubscriberTypes(IGlobalSubscriber globalSubscriber)
+    /// <summary>
+    /// Event-интерфейсы, сгруппированные по конкретному типу подписчика.
+    /// </summary>
+    private static readonly Dictionary<Type, Type[]> cachedSubscriberTypes = new();
+
+    /// <summary>
+    /// Возвращает все интерфейсы типа, наследующие <see cref="IGlobalSubscriber"/>.
+    /// </summary>
+    public static Type[] GetSubscriberTypes(IGlobalSubscriber globalSubscriber)
     {
-        Type type = globalSubscriber.GetType();
-        if (s_CashedSubscriberTypes.ContainsKey(type))
-            return s_CashedSubscriberTypes[type];
+        Type subscriberType = globalSubscriber.GetType();
 
-        List<Type> subscriberTypes = type
-            .GetInterfaces()
-            .Where(t => t.GetInterfaces()
-                .Contains(typeof(IGlobalSubscriber)))
-            .ToList();
+        lock (cacheLock)
+        {
+            if (cachedSubscriberTypes.TryGetValue(subscriberType, out Type[] cachedTypes))
+                return cachedTypes;
 
-        s_CashedSubscriberTypes[type] = subscriberTypes;
-        return subscriberTypes;
+            Type[] interfaces = subscriberType.GetInterfaces();
+            var subscriberTypes = new List<Type>(interfaces.Length);
+
+            foreach (Type interfaceType in interfaces)
+            {
+                if (interfaceType == typeof(IGlobalSubscriber))
+                    continue;
+
+                if (typeof(IGlobalSubscriber).IsAssignableFrom(interfaceType))
+                    subscriberTypes.Add(interfaceType);
+            }
+
+            Type[] result = subscriberTypes.ToArray();
+            cachedSubscriberTypes[subscriberType] = result;
+            return result;
+        }
     }
 }

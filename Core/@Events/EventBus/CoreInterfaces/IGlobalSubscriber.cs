@@ -1,6 +1,6 @@
 /// <summary>
-/// Интерфейс глобального подписчика.
-/// Используется для EventBus (шина событий) системы.
+/// РњР°СЂРєРµСЂРЅС‹Р№ РёРЅС‚РµСЂС„РµР№СЃ РґР»СЏ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅС‹С… РёРЅС‚РµСЂС„РµР№СЃРѕРІ СЃРѕР±С‹С‚РёР№ EventBus.
 /// </summary>
-public interface IGlobalSubscriber { }
-
+public interface IGlobalSubscriber
+{
+}

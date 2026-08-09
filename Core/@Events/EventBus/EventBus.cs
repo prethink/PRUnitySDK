@@ -1,147 +1,182 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Шина событий с потокобезопасностью и защитой от дублей.
+/// Р“Р»РѕР±Р°Р»СЊРЅР°СЏ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅР°СЏ С€РёРЅР° СЃРѕР±С‹С‚РёР№ РЅР° РѕСЃРЅРѕРІРµ РёРЅС‚РµСЂС„РµР№СЃРѕРІ РїРѕРґРїРёСЃС‡РёРєРѕРІ.
 /// </summary>
 public static class EventBus
 {
-    private static readonly object _lock = new object();
-    private static Dictionary<Type, SubscribersList<IGlobalSubscriber>> _subscribers =
-        new Dictionary<Type, SubscribersList<IGlobalSubscriber>>();
+    /// <summary>
+    /// РћР±СЉРµРєС‚ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё РґРѕСЃС‚СѓРїР° Рє СЂРµРµСЃС‚СЂСѓ РїРѕРґРїРёСЃС‡РёРєРѕРІ.
+    /// </summary>
+    private static readonly object subscribersLock = new();
 
     /// <summary>
-    /// Подписаться на события.
+    /// РЎРїРёСЃРєРё РїРѕРґРїРёСЃС‡РёРєРѕРІ, СЃРіСЂСѓРїРїРёСЂРѕРІР°РЅРЅС‹Рµ РїРѕ event-РёРЅС‚РµСЂС„РµР№СЃР°Рј.
     /// </summary>
-    public static void Subscribe(IGlobalSubscriber subscriber)
+    private static readonly Dictionary<Type, SubscribersList<IGlobalSubscriber>> subscribers = new();
+
+    /// <summary>
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РѕР±СЉРµРєС‚ РІРѕ РІСЃРµС… СЂРµР°Р»РёР·РѕРІР°РЅРЅС‹С… РёРј event-РёРЅС‚РµСЂС„РµР№СЃР°С….
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/>, РµСЃР»Рё РїРѕРґРїРёСЃС‡РёРє Р±С‹Р» РґРѕР±Р°РІР»РµРЅ С…РѕС‚СЏ Р±С‹ РІ РѕРґРёРЅ СЃРїРёСЃРѕРє.
+    /// </returns>
+    public static bool Subscribe(IGlobalSubscriber subscriber)
     {
-        if (subscriber == null)
+        if (IsDead(subscriber))
         {
-            Debug.LogWarning("Попытка подписать null подписчика на EventBus");
-            return;
+            Debug.LogWarning("[EventBus] РќРµРІРѕР·РјРѕР¶РЅРѕ РїРѕРґРїРёСЃР°С‚СЊ null РёР»Рё СѓРЅРёС‡С‚РѕР¶РµРЅРЅС‹Р№ Unity-РѕР±СЉРµРєС‚.");
+            return false;
         }
 
-        lock (_lock)
+        Type[] subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
+        bool added = false;
+
+        lock (subscribersLock)
         {
-            List<Type> subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
-
-            foreach (Type type in subscriberTypes)
+            foreach (Type subscriberType in subscriberTypes)
             {
-                if (!_subscribers.ContainsKey(type))
-                    _subscribers[type] = new SubscribersList<IGlobalSubscriber>();
+                if (!subscribers.TryGetValue(subscriberType, out SubscribersList<IGlobalSubscriber> list))
+                {
+                    list = new SubscribersList<IGlobalSubscriber>();
+                    subscribers.Add(subscriberType, list);
+                }
 
-                // Проверяем чтобы не было дубликатов
-                var list = _subscribers[type];
-                if (!list.List.Contains(subscriber))
-                {
-                    list.Add(subscriber);
-                    //Debug.Log($"[EventBus] Подписан {subscriber.GetType().Name} на {type.Name}");
-                }
-                else
-                {
-                    Debug.LogWarning($"[EventBus] {subscriber.GetType().Name} уже подписан на {type.Name}");
-                }
+                added |= list.Add(subscriber);
             }
         }
+
+        return added;
     }
 
     /// <summary>
-    /// Отписаться от событий.
+    /// РЈРґР°Р»СЏРµС‚ РѕР±СЉРµРєС‚ РёР· РІСЃРµС… СЂРµР°Р»РёР·РѕРІР°РЅРЅС‹С… РёРј event-РёРЅС‚РµСЂС„РµР№СЃРѕРІ.
     /// </summary>
-    public static void Unsubscribe(IGlobalSubscriber subscriber)
+    /// <returns>
+    /// <see langword="true"/>, РµСЃР»Рё РїРѕРґРїРёСЃС‡РёРє Р±С‹Р» СѓРґР°Р»С‘РЅ С…РѕС‚СЏ Р±С‹ РёР· РѕРґРЅРѕРіРѕ СЃРїРёСЃРєР°.
+    /// </returns>
+    public static bool Unsubscribe(IGlobalSubscriber subscriber)
     {
-        if (subscriber == null)
-            return;
+        if (ReferenceEquals(subscriber, null))
+            return false;
 
-        lock (_lock)
+        Type[] subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
+        bool removed = false;
+
+        lock (subscribersLock)
         {
-            List<Type> subscriberTypes = EventBusHelper.GetSubscriberTypes(subscriber);
-
-            foreach (Type type in subscriberTypes)
+            foreach (Type subscriberType in subscriberTypes)
             {
-                if (_subscribers.ContainsKey(type))
-                {
-                    _subscribers[type].Remove(subscriber);
-                    //Debug.Log($"[EventBus] Отписан {subscriber.GetType().Name} от {type.Name}");
-                }
+                if (!subscribers.TryGetValue(subscriberType, out SubscribersList<IGlobalSubscriber> list))
+                    continue;
+
+                removed |= list.Remove(subscriber);
+
+                if (list.Count == 0)
+                    subscribers.Remove(subscriberType);
             }
         }
+
+        return removed;
     }
 
     /// <summary>
-    /// Вызвать событие для всех подписчиков.
+    /// Р’С‹Р·С‹РІР°РµС‚ СЃРѕР±С‹С‚РёРµ Сѓ РІСЃРµС… РїРѕРґРїРёСЃС‡РёРєРѕРІ СѓРєР°Р·Р°РЅРЅРѕРіРѕ event-РёРЅС‚РµСЂС„РµР№СЃР°.
     /// </summary>
     public static void RaiseEvent<TSubscriber>(Action<TSubscriber> action)
         where TSubscriber : class, IGlobalSubscriber
     {
         if (action == null)
         {
-            Debug.LogError("[EventBus] Action равна null в RaiseEvent");
+            Debug.LogError("[EventBus] РќРµРІРѕР·РјРѕР¶РЅРѕ РІС‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ СЃ null action.");
             return;
         }
 
-        SubscribersList<IGlobalSubscriber> subscribers = null;
+        IGlobalSubscriber[] snapshot;
 
-        lock (_lock)
+        lock (subscribersLock)
         {
-            if (!_subscribers.ContainsKey(typeof(TSubscriber)))
+            if (!subscribers.TryGetValue(typeof(TSubscriber), out SubscribersList<IGlobalSubscriber> list))
                 return;
 
-            subscribers = _subscribers[typeof(TSubscriber)];
-            subscribers.Executing = true;
-        }
+            snapshot = list.GetSnapshot();
 
-        // Выполняем вне lock'а чтобы избежать deadlock
-        try
-        {
-            foreach (IGlobalSubscriber subscriber in subscribers.List.ToList())
+            if (snapshot.Length == 0)
             {
-                try
-                {
-                    action.Invoke(subscriber as TSubscriber);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[EventBus] Ошибка при вызове события для {subscriber?.GetType().Name}: {e}");
-                }
+                subscribers.Remove(typeof(TSubscriber));
+                return;
             }
         }
-        finally
+
+        foreach (IGlobalSubscriber subscriber in snapshot)
         {
-            lock (_lock)
+            if (IsDead(subscriber) || subscriber is not TSubscriber typedSubscriber)
+                continue;
+
+            try
             {
-                subscribers.Executing = false;
-                subscribers.Cleanup();
+                action.Invoke(typedSubscriber);
+            }
+            catch (Exception exception)
+            {
+                LogSubscriberException(subscriber, exception);
             }
         }
     }
 
     /// <summary>
-    /// Возвращает количество подписчиков на тип события.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕР»РёС‡РµСЃС‚РІРѕ Р¶РёРІС‹С… РїРѕРґРїРёСЃС‡РёРєРѕРІ СѓРєР°Р·Р°РЅРЅРѕРіРѕ event-РёРЅС‚РµСЂС„РµР№СЃР°.
     /// </summary>
     public static int GetSubscriberCount<TSubscriber>()
         where TSubscriber : class, IGlobalSubscriber
     {
-        lock (_lock)
+        lock (subscribersLock)
         {
-            if (!_subscribers.ContainsKey(typeof(TSubscriber)))
+            if (!subscribers.TryGetValue(typeof(TSubscriber), out SubscribersList<IGlobalSubscriber> list))
                 return 0;
 
-            return _subscribers[typeof(TSubscriber)].List.Count;
+            int count = list.Count;
+
+            if (count == 0)
+                subscribers.Remove(typeof(TSubscriber));
+
+            return count;
         }
     }
 
     /// <summary>
-    /// Очищает все подписки (используй осторожно!).
+    /// РЈРґР°Р»СЏРµС‚ РІСЃРµ РіР»РѕР±Р°Р»СЊРЅС‹Рµ РїРѕРґРїРёСЃРєРё.
     /// </summary>
     public static void Clear()
     {
-        lock (_lock)
+        lock (subscribersLock)
+            subscribers.Clear();
+    }
+
+    /// <summary>
+    /// РџСЂРѕРІРµСЂСЏРµС‚ РѕР±С‹С‡РЅС‹Р№ null Рё СЃРїРµС†РёР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ СѓРЅРёС‡С‚РѕР¶РµРЅРЅРѕРіРѕ Unity-РѕР±СЉРµРєС‚Р°.
+    /// </summary>
+    private static bool IsDead(IGlobalSubscriber subscriber)
+    {
+        if (ReferenceEquals(subscriber, null))
+            return true;
+
+        return subscriber is UnityEngine.Object unityObject && unityObject == null;
+    }
+
+    /// <summary>
+    /// Р—Р°РїРёСЃС‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ РѕР±СЂР°Р±РѕС‚С‡РёРєР° СЃ Unity-РєРѕРЅС‚РµРєСЃС‚РѕРј, РµСЃР»Рё РѕРЅ РґРѕСЃС‚СѓРїРµРЅ.
+    /// </summary>
+    private static void LogSubscriberException(IGlobalSubscriber subscriber, Exception exception)
+    {
+        if (subscriber is UnityEngine.Object unityObject && unityObject != null)
         {
-            _subscribers.Clear();
-            Debug.LogWarning("[EventBus] Все подписки очищены");
+            Debug.LogException(exception, unityObject);
+            return;
         }
+
+        Debug.LogException(exception);
     }
 }

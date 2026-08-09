@@ -1,41 +1,123 @@
+using System;
 using System.Collections.Generic;
 
-internal class SubscribersList<TSubscriber> where TSubscriber : class
+/// <summary>
+/// Хранит подписчиков одного event-интерфейса и создаёт новый snapshot только после
+/// изменения состава подписок.
+/// </summary>
+internal sealed class SubscribersList<TSubscriber>
+    where TSubscriber : class
 {
-    private bool m_NeedsCleanUp = false;
+    /// <summary>
+    /// Текущий изменяемый список подписчиков.
+    /// </summary>
+    private readonly List<TSubscriber> subscribers = new();
 
-    public bool Executing;
+    /// <summary>
+    /// Массив, используемый публикациями до следующего изменения списка.
+    /// </summary>
+    private TSubscriber[] snapshot = Array.Empty<TSubscriber>();
 
-    public readonly List<TSubscriber> List = new List<TSubscriber>();
+    /// <summary>
+    /// Указывает, что snapshot необходимо перестроить.
+    /// </summary>
+    private bool snapshotDirty = true;
 
-    public void Add(TSubscriber subscriber)
+    /// <summary>
+    /// Возвращает количество живых подписчиков.
+    /// </summary>
+    public int Count
     {
-        List.Add(subscriber);
+        get
+        {
+            RemoveDeadSubscribers();
+            return subscribers.Count;
+        }
     }
 
-    public void Remove(TSubscriber subscriber)
+    /// <summary>
+    /// Добавляет подписчика, если этот экземпляр ещё не зарегистрирован.
+    /// </summary>
+    public bool Add(TSubscriber subscriber)
     {
-        if (Executing)
+        if (IsDead(subscriber))
+            return false;
+
+        for (int i = 0; i < subscribers.Count; i++)
         {
-            var i = List.IndexOf(subscriber);
-            if (i >= 0)
-            {
-                m_NeedsCleanUp = true;
-                List[i] = null;
-            }
+            if (ReferenceEquals(subscribers[i], subscriber))
+                return false;
         }
-        else
-        {
-            List.Remove(subscriber);
-        }
+
+        subscribers.Add(subscriber);
+        snapshotDirty = true;
+        return true;
     }
 
-    public void Cleanup()
+    /// <summary>
+    /// Удаляет конкретный экземпляр подписчика.
+    /// </summary>
+    public bool Remove(TSubscriber subscriber)
     {
-        if (!m_NeedsCleanUp)
-            return;
+        if (ReferenceEquals(subscriber, null))
+            return false;
 
-        List.RemoveAll(s => s == null);
-        m_NeedsCleanUp = false;
+        for (int i = 0; i < subscribers.Count; i++)
+        {
+            if (!ReferenceEquals(subscribers[i], subscriber))
+                continue;
+
+            subscribers.RemoveAt(i);
+            snapshotDirty = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Возвращает стабильный snapshot для текущей публикации.
+    /// </summary>
+    public TSubscriber[] GetSnapshot()
+    {
+        RemoveDeadSubscribers();
+
+        if (!snapshotDirty)
+            return snapshot;
+
+        snapshot = subscribers.ToArray();
+        snapshotDirty = false;
+        return snapshot;
+    }
+
+    /// <summary>
+    /// Удаляет обычные null-ссылки и уничтоженные Unity-объекты.
+    /// </summary>
+    private void RemoveDeadSubscribers()
+    {
+        bool removed = false;
+
+        for (int i = subscribers.Count - 1; i >= 0; i--)
+        {
+            if (!IsDead(subscribers[i]))
+                continue;
+
+            subscribers.RemoveAt(i);
+            removed = true;
+        }
+
+        if (removed)
+            snapshotDirty = true;
+    }
+
+    /// <summary>
+    /// Проверяет обычный null и специальное состояние уничтоженного Unity-объекта.
+    /// </summary>
+    private static bool IsDead(TSubscriber subscriber)
+    {
+        if (ReferenceEquals(subscriber, null))
+            return true;
+
+        return subscriber is UnityEngine.Object unityObject && unityObject == null;
     }
 }
