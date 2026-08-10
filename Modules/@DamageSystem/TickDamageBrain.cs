@@ -14,7 +14,7 @@ public class TickDamageBrain : DamageBrainBase
 
     public override bool CanAttack()
     {
-        return nextTimeTime > PRTime.Instance.GameTime;
+        return PRTime.Instance.GameTime >= nextTimeTime;
     }
 
     public override bool CanAttackSource()

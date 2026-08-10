@@ -3,106 +3,106 @@ using UnityEngine;
 public interface IHealthEntity
 {
     /// <summary>
-    /// Максимальное количество здоровья.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
     public float MaxHealth { get; }
 
     /// <summary>
-    /// Текущее здоровье.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
     public float Health { get; }
 
     /// <summary>
-    /// Игровой объект.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
     public EntityBase Entity { get; }
 
     /// <summary>
-    /// Игровой объект.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
     public GameObject GameObject { get; }
 
     /// <summary>
-    /// Убийца
+    /// пїЅпїЅпїЅпїЅпїЅпїЅ
     /// </summary>
     public IEntity Killer { get; }
 
     /// <summary>
-    /// Убить сущность.
+    /// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
     public bool Kill();
 
     /// <summary>
-    /// Убить сущность..
+    /// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ..
     /// </summary>
-    /// <param name="killer">Убийца.</param>
+    /// <param name="killer">пїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     public bool IsKill(IEntity killer);
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
     public void Revive();
 
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
     /// <param name="transform">transform.</param>
     public void Revive(Transform transform);
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
-    /// <param name="position">Позиция.</param>
+    /// <param name="position">пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     public void Revive(Vector3 position);
 
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
-    /// <param name="health">Количество жизней при оживление.</param>
+    /// <param name="health">пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     public void Revive(float health);
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
-    /// <param name="health">Количество жизней при оживление.</param>
+    /// <param name="health">пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     /// <param name="transform">transform.</param>
     public void Revive(float health, Transform transform);
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
-    /// <param name="health">Количество жизней при оживление.</param>
-    /// <param name="position">Позиция.</param>
+    /// <param name="health">пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <param name="position">пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     public void Revive(float health, Vector3 position);
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
-    /// <param name="reviver">Кто оживляет.</param>
-    /// <param name="health">Количество жизней при оживление.</param>
+    /// <param name="reviver">пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <param name="health">пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     /// <param name="transform">transform.</param>
     public void Revive(IEntity reviver, float health, Transform transform);
 
     /// <summary>
-    /// Оживить entity.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ entity.
     /// </summary>
-    /// <param name="reviver">Кто оживляет.</param>
-    /// <param name="health">Количество жизней при оживление.</param>
-    /// <param name="position">Позиция.</param>
-    /// <param name="rotation">Поворот.</param>
+    /// <param name="reviver">пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <param name="health">пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <param name="position">пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
+    /// <param name="rotation">пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     public void Revive(IEntity reviver, float health, Vector3 position, Quaternion rotation);
 
     /// <summary>
-    /// Заспавнить сущность.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
-    /// <param name="spawnPosition">Точка спавна.</param>
+    /// <param name="spawnPosition">пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.</param>
     public void Spawn(Vector3 spawnPosition);
 
     /// <summary>
-    /// Признак, что сущность жива.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.
     /// </summary>
-    /// <returns>True - жива, False - мертва.</returns>
+    /// <returns>True - пїЅпїЅпїЅпїЅ, False - пїЅпїЅпїЅпїЅпїЅпїЅ.</returns>
     public bool IsAlive();
 }

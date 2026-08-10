@@ -3,124 +3,148 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Описывает данные об уроне, которые могут быть переданы объекту при получении попадания.
-/// Используется для объединения нескольких источников урона и отслеживания уникальных модификаторов.
+/// РћРїРёСЃС‹РІР°РµС‚ РґР°РЅРЅС‹Рµ РѕР± СѓСЂРѕРЅРµ, РєРѕС‚РѕСЂС‹Рµ РјРѕРіСѓС‚ Р±С‹С‚СЊ РїРµСЂРµРґР°РЅС‹ РѕР±СЉРµРєС‚Сѓ РїСЂРё РїРѕР»СѓС‡РµРЅРёРё РїРѕРїР°РґР°РЅРёСЏ.
+/// РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ РѕР±СЉРµРґРёРЅРµРЅРёСЏ РЅРµСЃРєРѕР»СЊРєРёС… РёСЃС‚РѕС‡РЅРёРєРѕРІ СѓСЂРѕРЅР° Рё РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ СѓРЅРёРєР°Р»СЊРЅС‹С… РјРѕРґРёС„РёРєР°С‚РѕСЂРѕРІ.
 /// </summary>
 public class DamageData
 {
     /// <summary>
-    /// Уникальный идентификатор серии урона (DamageId).  
-    /// Используется для того, чтобы различать урон от разных выстрелов,  
-    /// но объединять все попадания, произошедшие в рамках одного выстрела (например, дробь).
+    /// РЈРЅРёРєР°Р»СЊРЅС‹Р№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРµСЂРёРё СѓСЂРѕРЅР° (DamageId).  
+    /// РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ С‚РѕРіРѕ, С‡С‚РѕР±С‹ СЂР°Р·Р»РёС‡Р°С‚СЊ СѓСЂРѕРЅ РѕС‚ СЂР°Р·РЅС‹С… РІС‹СЃС‚СЂРµР»РѕРІ,  
+    /// РЅРѕ РѕР±СЉРµРґРёРЅСЏС‚СЊ РІСЃРµ РїРѕРїР°РґР°РЅРёСЏ, РїСЂРѕРёР·РѕС€РµРґС€РёРµ РІ СЂР°РјРєР°С… РѕРґРЅРѕРіРѕ РІС‹СЃС‚СЂРµР»Р° (РЅР°РїСЂРёРјРµСЂ, РґСЂРѕР±СЊ).
     /// </summary>
     public Guid DamageId { get; set; }
 
     /// <summary>
-    /// Величина урона (с учётом всех модификаторов).
+    /// Р’РµР»РёС‡РёРЅР° СѓСЂРѕРЅР° (СЃ СѓС‡С‘С‚РѕРј РІСЃРµС… РјРѕРґРёС„РёРєР°С‚РѕСЂРѕРІ).
     /// </summary>
     public float Damage { get; set; }
 
     /// <summary>
-    /// Сила импульса (отброса), которая должна применяться к объекту при получении урона.
+    /// РЈСЂРѕРЅ РґРѕ Р·РѕРЅР°Р»СЊРЅС‹С… РјРЅРѕР¶РёС‚РµР»РµР№, Р±СЂРѕРЅРё Рё СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№.
+    /// </summary>
+    public float RawDamage { get; set; }
+
+    /// <summary>
+    /// Р§Р°СЃС‚СЊ СѓСЂРѕРЅР°, РїРѕРіР»РѕС‰С‘РЅРЅР°СЏ Р·Р°С‰РёС‚РЅС‹РјРё РѕР±СЂР°Р±РѕС‚С‡РёРєР°РјРё.
+    /// </summary>
+    public float AbsorbedDamage { get; set; }
+
+    /// <summary>
+    /// РЎРёР»Р° РёРјРїСѓР»СЊСЃР° (РѕС‚Р±СЂРѕСЃР°), РєРѕС‚РѕСЂР°СЏ РґРѕР»Р¶РЅР° РїСЂРёРјРµРЅСЏС‚СЊСЃСЏ Рє РѕР±СЉРµРєС‚Сѓ РїСЂРё РїРѕР»СѓС‡РµРЅРёРё СѓСЂРѕРЅР°.
     /// </summary>
     public float KnockBackPower { get; set; }
 
     /// <summary>
-    /// Тип урона (например, физический, огненный, ядовитый и т.д.).
-    /// Может содержать несколько флагов при использовании <see cref="FlagsAttribute"/>.
+    /// РўРёРї СѓСЂРѕРЅР° (РЅР°РїСЂРёРјРµСЂ, С„РёР·РёС‡РµСЃРєРёР№, РѕРіРЅРµРЅРЅС‹Р№, СЏРґРѕРІРёС‚С‹Р№ Рё С‚.Рґ.).
+    /// РњРѕР¶РµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ С„Р»Р°РіРѕРІ РїСЂРё РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРё <see cref="FlagsAttribute"/>.
     /// </summary>
     public DamageType DamageType { get; set; }
 
     /// <summary>
-    /// Источник урона.
+    /// РСЃС‚РѕС‡РЅРёРє СѓСЂРѕРЅР°.
     /// </summary>
     public IEntity DamageSource { get; set; }
 
     /// <summary>
-    /// Список уникальных идентификаторов модификаторов, применённых к этому урону.
-    /// Используется для предотвращения повторного применения одного и того же эффекта.
+    /// Р—РѕРЅР°, РІ РєРѕС‚РѕСЂСѓСЋ РїСЂРёС€Р»РѕСЃСЊ РїРѕРїР°РґР°РЅРёРµ.
+    /// </summary>
+    public HitGroup HitGroup { get; set; }
+
+    /// <summary>
+    /// РЎРїРёСЃРѕРє СѓРЅРёРєР°Р»СЊРЅС‹С… РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРІ РјРѕРґРёС„РёРєР°С‚РѕСЂРѕРІ, РїСЂРёРјРµРЅС‘РЅРЅС‹С… Рє СЌС‚РѕРјСѓ СѓСЂРѕРЅСѓ.
+    /// РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ РїСЂРµРґРѕС‚РІСЂР°С‰РµРЅРёСЏ РїРѕРІС‚РѕСЂРЅРѕРіРѕ РїСЂРёРјРµРЅРµРЅРёСЏ РѕРґРЅРѕРіРѕ Рё С‚РѕРіРѕ Р¶Рµ СЌС„С„РµРєС‚Р°.
     /// </summary>
     public HashSet<IDamageModifier> AppliedModifiers { get;  set; } = new();
 
     /// <summary>
-    /// Показывает степень болевого шока, вызванного этим уроном (0–100).  
-    /// Значение 0 — урона недостаточно, чтобы вызвать шок.  
-    /// Значение 100 — максимальная боль/оглушение.
+    /// РџРѕРєР°Р·С‹РІР°РµС‚ СЃС‚РµРїРµРЅСЊ Р±РѕР»РµРІРѕРіРѕ С€РѕРєР°, РІС‹Р·РІР°РЅРЅРѕРіРѕ СЌС‚РёРј СѓСЂРѕРЅРѕРј (0вЂ“100).  
+    /// Р—РЅР°С‡РµРЅРёРµ 0 вЂ” СѓСЂРѕРЅР° РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ, С‡С‚РѕР±С‹ РІС‹Р·РІР°С‚СЊ С€РѕРє.  
+    /// Р—РЅР°С‡РµРЅРёРµ 100 вЂ” РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ Р±РѕР»СЊ/РѕРіР»СѓС€РµРЅРёРµ.
     /// </summary>
     /// <remarks>
-    /// Может использоваться для расчёта дезориентации, оглушения, тряски камеры или реакции AI.
+    /// РњРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ РґР»СЏ СЂР°СЃС‡С‘С‚Р° РґРµР·РѕСЂРёРµРЅС‚Р°С†РёРё, РѕРіР»СѓС€РµРЅРёСЏ, С‚СЂСЏСЃРєРё РєР°РјРµСЂС‹ РёР»Рё СЂРµР°РєС†РёРё AI.
     /// </remarks>
     public float PainShock { get; set; }
 
     /// <summary>
-    /// Проверяет, применён ли указанный модификатор к данному урону.
+    /// РџСЂРѕРІРµСЂСЏРµС‚, РїСЂРёРјРµРЅС‘РЅ Р»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ РјРѕРґРёС„РёРєР°С‚РѕСЂ Рє РґР°РЅРЅРѕРјСѓ СѓСЂРѕРЅСѓ.
     /// </summary>
-    /// <param name="modifier">Модификатор урона для проверки.</param>
-    /// <returns><c>true</c>, если модификатор уже был применён; иначе — <c>false</c>.</returns>
+    /// <param name="modifier">РњРѕРґРёС„РёРєР°С‚РѕСЂ СѓСЂРѕРЅР° РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+    /// <returns><c>true</c>, РµСЃР»Рё РјРѕРґРёС„РёРєР°С‚РѕСЂ СѓР¶Рµ Р±С‹Р» РїСЂРёРјРµРЅС‘РЅ; РёРЅР°С‡Рµ вЂ” <c>false</c>.</returns>
     public bool IsAppliedModifier(IDamageModifier modifier)
     {
         return AppliedModifiers.Any(x => x.ModifierIdentifier == modifier.ModifierIdentifier);
     }
 
     /// <summary>
-    /// Объединяет текущие данные урона с другими, формируя новый <see cref="DamageData"/> объект.  
-    /// Используется, например, при попадании несколькими пулями из одной серии выстрелов (дробовик).
+    /// РћР±СЉРµРґРёРЅСЏРµС‚ С‚РµРєСѓС‰РёРµ РґР°РЅРЅС‹Рµ СѓСЂРѕРЅР° СЃ РґСЂСѓРіРёРјРё, С„РѕСЂРјРёСЂСѓСЏ РЅРѕРІС‹Р№ <see cref="DamageData"/> РѕР±СЉРµРєС‚.  
+    /// РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, РЅР°РїСЂРёРјРµСЂ, РїСЂРё РїРѕРїР°РґР°РЅРёРё РЅРµСЃРєРѕР»СЊРєРёРјРё РїСѓР»СЏРјРё РёР· РѕРґРЅРѕР№ СЃРµСЂРёРё РІС‹СЃС‚СЂРµР»РѕРІ (РґСЂРѕР±РѕРІРёРє).
     /// </summary>
-    /// <param name="damageData">Второй источник урона для объединения.</param>
-    /// <param name="damageId">Общий идентификатор урона (серии выстрелов).</param>
-    /// <returns>Новый объединённый экземпляр <see cref="DamageData"/>.</returns>
+    /// <param name="damageData">Р’С‚РѕСЂРѕР№ РёСЃС‚РѕС‡РЅРёРє СѓСЂРѕРЅР° РґР»СЏ РѕР±СЉРµРґРёРЅРµРЅРёСЏ.</param>
+    /// <param name="damageId">РћР±С‰РёР№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СѓСЂРѕРЅР° (СЃРµСЂРёРё РІС‹СЃС‚СЂРµР»РѕРІ).</param>
+    /// <returns>РќРѕРІС‹Р№ РѕР±СЉРµРґРёРЅС‘РЅРЅС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="DamageData"/>.</returns>
     public DamageData CombineDamageData(DamageData damageData, Guid damageId)
     {
         return new DamageData
         {
             DamageId = damageId,
             Damage = this.Damage + damageData.Damage,
+            RawDamage = this.RawDamage + damageData.RawDamage,
+            AbsorbedDamage = this.AbsorbedDamage + damageData.AbsorbedDamage,
             KnockBackPower = this.KnockBackPower + damageData.KnockBackPower,
             DamageType = this.DamageType | damageData.DamageType,
+            DamageSource = this.DamageSource ?? damageData.DamageSource,
+            HitGroup = this.HitGroup == damageData.HitGroup ? this.HitGroup : HitGroup.Generic,
             PainShock = Math.Clamp(this.PainShock + damageData.PainShock, 0, 100),
             AppliedModifiers = this.AppliedModifiers.Union(damageData.AppliedModifiers).ToHashSet()
         };
     }
 
     /// <summary>
-    /// Создаёт новый экземпляр <see cref="DamageData"/> с указанным значением урона.
+    /// РЎРѕР·РґР°С‘С‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="DamageData"/> СЃ СѓРєР°Р·Р°РЅРЅС‹Рј Р·РЅР°С‡РµРЅРёРµРј СѓСЂРѕРЅР°.
     /// </summary>
-    /// <param name="damage">Величина урона.</param>
-    /// <returns>Новый экземпляр <see cref="DamageData"/>.</returns>
+    /// <param name="damage">Р’РµР»РёС‡РёРЅР° СѓСЂРѕРЅР°.</param>
+    /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="DamageData"/>.</returns>
     public static DamageData Create(float damage, float painShock = 0)
     {
         return new DamageData
         {
             DamageId = Guid.NewGuid(),
             Damage = damage,
+            RawDamage = damage,
             PainShock = Math.Clamp(painShock, 0, 100)
         };
     }
 
     /// <summary>
-    /// Объединяет два экземпляра урона в один, используя общий идентификатор урона.
+    /// РћР±СЉРµРґРёРЅСЏРµС‚ РґРІР° СЌРєР·РµРјРїР»СЏСЂР° СѓСЂРѕРЅР° РІ РѕРґРёРЅ, РёСЃРїРѕР»СЊР·СѓСЏ РѕР±С‰РёР№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СѓСЂРѕРЅР°.
     /// </summary>
-    /// <param name="damageOneData">Первый источник урона.</param>
-    /// <param name="damageTwoData">Второй источник урона.</param>
-    /// <param name="damageId">Общий идентификатор серии урона.</param>
-    /// <returns>Новый экземпляр <see cref="DamageData"/> с объединёнными значениями.</returns>
+    /// <param name="damageOneData">РџРµСЂРІС‹Р№ РёСЃС‚РѕС‡РЅРёРє СѓСЂРѕРЅР°.</param>
+    /// <param name="damageTwoData">Р’С‚РѕСЂРѕР№ РёСЃС‚РѕС‡РЅРёРє СѓСЂРѕРЅР°.</param>
+    /// <param name="damageId">РћР±С‰РёР№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРµСЂРёРё СѓСЂРѕРЅР°.</param>
+    /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="DamageData"/> СЃ РѕР±СЉРµРґРёРЅС‘РЅРЅС‹РјРё Р·РЅР°С‡РµРЅРёСЏРјРё.</returns>
     public static DamageData CombineDamageData(DamageData damageOneData, DamageData damageTwoData, Guid damageId)
     {
         return damageOneData.CombineDamageData(damageTwoData, damageId);
     }
 
     /// <summary>
-    /// Создаёт копию текущего экземпляра (глубокое копирование коллекций).
+    /// РЎРѕР·РґР°С‘С‚ РєРѕРїРёСЋ С‚РµРєСѓС‰РµРіРѕ СЌРєР·РµРјРїР»СЏСЂР° (РіР»СѓР±РѕРєРѕРµ РєРѕРїРёСЂРѕРІР°РЅРёРµ РєРѕР»Р»РµРєС†РёР№).
     /// </summary>
-    /// <returns>Новый экземпляр <see cref="DamageData"/> с идентичными параметрами.</returns>
+    /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="DamageData"/> СЃ РёРґРµРЅС‚РёС‡РЅС‹РјРё РїР°СЂР°РјРµС‚СЂР°РјРё.</returns>
     public DamageData Clone()
     {
         return new DamageData
         {
             DamageId = this.DamageId,
             Damage = this.Damage,
+            RawDamage = this.RawDamage,
+            AbsorbedDamage = this.AbsorbedDamage,
             KnockBackPower = this.KnockBackPower,
             DamageType = this.DamageType,
+            DamageSource = this.DamageSource,
+            HitGroup = this.HitGroup,
             PainShock = this.PainShock,
             AppliedModifiers = new HashSet<IDamageModifier>(this.AppliedModifiers)
         };

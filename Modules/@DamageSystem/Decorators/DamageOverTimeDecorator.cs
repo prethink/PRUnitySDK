@@ -3,9 +3,9 @@ using UnityEngine;
 public class DamageOverTimeDecorator// : IDamageProvider
 {
     private readonly IDamageProvider damageProvider;
-    private readonly float tickInterval;   // интервал между тиками урона
-    private readonly int tickCount;        // количество тиков
-    private readonly MonoBehaviour context; // нужно для запуска корутины
+    private readonly float tickInterval;   // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+    private readonly int tickCount;        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+    private readonly MonoBehaviour context; // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
     //public DamageType DamageType => damageProvider.DamageType | DamageType.TimeBased;
 
@@ -30,7 +30,7 @@ public class DamageOverTimeDecorator// : IDamageProvider
     }
 
     /// <summary>
-    /// Запускает эффект DoT на жертве.
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ DoT пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
     /// </summary>
     //public void Apply(IEntity attacker, IEntity victim, IWeapon weapon)
     //{
@@ -44,10 +44,10 @@ public class DamageOverTimeDecorator// : IDamageProvider
     //    //{
     //    //    yield return new WaitForSeconds(tickInterval);
 
-    //    //    // каждый тик наносим урон
+    //    //    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
     //    //    victim.TakeDamage(attacker, weapon, damageProvider as DamageBase);
 
-    //    //    // Можно триггерить события: OnDotTick, OnDotFinished
+    //    //    // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ: OnDotTick, OnDotFinished
     //    //}
     //}
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(EntityBase))]
 public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     [SerializeField] protected bool isAlive;
 
@@ -12,45 +12,55 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
     #endregion
 
-    #region События
+    #region РЎРѕР±С‹С‚РёСЏ
 
     /// <summary>
-    /// Событие смерти сущности.
+    /// РЎРѕР±С‹С‚РёРµ СЃРјРµСЂС‚Рё СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public event Action<IEntity, IEntity> OnEntityDead;
 
     /// <summary>
-    /// Событие воскрешения сущности.
+    /// РЎРѕР±С‹С‚РёРµ РІРѕСЃРєСЂРµС€РµРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public event Action<IEntity> OnRevive;
 
     /// <summary>
-    /// Событие спавна сущности.
+    /// РЎРѕР±С‹С‚РёРµ СЃРїР°РІРЅР° СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public event Action<Vector3> OnSpawn;
 
     /// <summary>
-    /// Событие изменения scale.
+    /// РЎРѕР±С‹С‚РёРµ РёР·РјРµРЅРµРЅРёСЏ scale.
     /// </summary>
     public event Action<Transform> OnScaleChanged;
 
     /// <summary>
-    /// Событие изменения здоровья.
+    /// РЎРѕР±С‹С‚РёРµ РёР·РјРµРЅРµРЅРёСЏ Р·РґРѕСЂРѕРІСЊСЏ.
     /// </summary>
     public event Action<HealthChangedEventArgsBase> OnHealthChange;
 
     /// <summary>
-    /// Событие изменения здоровья.
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїРѕСЃР»Рµ Р·Р°РІРµСЂС€РµРЅРёСЏ Р»СЋР±РѕР№ РїРѕРїС‹С‚РєРё РЅР°РЅРµСЃРµРЅРёСЏ СѓСЂРѕРЅР°.
+    /// </summary>
+    public event Action<DamageOutcome> OnDamageProcessed;
+
+    /// <summary>
+    /// РџРѕСЃР»РµРґРЅРёР№ Р·Р°РІРµСЂС€С‘РЅРЅС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚ РѕР±СЂР°Р±РѕС‚РєРё СѓСЂРѕРЅР° СЌС‚РѕР№ СЃСѓС‰РЅРѕСЃС‚СЊСЋ.
+    /// </summary>
+    public DamageOutcome LastDamageOutcome { get; protected set; }
+
+    /// <summary>
+    /// РЎРѕР±С‹С‚РёРµ РёР·РјРµРЅРµРЅРёСЏ Р·РґРѕСЂРѕРІСЊСЏ.
     /// </summary>
     //public event Action<IEntity, DamageBase, float, float, bool> OnHealthChange;
 
     /// <summary>
-    /// Событие попадания в коллайдер.
+    /// РЎРѕР±С‹С‚РёРµ РїРѕРїР°РґР°РЅРёСЏ РІ РєРѕР»Р»Р°Р№РґРµСЂ.
     /// </summary>
     public event Action<IEntity, Collider, IDamageProvider, DamageResult> OnHitCollider;
 
     /// <summary>
-    /// События попадания.
+    /// РЎРѕР±С‹С‚РёСЏ РїРѕРїР°РґР°РЅРёСЏ.
     /// </summary>
     public event Action<IEntity, Vector3, IDamageProvider, DamageResult> OnHitVector;
 
@@ -58,7 +68,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
     #region MonoBehavior
 
-    [field: Header("Здоровье")]
+    [field: Header("Р—РґРѕСЂРѕРІСЊРµ")]
     [field: SerializeField] public bool HideOnDead { get; protected set; } = true;
 
     [field: SerializeField] public bool IsBlockDamage { get; protected set; }
@@ -74,45 +84,115 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         InitHealth();
     }
 
+    protected override void InitializationComponents()
+    {
+        base.InitializationComponents();
+
+        Entity = GetComponent<EntityBase>();
+        GameObject = Entity.EntityGameObject;
+    }
+
     #endregion
 
     #region IDamagable
 
     public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damageProvider)
     {
+        return ProcessDamage(attacker, weapon, damageProvider, null, null);
+    }
+
+    private DamageResult ProcessDamage(
+        IEntity attacker,
+        IWeapon weapon,
+        IDamageProvider damageProvider,
+        Vector3? hitPoint,
+        Collider hitCollider)
+    {
+        if (damageProvider == null)
+        {
+            var notHandledOutcome = new DamageOutcome(
+                DamageResult.NotHandled, null, Health, Health, hitPoint, hitCollider);
+            CompleteDamageAttempt(notHandledOutcome);
+            RaiseDamageProcessed(attacker, weapon, notHandledOutcome);
+            return DamageResult.NotHandled;
+        }
+
         var damageHook = HookManager.Instance.Publish(new DamageHookEvent(attacker, weapon, this.Entity, damageProvider, DamageResult.NotHandled));
         if (!IsAlive() || PRUnitySDK.PauseManager.IsLogicPaused || damageHook.DamageResult == DamageResult.Miss)
         {
             InternalMissedDamage();
+            var missedOutcome = new DamageOutcome(
+                DamageResult.Miss, null, Health, Health, hitPoint, hitCollider);
+            CompleteDamageAttempt(missedOutcome);
+            RaiseDamageProcessed(attacker, weapon, missedOutcome);
             return DamageResult.Miss;
         }
 
         if (IsBlockDamage || !CanTakeDamage() || damageHook.DamageResult == DamageResult.Blocked)
         {
             InternalBlockDamage();
+            var blockedOutcome = new DamageOutcome(
+                DamageResult.Blocked, null, Health, Health, hitPoint, hitCollider);
+            CompleteDamageAttempt(blockedOutcome);
+            RaiseDamageProcessed(attacker, weapon, blockedOutcome);
             return DamageResult.Blocked;
+        }
+
+        if (damageHook.DamageProvider == null)
+        {
+            var missingHookDamageOutcome = new DamageOutcome(
+                DamageResult.NotHandled, null, Health, Health, hitPoint, hitCollider);
+            CompleteDamageAttempt(missingHookDamageOutcome);
+            RaiseDamageProcessed(attacker, weapon, missingHookDamageOutcome);
+            return DamageResult.NotHandled;
         }
 
         InternalTakeDamage();
         var startHealth = Health;
         var currentDamage = damageHook.DamageProvider.GetDamageData();
+        if (currentDamage == null)
+        {
+            var emptyOutcome = new DamageOutcome(
+                DamageResult.NotHandled, null, Health, Health, hitPoint, hitCollider);
+            CompleteDamageAttempt(emptyOutcome);
+            RaiseDamageProcessed(attacker, weapon, emptyOutcome);
+            return DamageResult.NotHandled;
+        }
+
+        if (currentDamage.RawDamage == 0f && currentDamage.Damage != 0f)
+            currentDamage.RawDamage = currentDamage.Damage;
+
         var nextHealth = Mathf.Clamp(Health - currentDamage.Damage, 0, MaxHealth);
-        var damageInflicted = startHealth - Health;
-        OnHealthChange?.Invoke(new HealthChangedEventArgsBase(nextHealth, MaxHealth));
+        Health = nextHealth;
+        var result = nextHealth <= 0 ? DamageResult.Killed : DamageResult.Damaged;
+        var outcome = new DamageOutcome(
+            result,
+            currentDamage,
+            startHealth,
+            nextHealth,
+            hitPoint,
+            hitCollider);
+
+        OnHealthChange?.Invoke(new HealthChangedEventArgsBase(
+            startHealth,
+            nextHealth,
+            MaxHealth,
+            outcome));
 
         if (nextHealth <= 0)
         {
-            if (IsKill(attacker))
-                CombatEvents.RaiseOnKill(new EntityKillEventArgs(attacker, this.Entity, weapon));
+            IsKill(attacker);
+        }
 
-            return DamageResult.Killed;
-        }
-        else
-        {
-            Health = nextHealth;
-        }
-        CombatEvents.RaiseOnTakeDamage(new TakeDamageEvent(attacker, this.Entity, currentDamage, weapon));
-        return DamageResult.Damaged;
+        CompleteDamageAttempt(outcome);
+        CombatEvents.RaiseOnTakeDamage(new TakeDamageEvent(attacker, this.Entity, outcome, weapon));
+
+        if (result == DamageResult.Killed)
+            CombatEvents.RaiseOnKill(new EntityKillEventArgs(attacker, this.Entity, outcome, weapon));
+
+        RaiseDamageProcessed(attacker, weapon, outcome);
+
+        return result;
     }
 
     protected virtual void InternalTakeDamage()
@@ -130,9 +210,28 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
     }
 
+    /// <summary>
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РїРѕРїС‹С‚РєРё Рё СѓРІРµРґРѕРјР»СЏРµС‚ Р»РѕРєР°Р»СЊРЅС‹С… РїРѕРґРїРёСЃС‡РёРєРѕРІ.
+    /// </summary>
+    /// <param name="outcome">Р—Р°РІРµСЂС€С‘РЅРЅС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚ РѕР±СЂР°Р±РѕС‚РєРё.</param>
+    protected virtual void CompleteDamageAttempt(DamageOutcome outcome)
+    {
+        LastDamageOutcome = outcome;
+        OnDamageProcessed?.Invoke(LastDamageOutcome);
+    }
+
+    private void RaiseDamageProcessed(IEntity attacker, IWeapon weapon, DamageOutcome outcome)
+    {
+        CombatEvents.RaiseOnDamageProcessed(new DamageProcessedEvent(
+            attacker,
+            this.Entity,
+            outcome,
+            weapon));
+    }
+
     public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point)
     {
-        var result = TakeDamage(attacker, weapon, damage);
+        var result = ProcessDamage(attacker, weapon, damage, point, null);
         if (result != DamageResult.Miss)
             OnHitVector?.Invoke(attacker, point, damage, result);
 
@@ -141,7 +240,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
     public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider)
     {
-        var result = TakeDamage(attacker, weapon, damage);
+        var result = ProcessDamage(attacker, weapon, damage, null, collider);
         if (result != DamageResult.Miss)
             OnHitCollider?.Invoke(attacker, collider, damage, result);
 
@@ -150,7 +249,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     public IEntity Killer { get; protected set; }
 
@@ -159,23 +258,23 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     public GameObject GameObject { get; protected set; }
 
     /// <summary>
-    /// Инициализация жизней.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р¶РёР·РЅРµР№.
     /// </summary>
     /// <exception cref="ArgumentException"></exception>
     public virtual void InitHealth()
     {
         if (MaxHealth <= 0)
-            throw new ArgumentException("Максимальное здоровье должно быть больше 0!");
+            throw new ArgumentException("РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РґРѕСЂРѕРІСЊРµ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0!");
 
         Health = MaxHealth;
         isAlive = Health > 0;
     }
 
     /// <summary>
-    /// Убить сущность.
+    /// РЈР±РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ.
     /// </summary>
-    /// <param name="killer">Убийца.</param>
-    /// <returns>True - удачно, false нет.</returns>
+    /// <param name="killer">РЈР±РёР№С†Р°.</param>
+    /// <returns>True - СѓРґР°С‡РЅРѕ, false РЅРµС‚.</returns>
     public virtual bool IsKill(IEntity killer)
     {
         if (!IsAlive())
@@ -196,16 +295,16 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Убить сущность.
+    /// РЈР±РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ.
     /// </summary>
-    /// <returns>True - удачно, false нет.</returns>
+    /// <returns>True - СѓРґР°С‡РЅРѕ, false РЅРµС‚.</returns>
     public virtual bool Kill()
     {
         return IsKill(GameEventEntityFactory.CreateEventGame());
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
     public virtual void Revive()
     {
@@ -213,7 +312,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
     /// <param name="transform">transform.</param>
     public virtual void Revive(Transform transform)
@@ -222,9 +321,9 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
-    /// <param name="position">Позиция.</param>
+    /// <param name="position">РџРѕР·РёС†РёСЏ.</param>
     public virtual void Revive(Vector3 position)
     {
         Revive(GameEventEntityFactory.CreateEventGame(), MaxHealth, position, Quaternion.identity);
@@ -232,18 +331,18 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
-    /// <param name="health">Количество жизней при оживление.</param>
+    /// <param name="health">РљРѕР»РёС‡РµСЃС‚РІРѕ Р¶РёР·РЅРµР№ РїСЂРё РѕР¶РёРІР»РµРЅРёРµ.</param>
     public virtual void Revive(float health)
     {
         Revive(GameEventEntityFactory.CreateEventGame(), health, Entity.transform);
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
-    /// <param name="health">Количество жизней при оживление.</param>
+    /// <param name="health">РљРѕР»РёС‡РµСЃС‚РІРѕ Р¶РёР·РЅРµР№ РїСЂРё РѕР¶РёРІР»РµРЅРёРµ.</param>
     /// <param name="transform">transform.</param>
     public virtual void Revive(float health, Transform transform)
     {
@@ -251,20 +350,20 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
-    /// <param name="health">Количество жизней при оживление.</param>
-    /// <param name="position">Позиция.</param>
+    /// <param name="health">РљРѕР»РёС‡РµСЃС‚РІРѕ Р¶РёР·РЅРµР№ РїСЂРё РѕР¶РёРІР»РµРЅРёРµ.</param>
+    /// <param name="position">РџРѕР·РёС†РёСЏ.</param>
     public virtual void Revive(float health, Vector3 position)
     {
         Revive(GameEventEntityFactory.CreateEventGame(), health, position, Quaternion.identity);
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
-    /// <param name="reviver">Кто оживляет.</param>
-    /// <param name="health">Количество жизней при оживление.</param>
+    /// <param name="reviver">РљС‚Рѕ РѕР¶РёРІР»СЏРµС‚.</param>
+    /// <param name="health">РљРѕР»РёС‡РµСЃС‚РІРѕ Р¶РёР·РЅРµР№ РїСЂРё РѕР¶РёРІР»РµРЅРёРµ.</param>
     /// <param name="transform">transform.</param>
     public virtual void Revive(IEntity reviver, float health, Transform transform)
     {
@@ -272,12 +371,12 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Оживить entity.
+    /// РћР¶РёРІРёС‚СЊ entity.
     /// </summary>
-    /// <param name="reviver">Кто оживляет.</param>
-    /// <param name="health">Количество жизней при оживление.</param>
-    /// <param name="position">Позиция.</param>
-    /// <param name="rotation">Поворот.</param>
+    /// <param name="reviver">РљС‚Рѕ РѕР¶РёРІР»СЏРµС‚.</param>
+    /// <param name="health">РљРѕР»РёС‡РµСЃС‚РІРѕ Р¶РёР·РЅРµР№ РїСЂРё РѕР¶РёРІР»РµРЅРёРµ.</param>
+    /// <param name="position">РџРѕР·РёС†РёСЏ.</param>
+    /// <param name="rotation">РџРѕРІРѕСЂРѕС‚.</param>
     public virtual void Revive(IEntity reviver, float health, Vector3 position, Quaternion rotation)
     {
         if (IsAlive())
@@ -294,9 +393,9 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Суицид.
+    /// РЎСѓРёС†РёРґ.
     /// </summary>
-    /// <returns>True - удачно, false нет.</returns>
+    /// <returns>True - СѓРґР°С‡РЅРѕ, false РЅРµС‚.</returns>
     public virtual bool Suicide()
     {
         return IsKill(GameEventEntityFactory.CreateEventSuicide());
@@ -308,7 +407,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Изменить видимость entity.
+    /// РР·РјРµРЅРёС‚СЊ РІРёРґРёРјРѕСЃС‚СЊ entity.
     /// </summary>
     protected virtual void ChangeVisibleEntity()
     {
@@ -317,18 +416,18 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Вызов события смерти сущности.
+    /// Р’С‹Р·РѕРІ СЃРѕР±С‹С‚РёСЏ СЃРјРµСЂС‚Рё СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
-    /// <param name="attacker">Атакующий.</param>
+    /// <param name="attacker">РђС‚Р°РєСѓСЋС‰РёР№.</param>
     protected virtual void OnEntityDeadInvoke(IEntity attacker)
     {
         OnEntityDead?.Invoke(attacker, this.Entity);
     }
 
     /// <summary>
-    /// Вызвать события спавна.
+    /// Р’С‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ СЃРїР°РІРЅР°.
     /// </summary>
-    /// <param name="position">Позиция.</param>
+    /// <param name="position">РџРѕР·РёС†РёСЏ.</param>
     protected virtual void OnSpawnInvoke(Vector3 position)
     {
         OnSpawn?.Invoke(position);
@@ -342,9 +441,10 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         if (Health >= MaxHealth)
             return false;
 
+        var previousHealth = Health;
         var updateHealth = Math.Clamp(Health + health, Health, MaxHealth);
         Health = updateHealth;
-        //OnHealthChange?.Invoke()
+        OnHealthChange?.Invoke(new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth));
         return true;
     }
 
@@ -354,9 +454,9 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Может ли сущность принимать урон.
+    /// РњРѕР¶РµС‚ Р»Рё СЃСѓС‰РЅРѕСЃС‚СЊ РїСЂРёРЅРёРјР°С‚СЊ СѓСЂРѕРЅ.
     /// </summary>
-    /// <returns>True - удачно, false нет.</returns>
+    /// <returns>True - СѓРґР°С‡РЅРѕ, false РЅРµС‚.</returns>
     public virtual bool CanTakeDamage()
     {
         return true;

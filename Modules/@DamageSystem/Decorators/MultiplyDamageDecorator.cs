@@ -2,7 +2,7 @@ using System;
 
 public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     private IDamageProvider damageProvider;
 
@@ -16,15 +16,19 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 
     public DamageData GetDamageData()
     {
-        var currentData = damageProvider.GetDamageData();
+        var currentData = damageProvider.GetDamageData().Clone();
 
         if (currentData.IsAppliedModifier(this))
             return currentData;
+
+        if (currentData.RawDamage == 0f && currentData.Damage != 0f)
+            currentData.RawDamage = currentData.Damage;
 
         if(addCriticalFlag)
             currentData.DamageType = currentData.DamageType | DamageType.Critical;
 
         currentData.Damage = currentData.Damage * multiply;
+        currentData.AppliedModifiers.Add(this);
 
         return currentData;
     }
@@ -39,7 +43,7 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 
     #endregion
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public MultiplyDamageDecorator(IDamageProvider damageProvider, float multiply, bool addCriticalFlag = true)
     {
