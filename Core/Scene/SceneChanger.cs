@@ -55,10 +55,10 @@ public class SceneChanger : SingletonProviderBase<SceneChanger>
 
     private void StartScene(int id)
     {
+        SceneManager.LoadScene(id);
+
         if (GetSettings().UseFadeOnChange)
             ScreenFade.Instance.FadeOut();
-
-        SceneManager.LoadScene(id);
     }
 
     private SceneTransitionSettings GetSettings() 

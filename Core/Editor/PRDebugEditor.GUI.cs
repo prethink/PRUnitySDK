@@ -55,6 +55,39 @@ public partial class PRDebugEditor
     private static void Label(object value, float width) =>
         EditorGUILayout.LabelField(value?.ToString() ?? "-", GUILayout.Width(width));
 
+    private static void DrawIcon(Sprite sprite, float width, float height)
+    {
+        Rect rect = GUILayoutUtility.GetRect(width, height, GUILayout.Width(width), GUILayout.Height(height));
+        if (sprite == null || sprite.texture == null)
+        {
+            GUI.Label(rect, "-", EditorStyles.centeredGreyMiniLabel);
+            return;
+        }
+
+        Rect textureRect = sprite.textureRect;
+        float aspect = textureRect.width / textureRect.height;
+        Rect drawRect = rect;
+
+        if (aspect > rect.width / rect.height)
+        {
+            drawRect.height = rect.width / aspect;
+            drawRect.y += (rect.height - drawRect.height) * 0.5f;
+        }
+        else
+        {
+            drawRect.width = rect.height * aspect;
+            drawRect.x += (rect.width - drawRect.width) * 0.5f;
+        }
+
+        Rect uv = new Rect(
+            textureRect.x / sprite.texture.width,
+            textureRect.y / sprite.texture.height,
+            textureRect.width / sprite.texture.width,
+            textureRect.height / sprite.texture.height);
+
+        GUI.DrawTextureWithTexCoords(drawRect, sprite.texture, uv, true);
+    }
+
     private static void DrawObjectButton(UnityEngine.Object target)
     {
         using (new EditorGUI.DisabledScope(target == null))

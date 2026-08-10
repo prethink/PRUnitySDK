@@ -39,6 +39,11 @@ public partial class PRDebugEditor
 
     private sealed class EntityRow
     {
+        /// <summary>
+        /// Иконка первой доступной сущности этого типа.
+        /// </summary>
+        public Sprite Icon;
+
         public string Type;
         public long Registered;
         public long OnScene;

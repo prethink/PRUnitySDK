@@ -46,14 +46,18 @@ public partial class PRDebugEditor
     private void DrawEntities()
     {
         DrawSectionHeader("Entities by type");
-        DrawFixedRow(true, ("Type", 230), ("Registered", 90), ("On scene", 80), ("Hidden", 70), ("In pool", 70));
+        DrawFixedRow(true, ("Icon", 56), ("Type", 174), ("Registered", 90), ("On scene", 80),
+            ("Hidden", 70), ("In pool", 70));
         int count = 0;
         foreach (var row in entities)
         {
             if (!MatchesSearch(row.Type)) continue;
             count++;
-            DrawFixedRow(false, (row.Type, 230), (row.Registered.ToString(), 90),
-                (row.OnScene.ToString(), 80), (row.Hidden.ToString(), 70), (row.InPool.ToString(), 70));
+            EditorGUILayout.BeginHorizontal(GUILayout.Height(40f));
+            DrawIcon(row.Icon, 56f, 36f);
+            Label(row.Type, 174); Label(row.Registered, 90); Label(row.OnScene, 80);
+            Label(row.Hidden, 70); Label(row.InPool, 70);
+            EditorGUILayout.EndHorizontal();
         }
         DrawEmpty(count, "No entity types match the current search.");
     }

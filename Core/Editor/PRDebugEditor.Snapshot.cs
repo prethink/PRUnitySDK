@@ -89,8 +89,12 @@ public partial class PRDebugEditor
         foreach (var item in tracker.RegisteredEntity)
         {
             long onScene = tracker.GetExactEntityOnSceneCount(item.Key);
+            var entity = tracker.Entities.FirstOrDefault(value =>
+                value != null && !value.IsNull() && value.EntityType == item.Key);
+
             entities.Add(new EntityRow
             {
+                Icon = SafeValue(() => entity?.Info?.GetIcon(), null),
                 Type = item.Key?.ToString() ?? "<null>",
                 Registered = item.Value,
                 OnScene = onScene,
@@ -100,6 +104,18 @@ public partial class PRDebugEditor
         }
 
         entities.Sort((left, right) => right.Registered.CompareTo(left.Registered));
+    }
+
+    private static T SafeValue<T>(Func<T> getter, T fallback)
+    {
+        try
+        {
+            return getter != null ? getter() : fallback;
+        }
+        catch
+        {
+            return fallback;
+        }
     }
 
     private void CapturePools()

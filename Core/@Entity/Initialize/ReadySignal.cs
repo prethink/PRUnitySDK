@@ -2,82 +2,102 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Реализация сигнала готовности с защитой от дубликатов подписок.
+/// Р РµР°Р»РёР·Р°С†РёСЏ СЃРёРіРЅР°Р»Р° РіРѕС‚РѕРІРЅРѕСЃС‚Рё СЃ Р·Р°С‰РёС‚РѕР№ РѕС‚ РґСѓР±Р»РёРєР°С‚РѕРІ РїРѕРґРїРёСЃРѕРє.
 /// </summary>
 public class ReadySignal : IReadySignal
 {
     private readonly object _lock = new object();
     private readonly HashSet<Action> onReadyCallbacks = new();
+    private volatile bool isReady;
 
     /// <summary>
-    /// Получает значение, указывающее, был ли сигнал помечен как готовый.
+    /// РџРѕР»СѓС‡Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ, СѓРєР°Р·С‹РІР°СЋС‰РµРµ, Р±С‹Р» Р»Рё СЃРёРіРЅР°Р» РїРѕРјРµС‡РµРЅ РєР°Рє РіРѕС‚РѕРІС‹Р№.
     /// </summary>
-    public bool IsReady { get; private set; }
+    public bool IsReady => isReady;
 
     /// <summary>
-    /// Имя сигнала.
+    /// РРјСЏ СЃРёРіРЅР°Р»Р°.
     /// </summary>
     public string Name { get; protected set; }
 
     /// <summary>
-    /// Помечает сигнал как готовый и вызывает все подписанные callback'и.
+    /// РџРѕРјРµС‡Р°РµС‚ СЃРёРіРЅР°Р» РєР°Рє РіРѕС‚РѕРІС‹Р№ Рё РІС‹Р·С‹РІР°РµС‚ РІСЃРµ РїРѕРґРїРёСЃР°РЅРЅС‹Рµ callback'Рё.
     /// </summary>
     /// <remarks>
-    /// Если уже помечен как готовый, метод не имеет эффекта.
-    /// После вызова всех callback'ов, они очищаются для предотвращения утечек памяти.
+    /// Р•СЃР»Рё СѓР¶Рµ РїРѕРјРµС‡РµРЅ РєР°Рє РіРѕС‚РѕРІС‹Р№, РјРµС‚РѕРґ РЅРµ РёРјРµРµС‚ СЌС„С„РµРєС‚Р°.
+    /// РџРѕСЃР»Рµ РІС‹Р·РѕРІР° РІСЃРµС… callback'РѕРІ, РѕРЅРё РѕС‡РёС‰Р°СЋС‚СЃСЏ РґР»СЏ РїСЂРµРґРѕС‚РІСЂР°С‰РµРЅРёСЏ СѓС‚РµС‡РµРє РїР°РјСЏС‚Рё.
     /// </remarks>
     public void SetReady()
     {
+        Action[] callbacks;
+
         lock (_lock)
         {
             if (IsReady)
                 return;
 
-            IsReady = true;
+            isReady = true;
+            callbacks = new Action[onReadyCallbacks.Count];
+            onReadyCallbacks.CopyTo(callbacks);
+            onReadyCallbacks.Clear();
+        }
+
+        try
+        {
             ReadySignalEvents.RaiseReadySignal(Name);
-            // Вызываем все callback'и
-            foreach (var callback in onReadyCallbacks)
+        }
+        catch (Exception exception)
+        {
+            PRLog.WriteError(this, exception.ToString());
+        }
+
+        foreach (var callback in callbacks)
+        {
+            try
             {
                 callback?.Invoke();
             }
-
-            onReadyCallbacks.Clear();
+            catch (Exception exception)
+            {
+                PRLog.WriteError(this, exception.ToString());
+            }
         }
     }
 
     /// <summary>
-    /// Подписывает callback на событие готовности.
+    /// РџРѕРґРїРёСЃС‹РІР°РµС‚ callback РЅР° СЃРѕР±С‹С‚РёРµ РіРѕС‚РѕРІРЅРѕСЃС‚Рё.
     /// </summary>
-    /// <param name="onReadyCallback">Действие для вызова при готовности. Если уже готово, вызывается немедленно.</param>
-    /// <returns>Возвращает этот экземпляр для цепочки методов.</returns>
+    /// <param name="onReadyCallback">Р”РµР№СЃС‚РІРёРµ РґР»СЏ РІС‹Р·РѕРІР° РїСЂРё РіРѕС‚РѕРІРЅРѕСЃС‚Рё. Р•СЃР»Рё СѓР¶Рµ РіРѕС‚РѕРІРѕ, РІС‹Р·С‹РІР°РµС‚СЃСЏ РЅРµРјРµРґР»РµРЅРЅРѕ.</param>
+    /// <returns>Р’РѕР·РІСЂР°С‰Р°РµС‚ СЌС‚РѕС‚ СЌРєР·РµРјРїР»СЏСЂ РґР»СЏ С†РµРїРѕС‡РєРё РјРµС‚РѕРґРѕРІ.</returns>
     /// <remarks>
-    /// Попытка подписать один и тот же callback дважды игнорируется с предупреждением.
+    /// РџРѕРїС‹С‚РєР° РїРѕРґРїРёСЃР°С‚СЊ РѕРґРёРЅ Рё С‚РѕС‚ Р¶Рµ callback РґРІР°Р¶РґС‹ РёРіРЅРѕСЂРёСЂСѓРµС‚СЃСЏ СЃ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµРј.
     /// </remarks>
     public IReadySignal SubscribeOnReady(Action onReadyCallback)
     {
         if (onReadyCallback == null)
             return this;
 
+        bool invokeImmediately;
+
         lock (_lock)
         {
-            if (IsReady)
-            {
-                onReadyCallback.Invoke();
-                return this;
-            }
-
-            onReadyCallbacks.Add(onReadyCallback);
+            invokeImmediately = IsReady;
+            if (!invokeImmediately)
+                onReadyCallbacks.Add(onReadyCallback);
         }
+
+        if (invokeImmediately)
+            onReadyCallback.Invoke();
 
         return this;
     }
 
     /// <summary>
-    /// Отписывает callback от события готовности.
+    /// РћС‚РїРёСЃС‹РІР°РµС‚ callback РѕС‚ СЃРѕР±С‹С‚РёСЏ РіРѕС‚РѕРІРЅРѕСЃС‚Рё.
     /// </summary>
-    /// <param name="onReadyCallback">Действие для удаления из списка подписок.</param>
+    /// <param name="onReadyCallback">Р”РµР№СЃС‚РІРёРµ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РёР· СЃРїРёСЃРєР° РїРѕРґРїРёСЃРѕРє.</param>
     /// <remarks>
-    /// Если callback не подписан, метод не имеет эффекта.
+    /// Р•СЃР»Рё callback РЅРµ РїРѕРґРїРёСЃР°РЅ, РјРµС‚РѕРґ РЅРµ РёРјРµРµС‚ СЌС„С„РµРєС‚Р°.
     /// </remarks>
     public void UnSubscribe(Action onReadyCallback)
     {
@@ -91,34 +111,34 @@ public class ReadySignal : IReadySignal
     }
 
     /// <summary>
-    /// Сбрасывает состояние готовности и очищает всех подписчиков.
+    /// РЎР±СЂР°СЃС‹РІР°РµС‚ СЃРѕСЃС‚РѕСЏРЅРёРµ РіРѕС‚РѕРІРЅРѕСЃС‚Рё Рё РѕС‡РёС‰Р°РµС‚ РІСЃРµС… РїРѕРґРїРёСЃС‡РёРєРѕРІ.
     /// </summary>
     /// <remarks>
-    /// Используйте с осторожностью, так как это очистит все подписанные callback'и без уведомления.
+    /// РСЃРїРѕР»СЊР·СѓР№С‚Рµ СЃ РѕСЃС‚РѕСЂРѕР¶РЅРѕСЃС‚СЊСЋ, С‚Р°Рє РєР°Рє СЌС‚Рѕ РѕС‡РёСЃС‚РёС‚ РІСЃРµ РїРѕРґРїРёСЃР°РЅРЅС‹Рµ callback'Рё Р±РµР· СѓРІРµРґРѕРјР»РµРЅРёСЏ.
     /// </remarks>
     public void ResetReady()
     {
         lock (_lock)
         {
-            IsReady = false;
+            isReady = false;
             onReadyCallbacks.Clear();
         }
     }
 
     /// <summary>
-    /// Освобождает сигнал и очищает все ресурсы.
+    /// РћСЃРІРѕР±РѕР¶РґР°РµС‚ СЃРёРіРЅР°Р» Рё РѕС‡РёС‰Р°РµС‚ РІСЃРµ СЂРµСЃСѓСЂСЃС‹.
     /// </summary>
     public void Dispose()
     {
         lock (_lock)
         {
-            IsReady = false;
+            isReady = false;
             onReadyCallbacks.Clear();
         }
     }
 
     /// <summary>
-    /// Возвращает количество активных подписчиков.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕР»РёС‡РµСЃС‚РІРѕ Р°РєС‚РёРІРЅС‹С… РїРѕРґРїРёСЃС‡РёРєРѕРІ.
     /// </summary>
     public int GetSubscribersCount()
     {

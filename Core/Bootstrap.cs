@@ -3,12 +3,17 @@ using UnityEngine;
 
 public partial class Bootstrap : MonoBehaviour, ISDKEvents
 {
-    #region  Поля и свойства
+    #region  РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Признак того, что инициализация SDK была переопределена.
+    /// РџСЂРёР·РЅР°Рє С‚РѕРіРѕ, С‡С‚Рѕ РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ SDK Р±С‹Р»Р° РїРµСЂРµРѕРїСЂРµРґРµР»РµРЅР°.
     /// </summary>
     private bool isOverriden;
+
+    /// <summary>
+    /// РџСЂРµРґРѕС‚РІСЂР°С‰Р°РµС‚ РїРѕРІС‚РѕСЂРЅСѓСЋ СЃРјРµРЅСѓ СЃС†РµРЅС‹ РїСЂРё РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕРј РїРѕР»СѓС‡РµРЅРёРё EventBus Рё ReadySignal.
+    /// </summary>
+    private bool sceneChangeRequested;
 
     #endregion
 
@@ -28,15 +33,17 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         this.RunMethodHooks(MethodHookStage.PreOnEnable);
 
         EventBus.Subscribe(this);
+        PRUnitySDK.ReadySignal.SubscribeOnReady(OnInitialized);
 
         this.RunMethodHooks(MethodHookStage.PostOnEnable);
     }
 
-    // Отписываемся от ивента onGetSDKData
+    // РћС‚РїРёСЃС‹РІР°РµРјСЃСЏ РѕС‚ РёРІРµРЅС‚Р° onGetSDKData
     private void OnDisable()
     {
         this.RunMethodHooks(MethodHookStage.PreOnDisable);
 
+        PRUnitySDK.ReadySignal.UnSubscribe(OnInitialized);
         EventBus.Unsubscribe(this);
 
         this.RunMethodHooks(MethodHookStage.PostOnDisable);
@@ -44,10 +51,10 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Перехват метода инициализации SDK для возможности кастомной инициализации.
+    /// РџРµСЂРµС…РІР°С‚ РјРµС‚РѕРґР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё SDK РґР»СЏ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РєР°СЃС‚РѕРјРЅРѕР№ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё.
     /// </summary>
     private void TryOverrideBootstrap()
     {
@@ -56,7 +63,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     }
 
     /// <summary>
-    /// Инициализация SDK.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ SDK.
     /// </summary>
     private void InitializeSDK()
     {
@@ -69,7 +76,10 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
 
     public void OnInitialized()
     {
-        //TODO: Инициализация модулей, требующих инициализации после SDK.
+        if (sceneChangeRequested)
+            return;
+
+        sceneChangeRequested = true;
         SceneChanger.Instance.SceneChange(1);
     }
 
