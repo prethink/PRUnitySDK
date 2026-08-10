@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 public partial class PRSDKSettings
@@ -9,15 +9,15 @@ public partial class PRSDKSettings
 [Serializable]
 public class XPSettings
 {
-    [field: Header("XP система")]
-    [Tooltip("Стартовое количество очков для расчета уровней")]
-    [field: SerializeField] public int BasePoints { get; protected set; } = 100;
+    [field: Header("XP СЃРёСЃС‚РµРјР°")]
+    [Tooltip("РЎС‚Р°СЂС‚РѕРІРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‡РєРѕРІ РґР»СЏ СЂР°СЃС‡РµС‚Р° СѓСЂРѕРІРЅРµР№")]
+    [field: SerializeField, Min(1)] public int BasePoints { get; protected set; } = 100;
 
 
-    [field: Tooltip("Значение стартового уровня")]
-    [field: SerializeField] public int StartLevel { get; protected set; } = 1;
+    [field: Tooltip("Р—РЅР°С‡РµРЅРёРµ СЃС‚Р°СЂС‚РѕРІРѕРіРѕ СѓСЂРѕРІРЅСЏ")]
+    [field: SerializeField, Min(1)] public int StartLevel { get; protected set; } = 1;
 
-    [field: Tooltip("Множитель для расчета следующего уровня")]
+    [field: Tooltip("РњРЅРѕР¶РёС‚РµР»СЊ РґР»СЏ СЂР°СЃС‡РµС‚Р° СЃР»РµРґСѓСЋС‰РµРіРѕ СѓСЂРѕРІРЅСЏ")]
     [field: Range(1f, 5f)]
     [field: SerializeField] public float GrowthFactor { get; protected set; } = 1.5f;
 

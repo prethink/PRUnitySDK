@@ -1,8 +1,9 @@
-public interface ILevelProvider 
+п»їpublic interface ILevelProvider 
 {
     /// <summary>
-    /// Получить текущий уровень объекта.
+    /// РџРѕР»СѓС‡РёС‚СЊ С‚РµРєСѓС‰РёР№ СѓСЂРѕРІРµРЅСЊ РѕР±СЉРµРєС‚Р°.
     /// </summary>
-    /// <returns>Уровень.</returns>
+    /// <returns>РЈСЂРѕРІРµРЅСЊ.</returns>
     long Level { get; }
 }
+

@@ -1,4 +1,4 @@
-public static class LevelExtensions
+﻿public static class LevelExtensions
 {
     public static long GetLevelDefinition(this ILevelProvider levelProvider, long currentLevel)
     {
@@ -8,3 +8,4 @@ public static class LevelExtensions
         return currentLevel;
     }
 }
+

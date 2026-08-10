@@ -1,205 +1,362 @@
 using System;
-using UnityEngine;
 
 public class XPManager : SingletonProviderBase<XPManager>
 {
-    #region ���� � ��������
-
     private bool isInitialized;
+
+    /// <summary>
+    /// Текущий уровень сохранённого прогресса.
+    /// </summary>
     public long CurrentLevel { get; private set; }
 
+    /// <summary>
+    /// Общее количество сохранённого опыта.
+    /// </summary>
     public long CurrentExperience { get; private set; }
 
-    #endregion
+    /// <summary>
+    /// Вызывается после любого изменения общего количества опыта.
+    /// </summary>
+    public event Action<XPData> OnExperienceChanged;
 
-    #region �������
+    /// <summary>
+    /// Вызывается при изменении уровня в любую сторону.
+    /// </summary>
+    public event Action<XPData> OnLevelChanged;
 
+    /// <summary>
+    /// Вызывается один раз, если после изменения опыта уровень повысился.
+    /// </summary>
     public event Action<XPData> OnLevelUp;
 
-    #endregion
-
-    #region ������
-
+    /// <summary>
+    /// Инициализирует состояние указанным количеством опыта без отправки событий.
+    /// </summary>
     public XPData InitLevelSystem(long score)
     {
-        var data = CalculateLevel(score);
+        XPData data = CalculateLevel(score);
+        ApplyState(data);
         isInitialized = true;
         return data;
     }
 
-    public XPData GetCurrentData()
+    /// <summary>
+    /// Возвращает прогресс для сохранённого количества опыта без побочных эффектов.
+    /// </summary>
+    public XPData GetCurrentData() => CalculateLevel(GetExperiencePoints());
+
+    /// <summary>
+    /// Возвращает прогресс указанного игрока без побочных эффектов.
+    /// </summary>
+    /// <param name="player">Игрок, прогресс которого требуется получить.</param>
+    public XPData GetCurrentData(IPlayer player) => CalculateLevel(GetExperiencePoints(player));
+
+    /// <summary>
+    /// Рассчитывает прогресс без изменения состояния и отправки событий.
+    /// </summary>
+    public XPData CalculateLevel(long score) => CalculateLevelHandle(score);
+
+    /// <summary>
+    /// Выполняет чистый расчёт прогресса.
+    /// </summary>
+    public XPData CalculateLevelHandle(long totalScore)
     {
-        return CalculateLevel(GetExperiencePoints());
+        long normalizedScore = Math.Max(0L, totalScore);
+        long startLevel = GetStartLevel();
+        long level = FindLevel(normalizedScore, startLevel);
+        long levelStartScore = GetRequiredScoreForLevel(level);
+        long nextLevel = level == long.MaxValue ? long.MaxValue : level + 1L;
+        long nextLevelScore = GetRequiredScoreForLevel(nextLevel);
+        long experienceInLevel = Math.Max(0L, normalizedScore - levelStartScore);
+        long experienceForNextLevel = nextLevelScore == long.MaxValue
+            ? long.MaxValue
+            : Math.Max(1L, nextLevelScore - levelStartScore);
+
+        return new XPData(level, normalizedScore, experienceInLevel,
+            nextLevelScore, experienceForNextLevel);
     }
 
     /// <summary>
-    /// ���������� �������.
+    /// Добавляет указанное количество уровней, начисляя необходимый опыт.
     /// </summary>
-    /// <param name="score">���������� �����.</param>
-    /// <returns>�������.</returns>
-    public XPData CalculateLevel(long score)
-    {
-        return CalculateLevelHandle(score);
-    }
-
-    public XPData CalculateLevelHandle(long totalScore)
-    {
-        float growthFactor = GetSettings().GrowthFactor >= 1 
-            ? GetSettings().GrowthFactor 
-            : 1 + GetSettings().GrowthFactor;
-
-        long requiredNextLevelExperience = GetSettings().BasePoints;
-        long nextRequiredExperience = requiredNextLevelExperience;
-        long previousNextRequiredExperience = nextRequiredExperience;
-
-        long calculateScore = totalScore;
-        if(CurrentLevel < GetSettings().StartLevel)
-            CurrentLevel = GetSettings().StartLevel;
-
-        var calculateLevel = GetSettings().StartLevel;
-
-        while (calculateScore >= requiredNextLevelExperience)
-        {
-            calculateScore -= requiredNextLevelExperience;
-            previousNextRequiredExperience = nextRequiredExperience;
-            nextRequiredExperience = (long)(calculateLevel * GetSettings().BasePoints * growthFactor + previousNextRequiredExperience);
-            requiredNextLevelExperience = nextRequiredExperience - previousNextRequiredExperience;
-            calculateLevel++;
-
-            if (calculateLevel > CurrentLevel)
-            {
-                CurrentLevel = calculateLevel;
-                if(isInitialized)
-                {
-                    OnLevelUp?.Invoke(new XPData(CurrentLevel, totalScore, calculateScore, nextRequiredExperience, requiredNextLevelExperience));
-                    //TODO: metric.Send("common", "level", CurrentLevel.ToString());
-                }
-            }
-        }
-
-        return new XPData(CurrentLevel, totalScore, calculateScore, nextRequiredExperience, requiredNextLevelExperience);
-    }
-
     public void AddLevel(int addValue = 1)
     {
         if (addValue < 1)
             return;
 
-        var currentData = GetCurrentData();
-        var requiredLevel = currentData.CurrentLevel + addValue;
-        var requiredXP = GetRequiredScoreForLevel(requiredLevel) - currentData.CurrentScore;
-        if (requiredXP < 0)
-            return;
-        AddExperiencePoints(requiredXP);
+        XPData current = GetCurrentData();
+        long targetLevel = current.CurrentLevel > long.MaxValue - addValue
+            ? long.MaxValue
+            : current.CurrentLevel + addValue;
+        long targetExperience = GetRequiredScoreForLevel(targetLevel);
+        if (targetExperience != long.MaxValue)
+            SetExperiencePoints(targetExperience);
     }
 
+    /// <summary>
+    /// Добавляет указанному игроку несколько уровней.
+    /// </summary>
+    /// <param name="player">Игрок, которому добавляются уровни.</param>
+    /// <param name="addValue">Количество добавляемых уровней.</param>
+    public void AddLevel(IPlayer player, int addValue = 1)
+    {
+        if (player == null)
+            throw new ArgumentNullException(nameof(player));
+
+        if (addValue < 1)
+            return;
+
+        XPData current = GetCurrentData(player);
+        long targetLevel = current.CurrentLevel > long.MaxValue - addValue
+            ? long.MaxValue
+            : current.CurrentLevel + addValue;
+        long targetExperience = GetRequiredScoreForLevel(targetLevel);
+        if (targetExperience != long.MaxValue)
+            SetExperiencePoints(player, targetExperience);
+    }
+
+    /// <summary>
+    /// Возвращает общий опыт, необходимый для начала указанного уровня.
+    /// </summary>
     public long GetRequiredScoreForLevel(long targetLevel)
     {
-        if (targetLevel < GetSettings().StartLevel)
-            return 0;
+        long startLevel = GetStartLevel();
+        if (targetLevel <= startLevel)
+            return 0L;
 
-        float growthFactor = GetSettings().GrowthFactor >= 1
-            ? GetSettings().GrowthFactor
-            : 1 + GetSettings().GrowthFactor;
-
-        long requiredNextLevelExperience = GetSettings().BasePoints;
-        long nextRequiredExperience = requiredNextLevelExperience;
-        long previousNextRequiredExperience = 0;
-
-        long totalRequiredScore = 0;
-        int level = GetSettings().StartLevel;
-
-        while (level < targetLevel)
+        long transitions = targetLevel - startLevel;
+        try
         {
-            long currentLevelXP = nextRequiredExperience - previousNextRequiredExperience;
-            totalRequiredScore += currentLevelXP;
+            decimal basePoints = GetBasePoints();
+            decimal result = basePoints;
 
-            previousNextRequiredExperience = nextRequiredExperience;
-            nextRequiredExperience = (long)(level * GetSettings().BasePoints * growthFactor + previousNextRequiredExperience);
-            level++;
+            if (transitions > 1)
+            {
+                decimal count = transitions - 1L;
+                decimal firstLevel = startLevel;
+                decimal lastLevel = startLevel + count - 1m;
+                decimal levelSum = count * (firstLevel + lastLevel) / 2m;
+                result += basePoints * GetGrowthFactor() * levelSum;
+            }
+
+            if (result >= long.MaxValue)
+                return long.MaxValue;
+
+            return Math.Max(0L, (long)decimal.Truncate(result));
+        }
+        catch (OverflowException)
+        {
+            return long.MaxValue;
+        }
+    }
+
+    /// <summary>
+    /// Изменяет опыт на указанную величину и сохраняет результат.
+    /// Отрицательное значение уменьшает опыт, но результат не может быть меньше нуля.
+    /// </summary>
+    public long AddExperiencePoints(long addPoints, bool save = true)
+    {
+        decimal result = (decimal)GetExperiencePoints() + addPoints;
+        long totalExperience = result <= 0m
+            ? 0L
+            : result >= long.MaxValue ? long.MaxValue : (long)result;
+        return SetExperiencePoints(totalExperience, save);
+    }
+
+    /// <summary>
+    /// Изменяет опыт указанного игрока и публикует событие через <see cref="EventBus"/>.
+    /// </summary>
+    /// <param name="player">Игрок, опыт которого изменяется.</param>
+    /// <param name="addPoints">Величина изменения опыта.</param>
+    /// <param name="save">Нужно ли сохранить изменение сразу.</param>
+    public long AddExperiencePoints(IPlayer player, long addPoints, bool save = true)
+    {
+        if (player == null)
+            throw new ArgumentNullException(nameof(player));
+
+        decimal result = (decimal)GetExperiencePoints(player) + addPoints;
+        long totalExperience = result <= 0m
+            ? 0L
+            : result >= long.MaxValue ? long.MaxValue : (long)result;
+        return SetExperiencePoints(player, totalExperience, save);
+    }
+
+    /// <summary>
+    /// Устанавливает общее количество опыта.
+    /// </summary>
+    public long SetExperiencePoints(long totalExperience, bool save = true)
+    {
+        long normalizedExperience = Math.Max(0L, totalExperience);
+        XPData oldData = isInitialized
+            ? CalculateLevel(CurrentExperience)
+            : CalculateLevel(GetExperiencePoints());
+        XPData newData = CalculateLevel(normalizedExperience);
+
+        GetManager().SetLong(PRUnityPropertyConstants.XP_PROPERTY_NAME, normalizedExperience, save);
+        ApplyState(newData);
+
+        if (isInitialized)
+        {
+            OnExperienceChanged?.Invoke(newData);
+            if (newData.CurrentLevel != oldData.CurrentLevel)
+                OnLevelChanged?.Invoke(newData);
+            if (newData.CurrentLevel > oldData.CurrentLevel)
+                OnLevelUp?.Invoke(newData);
         }
 
-        return totalRequiredScore;
+        isInitialized = true;
+        return normalizedExperience;
     }
 
-    private long GetCommonRequiredExperience(long level)
+    /// <summary>
+    /// Устанавливает общее количество опыта указанного игрока.
+    /// </summary>
+    /// <param name="player">Игрок, опыт которого изменяется.</param>
+    /// <param name="totalExperience">Новое общее количество опыта.</param>
+    /// <param name="save">Нужно ли сохранить изменение сразу.</param>
+    public long SetExperiencePoints(IPlayer player, long totalExperience, bool save = true)
     {
-        var nextRequiredExperience = GetSettings().BasePoints;
-        float growthFactor = GetSettings().GrowthFactor;
-        for (int i = 0; i < level; i++)
-        {
-            if (i == 0)
-                continue;
+        if (player == null)
+            throw new ArgumentNullException(nameof(player));
 
-            nextRequiredExperience = Mathf.CeilToInt(nextRequiredExperience * growthFactor);
-        }
+        long normalizedExperience = Math.Max(0L, totalExperience);
+        XPData oldData = GetCurrentData(player);
+        XPData newData = CalculateLevel(normalizedExperience);
 
-        return nextRequiredExperience;
+        GetManager().SetLong(GetPlayerPropertyName(player), normalizedExperience, save);
+        XPEvents.RaiseExperienceChanged(player, oldData, newData);
+
+        if (newData.CurrentLevel != oldData.CurrentLevel)
+            XPEvents.RaiseLevelChanged(player, oldData, newData);
+        if (newData.CurrentLevel > oldData.CurrentLevel)
+            XPEvents.RaiseLevelUp(player, oldData, newData);
+
+        return normalizedExperience;
     }
 
-    private bool IsStartLevel()
-    {
-        return CurrentLevel == GetSettings().StartLevel;
-    }
-
-    public long AddExperiencePoints(long addPoints)
-    {
-        var currentPoints = GetExperiencePoints();
-        var resultPoints = currentPoints + addPoints;
-        GetManager().SetLong(PRUnityPropertyConstants.XP_PROPERTY_NAME, currentPoints + addPoints, false);
-
-        bool onChangeLevel = false;
-        OnLevelUp += (XPData data) =>
-        {
-            onChangeLevel = true;
-            //TODO:EventBus.RaiseEvent<IGlobalBarEvent>(invoke => invoke.OnChangeValue(Constants.GLOBAL_EVENT_BAR_XP, data.CurrentLevelScore, data.RequiredLevelScore));
-            //TODO:EventBus.RaiseEvent<INotifyEventUI>(ui => ui.ChangeStateUI(StatDropDown.STAT_LEVEL_NAME, data.CurrentLevel.ToString()));
-        };
-
-        if (!onChangeLevel)
-        {
-            var currentData = CalculateLevel(resultPoints);
-            //TODO:EventBus.RaiseEvent<IGlobalBarEvent>(invoke => invoke.OnChangeValue(Constants.GLOBAL_EVENT_BAR_XP, currentData.CurrentLevelScore));
-        }
-
-
-        return resultPoints;
-    }
-
+    /// <summary>
+    /// Возвращает сохранённое количество опыта.
+    /// </summary>
     public long GetExperiencePoints()
     {
-        return GetManager().TryGetLong(PRUnityPropertyConstants.XP_PROPERTY_NAME, out var points)
-            ? points
-            : 0;
+        return GetManager().TryGetLong(PRUnityPropertyConstants.XP_PROPERTY_NAME, out long points)
+            ? Math.Max(0L, points)
+            : 0L;
     }
 
-    public XPSettings GetSettings()
+    /// <summary>
+    /// Возвращает сохранённый опыт указанного игрока.
+    /// </summary>
+    /// <param name="player">Игрок, опыт которого требуется получить.</param>
+    public long GetExperiencePoints(IPlayer player)
     {
-        return PRUnitySDK.Settings.ExperiencePoints;
+        if (player == null)
+            throw new ArgumentNullException(nameof(player));
+
+        return GetManager().TryGetLong(GetPlayerPropertyName(player), out long points)
+            ? Math.Max(0L, points)
+            : 0L;
     }
 
-    public ProjectPropertiesManager GetManager()
+    public XPSettings GetSettings() => PRUnitySDK.Settings.ExperiencePoints;
+
+    public ProjectPropertiesManager GetManager() => PRUnitySDK.Managers.ProjectProperties;
+
+    /// <summary>
+    /// Загружает сохранённый опыт и инициализирует состояние без событий.
+    /// </summary>
+    public void Init() => InitLevelSystem(GetExperiencePoints());
+
+    private void ApplyState(XPData data)
     {
-        return PRUnitySDK.Managers.ProjectProperties;
+        CurrentLevel = data.CurrentLevel;
+        CurrentExperience = data.CurrentScore;
     }
 
-    public void Init()
+    private long FindLevel(long totalExperience, long startLevel)
     {
-        CurrentLevel = GetSettings().StartLevel;
+        long low = startLevel;
+        long high = startLevel == long.MaxValue ? long.MaxValue : startLevel + 1L;
+
+        while (high < long.MaxValue)
+        {
+            long required = GetRequiredScoreForLevel(high);
+            if (required == long.MaxValue || required > totalExperience)
+                break;
+
+            long distance = high - startLevel;
+            if (distance > (long.MaxValue - startLevel) / 2L)
+            {
+                high = long.MaxValue;
+                break;
+            }
+
+            high = startLevel + distance * 2L;
+        }
+
+        while (low < high)
+        {
+            long middle = low + (high - low + 1L) / 2L;
+            long required = GetRequiredScoreForLevel(middle);
+            if (required != long.MaxValue && required <= totalExperience)
+                low = middle;
+            else
+                high = middle - 1L;
+        }
+
+        return low;
     }
 
-    #endregion
+    private long GetStartLevel() => Math.Max(1, GetSettings()?.StartLevel ?? 1);
+
+    private long GetBasePoints() => Math.Max(1, GetSettings()?.BasePoints ?? 1);
+
+    private decimal GetGrowthFactor() =>
+        Math.Max(1m, (decimal)(GetSettings()?.GrowthFactor ?? 1f));
+
+    private static string GetPlayerPropertyName(IPlayer player) =>
+        $"{PRUnityPropertyConstants.XP_PROPERTY_NAME}_PLAYER_{player.PlayerId}";
 }
 
-public class XPData
+/// <summary>
+/// Неизменяемый снимок прогресса опыта.
+/// </summary>
+public sealed class XPData
 {
-    public long CurrentLevel;
-    public long CurrentScore;
-    public long CurrentLevelScore;
-    public long RequiredLevelScore;
-    public long RequiredScore;
+    /// <summary>
+    /// Текущий уровень.
+    /// </summary>
+    public long CurrentLevel { get; }
 
-    public XPData(long currentLevel, long currentScore, long currentLevelScore, long requiredScore, long requiredLevelScore)
+    /// <summary>
+    /// Общее количество опыта.
+    /// </summary>
+    public long CurrentScore { get; }
+
+    /// <summary>
+    /// Опыт, набранный внутри текущего уровня.
+    /// </summary>
+    public long CurrentLevelScore { get; }
+
+    /// <summary>
+    /// Общий опыт, необходимый для следующего уровня.
+    /// </summary>
+    public long RequiredScore { get; }
+
+    /// <summary>
+    /// Размер текущего уровня в единицах опыта.
+    /// </summary>
+    public long RequiredLevelScore { get; }
+
+    /// <summary>
+    /// Нормализованный прогресс текущего уровня.
+    /// </summary>
+    public float NormalizedProgress => RequiredLevelScore <= 0 || RequiredLevelScore == long.MaxValue
+        ? 0f
+        : (float)Math.Min(1d, CurrentLevelScore / (double)RequiredLevelScore);
+
+    public XPData(long currentLevel, long currentScore, long currentLevelScore,
+        long requiredScore, long requiredLevelScore)
     {
         CurrentLevel = currentLevel;
         CurrentScore = currentScore;

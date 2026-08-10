@@ -1,7 +1,7 @@
-public partial class PRManagerContainer
+п»їpublic partial class PRManagerContainer
 {
     /// <summary>
-    /// Менеджер управления свойств.
+    /// РњРµРЅРµРґР¶РµСЂ РїСЂРѕРіСЂРµСЃСЃР° РѕРїС‹С‚Р° Рё СѓСЂРѕРІРЅРµР№.
     /// </summary>
     public XPManager XPManager;
 
@@ -15,3 +15,4 @@ public partial class PRManagerContainer
         });
     }
 }
+
