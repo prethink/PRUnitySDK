@@ -1,6 +1,9 @@
-public class ModifierTypes 
+/// <summary>
+/// Поддерживаемые операции модификации числовых характеристик.
+/// </summary>
+public static class ModifierTypes
 {
-    public static readonly Enumeration Add              = new Enumeration(nameof(ModifierTypes.Add));
-    public static readonly Enumeration Multiply         = new Enumeration(nameof(ModifierTypes.Multiply));
-    public static readonly Enumeration Override         = new Enumeration(nameof(ModifierTypes.Override));
+    public static readonly Enumeration Add = new(nameof(Add));
+    public static readonly Enumeration Multiply = new(nameof(Multiply));
+    public static readonly Enumeration Override = new(nameof(Override));
 }

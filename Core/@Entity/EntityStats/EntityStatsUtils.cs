@@ -1,18 +1,77 @@
+using System;
 using UnityEngine;
 
-public static class EntityStatsUtils 
+/// <summary>
+/// Вспомогательные методы расчёта итоговых характеристик сущности.
+/// </summary>
+public static class EntityStatsUtils
 {
-    public static float GetStat(Enumeration enumeration, EntityStatsBase entityStats, StatModifierCollector modifier = null, float defaultValue = 0)
+    /// <summary>
+    /// Возвращает характеристику после персональных модификаторов
+    /// и финальных ограничений <see cref="GameRules"/>.
+    /// </summary>
+    /// <param name="stat">Ключ характеристики.</param>
+    /// <param name="entityStats">Базовые характеристики сущности либо <c>null</c>.</param>
+    /// <param name="collector">Сборщик персональных модификаторов либо <c>null</c>.</param>
+    /// <param name="defaultValue">Значение при отсутствии характеристики.</param>
+    public static float GetStat(
+        Enumeration stat,
+        EntityStatsBase entityStats,
+        StatModifierCollector collector = null,
+        float defaultValue = 0f)
     {
-        var baseValue = entityStats.Get(enumeration, defaultValue);
+        if (stat == null)
+            throw new ArgumentNullException(nameof(stat));
 
-        if (modifier != null)
-            baseValue = modifier.ApplyStatModifier(enumeration, baseValue);
-        return GameRules.ApplyStatRules(enumeration, baseValue);
+        float value = entityStats != null
+            ? entityStats.Get(stat, defaultValue)
+            : defaultValue;
+
+        if (collector != null)
+            value = collector.ApplyStatModifier(stat, value);
+
+        return GameRules.ApplyStatRules(stat, value);
     }
 
-    public static int GetStatInt(Enumeration enumeration, EntityStatsBase entityStats, StatModifierCollector modifier = null, float defaultValue = 0)
+    /// <summary>
+    /// Возвращает целочисленную характеристику с округлением до ближайшего значения.
+    /// </summary>
+    /// <param name="stat">Ключ характеристики.</param>
+    /// <param name="entityStats">Базовые характеристики сущности либо <c>null</c>.</param>
+    /// <param name="collector">Сборщик персональных модификаторов либо <c>null</c>.</param>
+    /// <param name="defaultValue">Значение при отсутствии характеристики.</param>
+    public static int GetStatInt(
+        Enumeration stat,
+        EntityStatsBase entityStats,
+        StatModifierCollector collector = null,
+        int defaultValue = 0)
     {
-        return Mathf.RoundToInt(GetStat(enumeration, entityStats, modifier, defaultValue));
+        return Mathf.RoundToInt(GetStat(stat, entityStats, collector, defaultValue));
+    }
+
+    /// <summary>
+    /// Возвращает характеристику типа <see cref="long"/> с округлением
+    /// и защитой от выхода за границы типа.
+    /// </summary>
+    /// <param name="stat">Ключ характеристики.</param>
+    /// <param name="entityStats">Базовые характеристики сущности либо <c>null</c>.</param>
+    /// <param name="collector">Сборщик персональных модификаторов либо <c>null</c>.</param>
+    /// <param name="defaultValue">Значение при отсутствии характеристики.</param>
+    public static long GetStatLong(
+        Enumeration stat,
+        EntityStatsBase entityStats,
+        StatModifierCollector collector = null,
+        long defaultValue = 0L)
+    {
+        double value = GetStat(stat, entityStats, collector, defaultValue);
+
+        if (double.IsNaN(value))
+            return defaultValue;
+        if (value <= long.MinValue)
+            return long.MinValue;
+        if (value >= long.MaxValue)
+            return long.MaxValue;
+
+        return (long)Math.Round(value);
     }
 }
