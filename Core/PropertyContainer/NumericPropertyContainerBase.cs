@@ -56,7 +56,7 @@ public abstract class NumericPropertyContainerBase<T> : PropertyContainerBase<T>
         if (current == null)
             return true;
         if (candidate.Priority != current.Priority)
-            return candidate.Priority < current.Priority;
+            return candidate.Priority > current.Priority;
 
         return candidate.Order > current.Order;
     }

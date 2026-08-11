@@ -214,6 +214,7 @@ PRUnitySDK/
 - [Utils](Core/Utils/README.md)
 - [Proxies](Core/Proxies/README.md)
 - [SoundManager](Core/SoundManager/README.md)
+- [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`.
 
 ### Модули и интеграции
 
