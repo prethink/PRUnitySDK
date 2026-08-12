@@ -1,4 +1,3 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
 public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory 
@@ -18,13 +17,35 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
         if (IsSingleton && instance != null)
             return instance;
 
-        instance = Object.Instantiate(Resources.Load<T>(ResourcePath));
+        if (string.IsNullOrWhiteSpace(ResourcePath))
+        {
+            PRLog.WriteError(GetType(), "ResourcePath для MonoWindow не может быть пустым.");
+            return null;
+        }
+
+        T prefab = Resources.Load<T>(ResourcePath);
+        if (prefab == null)
+        {
+            PRLog.WriteError(GetType(),
+                $"Не найден prefab MonoWindow типа '{typeof(T).Name}' по пути Resources/{ResourcePath}.");
+            return null;
+        }
 
         var parent = UseSharedCanvas
-            ? PRUnitySDK.Windows.SharedCanvas.transform
-            : PRUnitySDK.Windows.Container.transform;
+            ? PRUnitySDK.Windows.SharedCanvas?.transform
+            : PRUnitySDK.Windows.Container?.transform;
 
-        instance.GameObject().transform.SetParent(parent, WorldPositionStays);
-        return instance.GetComponent<T>();
+        if (parent == null)
+        {
+            PRLog.WriteError(GetType(),
+                $"Невозможно создать MonoWindow '{typeof(T).Name}': контейнер окон ещё не инициализирован.");
+            return null;
+        }
+
+        T createdWindow = Object.Instantiate(prefab, parent, WorldPositionStays);
+        if (IsSingleton)
+            instance = createdWindow;
+
+        return createdWindow;
     }
 }

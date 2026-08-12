@@ -1,4 +1,3 @@
-using NaughtyAttributes;
 using UnityEngine;
 
 public class TriggerMonoWindow : PRMonoBehaviour
@@ -7,9 +6,14 @@ public class TriggerMonoWindow : PRMonoBehaviour
 
     protected override void PROnTriggerEnter(Collider other)
     {
-        if(other.attachedRigidbody != null && other.attachedRigidbody.TryGetComponent<PlayerLocal>(out var player))
+        if (!other.TryGetLocalPlayer(out PlayerLocal player))
+            return;
+
+        var args = new MonoWindowArgsEmpty
         {
-            PRUnitySDK.Trackers.MonoWindows.TryShowWindow(windowKey.ToEnumeration());
-        }
+            Executor = player.PlayerId
+        };
+
+        PRUnitySDK.Trackers.MonoWindows.TryShowWindow(windowKey.ToEnumeration(), args);
     }
 }

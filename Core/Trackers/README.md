@@ -81,6 +81,8 @@ long enemies = PRUnitySDK.Trackers.Entities.GetExactExistsEntityCount(enemyType)
 Окна и уведомители регистрируются с уникальным `Key`. Повторный объект или второй
 объект с тем же ключом не регистрируется.
 
+Подробное создание, открытие и закрытие окон описано в [MonoWindow](../%23UI/MonoWindow/README.md).
+
 ```csharp
 PRUnitySDK.Trackers.MonoWindows.TryShowWindow(windowKey);
 

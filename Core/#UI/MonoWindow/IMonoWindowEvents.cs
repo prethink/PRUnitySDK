@@ -1,28 +1,30 @@
 /// <summary>
-/// Глобальные события MonoWindow.
+/// Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ СЃРѕР±С‹С‚РёСЏ MonoWindow.
 /// </summary>
 public interface IMonoWindowEvents : IGlobalSubscriber
 {
     /// <summary>
-    /// Скрыть все открытые окна.
+    /// РЎРєСЂС‹С‚СЊ РІСЃРµ РѕС‚РєСЂС‹С‚С‹Рµ РѕРєРЅР°.
     /// </summary>
     public void HideAllWindows();
 
     /// <summary>
-    /// Скрыть принудительно все окна.
+    /// РЎРєСЂС‹С‚СЊ РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РІСЃРµ РѕРєРЅР°.
     /// </summary>
     public void HideForceAllWindows();
 
     /// <summary>
-    /// Попытаться отобразить окно по ключу.
+    /// РџРѕРїС‹С‚Р°С‚СЊСЃСЏ РѕС‚РѕР±СЂР°Р·РёС‚СЊ РѕРєРЅРѕ РїРѕ РєР»СЋС‡Сѓ.
     /// </summary>
-    /// <param name="key">Ключ.</param>
-    public void TryShowWindow(string key);
+    /// <param name="key">РљР»СЋС‡.</param>
+    /// <returns><see langword="true"/>, РµСЃР»Рё РѕРєРЅРѕ РЅР°Р№РґРµРЅРѕ Рё РѕС‚РѕР±СЂР°Р¶РµРЅРѕ.</returns>
+    public bool TryShowWindow(string key);
 
     /// <summary>
-    /// Попытаться отобразить окно по ключу.
+    /// РџРѕРїС‹С‚Р°С‚СЊСЃСЏ РѕС‚РѕР±СЂР°Р·РёС‚СЊ РѕРєРЅРѕ РїРѕ РєР»СЋС‡Сѓ.
     /// </summary>
-    /// <param name="key">Ключ.</param>
-    /// <param name="args">Параметры для окна.</param>
-    public void TryShowWindow(string key, MonoWindowArgs args);
+    /// <param name="key">РљР»СЋС‡.</param>
+    /// <param name="args">РџР°СЂР°РјРµС‚СЂС‹ РґР»СЏ РѕРєРЅР°.</param>
+    /// <returns><see langword="true"/>, РµСЃР»Рё РѕРєРЅРѕ РЅР°Р№РґРµРЅРѕ Рё РѕС‚РѕР±СЂР°Р¶РµРЅРѕ.</returns>
+    public bool TryShowWindow(string key, MonoWindowArgs args);
 }

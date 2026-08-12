@@ -5,17 +5,17 @@ using UnityEngine.UI;
 public partial class PRWindowsContainer 
 {
     /// <summary>
-    /// Контейнер для окон.   
+    /// РљРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ РѕРєРѕРЅ.   
     /// </summary>
     public PRContainer Container;
 
     /// <summary>
-    /// Контейнер для окон.   
+    /// РљРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ РѕРєРѕРЅ.   
     /// </summary>
     public PRContainer SharedCanvas;
 
     /// <summary>
-    /// Контейнер для уведомлений.   
+    /// РљРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ СѓРІРµРґРѕРјР»РµРЅРёР№.   
     /// </summary>
     public PRContainer Notifiers;
 
@@ -51,6 +51,7 @@ public partial class PRWindowsContainer
         var graphicRaycaster = SharedCanvas.AddComponent<GraphicRaycaster>();
 
         var settingsWindows = new SettingsMonoWindowFactory().CreateMonoWindow();
+        var brainrotInfoWindow = new BrainrotInfoWindowFactory().CreateMonoWindow();
         var test = new DashboardMessagesFactory().Create(SharedCanvas.transform);
 
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Windows complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
