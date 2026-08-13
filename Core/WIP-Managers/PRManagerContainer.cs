@@ -1,3 +1,6 @@
+using System;
+using UnityEngine;
+
 public partial class PRManagerContainer 
 {
     /// <summary>
@@ -57,11 +60,11 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 10)]
     public void InitializeGameManager()
     {
-        PRUnitySDK.InitializeType<GameManager>(() =>
+        InitializeMonoManager(() =>
         {
             Game = GameManager.Instance;
             Game.InitializeGameManager();
-            Game.transform.SetParent(ManagerContainer.transform);
+            return Game;
         });
     }
 
@@ -80,31 +83,31 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 20)]
     public void InitializeAudioMixerManager()
     {
-        PRUnitySDK.InitializeType<AudioMixerManager>(() => 
+        InitializeMonoManager(() =>
         {
             AudioMixer = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(new AudioMixerManagerFactory());
-            AudioMixer.transform.SetParent(ManagerContainer.transform);
+            return AudioMixer;
         });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 30)]
     public void InitializeSoundManager()
     {
-        PRUnitySDK.InitializeType<SoundManager>(() => 
+        InitializeMonoManager(() =>
         {
             Sound = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(new SoundManagerFactory());
-            Sound.transform.SetParent(ManagerContainer.transform);
             AudioMixer.RegisterSoundManager(Sound);
+            return Sound;
         });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 35)]
     public void InitializeObjectPollManager()
     {
-        PRUnitySDK.InitializeType<ObjectPoolManager>(() =>
+        InitializeMonoManager(() =>
         {
             ObjectPool = MonoBehaviourUtils.CreateMonoBehaviourDontDestroyOnLoad(new ObjectPoolManagerFactory());
-            ObjectPool.transform.SetParent(ManagerContainer.transform);
+            return ObjectPool;
         });
     }
 
@@ -120,10 +123,20 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 50)]
     public void InitializeFlagsManager()
     {
-        PRUnitySDK.InitializeType<FlagsManager>(() =>
+        InitializeMonoManager(() =>
         {
             Flags = FlagsManager.Instance;
-            Flags.transform.SetParent(ManagerContainer.transform);
+            return Flags;
         });
+    }
+
+    public void InitializeMonoManager<T>(Func<T> factory) where T : MonoBehaviour
+    {
+        PRUnitySDK.InitializeType<T>(() =>
+        {
+            var instance = factory();
+            instance.transform.SetParent(ManagerContainer.transform);
+        });
+
     }
 }

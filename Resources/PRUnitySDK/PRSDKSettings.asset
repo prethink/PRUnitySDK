@@ -131,6 +131,15 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  <Advertising>k__BackingField:
+    <AutomaticInterstitialEnabled>k__BackingField: 1
+    <CountdownSeconds>k__BackingField: 2
+    <InterstitialIntervalSeconds>k__BackingField: 10
+    <MinimumSceneBuildIndex>k__BackingField: 0
+    <RemoveAdsCurrency>k__BackingField: {fileID: 11400000, guid: 54b61de6a4cbd4a48947781226f378e7,
+      type: 2}
+    <RemoveAdsCurrencyCost>k__BackingField: 100
+    <RemoveAdsPurchase>k__BackingField: {fileID: 0}
   <DashboardMessageSettings>k__BackingField:
     <BaseLifeTime>k__BackingField: 5
     <BaseImageWidth>k__BackingField: 24

@@ -1,34 +1,53 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ResourceManager : SingletonProviderBase<ResourceManager>
 {
     /// <summary>
-    /// Получить значение ресурса.
+    /// РџРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ СЂРµСЃСѓСЂСЃР°.
     /// </summary>
-    /// <param name="resourceType">Тип ресурса.</param>
-    /// <returns>Значение ресурса.</returns>
+    /// <param name="resourceType">РўРёРї СЂРµСЃСѓСЂСЃР°.</param>
+    /// <returns>Р—РЅР°С‡РµРЅРёРµ СЂРµСЃСѓСЂСЃР°.</returns>
     public long GetOrCreateResource(Enumeration resourceType)
     {
+        if (resourceType == null)
+        {
+            PRLog.WriteWarning(this, "Cannot get resource with a null type.");
+            return 0;
+        }
+
+        ProjectData projectData = GameManager.Instance.GetProjectData();
+        projectData.Resources ??= new Dictionary<string, long>();
+
         var resourceName = resourceType.ToString();
-        if (GameManager.Instance.GetProjectData().Resources.TryGetValue(resourceName, out var value))
+        if (projectData.Resources.TryGetValue(resourceName, out var value))
             return value;
 
-        GameManager.Instance.GetProjectData().Resources[resourceName] = 0;
+        projectData.Resources[resourceName] = 0;
         return 0;
     }
 
     /// <summary>
-    /// Установить значение ресурсу.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ СЂРµСЃСѓСЂСЃСѓ.
     /// </summary>
-    /// <param name="resourceType">Тип ресурса.</param>
-    /// <param name="value">Значение.</param>
-    /// <param name="requiredNotify">Признак того, что требуется оповестить об изменение ресурса.</param>
-    /// <param name="requiredSaveNow">Признак того, что требуется сохранить данные после изменения ресурса.</param>
+    /// <param name="resourceType">РўРёРї СЂРµСЃСѓСЂСЃР°.</param>
+    /// <param name="value">Р—РЅР°С‡РµРЅРёРµ.</param>
+    /// <param name="requiredNotify">РџСЂРёР·РЅР°Рє С‚РѕРіРѕ, С‡С‚Рѕ С‚СЂРµР±СѓРµС‚СЃСЏ РѕРїРѕРІРµСЃС‚РёС‚СЊ РѕР± РёР·РјРµРЅРµРЅРёРµ СЂРµСЃСѓСЂСЃР°.</param>
+    /// <param name="requiredSaveNow">РџСЂРёР·РЅР°Рє С‚РѕРіРѕ, С‡С‚Рѕ С‚СЂРµР±СѓРµС‚СЃСЏ СЃРѕС…СЂР°РЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїРѕСЃР»Рµ РёР·РјРµРЅРµРЅРёСЏ СЂРµСЃСѓСЂСЃР°.</param>
     public void SetOrUpdateResource(Enumeration resourceType, long value, bool requiredNotify = false, bool requiredSaveNow = false)
     {
+        if (resourceType == null)
+        {
+            PRLog.WriteWarning(this, "Cannot update resource with a null type.");
+            return;
+        }
+
+        ProjectData projectData = GameManager.Instance.GetProjectData();
+        projectData.Resources ??= new Dictionary<string, long>();
+
         var resourceName = resourceType.ToString();
-        GameManager.Instance.GetProjectData().Resources[resourceName] = value;
+        projectData.Resources[resourceName] = value;
 
         if (requiredNotify)
             ResourceEvents.RaiseResourceValueChange(new ResourceValueChangeEventArgs(resourceType, value));
