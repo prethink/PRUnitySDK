@@ -16,4 +16,9 @@ public class RewardAction : RewardDataBase
     public override string LocalizationKey => throw new System.NotImplementedException();
 
     public override IReadOnlyDictionary<LangType, string> LocalizationValues => localization;
+
+    public void InvokeAction()
+    {
+        Action?.Execute();
+    }
 }

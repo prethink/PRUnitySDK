@@ -51,7 +51,6 @@ public partial class PRWindowsContainer
         var graphicRaycaster = SharedCanvas.AddComponent<GraphicRaycaster>();
 
         var settingsWindows = new SettingsMonoWindowFactory().CreateMonoWindow();
-        var brainrotInfoWindow = new BrainrotInfoWindowFactory().CreateMonoWindow();
         var test = new DashboardMessagesFactory().Create(SharedCanvas.transform);
 
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Windows complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");

@@ -208,6 +208,8 @@ PRUnitySDK/
 
 ### Модели, сервисы и утилиты
 
+- [Фабрики MonoBehaviour](Core/Factories/README.md) — обычные prefab, singleton-компоненты, MonoWindow и Notifier
+
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия
 - [Enumeration](Core/Models/Enumeration/README.md)
