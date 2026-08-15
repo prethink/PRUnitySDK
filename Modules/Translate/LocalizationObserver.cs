@@ -1,4 +1,3 @@
-using NaughtyAttributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -90,24 +89,5 @@ public class LocalizationObserver : PRMonoBehaviour
     {
         base.Start();
         OnChangeLanguage(PRUnitySDK.CurrentLang);
-    }
-
-
-    [Button("RU")]
-    void ChangeRU()
-    {
-        PRUnitySDK.LanguageManager.SwitchLang("ru");
-    }
-
-    [Button("EN")]
-    void ChangeEN()
-    {
-        PRUnitySDK.LanguageManager.SwitchLang("en");
-    }
-
-    [Button("TR")]
-    void ChangeTR()
-    {
-        PRUnitySDK.LanguageManager.SwitchLang("tr");
     }
 }

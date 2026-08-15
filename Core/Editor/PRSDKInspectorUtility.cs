@@ -34,6 +34,30 @@ internal static class PRSDKInspectorUtility
     }
 
     /// <summary>
+    /// Возвращает видимые сериализованные свойства первого уровня внутри указанного свойства.
+    /// </summary>
+    public static IReadOnlyList<SerializedProperty> GetDirectChildren(SerializedProperty parent)
+    {
+        var properties = new List<SerializedProperty>();
+        if (parent == null || !parent.hasVisibleChildren)
+            return properties;
+
+        SerializedProperty iterator = parent.Copy();
+        SerializedProperty end = iterator.GetEndProperty();
+        bool enterChildren = true;
+
+        while (iterator.NextVisible(enterChildren) &&
+               !SerializedProperty.EqualContents(iterator, end))
+        {
+            enterChildren = false;
+            if (iterator.depth == parent.depth + 1)
+                properties.Add(iterator.Copy());
+        }
+
+        return properties;
+    }
+
+    /// <summary>
     /// Преобразует имя backing field в читаемое название секции.
     /// </summary>
     public static string GetSectionName(SerializedProperty property)
@@ -55,14 +79,26 @@ internal static class PRSDKInspectorUtility
     /// </summary>
     public static Type GetFieldType(Type targetType, SerializedProperty property)
     {
-        for (Type current = targetType; current != null; current = current.BaseType)
-        {
-            FieldInfo field = current.GetField(property.name, FieldFlags);
-            if (field != null)
-                return field.FieldType;
-        }
+        return FindField(targetType, property)?.FieldType;
+    }
 
-        return null;
+    /// <summary>
+    /// Возвращает отражённое поле, соответствующее сериализованному свойству.
+    /// </summary>
+    public static FieldInfo GetFieldInfo(Type targetType, SerializedProperty property)
+    {
+        return FindField(targetType, property);
+    }
+
+    /// <summary>
+    /// Возвращает текущее значение поля, соответствующего сериализованной секции.
+    /// </summary>
+    public static object GetFieldValue(object target, SerializedProperty property)
+    {
+        if (target == null)
+            return null;
+
+        return FindField(target.GetType(), property)?.GetValue(target);
     }
 
     /// <summary>
@@ -99,5 +135,17 @@ internal static class PRSDKInspectorUtility
         if (!string.IsNullOrWhiteSpace(path))
             EditorGUILayout.LabelField(path, EditorStyles.miniLabel);
         EditorGUILayout.Space(4f);
+    }
+
+    private static FieldInfo FindField(Type targetType, SerializedProperty property)
+    {
+        for (Type current = targetType; current != null; current = current.BaseType)
+        {
+            FieldInfo field = current.GetField(property.name, FieldFlags);
+            if (field != null)
+                return field;
+        }
+
+        return null;
     }
 }
