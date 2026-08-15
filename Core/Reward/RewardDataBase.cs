@@ -16,6 +16,11 @@ public abstract class RewardDataBase : ScriptableObject, IIconProvider, ILocaliz
 
     public abstract IReadOnlyDictionary<LangType, string> LocalizationValues { get; }
 
+    /// <summary>
+    /// Готова ли награда к отображению и выдаче.
+    /// </summary>
+    public virtual bool IsConfigured => true;
+
     public virtual QualityType GetQuality()
     {
         return QualityReward;

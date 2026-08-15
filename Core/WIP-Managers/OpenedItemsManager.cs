@@ -33,6 +33,14 @@ public class OpenedItemsManager : SingletonProviderBase<OpenedItemsManager>
         return AddOpenItem(type.ToString(), selectableItem, requiredSave);
     }
 
+    /// <summary>
+    /// Добавляет указанное количество предметов от имени заданного типа системы.
+    /// </summary>
+    public bool AddOpenItem(Type type, IIdentifiable selectableItem, int count, bool requiredSave = true)
+    {
+        return AddOpenItem(type.ToString(), selectableItem, count, requiredSave);
+    }
+
     public bool AddOpenItem(string type, IIdentifiable selectableItem, bool requiredSave = true)
     {
         return AddOpenItem(type, selectableItem, 1, requiredSave);

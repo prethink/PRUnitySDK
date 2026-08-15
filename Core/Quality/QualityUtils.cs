@@ -3,34 +3,47 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Утилиты для работы с качеством предметов.
+/// РЈС‚РёР»РёС‚С‹ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РєР°С‡РµСЃС‚РІРѕРј РїСЂРµРґРјРµС‚РѕРІ.
 /// </summary>
 public static class QualityUtils
 {
     /// <summary>
-    /// Получить веса для качества предметов.
+    /// РџРѕР»СѓС‡РёС‚СЊ РЅР°СЃС‚СЂРѕРµРЅРЅС‹Р№ РІРµСЃ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РєР°С‡РµСЃС‚РІР°.
     /// </summary>
-    /// <returns></returns>
+    public static ulong GetWeight(QualityType quality) => quality switch
+    {
+        QualityType.Common => PRUnitySDK.Settings.Quality.CommonWeight,
+        QualityType.Uncommon => PRUnitySDK.Settings.Quality.UncommonWeight,
+        QualityType.Rare => PRUnitySDK.Settings.Quality.RareWeight,
+        QualityType.Epic => PRUnitySDK.Settings.Quality.EpicWeight,
+        QualityType.Legendary => PRUnitySDK.Settings.Quality.LegendaryWeight,
+        QualityType.Mythic => PRUnitySDK.Settings.Quality.MythicWeight,
+        QualityType.Ancient => PRUnitySDK.Settings.Quality.AncientWeight,
+        QualityType.Godlike => PRUnitySDK.Settings.Quality.GodlikeWeight,
+        _ => 0
+    };
+
+    /// <summary>
+    /// РџРѕР»СѓС‡РёС‚СЊ РІРµСЃР° РІСЃРµС… РєР°С‡РµСЃС‚РІ.
+    /// </summary>
     public static List<QualityWeight> GetWeights()
     {
         return new List<QualityWeight>
         {
-            new QualityWeight { Item = QualityType.Common, Weight = PRUnitySDK.Settings.Quality.CommonWeight },
-            new QualityWeight { Item = QualityType.Uncommon, Weight = PRUnitySDK.Settings.Quality.UncommonWeight },
-            new QualityWeight { Item = QualityType.Rare, Weight = PRUnitySDK.Settings.Quality.RareWeight },
-            new QualityWeight { Item = QualityType.Epic, Weight = PRUnitySDK.Settings.Quality.EpicWeight },
-            new QualityWeight { Item = QualityType.Legendary, Weight = PRUnitySDK.Settings.Quality.LegendaryWeight },
-            new QualityWeight { Item = QualityType.Mythic, Weight = PRUnitySDK.Settings.Quality.MythicWeight },
-            new QualityWeight { Item = QualityType.Ancient, Weight = PRUnitySDK.Settings.Quality.AncientWeight },
-            new QualityWeight { Item = QualityType.Godlike, Weight = PRUnitySDK.Settings.Quality.GodlikeWeight }
+            new QualityWeight { Item = QualityType.Common, Weight = GetWeight(QualityType.Common) },
+            new QualityWeight { Item = QualityType.Uncommon, Weight = GetWeight(QualityType.Uncommon) },
+            new QualityWeight { Item = QualityType.Rare, Weight = GetWeight(QualityType.Rare) },
+            new QualityWeight { Item = QualityType.Epic, Weight = GetWeight(QualityType.Epic) },
+            new QualityWeight { Item = QualityType.Legendary, Weight = GetWeight(QualityType.Legendary) },
+            new QualityWeight { Item = QualityType.Mythic, Weight = GetWeight(QualityType.Mythic) },
+            new QualityWeight { Item = QualityType.Ancient, Weight = GetWeight(QualityType.Ancient) },
+            new QualityWeight { Item = QualityType.Godlike, Weight = GetWeight(QualityType.Godlike) }
         };
     }
 
     /// <summary>
-    /// Получить цвет качества предмета.
+    /// РџРѕР»СѓС‡РёС‚СЊ С†РІРµС‚ РєР°С‡РµСЃС‚РІР° РїСЂРµРґРјРµС‚Р°.
     /// </summary>
-    /// <param name="quality">Качество.</param>
-    /// <returns>Цвет.</returns>
     public static Color GetColor(QualityType quality) => quality switch
     {
         QualityType.Common => PRUnitySDK.Settings.Quality.UseDefaultColor ? GetDefaultColor(quality) : PRUnitySDK.Settings.Quality.CommonColor,
@@ -45,47 +58,44 @@ public static class QualityUtils
     };
 
     /// <summary>
-    /// Цвет по умолчанию для качества предмета, если в настройках не задано.
+    /// РџРѕР»СѓС‡РёС‚СЊ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ С†РІРµС‚ РєР°С‡РµСЃС‚РІР°.
     /// </summary>
-    /// <param name="quality">Качество предмета.</param>
-    /// <returns>Цвет.</returns>
-    public static Color GetDefaultColor(QualityType quality)
+    public static Color GetDefaultColor(QualityType quality) => quality switch
     {
-        return quality switch
-        {
-            QualityType.Common => new Color(0.75f, 0.75f, 0.75f), // серый
-            QualityType.Uncommon => new Color(0.35f, 0.85f, 0.35f), // зелёный
-            QualityType.Rare => new Color(0.35f, 0.55f, 0.95f), // синий
-            QualityType.Mythic => new Color(0.75f, 0.35f, 0.95f), // фиолетовый
-            QualityType.Epic => new Color(0.90f, 0.30f, 0.60f), // эпик (розовый)
-            QualityType.Legendary => new Color(1.00f, 0.65f, 0.10f), // оранжевый
-            QualityType.Ancient => new Color(0.85f, 0.25f, 0.15f), // древний
-            QualityType.Godlike => new Color(1.00f, 0.85f, 0.25f), // золото
+        QualityType.Common => new Color(0.75f, 0.75f, 0.75f),
+        QualityType.Uncommon => new Color(0.35f, 0.85f, 0.35f),
+        QualityType.Rare => new Color(0.35f, 0.55f, 0.95f),
+        QualityType.Mythic => new Color(0.75f, 0.35f, 0.95f),
+        QualityType.Epic => new Color(0.90f, 0.30f, 0.60f),
+        QualityType.Legendary => new Color(1.00f, 0.65f, 0.10f),
+        QualityType.Ancient => new Color(0.85f, 0.25f, 0.15f),
+        QualityType.Godlike => new Color(1.00f, 0.85f, 0.25f),
+        _ => Color.white
+    };
 
-            _ => Color.white
-        };
-    }
-
-    public static long GetQualityLevelModifier(QualityType quality)
+    /// <summary>
+    /// РџРѕР»СѓС‡РёС‚СЊ РјРѕРґРёС„РёРєР°С‚РѕСЂ СѓСЂРѕРІРЅСЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РєР°С‡РµСЃС‚РІР°.
+    /// </summary>
+    public static long GetQualityLevelModifier(QualityType quality) => quality switch
     {
-        return quality switch
-        {
-            QualityType.Common => PRUnitySDK.Settings.Quality.CommonLevel,
-            QualityType.Uncommon => PRUnitySDK.Settings.Quality.UncommonLevel,
-            QualityType.Rare => PRUnitySDK.Settings.Quality.RareLevel,
-            QualityType.Epic => PRUnitySDK.Settings.Quality.EpicLevel,
-            QualityType.Legendary => PRUnitySDK.Settings.Quality.LegendaryLevel,
-            QualityType.Mythic => PRUnitySDK.Settings.Quality.MythicLevel,
-            QualityType.Ancient => PRUnitySDK.Settings.Quality.AncientLevel,
-            QualityType.Godlike => PRUnitySDK.Settings.Quality.GodlikeLevel,
-            _ => 0
-        };
-    }
+        QualityType.Common => PRUnitySDK.Settings.Quality.CommonLevel,
+        QualityType.Uncommon => PRUnitySDK.Settings.Quality.UncommonLevel,
+        QualityType.Rare => PRUnitySDK.Settings.Quality.RareLevel,
+        QualityType.Epic => PRUnitySDK.Settings.Quality.EpicLevel,
+        QualityType.Legendary => PRUnitySDK.Settings.Quality.LegendaryLevel,
+        QualityType.Mythic => PRUnitySDK.Settings.Quality.MythicLevel,
+        QualityType.Ancient => PRUnitySDK.Settings.Quality.AncientLevel,
+        QualityType.Godlike => PRUnitySDK.Settings.Quality.GodlikeLevel,
+        _ => 0
+    };
 
+    /// <summary>
+    /// РЎР»СѓС‡Р°Р№РЅРѕ РІС‹Р±СЂР°С‚СЊ РєР°С‡РµСЃС‚РІРѕ РІРЅСѓС‚СЂРё РґРёР°РїР°Р·РѕРЅР°.
+    /// </summary>
     public static QualityType GetQualityByRandomWeights(QualityRange range)
     {
         var filtered = GetWeights()
-            .Where(w => range.Contains(w.Item))
+            .Where(weight => range.Contains(weight.Item))
             .Cast<WeightItem<QualityType>>()
             .ToList();
 
@@ -93,9 +103,8 @@ public static class QualityUtils
     }
 
     /// <summary>
-    /// Получить качество по случайному весу.
+    /// РЎР»СѓС‡Р°Р№РЅРѕ РІС‹Р±СЂР°С‚СЊ РєР°С‡РµСЃС‚РІРѕ РїРѕ РіР»РѕР±Р°Р»СЊРЅС‹Рј РІРµСЃР°Рј.
     /// </summary>
-    /// <returns>Тип качества.</returns>
     public static QualityType GetQualityByRandomWeights()
     {
         return WeightUtils.GetRandomWeight(GetWeights().Cast<WeightItem<QualityType>>().ToList());

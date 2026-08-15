@@ -1,11 +1,11 @@
 using System;
 
 /// <summary>
-/// Менеджер управления паузой.
+/// РњРµРЅРµРґР¶РµСЂ СѓРїСЂР°РІР»РµРЅРёСЏ РїР°СѓР·РѕР№.
 /// </summary>
 public class PauseManager : IPauseManager
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <inheritdoc />
     public bool IsProjectPaused => isProjectPaused || IsFocusPaused;
@@ -29,33 +29,33 @@ public class PauseManager : IPauseManager
     public bool IsFocusPaused => isFocusPaused;
 
     /// <summary>
-    /// Пауза во время катсцены.
+    /// РџР°СѓР·Р° РІРѕ РІСЂРµРјСЏ РєР°С‚СЃС†РµРЅС‹.
     /// </summary>
     private bool isCutScenePaused;
 
     /// <summary>
-    /// Пауза по причине потери фокуса приложения.
+    /// РџР°СѓР·Р° РїРѕ РїСЂРёС‡РёРЅРµ РїРѕС‚РµСЂРё С„РѕРєСѓСЃР° РїСЂРёР»РѕР¶РµРЅРёСЏ.
     /// </summary>
     public bool isFocusPaused;
 
     /// <summary>
-    /// Музыкальная пауза.
+    /// РњСѓР·С‹РєР°Р»СЊРЅР°СЏ РїР°СѓР·Р°.
     /// </summary>
     private bool isMusicPaused;
 
     /// <summary>
-    /// Логическая пауза.
+    /// Р›РѕРіРёС‡РµСЃРєР°СЏ РїР°СѓР·Р°.
     /// </summary>
     private bool isLogicPaused;
 
     /// <summary>
-    /// Логическая пауза.
+    /// Р›РѕРіРёС‡РµСЃРєР°СЏ РїР°СѓР·Р°.
     /// </summary>
     private bool isProjectPaused;
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <inheritdoc />
     public void SetProjectPaused(bool isPaused, object executer, bool isUserAction = false)
@@ -89,6 +89,7 @@ public class PauseManager : IPauseManager
         var pauseArgs = new PauseStateEventArgs()
         {
             PreviousValue = previousValue,
+            CurrentValue = isPaused,
             IsUserValue = isUserAction,
             Executer = executer
         };

@@ -49,6 +49,7 @@ public class PauseView : MonoBehaviour, IPauseStateListener
 
 - какой вид паузы изменился;
 - предыдущее значение;
+- новое значение изменённого флага через `CurrentValue`;
 - был ли запрос пользовательским;
 - кто инициировал изменение;
 - является ли уведомление принудительным/custom.
@@ -87,4 +88,3 @@ public class PauseView : MonoBehaviour, IPauseStateListener
 - Не полагайтесь только на `Time.timeScale = 0`: это не является контрактом PauseSystem.
 - Подписывайтесь в `OnEnable` и отписывайтесь в `OnDisable`, если объект не должен
   получать события в выключенном состоянии.
-

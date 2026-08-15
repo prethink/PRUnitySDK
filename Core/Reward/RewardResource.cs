@@ -17,5 +17,7 @@ public class RewardResource : RewardItemBase
 
     public override IReadOnlyDictionary<LangType, string> LocalizationValues => ResourceData.LocalizationValues;
 
+    public override bool IsConfigured => base.IsConfigured && Count > 0;
+
     public bool CanMultiply => Multiply > 1;
 }

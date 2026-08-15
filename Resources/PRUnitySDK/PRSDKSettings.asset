@@ -140,6 +140,14 @@ MonoBehaviour:
       type: 2}
     <RemoveAdsCurrencyCost>k__BackingField: 100
     <RemoveAdsPurchase>k__BackingField: {fileID: 0}
+  <Rating>k__BackingField:
+    <RepeatUpdate>k__BackingField: 0
+    <RepeatUpdateSeconds>k__BackingField: 60
+    <InitializationDelaySeconds>k__BackingField: 5
+    <DefaultTableName>k__BackingField: 
+    <PlayerPhoto>k__BackingField: 1
+    <QuantityTop>k__BackingField: 10
+    <QuantityAround>k__BackingField: 10
   <DashboardMessageSettings>k__BackingField:
     <BaseLifeTime>k__BackingField: 5
     <BaseImageWidth>k__BackingField: 24

@@ -1,60 +1,143 @@
 using System;
 using System.Collections.Generic;
 
+/// <summary>
+/// Р’С‹РїРѕР»РЅСЏРµС‚ СЃР»СѓС‡Р°Р№РЅС‹Р№ РІС‹Р±РѕСЂ СЌР»РµРјРµРЅС‚РѕРІ РїСЂРѕРїРѕСЂС†РёРѕРЅР°Р»СЊРЅРѕ РёС… С†РµР»РѕС‡РёСЃР»РµРЅРЅС‹Рј РІРµСЃР°Рј.
+/// </summary>
 public static class WeightUtils
 {
-    public static T GetRandomWeight<T>(List<WeightItem<T>> weightItems)
+    /// <summary>
+    /// РџС‹С‚Р°РµС‚СЃСЏ РІС‹Р±СЂР°С‚СЊ СЌР»РµРјРµРЅС‚ СЃ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Рј РІРµСЃРѕРј.
+    /// </summary>
+    public static bool TryGetRandom<T>(
+        IReadOnlyList<WeightItem<T>> weightItems,
+        out T item,
+        Predicate<T> predicate = null)
     {
-        // Рассчитываем общий вес всех элементов
-        float totalWeight = 0f;
-        foreach (var item in weightItems)
+        if (TryGetRandomIndex(weightItems, out int index, predicate))
         {
-            totalWeight += item.Weight;
+            item = weightItems[index].Item;
+            return true;
         }
 
-        // Генерируем случайное значение от 0 до totalWeight
-        float rndWeightValue = UnityEngine.Random.Range(0f, totalWeight);
-        //Debug.Log($"Random weight value: {rndWeightValue}");
+        item = default;
+        return false;
+    }
 
-        // Ищем элемент, который соответствует случайному значению
-        float accumulatedWeight = 0f;
-        foreach (var item in weightItems)
+    /// <summary>
+    /// РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ РёРЅРґРµРєСЃ СЌР»РµРјРµРЅС‚Р° СЃ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Рј РІРµСЃРѕРј.
+    /// РќСѓР»РµРІС‹Рµ РІРµСЃР° Рё РїСѓСЃС‚С‹Рµ Р·Р°РїРёСЃРё РЅРµ СѓС‡Р°СЃС‚РІСѓСЋС‚ РІ РІС‹Р±РѕСЂРµ.
+    /// </summary>
+    public static bool TryGetRandomIndex<T>(
+        IReadOnlyList<WeightItem<T>> weightItems,
+        out int index,
+        Predicate<T> predicate = null)
+    {
+        index = -1;
+        if (!TryGetTotalWeight(weightItems, predicate, out ulong totalWeight))
+            return false;
+
+        ulong randomWeight = NextUInt64(totalWeight);
+        ulong accumulatedWeight = 0;
+
+        for (int itemIndex = 0; itemIndex < weightItems.Count; itemIndex++)
         {
-            accumulatedWeight += item.Weight;
-            if (rndWeightValue <= accumulatedWeight)
+            WeightItem<T> weightedItem = weightItems[itemIndex];
+            if (!IsSelectable(weightedItem, predicate))
+                continue;
+
+            accumulatedWeight += weightedItem.Weight;
+            if (randomWeight < accumulatedWeight)
             {
-                return item.Item; // Возвращаем качество, которое соответствует выбранному весу
+                index = itemIndex;
+                return true;
             }
         }
 
-        // На случай, если все пошло не так, возвращаем первый элемент (по умолчанию)
-        return weightItems[0].Item;
+        return false;
     }
 
-    public static int GetRandomWeightIndex<T>(List<WeightItem<T>> weightItems)
+    /// <summary>
+    /// Р’С‹Р±РёСЂР°РµС‚ СЌР»РµРјРµРЅС‚ Р»РёР±Рѕ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ, РµСЃР»Рё РІС‹Р±СЂР°С‚СЊ РЅРµС‡РµРіРѕ.
+    /// </summary>
+    public static T GetRandomWeight<T>(IReadOnlyList<WeightItem<T>> weightItems)
     {
+        if (TryGetRandom(weightItems, out T item))
+            return item;
+
+        throw new InvalidOperationException(
+            "Weighted collection must contain a valid item with a positive weight and must not overflow UInt64.");
+    }
+
+    /// <summary>
+    /// Р’С‹Р±РёСЂР°РµС‚ РёРЅРґРµРєСЃ Р»РёР±Рѕ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ, РµСЃР»Рё РІС‹Р±СЂР°С‚СЊ РЅРµС‡РµРіРѕ.
+    /// </summary>
+    public static int GetRandomWeightIndex<T>(IReadOnlyList<WeightItem<T>> weightItems)
+    {
+        if (TryGetRandomIndex(weightItems, out int index))
+            return index;
+
+        throw new InvalidOperationException(
+            "Weighted collection must contain a valid item with a positive weight and must not overflow UInt64.");
+    }
+
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ РІРµСЃР° РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ РѕР±С‰РµР№ СЃСѓРјРјС‹ РІ РґРёР°РїР°Р·РѕРЅРµ РѕС‚ 0 РґРѕ 1.
+    /// </summary>
+    public static double GetProbability(ulong weight, ulong totalWeight)
+    {
+        return totalWeight == 0 ? 0d : (double)weight / totalWeight;
+    }
+
+    private static bool TryGetTotalWeight<T>(
+        IReadOnlyList<WeightItem<T>> weightItems,
+        Predicate<T> predicate,
+        out ulong totalWeight)
+    {
+        totalWeight = 0;
         if (weightItems == null || weightItems.Count == 0)
-            throw new ArgumentException("Список weightItems не должен быть пустым.", nameof(weightItems));
+            return false;
 
-        float totalWeight = 0f;
-        foreach (var item in weightItems)
+        for (int index = 0; index < weightItems.Count; index++)
         {
-            totalWeight += item.Weight;
+            WeightItem<T> weightedItem = weightItems[index];
+            if (!IsSelectable(weightedItem, predicate))
+                continue;
+
+            if (ulong.MaxValue - totalWeight < weightedItem.Weight)
+                return false;
+
+            totalWeight += weightedItem.Weight;
         }
 
-        float rndWeightValue = UnityEngine.Random.Range(0f, totalWeight);
-
-        float accumulatedWeight = 0f;
-        for (int i = 0; i < weightItems.Count; i++)
-        {
-            accumulatedWeight += weightItems[i].Weight;
-            if (rndWeightValue <= accumulatedWeight)
-            {
-                return i;
-            }
-        }
-
-        return 0; // На случай, если ничего не выбралось (маловероятно)
+        return totalWeight > 0;
     }
 
+    private static bool IsSelectable<T>(WeightItem<T> weightedItem, Predicate<T> predicate)
+    {
+        return weightedItem != null &&
+               weightedItem.Weight > 0 &&
+               (predicate == null || predicate(weightedItem.Item));
+    }
+
+    private static ulong NextUInt64(ulong exclusiveMaximum)
+    {
+        if (exclusiveMaximum == 0)
+            throw new ArgumentOutOfRangeException(nameof(exclusiveMaximum));
+
+        // РћС‚Р±СЂР°СЃС‹РІР°РµРј РЅРµРїРѕР»РЅС‹Р№ РґРёР°РїР°Р·РѕРЅ, С‡С‚РѕР±С‹ РѕРїРµСЂР°С†РёСЏ modulo РЅРµ СЃРјРµС‰Р°Р»Р° РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ.
+        ulong rejectionThreshold = unchecked(0UL - exclusiveMaximum) % exclusiveMaximum;
+        ulong value;
+
+        do
+        {
+            value = ((ulong)UnityEngine.Random.Range(0, 1 << 16) << 48) |
+                    ((ulong)UnityEngine.Random.Range(0, 1 << 16) << 32) |
+                    ((ulong)UnityEngine.Random.Range(0, 1 << 16) << 16) |
+                    (uint)UnityEngine.Random.Range(0, 1 << 16);
+        }
+        while (value < rejectionThreshold);
+
+        return value % exclusiveMaximum;
+    }
 }

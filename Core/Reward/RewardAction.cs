@@ -13,9 +13,11 @@ public class RewardAction : RewardDataBase
 
     public override Sprite Icon => icon;
 
-    public override string LocalizationKey => throw new System.NotImplementedException();
+    public override string LocalizationKey => $"RewardAction_{id}";
 
     public override IReadOnlyDictionary<LangType, string> LocalizationValues => localization;
+
+    public override bool IsConfigured => Action != null;
 
     public void InvokeAction()
     {

@@ -212,6 +212,7 @@ PRUnitySDK/
 
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия
+- [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
 - [Enumeration](Core/Models/Enumeration/README.md)
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [Utils](Core/Utils/README.md)

@@ -2,6 +2,8 @@ public abstract class RewardItemBase : RewardDataBase
 {
     public abstract ItemDefinitionBase Item { get; }
 
+    public override bool IsConfigured => Item != null;
+
     public override QualityType GetQuality()
     {
         if (Item == null)
