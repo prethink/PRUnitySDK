@@ -191,6 +191,7 @@ PRUnitySDK/
 
 - [Core](Core/README.md)
 - [SDK](Core/SDK/README.md)
+- [Окна Database и Settings](Core/Editor/README.md) — секции, поиск, заполнение каталогов и валидация definitions
 - [Attributes](Core/@Attributes/README.md)
 - [Actions](Core/@Actions/README.md)
 - [EventBus](Core/@Events/EventBus/README.md)

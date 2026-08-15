@@ -23,4 +23,30 @@ public class RewardAction : RewardDataBase
     {
         Action?.Execute();
     }
+
+    /// <summary>
+    /// Настраивает action-награду и её данные отображения.
+    /// </summary>
+    /// <param name="action">Выполняемое действие.</param>
+    /// <param name="rewardIcon">Иконка награды.</param>
+    /// <param name="quality">Качество награды.</param>
+    /// <param name="localizationValues">Переводы названия награды.</param>
+    public void Initialize(
+        ActionBase action,
+        Sprite rewardIcon,
+        QualityType quality,
+        IReadOnlyDictionary<LangType, string> localizationValues)
+    {
+        Action = action;
+        icon = rewardIcon;
+        QualityReward = quality;
+
+        localization ??= new SerializedDictionary<LangType, string>();
+        localization.Clear();
+        if (localizationValues == null)
+            return;
+
+        foreach (KeyValuePair<LangType, string> pair in localizationValues)
+            localization[pair.Key] = pair.Value;
+    }
 }

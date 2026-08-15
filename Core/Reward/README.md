@@ -7,6 +7,8 @@ Reward-модель отделяет описание награды от спо
 - `RewardItem` оборачивает произвольный `ItemDefinitionBase`;
 - `RewardContainerBase` позволяет контейнеру наград самому быть наградой.
 
+При программном или Editor-создании используйте `RewardItem.Initialize`, `RewardResource.Initialize` и `RewardAction.Initialize`. Генератору не нужно обращаться к внутренним именам сериализованных полей.
+
 ## Получение сервиса
 
 `RewardGrantService` создаётся отдельным SDK-модулем на стадии `MethodHookStage.SDK`, регистрируется как `IRewardGrantService` и доступен через:
