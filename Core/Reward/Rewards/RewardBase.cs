@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class RewardDataBase : ScriptableObject, IIconProvider, ILocalizationProvider
+public abstract class RewardBase : ScriptableObject, IIconProvider, ILocalizationProvider
 {
     public abstract Sprite Icon { get; }
 

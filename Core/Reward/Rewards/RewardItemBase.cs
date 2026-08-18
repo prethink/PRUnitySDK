@@ -1,4 +1,4 @@
-public abstract class RewardItemBase : RewardDataBase
+public abstract class RewardItemBase : RewardBase
 {
     public abstract ItemDefinitionBase Item { get; }
 

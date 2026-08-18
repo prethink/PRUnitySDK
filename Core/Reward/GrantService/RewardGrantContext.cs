@@ -6,7 +6,7 @@ public sealed class RewardGrantContext
     /// <summary>
     /// Выдаваемая награда.
     /// </summary>
-    public RewardDataBase Reward { get; }
+    public RewardBase Reward { get; }
 
     /// <summary>
     /// Идентификатор игрока или другого инициатора операции.
@@ -32,7 +32,7 @@ public sealed class RewardGrantContext
     /// Создаёт контекст по идентификатору исполнителя.
     /// </summary>
     public RewardGrantContext(
-        RewardDataBase reward,
+        RewardBase reward,
         long executor = 0,
         long multiplier = 1,
         bool save = true,

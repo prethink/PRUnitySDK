@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Reward action", menuName = "PRUnitySDK/Reward/Reward action")]
-public class RewardAction : RewardDataBase
+public class RewardAction : RewardBase
 {
     [SerializeField] private string id = Guid.NewGuid().ToString();
     [SerializeField, SpritePreview(140)] protected Sprite icon;

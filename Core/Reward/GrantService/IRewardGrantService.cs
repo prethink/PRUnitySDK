@@ -13,7 +13,7 @@ public interface IRewardGrantService
     /// <summary>
     /// Выдаёт награду указанному исполнителю.
     /// </summary>
-    bool TryGrant(RewardDataBase reward, long executor = 0, long multiplier = 1, bool save = true);
+    bool TryGrant(RewardBase reward, long executor = 0, long multiplier = 1, bool save = true);
 
     /// <summary>
     /// Выдаёт награду с указанным контекстом.

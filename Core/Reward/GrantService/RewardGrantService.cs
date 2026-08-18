@@ -22,7 +22,7 @@ public sealed class RewardGrantService : IRewardGrantService
     }
 
     /// <inheritdoc />
-    public bool TryGrant(RewardDataBase reward, long executor = 0, long multiplier = 1, bool save = true)
+    public bool TryGrant(RewardBase reward, long executor = 0, long multiplier = 1, bool save = true)
     {
         return TryGrant(new RewardGrantContext(reward, executor, multiplier, save));
     }
@@ -62,7 +62,7 @@ public sealed class RewardGrantService : IRewardGrantService
                 if (!handler.TryGrant(context))
                     return false;
 
-                RewardEvents.RaiseGranted(context);
+                RewardEvents.Granted(context);
                 return true;
             }
             catch (Exception exception)

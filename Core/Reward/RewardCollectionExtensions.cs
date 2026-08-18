@@ -10,7 +10,7 @@ public static class RewardCollectionExtensions
     /// <summary>
     /// Возвращает только настроенные ресурсные награды.
     /// </summary>
-    public static IEnumerable<RewardResource> GetOnlyResources(this IEnumerable<RewardDataBase> rewards)
+    public static IEnumerable<RewardResource> GetOnlyResources(this IEnumerable<RewardBase> rewards)
     {
         return rewards?.OfType<RewardResource>().Where(reward => reward.IsConfigured)
                ?? Enumerable.Empty<RewardResource>();
@@ -19,7 +19,7 @@ public static class RewardCollectionExtensions
     /// <summary>
     /// Возвращает настроенные предметные награды, исключая ресурсы.
     /// </summary>
-    public static IEnumerable<RewardItemBase> GetOnlyItems(this IEnumerable<RewardDataBase> rewards)
+    public static IEnumerable<RewardItemBase> GetOnlyItems(this IEnumerable<RewardBase> rewards)
     {
         return rewards?.OfType<RewardItemBase>()
                    .Where(reward => reward is not RewardResource && reward.IsConfigured)
@@ -29,21 +29,21 @@ public static class RewardCollectionExtensions
     /// <summary>
     /// Возвращает ненулевые и полностью настроенные награды.
     /// </summary>
-    public static IEnumerable<RewardDataBase> GetConfiguredRewards(this IEnumerable<RewardDataBase> rewards)
+    public static IEnumerable<RewardBase> GetConfiguredRewards(this IEnumerable<RewardBase> rewards)
     {
         return rewards?.Where(reward => reward != null && reward.IsConfigured)
-               ?? Enumerable.Empty<RewardDataBase>();
+               ?? Enumerable.Empty<RewardBase>();
     }
 
     /// <summary>
     /// Исключает уже открытые уникальные предметы с помощью переданного правила владения.
     /// Ресурсы и action-награды остаются доступными.
     /// </summary>
-    public static IEnumerable<RewardDataBase> GetAvailableRewards(
-        this IEnumerable<RewardDataBase> rewards,
+    public static IEnumerable<RewardBase> GetAvailableRewards(
+        this IEnumerable<RewardBase> rewards,
         Func<RewardItemBase, bool> isOpened)
     {
-        IEnumerable<RewardDataBase> configuredRewards = rewards.GetConfiguredRewards();
+        IEnumerable<RewardBase> configuredRewards = rewards.GetConfiguredRewards();
         if (isOpened == null)
             return configuredRewards;
 

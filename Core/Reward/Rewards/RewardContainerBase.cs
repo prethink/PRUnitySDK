@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// Награда-контейнер с собственным набором наград.
 /// </summary>
-public abstract class RewardContainerBase : RewardDataBase
+public abstract class RewardContainerBase : RewardBase
 {
     [SerializeField] private string id = Guid.NewGuid().ToString();
     [SerializeField, SpritePreview(140)] private Sprite icon;
@@ -36,7 +36,7 @@ public abstract class RewardContainerBase : RewardDataBase
     /// <summary>
     /// Пытается выбрать одну настроенную награду.
     /// </summary>
-    public bool TryRoll(out RewardDataBase reward)
+    public bool TryRoll(out RewardBase reward)
     {
         return WeightUtils.TryGetRandom(
             Rewards,
