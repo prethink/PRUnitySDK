@@ -216,6 +216,7 @@ PRUnitySDK/
 - [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
 - [Enumeration](Core/Models/Enumeration/README.md)
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
+- [CursorManager](Core/CursorManager/README.md) — именованные запросы Show/Hide курсора, устойчивые к произвольному порядку снятия
 - [Utils](Core/Utils/README.md)
 - [Proxies](Core/Proxies/README.md)
 - [SoundManager](Core/SoundManager/README.md)

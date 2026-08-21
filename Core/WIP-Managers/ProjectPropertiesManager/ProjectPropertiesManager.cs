@@ -2,20 +2,20 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Менеджер произвольных свойств проекта (long/float/DateTime/string/bool),
-/// хранимых по строковому имени в GameManager.GetProjectData().ProjectProperties.
-/// Каждый Set* сохраняет значение и по умолчанию сразу пишет данные на диск
-/// (save = true) и рассылает уведомление об изменении (requiredNotify = true) -
-/// оба поведения можно отключить отдельно на каждый вызов.
+/// РњРµРЅРµРґР¶РµСЂ РїСЂРѕРёР·РІРѕР»СЊРЅС‹С… СЃРІРѕР№СЃС‚РІ РїСЂРѕРµРєС‚Р° (long/float/DateTime/string/bool),
+/// С…СЂР°РЅРёРјС‹С… РїРѕ СЃС‚СЂРѕРєРѕРІРѕРјСѓ РёРјРµРЅРё РІ GameManager.GetProjectData().ProjectProperties.
+/// РљР°Р¶РґС‹Р№ Set* СЃРѕС…СЂР°РЅСЏРµС‚ Р·РЅР°С‡РµРЅРёРµ Рё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ СЃСЂР°Р·Сѓ РїРёС€РµС‚ РґР°РЅРЅС‹Рµ РЅР° РґРёСЃРє
+/// (save = true) Рё СЂР°СЃСЃС‹Р»Р°РµС‚ СѓРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё (requiredNotify = true) -
+/// РѕР±Р° РїРѕРІРµРґРµРЅРёСЏ РјРѕР¶РЅРѕ РѕС‚РєР»СЋС‡РёС‚СЊ РѕС‚РґРµР»СЊРЅРѕ РЅР° РєР°Р¶РґС‹Р№ РІС‹Р·РѕРІ.
 /// </summary>
 public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesManager>
 {
     #region Set
 
     /// <summary>
-    /// Сохраняет значение DateTime под именем name. save определяет, будет ли
-    /// сразу вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ Р·РЅР°С‡РµРЅРёРµ DateTime РїРѕРґ РёРјРµРЅРµРј name. save РѕРїСЂРµРґРµР»СЏРµС‚, Р±СѓРґРµС‚ Р»Рё
+    /// СЃСЂР°Р·Сѓ РІС‹Р·РІР°РЅ GameManager.SaveProjectData() (Р·Р°РїРёСЃСЊ РЅР° РґРёСЃРє), requiredNotify -
+    /// Р±СѓРґРµС‚ Р»Рё СЂР°Р·РѕСЃР»Р°РЅРѕ СѓРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё С‡РµСЂРµР· EventBus.
     /// </summary>
     public void SetDateTime(string name, DateTime value, bool save = true, bool requiredNotify = true)
     {
@@ -23,9 +23,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Сохраняет значение long под именем name. save определяет, будет ли сразу
-    /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ Р·РЅР°С‡РµРЅРёРµ long РїРѕРґ РёРјРµРЅРµРј name. save РѕРїСЂРµРґРµР»СЏРµС‚, Р±СѓРґРµС‚ Р»Рё СЃСЂР°Р·Сѓ
+    /// РІС‹Р·РІР°РЅ GameManager.SaveProjectData() (Р·Р°РїРёСЃСЊ РЅР° РґРёСЃРє), requiredNotify -
+    /// Р±СѓРґРµС‚ Р»Рё СЂР°Р·РѕСЃР»Р°РЅРѕ СѓРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё С‡РµСЂРµР· EventBus.
     /// </summary>
     public void SetLong(string name, long value, bool save = true, bool requiredNotify = true)
     {
@@ -33,9 +33,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Прибавляет value к текущему значению свойства name (0, если свойства ещё
-    /// не было) и сохраняет результат через SetLong. Удобно для счётчиков
-    /// (например, суммарное количество монет), где не нужно читать-менять-писать вручную.
+    /// РџСЂРёР±Р°РІР»СЏРµС‚ value Рє С‚РµРєСѓС‰РµРјСѓ Р·РЅР°С‡РµРЅРёСЋ СЃРІРѕР№СЃС‚РІР° name (0, РµСЃР»Рё СЃРІРѕР№СЃС‚РІР° РµС‰С‘
+    /// РЅРµ Р±С‹Р»Рѕ) Рё СЃРѕС…СЂР°РЅСЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ С‡РµСЂРµР· SetLong. РЈРґРѕР±РЅРѕ РґР»СЏ СЃС‡С‘С‚С‡РёРєРѕРІ
+    /// (РЅР°РїСЂРёРјРµСЂ, СЃСѓРјРјР°СЂРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РјРѕРЅРµС‚), РіРґРµ РЅРµ РЅСѓР¶РЅРѕ С‡РёС‚Р°С‚СЊ-РјРµРЅСЏС‚СЊ-РїРёСЃР°С‚СЊ РІСЂСѓС‡РЅСѓСЋ.
     /// </summary>
     public void AddLong(string name, long value, bool save = true, bool requiredNotify = true)
     {
@@ -44,9 +44,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Сохраняет значение string под именем name. save определяет, будет ли сразу
-    /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ Р·РЅР°С‡РµРЅРёРµ string РїРѕРґ РёРјРµРЅРµРј name. save РѕРїСЂРµРґРµР»СЏРµС‚, Р±СѓРґРµС‚ Р»Рё СЃСЂР°Р·Сѓ
+    /// РІС‹Р·РІР°РЅ GameManager.SaveProjectData() (Р·Р°РїРёСЃСЊ РЅР° РґРёСЃРє), requiredNotify -
+    /// Р±СѓРґРµС‚ Р»Рё СЂР°Р·РѕСЃР»Р°РЅРѕ СѓРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё С‡РµСЂРµР· EventBus.
     /// </summary>
     public void SetString(string name, string value, bool save = true, bool requiredNotify = true)
     {
@@ -54,9 +54,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Сохраняет значение float под именем name. save определяет, будет ли сразу
-    /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ Р·РЅР°С‡РµРЅРёРµ float РїРѕРґ РёРјРµРЅРµРј name. save РѕРїСЂРµРґРµР»СЏРµС‚, Р±СѓРґРµС‚ Р»Рё СЃСЂР°Р·Сѓ
+    /// РІС‹Р·РІР°РЅ GameManager.SaveProjectData() (Р·Р°РїРёСЃСЊ РЅР° РґРёСЃРє), requiredNotify -
+    /// Р±СѓРґРµС‚ Р»Рё СЂР°Р·РѕСЃР»Р°РЅРѕ СѓРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё С‡РµСЂРµР· EventBus.
     /// </summary>
     public void SetFloat(string name, float value, bool save = true, bool requiredNotify = true)
     {
@@ -64,9 +64,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Прибавляет value к текущему значению свойства name (0, если свойства ещё
-    /// не было) и сохраняет результат через SetFloat. Аналог AddLong для float -
-    /// например, накопление игрового времени или прогресса, измеряемого дробным числом.
+    /// РџСЂРёР±Р°РІР»СЏРµС‚ value Рє С‚РµРєСѓС‰РµРјСѓ Р·РЅР°С‡РµРЅРёСЋ СЃРІРѕР№СЃС‚РІР° name (0, РµСЃР»Рё СЃРІРѕР№СЃС‚РІР° РµС‰С‘
+    /// РЅРµ Р±С‹Р»Рѕ) Рё СЃРѕС…СЂР°РЅСЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ С‡РµСЂРµР· SetFloat. РђРЅР°Р»РѕРі AddLong РґР»СЏ float -
+    /// РЅР°РїСЂРёРјРµСЂ, РЅР°РєРѕРїР»РµРЅРёРµ РёРіСЂРѕРІРѕРіРѕ РІСЂРµРјРµРЅРё РёР»Рё РїСЂРѕРіСЂРµСЃСЃР°, РёР·РјРµСЂСЏРµРјРѕРіРѕ РґСЂРѕР±РЅС‹Рј С‡РёСЃР»РѕРј.
     /// </summary>
     public void AddFloat(string name, float value, bool save = true, bool requiredNotify = true)
     {
@@ -75,9 +75,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Сохраняет значение bool под именем name. save определяет, будет ли сразу
-    /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ Р·РЅР°С‡РµРЅРёРµ bool РїРѕРґ РёРјРµРЅРµРј name. save РѕРїСЂРµРґРµР»СЏРµС‚, Р±СѓРґРµС‚ Р»Рё СЃСЂР°Р·Сѓ
+    /// РІС‹Р·РІР°РЅ GameManager.SaveProjectData() (Р·Р°РїРёСЃСЊ РЅР° РґРёСЃРє), requiredNotify -
+    /// Р±СѓРґРµС‚ Р»Рё СЂР°Р·РѕСЃР»Р°РЅРѕ СѓРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё С‡РµСЂРµР· EventBus.
     /// </summary>
     public void SetBool(string name, bool value, bool save = true, bool requiredNotify = true)
     {
@@ -85,10 +85,23 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Общая реализация для всех Set*-методов. Тип свойства определяется
-    /// параметром T на этапе компиляции, поэтому конкретный словарь ищется
-    /// через GetProperties&lt;T&gt;() - добавление нового типа свойства требует
-    /// правки только GetProperties&lt;T&gt;(), а не каждого Set/TryGet/Remove по отдельности.
+    /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅРѕРјСѓ РєР»СЋС‡Сѓ <see cref="EnumerationType{T}"/>.
+    /// РўРёРї T Р·Р°РґР°С‘С‚СЃСЏ РєР»СЋС‡РѕРј, РїРѕСЌС‚РѕРјСѓ РЅРµ РЅСѓР¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ РєРѕРЅРєСЂРµС‚РЅС‹Р№ SetLong/SetFloat/...
+    /// РІСЂСѓС‡РЅСѓСЋ вЂ” РїРѕРїР°РґС‘С‚ РІ С‚РѕС‚ Р¶Рµ СЃР»РѕРІР°СЂСЊ, С‡С‚Рѕ Рё РѕСЃС‚Р°Р»СЊРЅС‹Рµ Set*/TryGet*-РјРµС‚РѕРґС‹ РґР»СЏ СЌС‚РѕРіРѕ T.
+    /// </summary>
+    public void SetValue<T>(EnumerationType<T> enumerationType, T value, bool save = true, bool requiredNotify = true)
+    {
+        if (enumerationType == null)
+            throw new ArgumentNullException(nameof(enumerationType));
+
+        SetValue(enumerationType.Value, value, save, requiredNotify);
+    }
+
+    /// <summary>
+    /// РћР±С‰Р°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ РґР»СЏ РІСЃРµС… Set*-РјРµС‚РѕРґРѕРІ. РўРёРї СЃРІРѕР№СЃС‚РІР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ
+    /// РїР°СЂР°РјРµС‚СЂРѕРј T РЅР° СЌС‚Р°РїРµ РєРѕРјРїРёР»СЏС†РёРё, РїРѕСЌС‚РѕРјСѓ РєРѕРЅРєСЂРµС‚РЅС‹Р№ СЃР»РѕРІР°СЂСЊ РёС‰РµС‚СЃСЏ
+    /// С‡РµСЂРµР· GetProperties&lt;T&gt;() - РґРѕР±Р°РІР»РµРЅРёРµ РЅРѕРІРѕРіРѕ С‚РёРїР° СЃРІРѕР№СЃС‚РІР° С‚СЂРµР±СѓРµС‚
+    /// РїСЂР°РІРєРё С‚РѕР»СЊРєРѕ GetProperties&lt;T&gt;(), Р° РЅРµ РєР°Р¶РґРѕРіРѕ Set/TryGet/Remove РїРѕ РѕС‚РґРµР»СЊРЅРѕСЃС‚Рё.
     /// </summary>
     private void SetValue<T>(string name, T value, bool save, bool requiredNotify)
     {
@@ -102,112 +115,138 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
 
     #region TryGet / Get
 
-    /// <summary>Пытается получить значение DateTime по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать default(DateTime).</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ DateTime РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ default(DateTime).</summary>
     public bool TryGetDateTime(string name, out DateTime value) => TryGetValue(name, out value);
 
-    /// <summary>Пытается получить значение long по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать 0.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ long РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ 0.</summary>
     public bool TryGetLong(string name, out long value) => TryGetValue(name, out value);
 
-    /// <summary>Пытается получить значение string по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать null.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ string РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ null.</summary>
     public bool TryGetString(string name, out string value) => TryGetValue(name, out value);
 
-    /// <summary>Пытается получить значение float по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать 0.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ float РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ 0.</summary>
     public bool TryGetFloat(string name, out float value) => TryGetValue(name, out value);
 
-    /// <summary>Пытается получить значение bool по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать false.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ bool РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ false.</summary>
     public bool TryGetBool(string name, out bool value) => TryGetValue(name, out value);
 
-    /// <summary>Возвращает значение DateTime по имени name, либо default(DateTime),
-    /// если свойство не найдено - удобно, когда отсутствие свойства не является
-    /// ошибкой и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ DateTime РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ default(DateTime),
+    /// РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ
+    /// РѕС€РёР±РєРѕР№ Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public DateTime GetDateTime(string name) => TryGetDateTime(name, out var value) ? value : default;
 
-    /// <summary>Возвращает значение long по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ long РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ 0, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public long GetLong(string name) => TryGetLong(name, out var value) ? value : default;
 
-    /// <summary>Возвращает значение string по имени name, либо null, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ string РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ null, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public string GetString(string name) => TryGetString(name, out var value) ? value : default;
 
-    /// <summary>Возвращает значение float по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ float РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ 0, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public float GetFloat(string name) => TryGetFloat(name, out var value) ? value : default;
 
-    /// <summary>Возвращает значение bool по имени name, либо false, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ bool РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public bool GetBool(string name) => TryGetBool(name, out var value) ? value : default;
 
-    /// <summary>Пытается получить значение DateTime по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать default(DateTime).</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ DateTime РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ default(DateTime).</summary>
     public bool TryGetDateTime(Enumeration enumeration, out DateTime value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение long по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать 0.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ long РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ 0.</summary>
     public bool TryGetLong(Enumeration enumeration, out long value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение string по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать null.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ string РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ null.</summary>
     public bool TryGetString(Enumeration enumeration, out string value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение float по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать 0.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ float РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ 0.</summary>
     public bool TryGetFloat(Enumeration enumeration, out float value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение bool по имени name. Возвращает
-    /// false, если свойство с таким именем не было сохранено - в этом случае
-    /// value будет содержать false.</summary>
+    /// <summary>РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ bool РїРѕ РёРјРµРЅРё name. Р’РѕР·РІСЂР°С‰Р°РµС‚
+    /// false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ Р±С‹Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ - РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ
+    /// value Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ false.</summary>
     public bool TryGetBool(Enumeration enumeration, out bool value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Возвращает значение DateTime по имени name, либо default(DateTime),
-    /// если свойство не найдено - удобно, когда отсутствие свойства не является
-    /// ошибкой и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ DateTime РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ default(DateTime),
+    /// РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ
+    /// РѕС€РёР±РєРѕР№ Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public DateTime GetDateTime(Enumeration enumeration) => TryGetDateTime(enumeration.Value, out var value) ? value : default;
 
-    /// <summary>Возвращает значение long по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ long РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ 0, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public long GetLong(Enumeration enumeration) => TryGetLong(enumeration.Value, out var value) ? value : default;
 
-    /// <summary>Возвращает значение string по имени name, либо null, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ string РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ null, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public string GetString(Enumeration enumeration) => TryGetString(enumeration.Value, out var value) ? value : default;
 
-    /// <summary>Возвращает значение float по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ float РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ 0, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public float GetFloat(Enumeration enumeration) => TryGetFloat(enumeration.Value, out var value) ? value : default;
 
-    /// <summary>Возвращает значение bool по имени name, либо false, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ bool РїРѕ РёРјРµРЅРё name, Р»РёР±Рѕ false, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ
+    /// РЅРµ РЅР°Р№РґРµРЅРѕ - СѓРґРѕР±РЅРѕ, РєРѕРіРґР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРІРѕР№СЃС‚РІР° РЅРµ СЏРІР»СЏРµС‚СЃСЏ РѕС€РёР±РєРѕР№
+    /// Рё РјРѕР¶РЅРѕ РїСЂРѕСЃС‚Рѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</summary>
     public bool GetBool(Enumeration enumeration) => TryGetBool(enumeration.Value, out var value) ? value : default;
 
 
     public bool TryGetValue<T>(EnumerationType<T> enumerationType, out T value) => TryGetValue(enumerationType.Value, out value);
 
     /// <summary>
-    /// Общая реализация для всех TryGet*-методов - находит нужный словарь через
-    /// GetProperties&lt;T&gt;() и делегирует в его обычный Dictionary.TryGetValue.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕ <see cref="EnumerationType{T}"/> РёР»Рё defaultValue, РµСЃР»Рё
+    /// РєР»СЋС‡ РµС‰С‘ РЅРµ СЃРѕС…СЂР°РЅС‘РЅ. РўРѕС‚ Р¶Рµ РїР°С‚С‚РµСЂРЅ, С‡С‚Рѕ GetLong/GetFloat/GetBool/..., РЅРѕ Р±РµР·
+    /// РїСЂРёРІСЏР·РєРё Рє РєРѕРЅРєСЂРµС‚РЅРѕРјСѓ T вЂ” РїРѕРґС…РѕРґРёС‚ РґР»СЏ Р»СЋР±РѕРіРѕ РїРѕРґРґРµСЂР¶РёРІР°РµРјРѕРіРѕ С‚РёРїР°.
+    /// </summary>
+    public T GetValue<T>(EnumerationType<T> enumerationType, T defaultValue) =>
+        TryGetValue(enumerationType, out var value) ? value : defaultValue;
+
+    /// <summary>
+    /// РџРµСЂРµРіСЂСѓР·РєР° AddLong РґР»СЏ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅРѕРіРѕ РєР»СЋС‡Р° <see cref="EnumerationType{T}"/> СЃ T = long.
+    /// </summary>
+    public void AddLong(EnumerationType<long> enumerationType, long value, bool save = true, bool requiredNotify = true)
+    {
+        TryGetValue(enumerationType, out var currentValue);
+        SetValue(enumerationType, value + currentValue, save, requiredNotify);
+    }
+
+    /// <summary>
+    /// РџРµСЂРµРіСЂСѓР·РєР° AddFloat РґР»СЏ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅРѕРіРѕ РєР»СЋС‡Р° <see cref="EnumerationType{T}"/> СЃ T = float.
+    /// </summary>
+    public void AddFloat(EnumerationType<float> enumerationType, float value, bool save = true, bool requiredNotify = true)
+    {
+        TryGetValue(enumerationType, out var currentValue);
+        SetValue(enumerationType, value + currentValue, save, requiredNotify);
+    }
+
+    /// <summary>
+    /// РћР±С‰Р°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ РґР»СЏ РІСЃРµС… TryGet*-РјРµС‚РѕРґРѕРІ - РЅР°С…РѕРґРёС‚ РЅСѓР¶РЅС‹Р№ СЃР»РѕРІР°СЂСЊ С‡РµСЂРµР·
+    /// GetProperties&lt;T&gt;() Рё РґРµР»РµРіРёСЂСѓРµС‚ РІ РµРіРѕ РѕР±С‹С‡РЅС‹Р№ Dictionary.TryGetValue.
     /// </summary>
     private bool TryGetValue<T>(string name, out T value)
     {
@@ -219,11 +258,11 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     #region Remove
 
     /// <summary>
-    /// Удаляет свойство указанного типа. В отличие от Set*-методов, тип задаётся
-    /// не через generic-параметр (вызывающий код обычно хранит только Type, а не
-    /// статический тип значения), поэтому здесь нужен явный перебор - но, в отличие
-    /// от предыдущей версии, save/notify вызываются только если что-то РЕАЛЬНО было
-    /// удалено, а неизвестный type логируется вместо тихого игнорирования.
+    /// РЈРґР°Р»СЏРµС‚ СЃРІРѕР№СЃС‚РІРѕ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°. Р’ РѕС‚Р»РёС‡РёРµ РѕС‚ Set*-РјРµС‚РѕРґРѕРІ, С‚РёРї Р·Р°РґР°С‘С‚СЃСЏ
+    /// РЅРµ С‡РµСЂРµР· generic-РїР°СЂР°РјРµС‚СЂ (РІС‹Р·С‹РІР°СЋС‰РёР№ РєРѕРґ РѕР±С‹С‡РЅРѕ С…СЂР°РЅРёС‚ С‚РѕР»СЊРєРѕ Type, Р° РЅРµ
+    /// СЃС‚Р°С‚РёС‡РµСЃРєРёР№ С‚РёРї Р·РЅР°С‡РµРЅРёСЏ), РїРѕСЌС‚РѕРјСѓ Р·РґРµСЃСЊ РЅСѓР¶РµРЅ СЏРІРЅС‹Р№ РїРµСЂРµР±РѕСЂ - РЅРѕ, РІ РѕС‚Р»РёС‡РёРµ
+    /// РѕС‚ РїСЂРµРґС‹РґСѓС‰РµР№ РІРµСЂСЃРёРё, save/notify РІС‹Р·С‹РІР°СЋС‚СЃСЏ С‚РѕР»СЊРєРѕ РµСЃР»Рё С‡С‚Рѕ-С‚Рѕ Р Р•РђР›Р¬РќРћ Р±С‹Р»Рѕ
+    /// СѓРґР°Р»РµРЅРѕ, Р° РЅРµРёР·РІРµСЃС‚РЅС‹Р№ type Р»РѕРіРёСЂСѓРµС‚СЃСЏ РІРјРµСЃС‚Рѕ С‚РёС…РѕРіРѕ РёРіРЅРѕСЂРёСЂРѕРІР°РЅРёСЏ.
     /// </summary>
     public void RemoveProperty(string propertyName, Type type, bool save = true, bool requiredNotify = true)
     {
@@ -242,29 +281,57 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
             removed = properties.BoolProperties.Remove(propertyName);
         else
         {
-            // Неизвестный тип - раньше метод просто ничего не делал и всё равно
-            // сохранял данные; теперь явно предупреждаем, чтобы ошибка в вызывающем
-            // коде (например, опечатка в typeof(...)) не терялась молча.
-            PRLog.WriteWarning(this, $"RemoveProperty: неподдерживаемый тип '{type}' для свойства '{propertyName}'.");
+            // РќРµРёР·РІРµСЃС‚РЅС‹Р№ С‚РёРї - СЂР°РЅСЊС€Рµ РјРµС‚РѕРґ РїСЂРѕСЃС‚Рѕ РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°Р» Рё РІСЃС‘ СЂР°РІРЅРѕ
+            // СЃРѕС…СЂР°РЅСЏР» РґР°РЅРЅС‹Рµ; С‚РµРїРµСЂСЊ СЏРІРЅРѕ РїСЂРµРґСѓРїСЂРµР¶РґР°РµРј, С‡С‚РѕР±С‹ РѕС€РёР±РєР° РІ РІС‹Р·С‹РІР°СЋС‰РµРј
+            // РєРѕРґРµ (РЅР°РїСЂРёРјРµСЂ, РѕРїРµС‡Р°С‚РєР° РІ typeof(...)) РЅРµ С‚РµСЂСЏР»Р°СЃСЊ РјРѕР»С‡Р°.
+            PRLog.WriteWarning(this, $"RemoveProperty: РЅРµРїРѕРґРґРµСЂР¶РёРІР°РµРјС‹Р№ С‚РёРї '{type}' РґР»СЏ СЃРІРѕР№СЃС‚РІР° '{propertyName}'.");
             return;
         }
 
         if (!removed)
-            return; // свойства с таким именем и не было - не тратим save/notify впустую
+            return; // СЃРІРѕР№СЃС‚РІР° СЃ С‚Р°РєРёРј РёРјРµРЅРµРј Рё РЅРµ Р±С‹Р»Рѕ - РЅРµ С‚СЂР°С‚РёРј save/notify РІРїСѓСЃС‚СѓСЋ
 
         if (save)
             GameManager.Instance.SaveProjectData();
     }
 
-    #endregion
+    /// <summary>
+    /// РЈРґР°Р»СЏРµС‚ СЃРІРѕР№СЃС‚РІРѕ С‚РёРїР° T РїРѕ РёРјРµРЅРё. Р’ РѕС‚Р»РёС‡РёРµ РѕС‚ РїРµСЂРµРіСЂСѓР·РєРё СЃ СЏРІРЅС‹Рј Type, Р·РґРµСЃСЊ
+    /// T РёР·РІРµСЃС‚РµРЅ РЅР° СЌС‚Р°РїРµ РєРѕРјРїРёР»СЏС†РёРё вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РЅР°РїСЂСЏРјСѓСЋ GetProperties&lt;T&gt;()
+    /// Р±РµР· РІРµС‚РІР»РµРЅРёСЏ РїРѕ typeof(T) Рё Р±РµР· РѕС‚РґРµР»СЊРЅРѕР№ РїСЂРѕРІРµСЂРєРё РїРѕРґРґРµСЂР¶РёРІР°РµРјС‹С… С‚РёРїРѕРІ
+    /// (РµС‘ СѓР¶Рµ РґРµР»Р°РµС‚ GetProperties&lt;T&gt;(), Р±СЂРѕСЃР°СЏ NotSupportedException).
+    /// </summary>
+    public void RemoveProperty<T>(string propertyName, bool save = true, bool requiredNotify = true)
+    {
+        var removed = GetProperties<T>().Remove(propertyName);
 
-    #region Внутреннее
+        if (!removed)
+            return;
+
+        if (save)
+            GameManager.Instance.SaveProjectData();
+    }
 
     /// <summary>
-    /// Единая точка доступа к словарю нужного типа. typeof(T) сравнивается на
-    /// этапе выполнения (T всегда известен статически из вызывающего Set*/TryGet*,
-    /// поэтому ветка всегда конкретна) - обычный приём для generic-диспетчеризации
-    /// по набору заранее известных типов без reflection.
+    /// РЈРґР°Р»СЏРµС‚ СЃРІРѕР№СЃС‚РІРѕ РїРѕ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅРѕРјСѓ РєР»СЋС‡Сѓ <see cref="EnumerationType{T}"/>.
+    /// </summary>
+    public void RemoveProperty<T>(EnumerationType<T> enumerationType, bool save = true, bool requiredNotify = true)
+    {
+        if (enumerationType == null)
+            throw new ArgumentNullException(nameof(enumerationType));
+
+        RemoveProperty<T>(enumerationType.Value, save, requiredNotify);
+    }
+
+    #endregion
+
+    #region Р’РЅСѓС‚СЂРµРЅРЅРµРµ
+
+    /// <summary>
+    /// Р•РґРёРЅР°СЏ С‚РѕС‡РєР° РґРѕСЃС‚СѓРїР° Рє СЃР»РѕРІР°СЂСЋ РЅСѓР¶РЅРѕРіРѕ С‚РёРїР°. typeof(T) СЃСЂР°РІРЅРёРІР°РµС‚СЃСЏ РЅР°
+    /// СЌС‚Р°РїРµ РІС‹РїРѕР»РЅРµРЅРёСЏ (T РІСЃРµРіРґР° РёР·РІРµСЃС‚РµРЅ СЃС‚Р°С‚РёС‡РµСЃРєРё РёР· РІС‹Р·С‹РІР°СЋС‰РµРіРѕ Set*/TryGet*,
+    /// РїРѕСЌС‚РѕРјСѓ РІРµС‚РєР° РІСЃРµРіРґР° РєРѕРЅРєСЂРµС‚РЅР°) - РѕР±С‹С‡РЅС‹Р№ РїСЂРёС‘Рј РґР»СЏ generic-РґРёСЃРїРµС‚С‡РµСЂРёР·Р°С†РёРё
+    /// РїРѕ РЅР°Р±РѕСЂСѓ Р·Р°СЂР°РЅРµРµ РёР·РІРµСЃС‚РЅС‹С… С‚РёРїРѕРІ Р±РµР· reflection.
     /// </summary>
     private Dictionary<string, T> GetProperties<T>()
     {
@@ -285,21 +352,21 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
         if (typeof(T) == typeof(bool))
             return (Dictionary<string, T>)(object)properties.BoolProperties;
 
-        throw new NotSupportedException($"Тип свойства '{typeof(T)}' не поддерживается ProjectPropertiesManager.");
+        throw new NotSupportedException($"РўРёРї СЃРІРѕР№СЃС‚РІР° '{typeof(T)}' РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ ProjectPropertiesManager.");
     }
 
     /// <summary>
-    /// Единая точка получения ProjectProperties - раньше GameManager.Instance.GetProjectData()
-    /// вызывался напрямую в каждом из ~15 методов, и если GetProjectData() вернёт null
-    /// (например, обращение до полной загрузки данных проекта), падать пришлось бы
-    /// в каждом месте отдельно. Теперь понятная ошибка кидается один раз, здесь.
+    /// Р•РґРёРЅР°СЏ С‚РѕС‡РєР° РїРѕР»СѓС‡РµРЅРёСЏ ProjectProperties - СЂР°РЅСЊС€Рµ GameManager.Instance.GetProjectData()
+    /// РІС‹Р·С‹РІР°Р»СЃСЏ РЅР°РїСЂСЏРјСѓСЋ РІ РєР°Р¶РґРѕРј РёР· ~15 РјРµС‚РѕРґРѕРІ, Рё РµСЃР»Рё GetProjectData() РІРµСЂРЅС‘С‚ null
+    /// (РЅР°РїСЂРёРјРµСЂ, РѕР±СЂР°С‰РµРЅРёРµ РґРѕ РїРѕР»РЅРѕР№ Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С… РїСЂРѕРµРєС‚Р°), РїР°РґР°С‚СЊ РїСЂРёС€Р»РѕСЃСЊ Р±С‹
+    /// РІ РєР°Р¶РґРѕРј РјРµСЃС‚Рµ РѕС‚РґРµР»СЊРЅРѕ. РўРµРїРµСЂСЊ РїРѕРЅСЏС‚РЅР°СЏ РѕС€РёР±РєР° РєРёРґР°РµС‚СЃСЏ РѕРґРёРЅ СЂР°Р·, Р·РґРµСЃСЊ.
     /// </summary>
     private ProjectProperties GetProjectProperties()
     {
         var data = GameManager.Instance.GetProjectData();
 
         if (data == null)
-            throw new InvalidOperationException("ProjectPropertiesManager: GameManager.GetProjectData() вернул null - данные проекта ещё не загружены.");
+            throw new InvalidOperationException("ProjectPropertiesManager: GameManager.GetProjectData() РІРµСЂРЅСѓР» null - РґР°РЅРЅС‹Рµ РїСЂРѕРµРєС‚Р° РµС‰С‘ РЅРµ Р·Р°РіСЂСѓР¶РµРЅС‹.");
 
         return data.ProjectProperties;
     }

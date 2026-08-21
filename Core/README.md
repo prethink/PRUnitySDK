@@ -38,6 +38,12 @@ PRTime — это модуль управления игровым времен�
 - `PlayerNameServiceBase` — получение имени текущего игрока из локального или
   платформенного источника.
 
+## CursorManager - Менеджер курсора
+
+- [Документация CursorManager](CursorManager/README.md)
+- Именованные запросы Show/Hide по `source`, устойчивые к произвольному порядку снятия.
+- Доступ через `CursorManager.Instance`, сохранение состояния — через `ProjectPropertiesManager` и `EnumerationType<bool>`.
+
 
 
 ## Последовательность инициализации SDK
