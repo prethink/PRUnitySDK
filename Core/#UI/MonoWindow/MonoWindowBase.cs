@@ -42,7 +42,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         AcquireLogicPause();
 
-        Cursor.visible = true;
+        CursorManager.Instance.Show(this);
     }
 
     /// <summary>
@@ -67,6 +67,8 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         ReleaseLogicPause();
         PRUnitySDK.Trackers.MonoWindows.NotifyWindowHidden(this);
+
+        CursorManager.Instance.Release(this);
 
         if (!PRUnitySDK.Trackers.MonoWindows.HasOpenWindows)
             GameManager.Instance.LoadingUserCursorState();

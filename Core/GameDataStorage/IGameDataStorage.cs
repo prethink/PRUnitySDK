@@ -1,4 +1,4 @@
-public interface IGameDataStorage
+public interface IGameDataStorage : IReadySignalProvider
 {
     /// <summary>
     /// «агружает данные игры (например, настройки или прогресс).
@@ -37,7 +37,7 @@ public interface IGameDataStorage
     /// <param name="enumeration"></param>
     /// <param name="value"></param>
     /// <param name="isRequiredSave"></param>
-    void SetValue<T>(Enumeration category, Enumeration<T> enumeration, T value, bool isRequiredSave = true);
+    void SetValue<T>(Enumeration category, EnumerationType<T> enumeration, T value, bool isRequiredSave = true);
 
     /// <summary>
     /// ѕолучить значение.
@@ -47,7 +47,7 @@ public interface IGameDataStorage
     /// <param name="enumeration"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    T GetValue<T>(Enumeration category, Enumeration<T> enumeration, T defaultValue);
+    T GetValue<T>(Enumeration category, EnumerationType<T> enumeration, T defaultValue);
 
     /// <summary>
     /// ќбновл€ет данные проекта с возможностью немедленного сохранени€.

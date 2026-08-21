@@ -11,12 +11,12 @@ public abstract class GameStorageBase
 {
     public abstract Enumeration Category { get; }
 
-    protected T GetValue<T>(Enumeration<T> enumeration, T defaultValue)
+    protected T GetValue<T>(EnumerationType<T> enumeration, T defaultValue)
     {
         return PRUnitySDK.GameDataStorage.GetValue<T>(Category, enumeration, defaultValue);
     }
 
-    protected void SetValue<T>(Enumeration<T> enumeration, T value, bool IsRequiredSave = true)
+    protected void SetValue<T>(EnumerationType<T> enumeration, T value, bool IsRequiredSave = true)
     {
         PRUnitySDK.GameDataStorage.SetValue<T>(Category, enumeration, value, IsRequiredSave);
     }
@@ -36,17 +36,17 @@ public class ResourceStorage : GameStorageBase
 {
     public override Enumeration Category => new Enumeration("Resources");
 
-    public float GetValue(Enumeration<float> enumeration, float defaultValue) 
+    public float GetValue(EnumerationType<float> enumeration, float defaultValue) 
     {
         return base.GetValue<float>(enumeration, defaultValue);
     }
 
-    public void SetValue(Enumeration<float> enumeration, float value, bool IsRequiredSave = true) 
+    public void SetValue(EnumerationType<float> enumeration, float value, bool IsRequiredSave = true) 
     {
         base.SetValue<float>(enumeration, value, IsRequiredSave);
     }
 
-    public void AddValue(Enumeration<float> enumeration, float value, bool IsRequiredSave = true)
+    public void AddValue(EnumerationType<float> enumeration, float value, bool IsRequiredSave = true)
     {
         var originValue = this.GetValue(enumeration, 0);
         SetValue(enumeration, originValue + value, IsRequiredSave);

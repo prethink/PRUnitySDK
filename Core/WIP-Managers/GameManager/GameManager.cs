@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
+public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IReadySignalProvider
 {
     #region Поля и свойства
 
@@ -50,11 +50,6 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
         this.RunMethodHooks(MethodHookStage.PostAwake);
     }
 
-    private void OnDestroy()
-    {
-
-    }
-
     private void OnApplicationPause(bool pauseStatus)
     {
         PRLog.WriteDebug(this, $"{nameof(OnApplicationPause)} pauseStatus - {pauseStatus}", new PRLogSettings() { LevelDebug = 5 });
@@ -94,16 +89,19 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
 
         gameDataStorage = PRUnitySDK.GameDataStorage;
         bool isRequiredFirstInitialize = !gameDataStorage.TryLoad();
+        gameDataStorage.ReadySignal.SubscribeOnReady(() =>
+        {
+            LoadingData();
 
-        LoadingData();
+            if (isRequiredFirstInitialize)
+                InitializeDefaultData();
 
-        if(isRequiredFirstInitialize)
-            InitializeDefaultData();
+            AutoSaveHandler();
 
-        AutoSaveHandler();
-
-        GameplayEvents.RaiseGameReady();
-        isInitialize = true;
+            GameplayEvents.RaiseGameReady();
+            readySignal.SetReady();
+            isInitialize = true;
+        });
     }
 
     private void InitializeDefaultData()
@@ -202,6 +200,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     public void LoadingUserCursorState()
     {
         Cursor.visible = GetGameSettings().IsShowCursor;
+        //TODO
     }
 
     public void ChangeCursorState()
@@ -293,6 +292,14 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>
     {
         GameSettingsSession.Reset();
     }
+
+    #endregion
+
+    #region IReadySignalProvider
+
+    protected readonly ReadySignal readySignal = new ReadySignal(typeof(GameManager));
+
+    public IReadySignal ReadySignal => readySignal;
 
     #endregion
 }

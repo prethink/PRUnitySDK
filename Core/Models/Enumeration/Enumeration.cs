@@ -2,64 +2,59 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Строковый идентификатор, дополнительно указывающий тип связанного значения.
-/// </summary>
-public class Enumeration<T> : Enumeration
+public class Enumeration : IEnumeration, IEquatable<IEnumeration>
 {
-    /// <summary>
-    /// Тип значения, связанного с идентификатором.
-    /// </summary>
-    public Type ValueType => typeof(T);
+    private static readonly Dictionary<string, Enumeration> cache =
+        new(StringComparer.Ordinal);
 
-    public Enumeration(string value) : base(value)
-    {
+    private readonly EnumerationBridge bridge;
 
-    }
-}
-
-public class Enumeration : IEquatable<Enumeration>
-{
-    private static readonly Dictionary<string, Enumeration> cache = new(StringComparer.Ordinal);
-
-    /// <summary>
-    /// Стабильное строковое значение идентификатора.
-    /// </summary>
-    public string Value { get; }
+    public string Value => bridge.Value;
 
     public Enumeration(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Enumeration value cannot be null, empty, or whitespace.", nameof(value));
-
-        Value = value;
+        bridge = new EnumerationBridge(value);
     }
 
-    public override string ToString() => Value;
-
-    public bool Equals(Enumeration other) =>
-        other != null && StringComparer.Ordinal.Equals(Value, other.Value);
-
-    public override bool Equals(object obj) =>
-        obj is Enumeration other && Equals(other);
-
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value);
-
-    public static bool operator ==(Enumeration a, Enumeration b)
+    public override string ToString()
     {
-        if (ReferenceEquals(a, b))
+        return bridge.ToString();
+    }
+
+    public bool Equals(IEnumeration other)
+    {
+        return bridge.Equals(other);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is IEnumeration other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return bridge.GetHashCode();
+    }
+
+    public static bool operator ==(Enumeration left, Enumeration right)
+    {
+        if (ReferenceEquals(left, right))
             return true;
 
-        if (a is null || b is null)
+        if (left is null || right is null)
             return false;
 
-        return a.Equals(b);
+        return left.Equals(right);
     }
-    public static bool operator !=(Enumeration a, Enumeration b) => !(a == b);
+
+    public static bool operator !=(Enumeration left, Enumeration right)
+    {
+        return !(left == right);
+    }
 
     public static Enumeration GetOrCreate(string value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
         if (cache.TryGetValue(value, out var existing))
@@ -67,6 +62,7 @@ public class Enumeration : IEquatable<Enumeration>
 
         var created = new Enumeration(value);
         cache[value] = created;
+
         return created;
     }
 

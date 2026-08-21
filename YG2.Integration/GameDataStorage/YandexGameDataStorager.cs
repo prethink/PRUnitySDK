@@ -41,6 +41,7 @@ public class YandexGameDataStorager : IGameDataStorage
             throw new NotImplementedException();
         }
         stopwatch.Stop();
+        readySignal.SetReady();
         PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         return result;
     }
@@ -171,7 +172,7 @@ public class YandexGameDataStorager : IGameDataStorage
             Save();
     }
 
-    public void SetValue<T>(Enumeration category, Enumeration<T> enumeration, T value, bool isRequiredSave = true)
+    public void SetValue<T>(Enumeration category, EnumerationType<T> enumeration, T value, bool isRequiredSave = true)
     {
         if (!this.saveData.Data.TryGetValue(category.Value, out var categoryDict))
         {
@@ -185,7 +186,7 @@ public class YandexGameDataStorager : IGameDataStorage
             Save();
     }
 
-    public T GetValue<T>(Enumeration category, Enumeration<T> enumeration, T defaultValue)
+    public T GetValue<T>(Enumeration category, EnumerationType<T> enumeration, T defaultValue)
     {
         if (this.saveData.Data.TryGetValue(category.Value, out var categoryDict))
         {
@@ -222,6 +223,14 @@ public class YandexGameDataStorager : IGameDataStorage
     {
         return PRUnitySDK.Settings.GameStorage;
     }
+
+    #endregion
+
+    #region IReadySignalProvider
+
+    protected readonly ReadySignal readySignal = new ReadySignal(typeof(YandexGameDataStorager));
+
+    public IReadySignal ReadySignal => readySignal;
 
     #endregion
 }

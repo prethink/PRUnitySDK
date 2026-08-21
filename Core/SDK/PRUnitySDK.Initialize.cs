@@ -176,8 +176,10 @@ public partial class PRUnitySDK
     private static void RegisterFactories()
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         ScreenFade.RegisterFactory(new ScreenFadeFactory());
         typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.RegisterFactories);
+
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize RegisterFactories complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();
     }

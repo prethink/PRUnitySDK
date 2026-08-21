@@ -12,8 +12,6 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
 
     private PRSaveData saveData;
 
-    public event Action Ready;
-
     /// <summary>
     /// Загружает данные игры из PlayerPrefs.
     /// </summary>
@@ -53,7 +51,7 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
             }
         }
 
-        Ready?.Invoke();
+        readySignal.SetReady();
         return result;
     }
 
@@ -104,13 +102,21 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
             Save();
     }
 
-    public void SetValue<T>(Enumeration category, Enumeration<T> enumeration, T value, bool isRequiredSave = true)
+    public void SetValue<T>(Enumeration category, EnumerationType<T> enumeration, T value, bool isRequiredSave = true)
     {
         throw new NotImplementedException();
     }
 
-    public T GetValue<T>(Enumeration category, Enumeration<T> enumeration, T defaultValue)
+    public T GetValue<T>(Enumeration category, EnumerationType<T> enumeration, T defaultValue)
     {
         throw new NotImplementedException();
     }
+
+    #region IReadySignalProvider
+
+    protected readonly ReadySignal readySignal = new ReadySignal(typeof(PlayerPrefsSaveLoadManager));
+
+    public IReadySignal ReadySignal => readySignal;
+
+    #endregion
 }
