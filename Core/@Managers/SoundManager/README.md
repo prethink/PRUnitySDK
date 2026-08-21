@@ -112,7 +112,7 @@ private void StopEngine()
 | `Volume` | громкость источника |
 | `Pitch` | фиксированный pitch |
 | `PanStereo` | положение в стереопанораме |
-| `RandomPitch` | включает случайный pitch, определяемый реализацией `AudioSet` |
+| `RandomPitch` | включает случайный pitch из жёстко заданного диапазона `[-3, 3]` |
 
 Набор сначала регистрируется, затем воспроизводится по категории:
 
@@ -179,7 +179,7 @@ PRUnitySDK.Managers.Sound.PlaySound("Environment", "Wind");
 bool muted = PRUnitySDK.Managers.Sound.IsMute();
 ```
 
-Для пользовательского или системного mute предпочтительно использовать `AudioMixerManager`: он хранит причину отключения и синхронизируется с музыкальной паузой.
+Для пользовательского или системного mute предпочтительно использовать `AudioMixerManager`: он раздельно хранит пользовательскую и системную причины отключения, управляет `SoundManager` и синхронизируется с музыкальной паузой.
 
 ```csharp
 PRUnitySDK.Managers.AudioMixer.MuteByUser(this);
@@ -210,5 +210,8 @@ PRUnitySDK.Managers.AudioMixer.UnMuteBySystem(this);
 ## Ограничения
 
 - `SoundManagerData.RegisterSound()` пока не регистрирует наборы: внутри метода оставлен `TODO`. Регистрируйте `AudioSet` напрямую через `SoundManager`.
+- `AudioMixerManager.SetMusicVolume`, `SetEffectVolume`, `SetUIVolume` и `SetMasterVolume` сейчас не меняют exposed-параметры mixer: вызовы `AudioMixer.SetFloat` закомментированы. Фактическая громкость поддерживается самим `SoundManager` через `GameSettings` и значения `AudioSource`.
+- `AudioSet.RandomPitch` не имеет настраиваемого диапазона и при включении выбирает значение от `-3` до `3`, игнорируя поле `Pitch`.
+- Повторная регистрация той же пары «владелец + категория» игнорируется и не заменяет существующий `AudioSet`.
 - Пулы растут при нехватке свободных источников и не уменьшаются автоматически.
 - Для вызовов через `PRUnitySDK.Managers.Sound` дождитесь завершения инициализации SDK.

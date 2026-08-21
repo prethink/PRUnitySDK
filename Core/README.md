@@ -40,9 +40,18 @@ PRTime — это модуль управления игровым времен�
 
 ## CursorManager - Менеджер курсора
 
-- [Документация CursorManager](CursorManager/README.md)
-- Именованные запросы Show/Hide по `source`, устойчивые к произвольному порядку снятия.
+- [Документация CursorManager](@Managers/CursorManager/README.md)
+- Именованные запросы Show/Hide по `source`: последнее обновлённое активное состояние имеет приоритет.
 - Доступ через `CursorManager.Instance`, сохранение состояния — через `ProjectPropertiesManager` и `EnumerationType<bool>`.
+
+## Менеджеры
+
+- [Обзор runtime-менеджеров](@Managers/README.md)
+- `GameManager` — загрузка и сохранение данных, autosave и сигнал готовности.
+- `ProjectPropertiesManager` — типизированные произвольные свойства проекта.
+- `OpenedItemsManager` — учёт открытых предметов.
+- `SoundManager` и `AudioMixerManager` — воспроизведение, громкость и mute.
+- `PRManagerContainer` — порядок и расширение инициализации менеджеров.
 
 
 

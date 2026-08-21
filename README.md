@@ -207,20 +207,28 @@ PRUnitySDK/
 - [PRTime](Core/PRTime/README.md)
 - [PRTimeScale](Core/PRTimeScale/README.md)
 
+### Менеджеры
+
+- [Обзор менеджеров](Core/@Managers/README.md) — доступ, жизненный цикл, порядок и расширение контейнера
+- [GameManager](Core/@Managers/GameManager/README.md) — загрузка и сохранение `ProjectData`/`GameSettings`, autosave и готовность данных
+- [ProjectPropertiesManager](Core/@Managers/ProjectPropertiesManager/README.md) — свойства `long`, `float`, `DateTime`, `string` и `bool`
+- [OpenedItemsManager](Core/@Managers/OpenedItemsManager/README.md) — открытые предметы и количество в `ProjectData`
+- [PRManagerContainer](Core/@Managers/PRManagerContainer/README.md) — hook-порядок создания runtime-менеджеров
+- [SoundManager](Core/@Managers/SoundManager/README.md)
+- [CursorManager](Core/@Managers/CursorManager/README.md) — запросы Show/Hide курсора с приоритетом последнего обращения
+
 ### Модели, сервисы и утилиты
 
 - [Фабрики MonoBehaviour](Core/Factories/README.md) — обычные prefab, singleton-компоненты, MonoWindow и Notifier
-
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия
 - [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
 - [Enumeration](Core/Models/Enumeration/README.md)
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
-- [CursorManager](Core/CursorManager/README.md) — именованные запросы Show/Hide курсора, устойчивые к произвольному порядку снятия
 - [Utils](Core/Utils/README.md)
 - [Proxies](Core/Proxies/README.md)
-- [SoundManager](Core/SoundManager/README.md)
 - [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`.
+
 
 ### Модули и интеграции
 
