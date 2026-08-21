@@ -24,6 +24,7 @@
 
 - Сначала ищите существующие interfaces, extensions, factories, services и enumeration providers.
 - Изменение публичного API сопровождайте обновлением README соответствующего модуля.
+- Перед изменением runtime-менеджера прочитайте `Core/@Managers/README.md`, README конкретного менеджера и все partial-файлы `PRManagerContainer`, которые могут задавать его порядок или зависимости.
 
 ## Границы публичного SDK
 
@@ -84,6 +85,17 @@ public partial class PRUnitySDK
 
 ### Менеджер через partial PRManagerContainer
 
+`PRUnitySDK.Managers` — единственный контейнер runtime-менеджеров. Менеджер ядра находится в `Core/@Managers/<ManagerName>`, а менеджер отдельного модуля и его partial-интеграция `PRManagerContainer.<ManagerName>.cs` — рядом с модулем. Центральный `Core/@Managers/PRManagerContainer/PRManagerContainer.cs` изменяйте только для действительно базового менеджера ядра.
+
+Перед добавлением или изменением менеджера определите модель владения:
+
+- обычный C# singleton — контейнер получает существующий `Instance` внутри `PRUnitySDK.InitializeType<T>()`;
+- `MonoBehaviour` — контейнер создаёт его через принятую factory base и `InitializeMonoManager`, который регистрирует тип и помещает объект под runtime-контейнер `Managers`;
+- сменная реализация — публичное поле/свойство и потребители зависят от интерфейса, а созданный экземпляр дополнительно регистрируется через `PRUnitySDK.RegisterService(...)`;
+- самостоятельный SDK-сервис без GameObject и manager-семантики регистрируется через partial `PRUnitySDK`, а не маскируется под менеджер.
+
+Модульный `MonoBehaviour`-менеджер:
+
 ```csharp
 public partial class PRManagerContainer
 {
@@ -92,18 +104,59 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 120)]
     private void InitializeExampleManager()
     {
-        PRUnitySDK.InitializeType<IExampleManager>(() =>
+        InitializeMonoManager(() =>
         {
             var instance = new ExampleManagerFactory().Create();
             ExampleManager = instance;
             PRUnitySDK.RegisterService(ExampleManager);
-            instance.transform.SetParent(ManagerContainer.transform);
+            return instance;
         });
     }
 }
 ```
 
-Используйте существующую factory base и Resources-путь. Не создавайте второй singleton, если объектом уже владеет container.
+Обычный singleton-менеджер:
+
+```csharp
+public partial class PRManagerContainer
+{
+    public ExampleManager Example { get; private set; }
+
+    [MethodHook(MethodHookStage.PostOperation, 120)]
+    private void InitializeExampleManager()
+    {
+        PRUnitySDK.InitializeType<ExampleManager>(() =>
+        {
+            Example = ExampleManager.Instance;
+            Example.Initialize();
+        });
+    }
+}
+```
+
+Правила инициализации:
+
+- runtime-менеджеры инициализируются на `MethodHookStage.PostOperation`, потому что `ManagerContainer` создаётся между `PreOperation` и `PostOperation`;
+- меньший priority выполняется раньше; проверьте hooks во всех partial-файлах, а не только в `Core/@Managers`;
+- одинаковый priority не является контрактом взаимного порядка; зависимому менеджеру задайте явно больший priority;
+- initializer должен быть идемпотентным через `PRUnitySDK.InitializeType<T>()` или собственную доказанную защиту и не должен вызываться вручную;
+- наличие ссылки в `PRUnitySDK.Managers` не всегда означает готовность данных. Если менеджер предоставляет `ReadySignal`, потребители ждут его;
+- не читайте `ProjectData`, `GameSettings` и зависящие от storage данные до `GameManager.ReadySignal`;
+- подписки `EventBus`, корутины и другие долгоживущие ресурсы должны иметь симметричное освобождение в подходящем lifecycle-методе.
+
+Правила фабрик и prefab:
+
+- используйте существующую factory base (`SingletonMonoBehaviourFactoryBase<T>` или ближайший аналог) и canonical `PRUnitySDK.ResourcePaths`;
+- prefab менеджера храните в принятом `Resources/PRUnitySDK/Prefabs/...` пути и проверяйте обязательные компоненты и сериализованные ссылки;
+- не создавайте второй singleton и не обходите factory прямым `new GameObject`, если жизненным циклом уже владеет контейнер;
+- после перемещения менеджера убедитесь, что старый `.cs` больше не компилируется параллельно: дубликат типа в старом и новом пути даёт `CS0101`/`CS0111`.
+
+Документация менеджеров:
+
+- главный индекс: `Core/@Managers/README.md`;
+- локальная документация: `Core/@Managers/<ManagerName>/README.md` либо README модуля для module-owned менеджера;
+- при добавлении, удалении, переименовании, изменении доступа, порядка, readiness или публичного API обновляйте главный индекс и локальный README вместе;
+- документируйте фактическое поведение кода и отдельно отмечайте временные ограничения/TODO; не описывайте зарезервированный параметр или закомментированную интеграцию как работающую.
 
 ### MonoWindow через partial PRWindowsContainer
 
@@ -235,3 +288,4 @@ Partial-поля Settings и Database не требуют ручного доб�
 3. Для публичного API обновите README.
 4. Для событий/сервисов проверьте повторную инициализацию и освобождение subscriptions.
 5. Для Editor-кода убедитесь, что он находится в `Editor` и не попадает в runtime/build.
+6. Для менеджера проверьте уникальность типа, hook stage/priority, готовность зависимостей, factory/Resources-путь, родителя `ManagerContainer` и ссылки в `Core/@Managers/README.md`.
