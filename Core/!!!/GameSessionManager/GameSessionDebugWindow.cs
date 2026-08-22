@@ -1,4 +1,4 @@
-//using System.Linq;
+ï»¿//using System.Linq;
 //using UnityEditor;
 //using UnityEngine;
 
@@ -47,14 +47,14 @@
 
 //    private void OnGUI()
 //    {
-//        GUILayout.Label("Ñîñòîÿíèÿ ïàóçû:");
-//        GUI.enabled = false; // Äåëàåì UI íåàêòèâíûì
+//        GUILayout.Label("Ð¡Ð¾ÑÑ‚Ð¾ÑÐ½Ð¸Ñ Ð¿Ð°ÑƒÐ·Ñ‹:");
+//        GUI.enabled = false; // Ð”ÐµÐ»Ð°ÐµÐ¼ UI Ð½ÐµÐ°ÐºÑ‚Ð¸Ð²Ð½Ñ‹Ð¼
 //        GUILayout.Toggle(PauseManager.IsProjectPaused, nameof(PauseManager.IsProjectPaused));
 //        GUILayout.Toggle(PauseManager.IsLogicPaused, nameof(PauseManager.IsLogicPaused));
 //        GUILayout.Toggle(PauseManager.IsFocusPaused, nameof(PauseManager.IsFocusPaused));
 //        GUILayout.Toggle(PauseManager.IsMusicPaused, nameof(PauseManager.IsMusicPaused));
 //        GUILayout.Label(ProjectBus.GameDifficulty.ToString());
-//        GUI.enabled = true; // Âêëþ÷àåì UI îáðàòíî
+//        GUI.enabled = true; // Ð’ÐºÐ»ÑŽÑ‡Ð°ÐµÐ¼ UI Ð¾Ð±Ñ€Ð°Ñ‚Ð½Ð¾
 
 //        if (gameSessionManager == null || poolSystem == null)
 //        {
@@ -63,14 +63,14 @@
 
 //        if (gameSessionManager == null)
 //        {
-//            EditorGUILayout.LabelField("Debug ìåíþ ìîæíî èñïîëüçîâàòü òîëüêî â ðåæèìå èãðû!");
+//            EditorGUILayout.LabelField("Debug Ð¼ÐµÐ½ÑŽ Ð¼Ð¾Ð¶Ð½Ð¾ Ð¸ÑÐ¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÑŒ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð² Ñ€ÐµÐ¶Ð¸Ð¼Ðµ Ð¸Ð³Ñ€Ñ‹!");
 //            return;
 //        }
-//        GUILayout.Label("Èíôîðìàöèÿ ïî ðàóíäàì:");
+//        GUILayout.Label("Ð˜Ð½Ñ„Ð¾Ñ€Ð¼Ð°Ñ†Ð¸Ñ Ð¿Ð¾ Ñ€Ð°ÑƒÐ½Ð´Ð°Ð¼:");
 //        GUI.enabled = false;
-//        EditorGUILayout.LabelField("Íîìåð ðàóíäà:", gameSessionManager.Rounds.CurrentRound.ToString());
-//        GUILayout.Toggle(gameSessionManager.Rounds.IsRoundActive, "Èäåò ðàóíä");
-//        GUI.enabled = true; // Âêëþ÷àåì UI îáðàòíî
+//        EditorGUILayout.LabelField("ÐÐ¾Ð¼ÐµÑ€ Ñ€Ð°ÑƒÐ½Ð´Ð°:", gameSessionManager.Rounds.CurrentRound.ToString());
+//        GUILayout.Toggle(gameSessionManager.Rounds.IsRoundActive, "Ð˜Ð´ÐµÑ‚ Ñ€Ð°ÑƒÐ½Ð´");
+//        GUI.enabled = true; // Ð’ÐºÐ»ÑŽÑ‡Ð°ÐµÐ¼ UI Ð¾Ð±Ñ€Ð°Ñ‚Ð½Ð¾
 //        //EditorGUILayout.LabelField("Session Active:", gameSessionManager.IsActiveSession.ToString());
 //        //EditorGUILayout.Space();
 
@@ -85,10 +85,10 @@
 //        EditorGUILayout.BeginVertical("box");
 //            EditorGUILayout.BeginHorizontal();
 //                EditorGUILayout.LabelField("Root", GUILayout.Width(150));
-//                EditorGUILayout.LabelField("Êàòåãîðèÿ", GUILayout.Width(150));
-//                EditorGUILayout.LabelField("Âñåãî", GUILayout.Width(100));
-//                EditorGUILayout.LabelField("Íà ñöåíå", GUILayout.Width(100));
-//                EditorGUILayout.LabelField("Ñïðÿòàííûõ", GUILayout.Width(100));
+//                EditorGUILayout.LabelField("ÐšÐ°Ñ‚ÐµÐ³Ð¾Ñ€Ð¸Ñ", GUILayout.Width(150));
+//                EditorGUILayout.LabelField("Ð’ÑÐµÐ³Ð¾", GUILayout.Width(100));
+//                EditorGUILayout.LabelField("ÐÐ° ÑÑ†ÐµÐ½Ðµ", GUILayout.Width(100));
+//                EditorGUILayout.LabelField("Ð¡Ð¿Ñ€ÑÑ‚Ð°Ð½Ð½Ñ‹Ñ…", GUILayout.Width(100));
 //            EditorGUILayout.EndHorizontal();
 //            foreach (var item in poolSystem.GenerateReport())
 //            {
@@ -107,12 +107,12 @@
 //    {
 //        EditorGUILayout.LabelField("Players", EditorStyles.boldLabel);
 //        EditorGUILayout.BeginHorizontal();
-//        EditorGUILayout.LabelField("Ëþäåé:", gameSessionManager.PlayerTracker.HumanCount.ToString());
-//        EditorGUILayout.LabelField("Áîòîâ:", gameSessionManager.PlayerTracker.AICount.ToString());
+//        EditorGUILayout.LabelField("Ð›ÑŽÐ´ÐµÐ¹:", gameSessionManager.PlayerTracker.HumanCount.ToString());
+//        EditorGUILayout.LabelField("Ð‘Ð¾Ñ‚Ð¾Ð²:", gameSessionManager.PlayerTracker.AICount.ToString());
 //        EditorGUILayout.EndHorizontal();
 //        EditorGUILayout.BeginHorizontal();
-//        EditorGUILayout.LabelField("Æèâûõ:", gameSessionManager.PlayerTracker.AliveCount.ToString());
-//        EditorGUILayout.LabelField("Ìåðòâûõ:", gameSessionManager.PlayerTracker.DeadCount.ToString());
+//        EditorGUILayout.LabelField("Ð–Ð¸Ð²Ñ‹Ñ…:", gameSessionManager.PlayerTracker.AliveCount.ToString());
+//        EditorGUILayout.LabelField("ÐœÐµÑ€Ñ‚Ð²Ñ‹Ñ…:", gameSessionManager.PlayerTracker.DeadCount.ToString());
 //        EditorGUILayout.EndHorizontal();
 //        EditorGUILayout.Space();
 
@@ -123,13 +123,13 @@
 //            EditorGUILayout.BeginVertical("box");
 //            EditorGUILayout.BeginHorizontal();
 //            EditorGUILayout.LabelField("HumanId", GUILayout.Width(80));
-//            EditorGUILayout.LabelField("Èìÿ", GUILayout.Width(150));
-//            EditorGUILayout.LabelField("Êîìàíäà", GUILayout.Width(100));
-//            EditorGUILayout.LabelField("Î÷êîâ", GUILayout.Width(100));
-//            EditorGUILayout.LabelField("Óáèéñòâ", GUILayout.Width(60));
-//            EditorGUILayout.LabelField("Ñìåðòåé", GUILayout.Width(60));
-//            EditorGUILayout.LabelField("Ñòàòóñ", GUILayout.Width(100));
-//            EditorGUILayout.LabelField("Äåéñòâèå", GUILayout.Width(70));
+//            EditorGUILayout.LabelField("Ð˜Ð¼Ñ", GUILayout.Width(150));
+//            EditorGUILayout.LabelField("ÐšÐ¾Ð¼Ð°Ð½Ð´Ð°", GUILayout.Width(100));
+//            EditorGUILayout.LabelField("ÐžÑ‡ÐºÐ¾Ð²", GUILayout.Width(100));
+//            EditorGUILayout.LabelField("Ð£Ð±Ð¸Ð¹ÑÑ‚Ð²", GUILayout.Width(60));
+//            EditorGUILayout.LabelField("Ð¡Ð¼ÐµÑ€Ñ‚ÐµÐ¹", GUILayout.Width(60));
+//            EditorGUILayout.LabelField("Ð¡Ñ‚Ð°Ñ‚ÑƒÑ", GUILayout.Width(100));
+//            EditorGUILayout.LabelField("Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ", GUILayout.Width(70));
 //            EditorGUILayout.EndHorizontal();
 
 //            foreach (var player in players.OrderByDescending(x => x.IsAlive))
@@ -168,10 +168,10 @@
 
 //        EditorGUILayout.BeginVertical("box");
 //        EditorGUILayout.BeginHorizontal();
-//        EditorGUILayout.LabelField("Âñåãî ñóùíîñòåé", GUILayout.Width(170));
-//        EditorGUILayout.LabelField("Íà ñöåíå", GUILayout.Width(70));
-//        EditorGUILayout.LabelField("Ñïðÿòàííûõ", GUILayout.Width(100));
-//        EditorGUILayout.LabelField("Ñïðÿòàííûõ â pool", GUILayout.Width(170));
+//        EditorGUILayout.LabelField("Ð’ÑÐµÐ³Ð¾ ÑÑƒÑ‰Ð½Ð¾ÑÑ‚ÐµÐ¹", GUILayout.Width(170));
+//        EditorGUILayout.LabelField("ÐÐ° ÑÑ†ÐµÐ½Ðµ", GUILayout.Width(70));
+//        EditorGUILayout.LabelField("Ð¡Ð¿Ñ€ÑÑ‚Ð°Ð½Ð½Ñ‹Ñ…", GUILayout.Width(100));
+//        EditorGUILayout.LabelField("Ð¡Ð¿Ñ€ÑÑ‚Ð°Ð½Ð½Ñ‹Ñ… Ð² pool", GUILayout.Width(170));
 //        EditorGUILayout.EndHorizontal();
 
 //        EditorGUILayout.BeginHorizontal();
@@ -185,11 +185,11 @@
 //        if (showEntityDetails)
 //        {
 //            EditorGUILayout.BeginHorizontal();
-//            EditorGUILayout.LabelField("Òèï ñóùíîñòè", GUILayout.Width(170));
-//            EditorGUILayout.LabelField("Âñåãî", GUILayout.Width(70));
-//            EditorGUILayout.LabelField("Íà ñöåíå", GUILayout.Width(70));
-//            EditorGUILayout.LabelField("Ñïðÿòàííûõ", GUILayout.Width(100));
-//            EditorGUILayout.LabelField("Ñïðÿòàííûõ â pool", GUILayout.Width(170));
+//            EditorGUILayout.LabelField("Ð¢Ð¸Ð¿ ÑÑƒÑ‰Ð½Ð¾ÑÑ‚Ð¸", GUILayout.Width(170));
+//            EditorGUILayout.LabelField("Ð’ÑÐµÐ³Ð¾", GUILayout.Width(70));
+//            EditorGUILayout.LabelField("ÐÐ° ÑÑ†ÐµÐ½Ðµ", GUILayout.Width(70));
+//            EditorGUILayout.LabelField("Ð¡Ð¿Ñ€ÑÑ‚Ð°Ð½Ð½Ñ‹Ñ…", GUILayout.Width(100));
+//            EditorGUILayout.LabelField("Ð¡Ð¿Ñ€ÑÑ‚Ð°Ð½Ð½Ñ‹Ñ… Ð² pool", GUILayout.Width(170));
 //            EditorGUILayout.EndHorizontal();
 
 //            var entityDetails = gameSessionManager.EntityTracker.RegisteredEntity.OrderByDescending(x => x.Value);

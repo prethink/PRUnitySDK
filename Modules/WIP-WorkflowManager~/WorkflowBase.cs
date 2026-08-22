@@ -1,29 +1,29 @@
-public abstract class WorkflowBase<TContext> : WorkflowBase
+п»їpublic abstract class WorkflowBase<TContext> : WorkflowBase
     where TContext : WorkflowContextBase
 {
     /// <summary>
-    /// Текущее контекст.
+    /// РўРµРєСѓС‰РµРµ РєРѕРЅС‚РµРєСЃС‚.
     /// </summary>
     public TContext Context { get; protected set; }
 }
 
 public abstract class WorkflowBase
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Статус процесса.
+    /// РЎС‚Р°С‚СѓСЃ РїСЂРѕС†РµСЃСЃР°.
     /// </summary>
     public Enumeration Status { get; protected set; } = WorkflowStatuses.Created;
 
     /// <summary>
-    /// Текущее состояние.
+    /// РўРµРєСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ.
     /// </summary>
     public IWorkflowPosition CurrentPosition { get; protected set; }
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
     /// 

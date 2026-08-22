@@ -1,11 +1,11 @@
-using System;
+ï»¿using System;
 using UnityEngine;
 
 public class ResourceContainer : ContainerEntityBase<ResourceItemDefinition>
 {
     [SerializeField] private long resourceCount;
 
-    #region Áàçîâûé êëàññ
+    #region Ð‘Ð°Ð·Ð¾Ð²Ñ‹Ð¹ ÐºÐ»Ð°ÑÑ
 
     public override Enumeration EntityType => ContainerTypeEnumerationProvider.ResourceContainer;
 

@@ -1,36 +1,36 @@
-/// <summary>
-/// Информация о текущем девайсе.
+п»ї/// <summary>
+/// РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‚РµРєСѓС‰РµРј РґРµРІР°Р№СЃРµ.
 /// </summary>
 public abstract class DeviceInfoBase
 {
     /// <summary>
-    /// Признак, что это компьютер.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЌС‚Рѕ РєРѕРјРїСЊСЋС‚РµСЂ.
     /// </summary>
-    /// <returns>True - да, false нет.</returns>
+    /// <returns>True - РґР°, false РЅРµС‚.</returns>
     public abstract bool IsDesktop();
 
     /// <summary>
-    /// Признак, что это смартфон.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЌС‚Рѕ СЃРјР°СЂС‚С„РѕРЅ.
     /// </summary>
-    /// <returns>True - да, false нет.</returns>
+    /// <returns>True - РґР°, false РЅРµС‚.</returns>
     public abstract bool IsMobile();
 
     /// <summary>
-    /// Признак, что это планшет.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЌС‚Рѕ РїР»Р°РЅС€РµС‚.
     /// </summary>
-    /// <returns>True - да, false нет.</returns>
+    /// <returns>True - РґР°, false РЅРµС‚.</returns>
     public abstract bool IsTablet();
 
     /// <summary>
-    /// Признак, что это телевизор.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЌС‚Рѕ С‚РµР»РµРІРёР·РѕСЂ.
     /// </summary>
-    /// <returns>True - да, false нет.</returns>
+    /// <returns>True - РґР°, false РЅРµС‚.</returns>
     public abstract bool IsTV();
 
     /// <summary>
-    /// Признак, что это устройство с тач падом.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЌС‚Рѕ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ СЃ С‚Р°С‡ РїР°РґРѕРј.
     /// </summary>
-    /// <returns>True - да, false нет.</returns>
+    /// <returns>True - РґР°, false РЅРµС‚.</returns>
     public virtual bool IsTouchDevice()
     {
         return IsMobile() || IsTablet();

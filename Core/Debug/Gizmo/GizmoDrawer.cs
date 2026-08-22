@@ -1,20 +1,20 @@
-using System;
+п»їusing System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class GizmoDrawerHost : PRMonoBehaviourSingletonBase<GizmoDrawer>
 {
-    // ВНИМАНИЕ: не менял эту часть - без исходника PRMonoBehaviourSingletonBase<T>
-    // не могу подтвердить, что параметризация другим классом (GizmoDrawer, а не
-    // самим GizmoDrawerHost) действительно работает так, как задумано. Обычно
-    // синглтон-база параметризуется самим наследником (class Foo : Base<Foo>).
-    // Если AddGizmoArgs у вас вызывается как GizmoDrawerHost.Instance.AddGizmoArgs(...)
-    // и это компилируется и работает - оставляйте как есть. Если нет - вероятно,
-    // нужен один из вариантов:
+    // Р’РќРРњРђРќРР•: РЅРµ РјРµРЅСЏР» СЌС‚Сѓ С‡Р°СЃС‚СЊ - Р±РµР· РёСЃС…РѕРґРЅРёРєР° PRMonoBehaviourSingletonBase<T>
+    // РЅРµ РјРѕРіСѓ РїРѕРґС‚РІРµСЂРґРёС‚СЊ, С‡С‚Рѕ РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёСЏ РґСЂСѓРіРёРј РєР»Р°СЃСЃРѕРј (GizmoDrawer, Р° РЅРµ
+    // СЃР°РјРёРј GizmoDrawerHost) РґРµР№СЃС‚РІРёС‚РµР»СЊРЅРѕ СЂР°Р±РѕС‚Р°РµС‚ С‚Р°Рє, РєР°Рє Р·Р°РґСѓРјР°РЅРѕ. РћР±С‹С‡РЅРѕ
+    // СЃРёРЅРіР»С‚РѕРЅ-Р±Р°Р·Р° РїР°СЂР°РјРµС‚СЂРёР·СѓРµС‚СЃСЏ СЃР°РјРёРј РЅР°СЃР»РµРґРЅРёРєРѕРј (class Foo : Base<Foo>).
+    // Р•СЃР»Рё AddGizmoArgs Сѓ РІР°СЃ РІС‹Р·С‹РІР°РµС‚СЃСЏ РєР°Рє GizmoDrawerHost.Instance.AddGizmoArgs(...)
+    // Рё СЌС‚Рѕ РєРѕРјРїРёР»РёСЂСѓРµС‚СЃСЏ Рё СЂР°Р±РѕС‚Р°РµС‚ - РѕСЃС‚Р°РІР»СЏР№С‚Рµ РєР°Рє РµСЃС‚СЊ. Р•СЃР»Рё РЅРµС‚ - РІРµСЂРѕСЏС‚РЅРѕ,
+    // РЅСѓР¶РµРЅ РѕРґРёРЅ РёР· РІР°СЂРёР°РЅС‚РѕРІ:
     //   public class GizmoDrawer : PRMonoBehaviourSingletonBase<GizmoDrawer> { ... }
-    // (и тогда GizmoDrawerHost не нужен вовсе), либо GizmoDrawerHost должен сам
-    // быть MonoBehaviour, хранящим статическую ссылку на GizmoDrawer.
+    // (Рё С‚РѕРіРґР° GizmoDrawerHost РЅРµ РЅСѓР¶РµРЅ РІРѕРІСЃРµ), Р»РёР±Рѕ GizmoDrawerHost РґРѕР»Р¶РµРЅ СЃР°Рј
+    // Р±С‹С‚СЊ MonoBehaviour, С…СЂР°РЅСЏС‰РёРј СЃС‚Р°С‚РёС‡РµСЃРєСѓСЋ СЃСЃС‹Р»РєСѓ РЅР° GizmoDrawer.
 }
 
 public class GizmoDrawer : MonoBehaviour
@@ -23,8 +23,8 @@ public class GizmoDrawer : MonoBehaviour
 
     private readonly List<GizmoArgsBase> argsCollection = new List<GizmoArgsBase>();
 
-    // static readonly - маппинг не зависит от состояния конкретного экземпляра,
-    // не нужно пересоздавать его на каждый GizmoDrawer.
+    // static readonly - РјР°РїРїРёРЅРі РЅРµ Р·Р°РІРёСЃРёС‚ РѕС‚ СЃРѕСЃС‚РѕСЏРЅРёСЏ РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СЌРєР·РµРјРїР»СЏСЂР°,
+    // РЅРµ РЅСѓР¶РЅРѕ РїРµСЂРµСЃРѕР·РґР°РІР°С‚СЊ РµРіРѕ РЅР° РєР°Р¶РґС‹Р№ GizmoDrawer.
     private static readonly Dictionary<Enumeration, Action<GizmoArgsBase>> drawActions = new Dictionary<Enumeration, Action<GizmoArgsBase>>()
     {
         { GizmoEnumerationProvider.Line,       (args) => DrawLine(args as GizmoLineArgs) },
@@ -53,13 +53,13 @@ public class GizmoDrawer : MonoBehaviour
             if (args == null)
                 continue;
 
-            // Защита от KeyNotFoundException - OnDrawGizmos вызывается Unity очень
-            // часто (каждый repaint Scene view, не только раз в кадр в Play Mode),
-            // необработанное исключение здесь может засыпать консоль и в некоторых
-            // случаях обрывает отрисовку гизмо для ДРУГИХ объектов в этом же кадре.
+            // Р—Р°С‰РёС‚Р° РѕС‚ KeyNotFoundException - OnDrawGizmos РІС‹Р·С‹РІР°РµС‚СЃСЏ Unity РѕС‡РµРЅСЊ
+            // С‡Р°СЃС‚Рѕ (РєР°Р¶РґС‹Р№ repaint Scene view, РЅРµ С‚РѕР»СЊРєРѕ СЂР°Р· РІ РєР°РґСЂ РІ Play Mode),
+            // РЅРµРѕР±СЂР°Р±РѕС‚Р°РЅРЅРѕРµ РёСЃРєР»СЋС‡РµРЅРёРµ Р·РґРµСЃСЊ РјРѕР¶РµС‚ Р·Р°СЃС‹РїР°С‚СЊ РєРѕРЅСЃРѕР»СЊ Рё РІ РЅРµРєРѕС‚РѕСЂС‹С…
+            // СЃР»СѓС‡Р°СЏС… РѕР±СЂС‹РІР°РµС‚ РѕС‚СЂРёСЃРѕРІРєСѓ РіРёР·РјРѕ РґР»СЏ Р”Р РЈР“РРҐ РѕР±СЉРµРєС‚РѕРІ РІ СЌС‚РѕРј Р¶Рµ РєР°РґСЂРµ.
             if (!drawActions.TryGetValue(args.GizmoType, out var draw))
             {
-                PRLog.WriteWarning(this, $"Нет обработчика отрисовки для GizmoType '{args.GizmoType}'.");
+                PRLog.WriteWarning(this, $"РќРµС‚ РѕР±СЂР°Р±РѕС‚С‡РёРєР° РѕС‚СЂРёСЃРѕРІРєРё РґР»СЏ GizmoType '{args.GizmoType}'.");
                 continue;
             }
 
@@ -93,15 +93,15 @@ public class GizmoDrawer : MonoBehaviour
         if (args == null)
             return;
 
-        // ВАЖНО: Gizmos.DrawRay(Vector3 from, Vector3 direction) - второй параметр
-        // это ВЕКТОР НАПРАВЛЕНИЯ (длина = длина луча), а НЕ абсолютная конечная точка,
-        // в отличие от DrawLine(from, to). Раньше здесь передавался args.To напрямую
-        // как если бы это была точка назначения - луч рисовался в направлении от
-        // мировых координат (0,0,0) к To, а не от From к To, с неверной длиной.
+        // Р’РђР–РќРћ: Gizmos.DrawRay(Vector3 from, Vector3 direction) - РІС‚РѕСЂРѕР№ РїР°СЂР°РјРµС‚СЂ
+        // СЌС‚Рѕ Р’Р•РљРўРћР  РќРђРџР РђР’Р›Р•РќРРЇ (РґР»РёРЅР° = РґР»РёРЅР° Р»СѓС‡Р°), Р° РќР• Р°Р±СЃРѕР»СЋС‚РЅР°СЏ РєРѕРЅРµС‡РЅР°СЏ С‚РѕС‡РєР°,
+        // РІ РѕС‚Р»РёС‡РёРµ РѕС‚ DrawLine(from, to). Р Р°РЅСЊС€Рµ Р·РґРµСЃСЊ РїРµСЂРµРґР°РІР°Р»СЃСЏ args.To РЅР°РїСЂСЏРјСѓСЋ
+        // РєР°Рє РµСЃР»Рё Р±С‹ СЌС‚Рѕ Р±С‹Р»Р° С‚РѕС‡РєР° РЅР°Р·РЅР°С‡РµРЅРёСЏ - Р»СѓС‡ СЂРёСЃРѕРІР°Р»СЃСЏ РІ РЅР°РїСЂР°РІР»РµРЅРёРё РѕС‚
+        // РјРёСЂРѕРІС‹С… РєРѕРѕСЂРґРёРЅР°С‚ (0,0,0) Рє To, Р° РЅРµ РѕС‚ From Рє To, СЃ РЅРµРІРµСЂРЅРѕР№ РґР»РёРЅРѕР№.
         //
-        // Если GizmoRayArgs.To у вас хранит АБСОЛЮТНУЮ точку - фикс ниже правильный.
-        // Если To уже хранит готовый вектор направления - верните `Gizmos.DrawRay(args.From, args.To)`
-        // как было, тогда бага не было и это ложное срабатывание с моей стороны.
+        // Р•СЃР»Рё GizmoRayArgs.To Сѓ РІР°СЃ С…СЂР°РЅРёС‚ РђР‘РЎРћР›Р®РўРќРЈР® С‚РѕС‡РєСѓ - С„РёРєСЃ РЅРёР¶Рµ РїСЂР°РІРёР»СЊРЅС‹Р№.
+        // Р•СЃР»Рё To СѓР¶Рµ С…СЂР°РЅРёС‚ РіРѕС‚РѕРІС‹Р№ РІРµРєС‚РѕСЂ РЅР°РїСЂР°РІР»РµРЅРёСЏ - РІРµСЂРЅРёС‚Рµ `Gizmos.DrawRay(args.From, args.To)`
+        // РєР°Рє Р±С‹Р»Рѕ, С‚РѕРіРґР° Р±Р°РіР° РЅРµ Р±С‹Р»Рѕ Рё СЌС‚Рѕ Р»РѕР¶РЅРѕРµ СЃСЂР°Р±Р°С‚С‹РІР°РЅРёРµ СЃ РјРѕРµР№ СЃС‚РѕСЂРѕРЅС‹.
         if (args.Ray.direction == Vector3.zero)
             Gizmos.DrawRay(args.From, args.To - args.From);
         else

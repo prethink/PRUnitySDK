@@ -1,12 +1,12 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public class EntityLinkBase<T> 
     : EntityLinkBase where T : EntityBase
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Ссылка на сущность.
+    /// РЎСЃС‹Р»РєР° РЅР° СЃСѓС‰РЅРѕСЃС‚СЊ.
     /// </summary>
     [field: SerializeField] public T LinkedEntity { get; private set; }
 
@@ -14,7 +14,7 @@ public class EntityLinkBase<T>
 
     #endregion
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     /// <summary>
     /// <inheritdoc/>
@@ -39,10 +39,10 @@ public class EntityLinkBase<T>
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Попытаться найти сущность в текущем или родительских объектах, если ссылка не была установлена вручную.
+    /// РџРѕРїС‹С‚Р°С‚СЊСЃСЏ РЅР°Р№С‚Рё СЃСѓС‰РЅРѕСЃС‚СЊ РІ С‚РµРєСѓС‰РµРј РёР»Рё СЂРѕРґРёС‚РµР»СЊСЃРєРёС… РѕР±СЉРµРєС‚Р°С…, РµСЃР»Рё СЃСЃС‹Р»РєР° РЅРµ Р±С‹Р»Р° СѓСЃС‚Р°РЅРѕРІР»РµРЅР° РІСЂСѓС‡РЅСѓСЋ.
     /// </summary>
     private void TryFindEntity()
     {
@@ -51,11 +51,11 @@ public class EntityLinkBase<T>
     }
 
     /// <summary>
-    /// Попытаться получить сущность определенного типа. Если сущность не соответствует типу, возвращает false и null.
+    /// РџРѕРїС‹С‚Р°С‚СЊСЃСЏ РїРѕР»СѓС‡РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ РѕРїСЂРµРґРµР»РµРЅРЅРѕРіРѕ С‚РёРїР°. Р•СЃР»Рё СЃСѓС‰РЅРѕСЃС‚СЊ РЅРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ С‚РёРїСѓ, РІРѕР·РІСЂР°С‰Р°РµС‚ false Рё null.
     /// </summary>
-    /// <typeparam name="T">Тип сущности.</typeparam>
-    /// <param name="entity">Сущность.</param>
-    /// <returns>True - удалось найти, false - не удалось найти.</returns>
+    /// <typeparam name="T">РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё.</typeparam>
+    /// <param name="entity">РЎСѓС‰РЅРѕСЃС‚СЊ.</param>
+    /// <returns>True - СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё, false - РЅРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё.</returns>
     public bool TryGetEntity(out T entity) 
     {
         if (Entity is T typedEntity)

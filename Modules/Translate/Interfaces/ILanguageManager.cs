@@ -1,40 +1,40 @@
-using System;
+п»їusing System;
 
 /// <summary>
-/// Интерфейс менеджера языков.
+/// РРЅС‚РµСЂС„РµР№СЃ РјРµРЅРµРґР¶РµСЂР° СЏР·С‹РєРѕРІ.
 /// </summary>
 public interface ILanguageManager
 {
     /// <summary>
-    /// Событие изменения языка.
+    /// РЎРѕР±С‹С‚РёРµ РёР·РјРµРЅРµРЅРёСЏ СЏР·С‹РєР°.
     /// </summary>
     public event Action<string> OnChangeLangEvent;
 
     /// <summary>
-    /// Инициализация системы.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃРёСЃС‚РµРјС‹.
     /// </summary>
     public void InitSystem();
 
     /// <summary>
-    /// Получить текущий язык.
+    /// РџРѕР»СѓС‡РёС‚СЊ С‚РµРєСѓС‰РёР№ СЏР·С‹Рє.
     /// </summary>
-    /// <param name="lang">Язык.</param>
+    /// <param name="lang">РЇР·С‹Рє.</param>
     public void SwitchLang(string lang);
 
     /// <summary>
-    /// Получить текущий язык.
+    /// РџРѕР»СѓС‡РёС‚СЊ С‚РµРєСѓС‰РёР№ СЏР·С‹Рє.
     /// </summary>
-    /// <returns>Язык.</returns>
+    /// <returns>РЇР·С‹Рє.</returns>
     public string GetCurrentLang();
 
     /// <summary>
-    /// Инициализация языка.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЏР·С‹РєР°.
     /// </summary>
     /// <param name="lang"></param>
     public void InitLang(string lang);
 
     /// <summary>
-    /// Вызвать событие обновление перевода.
+    /// Р’С‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ РѕР±РЅРѕРІР»РµРЅРёРµ РїРµСЂРµРІРѕРґР°.
     /// </summary>
     public void InvokeUpdateTranslate();
 }

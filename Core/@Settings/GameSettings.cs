@@ -1,77 +1,77 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 
 [Serializable]
 /// <summary>
-/// Игровые настройки.
+/// РРіСЂРѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё.
 /// </summary>
 public class GameSettings : ICloneable
 {
-    #region Константы
+    #region РљРѕРЅСЃС‚Р°РЅС‚С‹
 
     public const string KEYBOARD_KEY = "<Keyboard>/";
 
     #endregion
 
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Чувствительность мыши.
+    /// Р§СѓРІСЃС‚РІРёС‚РµР»СЊРЅРѕСЃС‚СЊ РјС‹С€Рё.
     /// </summary>
     public float Sensitivity { get; set; }
 
     /// <summary>
-    /// Инвертировать горизонтальный ввод.
+    /// РРЅРІРµСЂС‚РёСЂРѕРІР°С‚СЊ РіРѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅС‹Р№ РІРІРѕРґ.
     /// </summary>
     public bool InvertHorizontalInput { get; set; } = false;
 
     /// <summary>
-    /// Инвертировать вертикальный ввод.
+    /// РРЅРІРµСЂС‚РёСЂРѕРІР°С‚СЊ РІРµСЂС‚РёРєР°Р»СЊРЅС‹Р№ РІРІРѕРґ.
     /// </summary>
     public bool InvertVerticalInput { get; set; } = false;
 
     /// <summary>
-    /// Громкость общая.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ РѕР±С‰Р°СЏ.
     /// </summary>
     public float MasterVolume { get; set; }
 
     /// <summary>
-    /// Громкость музыка.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ РјСѓР·С‹РєР°.
     /// </summary>
     public float MusicVolume { get; set; }
 
     /// <summary>
-    /// Громкость эффектов.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ СЌС„С„РµРєС‚РѕРІ.
     /// </summary>
     public float EffectVolume { get; set; }
 
     /// <summary>
-    /// Признак, что музыка отключена.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ РјСѓР·С‹РєР° РѕС‚РєР»СЋС‡РµРЅР°.
     /// </summary>
     public bool OffMusic { get; set; }
 
     /// <summary>
-    /// Признак, что звук выключен.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ Р·РІСѓРє РІС‹РєР»СЋС‡РµРЅ.
     /// </summary>
     public bool OffSound { get; set; }
 
     /// <summary>
-    /// Громкость UI.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ UI.
     /// </summary>
     public float UIVolume { get; set; }
 
     /// <summary>
-    /// Признак, что музыка отключена.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ РјСѓР·С‹РєР° РѕС‚РєР»СЋС‡РµРЅР°.
     /// </summary>
     public bool OffEffect { get; set; }
 
     /// <summary>
-    /// Признак, что требуется показать курсор.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕРєР°Р·Р°С‚СЊ РєСѓСЂСЃРѕСЂ.
     /// </summary>
     public bool IsShowCursor { get; set; }
 
     /// <summary>
-    /// Переопределенные кнопки.
+    /// РџРµСЂРµРѕРїСЂРµРґРµР»РµРЅРЅС‹Рµ РєРЅРѕРїРєРё.
     /// </summary>
     public Dictionary<string, string> OverrideButtons = new();
 
@@ -99,7 +99,7 @@ public class GameSettings : ICloneable
 
     #endregion
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public GameSettings()
     {

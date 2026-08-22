@@ -1,20 +1,20 @@
-using Unity.VisualScripting;
+п»їusing Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Proxy-класс для обработки столкновений и делегирования их другим объектам.
-/// Использует события UnityEvent для подписки в инспекторе.
+/// Proxy-РєР»Р°СЃСЃ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё СЃС‚РѕР»РєРЅРѕРІРµРЅРёР№ Рё РґРµР»РµРіРёСЂРѕРІР°РЅРёСЏ РёС… РґСЂСѓРіРёРј РѕР±СЉРµРєС‚Р°Рј.
+/// РСЃРїРѕР»СЊР·СѓРµС‚ СЃРѕР±С‹С‚РёСЏ UnityEvent РґР»СЏ РїРѕРґРїРёСЃРєРё РІ РёРЅСЃРїРµРєС‚РѕСЂРµ.
 /// </summary>
 public class CollisionProxy : PRMonoBehaviourProxy
 {
-    // События, которые можно подписывать в инспекторе
-    public UnityEvent<Collision> OnCollisionEnterEvent;   // Вызывается при начале столкновения
-    public UnityEvent<Collision> OnCollisionEnterExitEvent; // Вызывается при завершении столкновения
-    public UnityEvent<Collision> OnCollisionStayEvent;    // Вызывается каждый кадр, пока объект находится в столкновении
+    // РЎРѕР±С‹С‚РёСЏ, РєРѕС‚РѕСЂС‹Рµ РјРѕР¶РЅРѕ РїРѕРґРїРёСЃС‹РІР°С‚СЊ РІ РёРЅСЃРїРµРєС‚РѕСЂРµ
+    public UnityEvent<Collision> OnCollisionEnterEvent;   // Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РЅР°С‡Р°Р»Рµ СЃС‚РѕР»РєРЅРѕРІРµРЅРёСЏ
+    public UnityEvent<Collision> OnCollisionEnterExitEvent; // Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё СЃС‚РѕР»РєРЅРѕРІРµРЅРёСЏ
+    public UnityEvent<Collision> OnCollisionStayEvent;    // Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ, РїРѕРєР° РѕР±СЉРµРєС‚ РЅР°С…РѕРґРёС‚СЃСЏ РІ СЃС‚РѕР»РєРЅРѕРІРµРЅРёРё
 
     /// <summary>
-    /// Вызывается при начале столкновения
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РЅР°С‡Р°Р»Рµ СЃС‚РѕР»РєРЅРѕРІРµРЅРёСЏ
     /// </summary>
     protected override void PROnCollisionEnter(Collision collision)
     {
@@ -23,7 +23,7 @@ public class CollisionProxy : PRMonoBehaviourProxy
     }
 
     /// <summary>
-    /// Вызывается каждый кадр, пока объект находится в столкновении
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ, РїРѕРєР° РѕР±СЉРµРєС‚ РЅР°С…РѕРґРёС‚СЃСЏ РІ СЃС‚РѕР»РєРЅРѕРІРµРЅРёРё
     /// </summary>
     protected override void PROnCollisionStay(Collision collision)
     {
@@ -32,7 +32,7 @@ public class CollisionProxy : PRMonoBehaviourProxy
     }
 
     /// <summary>
-    /// Вызывается при завершении столкновения
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё СЃС‚РѕР»РєРЅРѕРІРµРЅРёСЏ
     /// </summary>
     protected override void PROnCollisionExit(Collision collision)
     {

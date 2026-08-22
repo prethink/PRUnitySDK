@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using YG;
 
 public class YGLanguageManager : ILanguageManager
@@ -38,7 +38,7 @@ public class YGLanguageManager : ILanguageManager
 
     #endregion
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public YGLanguageManager()
     {
@@ -47,7 +47,7 @@ public class YGLanguageManager : ILanguageManager
 
     #endregion
 
-    #region Деструкторы
+    #region Р”РµСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     ~YGLanguageManager()
     {

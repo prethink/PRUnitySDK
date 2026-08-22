@@ -1,25 +1,25 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 public partial class PRManagerContainer 
 {
     /// <summary>
-    /// Игровой менеджер.
+    /// РРіСЂРѕРІРѕР№ РјРµРЅРµРґР¶РµСЂ.
     /// </summary>
     public GameManager Game;
 
     /// <summary>
-    /// Менеджер управления свойств.
+    /// РњРµРЅРµРґР¶РµСЂ СѓРїСЂР°РІР»РµРЅРёСЏ СЃРІРѕР№СЃС‚РІ.
     /// </summary>
     public ProjectPropertiesManager ProjectProperties;
 
     /// <summary>
-    /// Менеджер управления ресурсами.
+    /// РњРµРЅРµРґР¶РµСЂ СѓРїСЂР°РІР»РµРЅРёСЏ СЂРµСЃСѓСЂСЃР°РјРё.
     /// </summary>
     public ResourceManager Resource;
 
     /// <summary>
-    /// Менеджер звуков.
+    /// РњРµРЅРµРґР¶РµСЂ Р·РІСѓРєРѕРІ.
     /// </summary>
     public SoundManager Sound;
 
@@ -29,22 +29,22 @@ public partial class PRManagerContainer
     public ObjectPoolManager ObjectPool;
 
     /// <summary>
-    /// Менеджер аудиомиксера.
+    /// РњРµРЅРµРґР¶РµСЂ Р°СѓРґРёРѕРјРёРєСЃРµСЂР°.
     /// </summary>
     public AudioMixerManager AudioMixer;
 
     /// <summary>
-    /// Менеджер открытых предметов.
+    /// РњРµРЅРµРґР¶РµСЂ РѕС‚РєСЂС‹С‚С‹С… РїСЂРµРґРјРµС‚РѕРІ.
     /// </summary>
     public OpenedItemsManager OpenedItems;
 
     /// <summary>
-    /// Менеджер флагов в игре.
+    /// РњРµРЅРµРґР¶РµСЂ С„Р»Р°РіРѕРІ РІ РёРіСЂРµ.
     /// </summary>
     public FlagsManager Flags;
 
     /// <summary>
-    /// Контейнер для менеджеров.   
+    /// РљРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ РјРµРЅРµРґР¶РµСЂРѕРІ.   
     /// </summary>
     public PRContainer ManagerContainer;
 

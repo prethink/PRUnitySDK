@@ -1,40 +1,122 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-public static class ReflectionExtension 
+public static class ReflectionExtension
 {
+    #region Кеш рефлексии
 
-
-    private static List<MethodInfo> GetMethodsHooks(this object instance, string methodHookStage)
+    /// <summary>
+    /// Метод-хук вместе с посчитанным один раз количеством параметров. Количество нужно
+    /// на каждом вызове (чтобы выбрать, передавать аргументы или нет), а GetParameters()
+    /// каждый раз создаёт новый массив - поэтому значение считается при построении кеша.
+    /// </summary>
+    private readonly struct HookMethod
     {
-        return instance.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase))
-                  .OrderBy(m => m.GetCustomAttribute<MethodHookAttribute>().Order).ToList();
+        public readonly MethodInfo Method;
+
+        public readonly int ParameterCount;
+
+        public HookMethod(MethodInfo method)
+        {
+            Method = method;
+            ParameterCount = method.GetParameters().Length;
+        }
     }
 
-    private static List<MethodInfo> GetStaticMethodHooks(this Type type, string methodHookStage)
+    private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+
+    private const BindingFlags StaticFlags = BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
+
+    /// <summary>
+    /// Хуки экземпляра по типу и названию стадии. Набор методов у типа неизменен в рамках
+    /// домена, поэтому результат сканирования переиспользуется - без этого каждый вызов
+    /// RunMethodHooks заново перебирал все методы типа и по несколько раз читал атрибут
+    /// у каждого из них (а ProjectData.Clone() дёргается на каждом сохранении).
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, HookMethod[]>> instanceHooksCache = new();
+
+    /// <summary>Статические хуки по типу и названию стадии.</summary>
+    private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, HookMethod[]>> staticHooksCache = new();
+
+    /// <summary>Обработчики переопределения свойства экземпляра по паре (тип, требуемый тип).</summary>
+    private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<Type, MethodInfo>> overridePropertyCache = new();
+
+    /// <summary>Статические обработчики переопределения свойства по паре (тип, требуемый тип).</summary>
+    private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<Type, MethodInfo>> overridePropertyStaticCache = new();
+
+    private static HookMethod[] GetMethodsHooks(this object instance, string methodHookStage)
     {
-        return type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-                  .Where(m => m.GetCustomAttribute<MethodHookAttribute>() != null && m.GetCustomAttribute<MethodHookAttribute>().MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase))
-                  .OrderBy(m => m.GetCustomAttribute<MethodHookAttribute>().Order).ToList();
+        return GetHookMethods(instance.GetType(), methodHookStage, instanceHooksCache, InstanceFlags);
     }
 
-    private static List<MethodInfo> GetOverridePropertyMethods(this object instance, Type requiredType)
+    private static HookMethod[] GetStaticMethodHooks(this Type type, string methodHookStage)
     {
-        return instance.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-            .Where(m => m.GetCustomAttribute<OverridePropertyAttribute>() != null && m.GetCustomAttribute<OverridePropertyAttribute>().OverrideType.IsAssignableFrom(requiredType))
-            .OrderBy(m => m.GetCustomAttribute<OverridePropertyAttribute>().Order).ToList(); ;
+        return GetHookMethods(type, methodHookStage, staticHooksCache, StaticFlags);
     }
 
-    private static List<MethodInfo> GetOverridePropertyStaticMethods(this Type type, Type requiredType)
+    private static HookMethod[] GetHookMethods(
+        Type type,
+        string methodHookStage,
+        ConcurrentDictionary<Type, ConcurrentDictionary<string, HookMethod[]>> cache,
+        BindingFlags bindingFlags)
     {
-        return type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-            .Where(m => m.GetCustomAttribute<OverridePropertyAttribute>() != null && m.GetCustomAttribute<OverridePropertyAttribute>().OverrideType.IsAssignableFrom(requiredType))
-            .OrderBy(m => m.GetCustomAttribute<OverridePropertyAttribute>().Order).ToList(); ;
+        // Сравнение стадии регистронезависимое, поэтому компаратор задаётся у вложенного словаря.
+        var stages = cache.GetOrAdd(type, _ => new ConcurrentDictionary<string, HookMethod[]>(StringComparer.OrdinalIgnoreCase));
+
+        return stages.GetOrAdd(methodHookStage, stage => BuildHookMethods(type, stage, bindingFlags));
     }
+
+    private static HookMethod[] BuildHookMethods(Type type, string methodHookStage, BindingFlags bindingFlags)
+    {
+        var hooks = new List<(MethodInfo Method, int Order)>();
+
+        foreach (var method in type.GetMethods(bindingFlags))
+        {
+            var attribute = method.GetCustomAttribute<MethodHookAttribute>();
+
+            if (attribute == null || !attribute.MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            hooks.Add((method, attribute.Order));
+        }
+
+        return hooks
+            .OrderBy(hook => hook.Order)
+            .Select(hook => new HookMethod(hook.Method))
+            .ToArray();
+    }
+
+    private static MethodInfo GetOverridePropertyMethod(this object instance, Type requiredType)
+    {
+        return GetOverridePropertyMethod(instance.GetType(), requiredType, overridePropertyCache, InstanceFlags);
+    }
+
+    private static MethodInfo GetOverridePropertyStaticMethod(this Type type, Type requiredType)
+    {
+        return GetOverridePropertyMethod(type, requiredType, overridePropertyStaticCache, StaticFlags);
+    }
+
+    private static MethodInfo GetOverridePropertyMethod(
+        Type type,
+        Type requiredType,
+        ConcurrentDictionary<Type, ConcurrentDictionary<Type, MethodInfo>> cache,
+        BindingFlags bindingFlags)
+    {
+        var byRequiredType = cache.GetOrAdd(type, _ => new ConcurrentDictionary<Type, MethodInfo>());
+
+        return byRequiredType.GetOrAdd(requiredType, required => type.GetMethods(bindingFlags)
+            .Select(method => (Method: method, Attribute: method.GetCustomAttribute<OverridePropertyAttribute>()))
+            .Where(item => item.Attribute != null && item.Attribute.OverrideType.IsAssignableFrom(required))
+            .OrderBy(item => item.Attribute.Order)
+            .Select(item => item.Method)
+            .FirstOrDefault());
+    }
+
+    #endregion
 
     /// <summary>
     /// Возвращает методы экземпляра, отмеченные атрибутом <typeparamref name="T"/>.
@@ -89,9 +171,45 @@ public static class ReflectionExtension
     /// </summary>
     public static void RunMethodHooks(this object instance, string methodHookStage)
     {
+        RunMethodHooks(instance, methodHookStage, (object[])null);
+    }
+
+    /// <summary>
+    /// Запускает методы указанного этапа, передавая им аргументы. Хуки без параметров
+    /// вызываются как раньше - это позволяет на одном этапе держать и те, и другие
+    /// (например, ProjectData передаёт в Cloning целевой объект, а старые хуки без
+    /// параметров продолжают работать).
+    /// </summary>
+    public static void RunMethodHooks(this object instance, MethodHookStage methodHookStage, params object[] arguments)
+    {
+        RunMethodHooks(instance, methodHookStage.ToString(), arguments);
+    }
+
+    /// <summary>
+    /// Запускает методы указанного этапа по строковому имени, передавая им аргументы.
+    /// </summary>
+    public static void RunMethodHooks(this object instance, string methodHookStage, params object[] arguments)
+    {
+        var argumentCount = arguments?.Length ?? 0;
         var methods = instance.GetMethodsHooks(methodHookStage);
-        foreach (var method in methods)
-            method.Invoke(instance, null);
+
+        foreach (var hook in methods)
+        {
+            if (hook.ParameterCount == 0)
+            {
+                hook.Method.Invoke(instance, null);
+                continue;
+            }
+
+            if (hook.ParameterCount == argumentCount)
+            {
+                hook.Method.Invoke(instance, arguments);
+                continue;
+            }
+
+            PRLog.WriteWarning(instance, $"Hook '{hook.Method.DeclaringType?.Name}.{hook.Method.Name}' expects " +
+                $"{hook.ParameterCount} argument(s) on stage '{methodHookStage}', but {argumentCount} was passed. Skipped.");
+        }
     }
 
     /// <summary>
@@ -108,8 +226,8 @@ public static class ReflectionExtension
     public static void RunStaticMethodHooks(this Type type, string methodHookStage)
     {
         var methods = type.GetStaticMethodHooks(methodHookStage);
-        foreach (var method in methods)
-            method.Invoke(null, null);
+        foreach (var hook in methods)
+            hook.Method.Invoke(null, null);
     }
 
     /// <summary>
@@ -117,7 +235,7 @@ public static class ReflectionExtension
     /// </summary>
     public static void TryOverrideStaticProperty(this Type type, Type requiredType)
     {
-        var method = type.GetOverridePropertyStaticMethods(requiredType).FirstOrDefault();
+        var method = type.GetOverridePropertyStaticMethod(requiredType);
         method?.Invoke(null, null);
     }
 
@@ -126,7 +244,7 @@ public static class ReflectionExtension
     /// </summary>
     public static void TryOverrideProperty(this object instance, Type requiredType)
     {
-        var method = instance.GetOverridePropertyMethods(requiredType).FirstOrDefault();
+        var method = instance.GetOverridePropertyMethod(requiredType);
         method?.Invoke(instance, null);
     }
 

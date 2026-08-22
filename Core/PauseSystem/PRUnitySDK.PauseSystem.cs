@@ -1,18 +1,18 @@
-public partial class PRUnitySDK
+п»їpublic partial class PRUnitySDK
 {
-    //#region Поля и свойства
+    //#region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     ///// <summary>
-    ///// Сервис управления паузой.
+    ///// РЎРµСЂРІРёСЃ СѓРїСЂР°РІР»РµРЅРёСЏ РїР°СѓР·РѕР№.
     ///// </summary>
     //public static IPauseManager PauseManager { get; private set; }
 
     //#endregion
 
-    //#region Методы
+    //#region РњРµС‚РѕРґС‹
 
     ///// <summary>
-    ///// Инициализация модуля.
+    ///// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     ///// </summary>
     //[InitializeMethod(MethodHookStage.SDK, 0)]
     //private static void InitializePauseSystem()

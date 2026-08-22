@@ -1,32 +1,32 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 /// <summary>
-/// Базовый класс сущности.
+/// Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ СЃСѓС‰РЅРѕСЃС‚Рё.
 /// </summary>
 public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
-    [Header("Ссылки")]
+    [Header("РЎСЃС‹Р»РєРё")]
     /// <summary>
-    /// Игровой объект сущности.
+    /// РРіСЂРѕРІРѕР№ РѕР±СЉРµРєС‚ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     [SerializeField] protected GameObject entityGameObject;
 
     /// <summary>
-    /// Игровой объект сущности.
+    /// РРіСЂРѕРІРѕР№ РѕР±СЉРµРєС‚ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     [SerializeField] protected GameObject rootGameObject;
 
-    [Header("Жизненный цикл")]
+    [Header("Р–РёР·РЅРµРЅРЅС‹Р№ С†РёРєР»")]
     /// <summary>
-    /// Действие при уничтожение.
+    /// Р”РµР№СЃС‚РІРёРµ РїСЂРё СѓРЅРёС‡С‚РѕР¶РµРЅРёРµ.
     /// </summary>
     [SerializeField] protected EntityDisposeAction EntityDisposeAction;
 
     /// <summary>
-    /// Время жизни сущности.
+    /// Р’СЂРµРјСЏ Р¶РёР·РЅРё СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     [field:SerializeField] public EntityLifeTime LifeTime { get; protected set; }
 
@@ -84,7 +84,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
         }
         else if(EntityDisposeAction == EntityDisposeAction.HideInPool && InPool || !InPool && !PoolBehaviour.IsInitialize)
         {
-            PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} использует настройку {nameof(EntityDisposeAction.HideInPool)}, но при этом создается не через pool system. Объект полностью уничтожен.");
+            PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} РёСЃРїРѕР»СЊР·СѓРµС‚ РЅР°СЃС‚СЂРѕР№РєСѓ {nameof(EntityDisposeAction.HideInPool)}, РЅРѕ РїСЂРё СЌС‚РѕРј СЃРѕР·РґР°РµС‚СЃСЏ РЅРµ С‡РµСЂРµР· pool system. РћР±СЉРµРєС‚ РїРѕР»РЅРѕСЃС‚СЊСЋ СѓРЅРёС‡С‚РѕР¶РµРЅ.");
             Destroy(this.gameObject);
             return;
         }
@@ -117,7 +117,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     public void SetGameObjectEntity(GameObject entity)
     {
@@ -154,7 +154,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     protected override void Start()
     {

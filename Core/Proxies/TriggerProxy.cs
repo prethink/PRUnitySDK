@@ -1,19 +1,19 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Proxy-класс для триггеров (OnTriggerEnter/Stay/Exit).
-/// Позволяет подписываться на события через UnityEvent и делегировать их реальному объекту.
+/// Proxy-РєР»Р°СЃСЃ РґР»СЏ С‚СЂРёРіРіРµСЂРѕРІ (OnTriggerEnter/Stay/Exit).
+/// РџРѕР·РІРѕР»СЏРµС‚ РїРѕРґРїРёСЃС‹РІР°С‚СЊСЃСЏ РЅР° СЃРѕР±С‹С‚РёСЏ С‡РµСЂРµР· UnityEvent Рё РґРµР»РµРіРёСЂРѕРІР°С‚СЊ РёС… СЂРµР°Р»СЊРЅРѕРјСѓ РѕР±СЉРµРєС‚Сѓ.
 /// </summary>
 public class TriggerProxy : PRMonoBehaviourProxy
 {
-    // События UnityEvent для подписки в инспекторе
-    public UnityEvent<Collider> OnTriggerEnterEvent;  // Вызывается при входе объекта в триггер
-    public UnityEvent<Collider> OnTriggerExit;   // Вызывается при выходе объекта из триггера
-    public UnityEvent<Collider> OnTriggerStay;   // Вызывается каждый кадр, пока объект в триггере
+    // РЎРѕР±С‹С‚РёСЏ UnityEvent РґР»СЏ РїРѕРґРїРёСЃРєРё РІ РёРЅСЃРїРµРєС‚РѕСЂРµ
+    public UnityEvent<Collider> OnTriggerEnterEvent;  // Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РІС…РѕРґРµ РѕР±СЉРµРєС‚Р° РІ С‚СЂРёРіРіРµСЂ
+    public UnityEvent<Collider> OnTriggerExit;   // Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РІС‹С…РѕРґРµ РѕР±СЉРµРєС‚Р° РёР· С‚СЂРёРіРіРµСЂР°
+    public UnityEvent<Collider> OnTriggerStay;   // Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ, РїРѕРєР° РѕР±СЉРµРєС‚ РІ С‚СЂРёРіРіРµСЂРµ
 
     /// <summary>
-    /// Вызывается при входе объекта в триггер
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РІС…РѕРґРµ РѕР±СЉРµРєС‚Р° РІ С‚СЂРёРіРіРµСЂ
     /// </summary>
     protected override void PROnTriggerEnter(Collider other)
     {
@@ -22,7 +22,7 @@ public class TriggerProxy : PRMonoBehaviourProxy
     }
 
     /// <summary>
-    /// Вызывается каждый кадр, пока объект находится в триггере
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ, РїРѕРєР° РѕР±СЉРµРєС‚ РЅР°С…РѕРґРёС‚СЃСЏ РІ С‚СЂРёРіРіРµСЂРµ
     /// </summary>
     protected override void PROnTriggerStay(Collider other)
     {
@@ -31,7 +31,7 @@ public class TriggerProxy : PRMonoBehaviourProxy
     }
 
     /// <summary>
-    /// Вызывается при выходе объекта из триггера
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РІС‹С…РѕРґРµ РѕР±СЉРµРєС‚Р° РёР· С‚СЂРёРіРіРµСЂР°
     /// </summary>
     protected override void PROnTriggerExit(Collider other)
     {

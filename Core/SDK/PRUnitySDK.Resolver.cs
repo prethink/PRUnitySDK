@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 
 public partial class PRUnitySDK
 {
@@ -9,7 +9,7 @@ public partial class PRUnitySDK
 
 
     /// <summary>
-    /// Инициализация модуля.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     /// </summary>
     [MethodHook(MethodHookStage.SDK, 0)]
     private static void InitializeResolver()

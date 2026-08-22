@@ -1,17 +1,17 @@
-public class LangDropDown : IDropDown
+п»їpublic class LangDropDown : IDropDown
 {
     /// <summary>
-    /// Русский.
+    /// Р СѓСЃСЃРєРёР№.
     /// </summary>
     public const string RU = "ru";
 
     /// <summary>
-    /// Английский.
+    /// РђРЅРіР»РёР№СЃРєРёР№.
     /// </summary>
     public const string EN = "en";
 
     /// <summary>
-    /// Турецкий
+    /// РўСѓСЂРµС†РєРёР№
     /// </summary>
     public const string TR = "tr";
 

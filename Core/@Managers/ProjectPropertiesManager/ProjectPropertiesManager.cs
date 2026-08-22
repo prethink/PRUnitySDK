@@ -103,7 +103,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// через GetProperties&lt;T&gt;() - добавление нового типа свойства требует
     /// правки только GetProperties&lt;T&gt;(), а не каждого Set/TryGet/Remove по отдельности.
     /// </summary>
-    private void SetValue<T>(string name, T value, bool save, bool requiredNotify)
+    public void SetValue<T>(string name, T value, bool save = true, bool requiredNotify = true)
     {
         GetProperties<T>()[name] = value;
 
@@ -248,9 +248,18 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// Общая реализация для всех TryGet*-методов - находит нужный словарь через
     /// GetProperties&lt;T&gt;() и делегирует в его обычный Dictionary.TryGetValue.
     /// </summary>
-    private bool TryGetValue<T>(string name, out T value)
+    public bool TryGetValue<T>(string name, out T value)
     {
         return GetProperties<T>().TryGetValue(name, out value);
+    }
+
+    /// <summary>
+    /// Возвращает значение по строковому имени, либо defaultValue, если свойство
+    /// ещё не сохранялось.
+    /// </summary>
+    public T GetValue<T>(string name, T defaultValue)
+    {
+        return TryGetValue<T>(name, out var value) ? value : defaultValue;
     }
 
     #endregion

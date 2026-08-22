@@ -1,23 +1,23 @@
-public partial class PRUnitySDK
+п»їpublic partial class PRUnitySDK
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Приоритет.
+    /// РџСЂРёРѕСЂРёС‚РµС‚.
     /// </summary>
     private const int PRIORITY_SERVER_TIME = 10;
 
     /// <summary>
-    /// Серверное время.
+    /// РЎРµСЂРІРµСЂРЅРѕРµ РІСЂРµРјСЏ.
     /// </summary>
     public static IServerTime ServerTime;
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Инициализация модуля.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     /// </summary>
     [MethodHook(MethodHookStage.SDK, PRIORITY_SERVER_TIME)]
     private static void InitializeServerTime()

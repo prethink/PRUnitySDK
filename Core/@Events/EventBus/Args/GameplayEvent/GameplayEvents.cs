@@ -1,20 +1,20 @@
-/// <summary>
-/// События игрового процесса.
+п»ї/// <summary>
+/// РЎРѕР±С‹С‚РёСЏ РёРіСЂРѕРІРѕРіРѕ РїСЂРѕС†РµСЃСЃР°.
 /// </summary>
 public partial class GameplayEvents
 {
     /// <summary>
-    /// Вызвать событие до сохранения игры.
+    /// Р’С‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ РґРѕ СЃРѕС…СЂР°РЅРµРЅРёСЏ РёРіСЂС‹.
     /// </summary>
     public static void RaiseBeforeSaveEvent() => EventBus.RaiseEvent<IGameplayEvent>(invoke => invoke.Track(new BeforeSaveGameEventArgs()));
 
     /// <summary>
-    /// Вызвать событие сохранения игры.
+    /// Р’С‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ СЃРѕС…СЂР°РЅРµРЅРёСЏ РёРіСЂС‹.
     /// </summary>
     public static void RaiseSaveEvent() => EventBus.RaiseEvent<IGameplayEvent>(invoke => invoke.Track(new SaveGameEventArgs()));
 
     /// <summary>
-    /// Вызвать событие готовности игры.
+    /// Р’С‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ РіРѕС‚РѕРІРЅРѕСЃС‚Рё РёРіСЂС‹.
     /// </summary>
     public static void RaiseGameReady() => EventBus.RaiseEvent<IReadyGameEvent>(invoke => invoke.OnReadyGame());
 }

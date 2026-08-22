@@ -1,7 +1,7 @@
-public interface IIdentifiable
+п»їpublic interface IIdentifiable
 {
     /// <summary>
-    /// Идентификатор.
+    /// РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ.
     /// </summary>
     string Id { get; }
 }

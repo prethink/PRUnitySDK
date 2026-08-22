@@ -1,58 +1,38 @@
-public interface IGameDataStorage : IReadySignalProvider
+п»їpublic interface IGameDataStorage : IReadySignalProvider
 {
     /// <summary>
-    /// Загружает данные игры (например, настройки или прогресс).
+    /// Р—Р°РіСЂСѓР¶Р°РµС‚ РґР°РЅРЅС‹Рµ РёРіСЂС‹ (РЅР°РїСЂРёРјРµСЂ, РЅР°СЃС‚СЂРѕР№РєРё РёР»Рё РїСЂРѕРіСЂРµСЃСЃ).
     /// </summary>
     bool TryLoad();
 
     /// <summary>
-    /// Сохраняет текущие данные игры (например, настройки или прогресс).
+    /// РЎРѕС…СЂР°РЅСЏРµС‚ С‚РµРєСѓС‰РёРµ РґР°РЅРЅС‹Рµ РёРіСЂС‹ (РЅР°РїСЂРёРјРµСЂ, РЅР°СЃС‚СЂРѕР№РєРё РёР»Рё РїСЂРѕРіСЂРµСЃСЃ).
     /// </summary>
     void Save();
 
     /// <summary>
-    /// Получает текущие настройки игры.
+    /// РџРѕР»СѓС‡Р°РµС‚ С‚РµРєСѓС‰РёРµ РЅР°СЃС‚СЂРѕР№РєРё РёРіСЂС‹.
     /// </summary>
-    /// <returns>Объект GameSettings, содержащий настройки игры.</returns>
+    /// <returns>РћР±СЉРµРєС‚ GameSettings, СЃРѕРґРµСЂР¶Р°С‰РёР№ РЅР°СЃС‚СЂРѕР№РєРё РёРіСЂС‹.</returns>
     GameSettings GetGameSettings();
 
     /// <summary>
-    /// Получает текущие данные проекта.
+    /// РџРѕР»СѓС‡Р°РµС‚ С‚РµРєСѓС‰РёРµ РґР°РЅРЅС‹Рµ РїСЂРѕРµРєС‚Р°.
     /// </summary>
-    /// <returns>Объект ProjectData, содержащий данные проекта.</returns>
+    /// <returns>РћР±СЉРµРєС‚ ProjectData, СЃРѕРґРµСЂР¶Р°С‰РёР№ РґР°РЅРЅС‹Рµ РїСЂРѕРµРєС‚Р°.</returns>
     ProjectData GetProjectData();
 
     /// <summary>
-    /// Обновляет настройки игры с возможностью немедленного сохранения.
+    /// РћР±РЅРѕРІР»СЏРµС‚ РЅР°СЃС‚СЂРѕР№РєРё РёРіСЂС‹ СЃ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊСЋ РЅРµРјРµРґР»РµРЅРЅРѕРіРѕ СЃРѕС…СЂР°РЅРµРЅРёСЏ.
     /// </summary>
-    /// <param name="gameSettings">Новые настройки игры.</param>
-    /// <param name="requiredSave">Если true, то данные будут сохранены сразу после обновления.</param>
+    /// <param name="gameSettings">РќРѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё РёРіСЂС‹.</param>
+    /// <param name="requiredSave">Р•СЃР»Рё true, С‚Рѕ РґР°РЅРЅС‹Рµ Р±СѓРґСѓС‚ СЃРѕС…СЂР°РЅРµРЅС‹ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ РѕР±РЅРѕРІР»РµРЅРёСЏ.</param>
     void UpdateGameSettings(GameSettings gameSettings, bool requiredSave = false);
 
     /// <summary>
-    /// Установить значение.
+    /// РћР±РЅРѕРІР»СЏРµС‚ РґР°РЅРЅС‹Рµ РїСЂРѕРµРєС‚Р° СЃ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊСЋ РЅРµРјРµРґР»РµРЅРЅРѕРіРѕ СЃРѕС…СЂР°РЅРµРЅРёСЏ.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="category"></param>
-    /// <param name="enumeration"></param>
-    /// <param name="value"></param>
-    /// <param name="isRequiredSave"></param>
-    void SetValue<T>(Enumeration category, EnumerationType<T> enumeration, T value, bool isRequiredSave = true);
-
-    /// <summary>
-    /// Получить значение.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="category"></param>
-    /// <param name="enumeration"></param>
-    /// <param name="defaultValue"></param>
-    /// <returns></returns>
-    T GetValue<T>(Enumeration category, EnumerationType<T> enumeration, T defaultValue);
-
-    /// <summary>
-    /// Обновляет данные проекта с возможностью немедленного сохранения.
-    /// </summary>
-    /// <param name="projectContext">Новые данные проекта.</param>
-    /// <param name="requiredSave">Если true, то данные будут сохранены сразу после обновления.</param>
+    /// <param name="projectContext">РќРѕРІС‹Рµ РґР°РЅРЅС‹Рµ РїСЂРѕРµРєС‚Р°.</param>
+    /// <param name="requiredSave">Р•СЃР»Рё true, С‚Рѕ РґР°РЅРЅС‹Рµ Р±СѓРґСѓС‚ СЃРѕС…СЂР°РЅРµРЅС‹ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ РѕР±РЅРѕРІР»РµРЅРёСЏ.</param>
     void UpdateProjectData(ProjectData projectContext, bool requiredSave = false);
 }

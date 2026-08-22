@@ -1,36 +1,36 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 
 /// <summary>
-/// Класс для передачи данных между сценами.
+/// РљР»Р°СЃСЃ РґР»СЏ РїРµСЂРµРґР°С‡Рё РґР°РЅРЅС‹С… РјРµР¶РґСѓ СЃС†РµРЅР°РјРё.
 /// </summary>
 public class SceneDataChanger : SingletonProviderBase<SceneDataChanger>
 {
     public const string NEXT_SCENE_KEY = nameof(NEXT_SCENE_KEY);
 
     /// <summary>
-    /// Передаваемые данные.
+    /// РџРµСЂРµРґР°РІР°РµРјС‹Рµ РґР°РЅРЅС‹Рµ.
     /// </summary>
     private Dictionary<string, object> data = new Dictionary<string, object>();
 
     /// <summary>
-    /// Установить данные.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РґР°РЅРЅС‹Рµ.
     /// </summary>
-    /// <typeparam name="T">Тип.</typeparam>
-    /// <param name="key">Ключ.</param>
-    /// <param name="value">Значение.</param>
+    /// <typeparam name="T">РўРёРї.</typeparam>
+    /// <param name="key">РљР»СЋС‡.</param>
+    /// <param name="value">Р—РЅР°С‡РµРЅРёРµ.</param>
     public void SetData<T>(string key, T value)
     {
         data[key] = value;
     }
 
     /// <summary>
-    /// Попытаться получить данные нужного типа.
+    /// РџРѕРїС‹С‚Р°С‚СЊСЃСЏ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РЅСѓР¶РЅРѕРіРѕ С‚РёРїР°.
     /// </summary>
-    /// <typeparam name="T">Тип.</typeparam>
-    /// <param name="key">Ключ.</param>
-    /// <param name="clearDataAfterGetting">Очищать данные после получения.</param>
-    /// <param name="data">Данные.</param>
-    /// <returns>True - удалось получить, False - нет.</returns>
+    /// <typeparam name="T">РўРёРї.</typeparam>
+    /// <param name="key">РљР»СЋС‡.</param>
+    /// <param name="clearDataAfterGetting">РћС‡РёС‰Р°С‚СЊ РґР°РЅРЅС‹Рµ РїРѕСЃР»Рµ РїРѕР»СѓС‡РµРЅРёСЏ.</param>
+    /// <param name="data">Р”Р°РЅРЅС‹Рµ.</param>
+    /// <returns>True - СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ, False - РЅРµС‚.</returns>
     public bool TryGetData<T>(string key, bool clearDataAfterGetting, out T data)
     {
         data = default(T);
@@ -46,21 +46,21 @@ public class SceneDataChanger : SingletonProviderBase<SceneDataChanger>
             }
             else
             {
-                PRLog.WriteWarning(this, $"Ошибка приведения типа: ключ '{key}' содержит {value.GetType()}, а запрошен {typeof(T)}.");
+                PRLog.WriteWarning(this, $"РћС€РёР±РєР° РїСЂРёРІРµРґРµРЅРёСЏ С‚РёРїР°: РєР»СЋС‡ '{key}' СЃРѕРґРµСЂР¶РёС‚ {value.GetType()}, Р° Р·Р°РїСЂРѕС€РµРЅ {typeof(T)}.");
             }
         }
         return false;
     }
 
     /// <summary>
-    /// Есть ли данные по данному ключу.
+    /// Р•СЃС‚СЊ Р»Рё РґР°РЅРЅС‹Рµ РїРѕ РґР°РЅРЅРѕРјСѓ РєР»СЋС‡Сѓ.
     /// </summary>
-    /// <param name="key">Ключ.</param>
-    /// <returns>True - есть, False - нет.</returns>
+    /// <param name="key">РљР»СЋС‡.</param>
+    /// <returns>True - РµСЃС‚СЊ, False - РЅРµС‚.</returns>
     public bool HasData(string key) => data.ContainsKey(key);
 
     /// <summary>
-    /// Очистка всех данных.
+    /// РћС‡РёСЃС‚РєР° РІСЃРµС… РґР°РЅРЅС‹С….
     /// </summary>
     public void Clear() => data.Clear();
 }

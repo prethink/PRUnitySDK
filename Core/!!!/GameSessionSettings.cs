@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -6,12 +6,12 @@ using UnityEngine;
 [Serializable]
 public partial class GameSessionSettings
 {
-    [field: Header("Количество локальных игроков")]
+    [field: Header("РљРѕР»РёС‡РµСЃС‚РІРѕ Р»РѕРєР°Р»СЊРЅС‹С… РёРіСЂРѕРєРѕРІ")]
     [field: Range(1, 10)]
     [field: SerializeField] public int PlayersCount { get; private set; }
 
 
-    [field: Header("Настройка ботов")]
+    [field: Header("РќР°СЃС‚СЂРѕР№РєР° Р±РѕС‚РѕРІ")]
     [field: Range(0, 100)]
     [field: SerializeField] public int BotCounts { get; private set; }
 

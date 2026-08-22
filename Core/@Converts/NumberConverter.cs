@@ -1,29 +1,29 @@
-public static class NumberConverter
+п»їpublic static class NumberConverter
 {
     /// <summary>
-    /// Форматирует большое число в строку с суффиксами (k, M, B и т.д.).
+    /// Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ Р±РѕР»СЊС€РѕРµ С‡РёСЃР»Рѕ РІ СЃС‚СЂРѕРєСѓ СЃ СЃСѓС„С„РёРєСЃР°РјРё (k, M, B Рё С‚.Рґ.).
     /// </summary>
-    /// <param name="value">Число для форматирования.</param>
-    /// <returns>Отформатированная строка.</returns>
+    /// <param name="value">Р§РёСЃР»Рѕ РґР»СЏ С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёСЏ.</param>
+    /// <returns>РћС‚С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРЅР°СЏ СЃС‚СЂРѕРєР°.</returns>
     public static string FormatNumber(long value, int minDigitsBeforeShorten = 5)
     {
-        string[] suffixes = { "", "K", "M", "B", "T", "P", "E" }; // Суффиксы
+        string[] suffixes = { "", "K", "M", "B", "T", "P", "E" }; // РЎСѓС„С„РёРєСЃС‹
         int suffixIndex = 0;
 
-        // Если число короче, чем заданное количество символов, просто возвращаем его
+        // Р•СЃР»Рё С‡РёСЃР»Рѕ РєРѕСЂРѕС‡Рµ, С‡РµРј Р·Р°РґР°РЅРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјРІРѕР»РѕРІ, РїСЂРѕСЃС‚Рѕ РІРѕР·РІСЂР°С‰Р°РµРј РµРіРѕ
         if (value.ToString().Length < minDigitsBeforeShorten)
             return value.ToString();
 
         double formattedValue = value;
 
-        // Уменьшаем число, пока оно не станет меньше 1000, и увеличиваем индекс суффикса.
+        // РЈРјРµРЅСЊС€Р°РµРј С‡РёСЃР»Рѕ, РїРѕРєР° РѕРЅРѕ РЅРµ СЃС‚Р°РЅРµС‚ РјРµРЅСЊС€Рµ 1000, Рё СѓРІРµР»РёС‡РёРІР°РµРј РёРЅРґРµРєСЃ СЃСѓС„С„РёРєСЃР°.
         while (formattedValue >= 1000 && suffixIndex < suffixes.Length - 1)
         {
             formattedValue /= 1000.0;
             suffixIndex++;
         }
 
-        // Форматируем с одним знаком после запятой, если число дробное.
+        // Р¤РѕСЂРјР°С‚РёСЂСѓРµРј СЃ РѕРґРЅРёРј Р·РЅР°РєРѕРј РїРѕСЃР»Рµ Р·Р°РїСЏС‚РѕР№, РµСЃР»Рё С‡РёСЃР»Рѕ РґСЂРѕР±РЅРѕРµ.
         return formattedValue % 1 == 0
             ? $"{(long)formattedValue}{suffixes[suffixIndex]}"
             : $"{formattedValue:F1}{suffixes[suffixIndex]}";

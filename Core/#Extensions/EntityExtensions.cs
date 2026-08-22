@@ -1,17 +1,17 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 /// <summary>
-/// Набор расширений для удобного получения сущностей (Entity) из различных объектов Unity.
+/// РќР°Р±РѕСЂ СЂР°СЃС€РёСЂРµРЅРёР№ РґР»СЏ СѓРґРѕР±РЅРѕРіРѕ РїРѕР»СѓС‡РµРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚РµР№ (Entity) РёР· СЂР°Р·Р»РёС‡РЅС‹С… РѕР±СЉРµРєС‚РѕРІ Unity.
 /// </summary>
 public static class EntityExtensions
 {
     /// <summary>
-    /// Пытается получить сущность из столкновения (Collision).
+    /// РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ РёР· СЃС‚РѕР»РєРЅРѕРІРµРЅРёСЏ (Collision).
     /// </summary>
-    /// <typeparam name="T">Тип сущности, наследуемый от EntityBase.</typeparam>
-    /// <param name="collision">Объект столкновения.</param>
-    /// <param name="entity">Найденная сущность.</param>
-    /// <returns>True, если сущность успешно получена, иначе False.</returns>
+    /// <typeparam name="T">РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё, РЅР°СЃР»РµРґСѓРµРјС‹Р№ РѕС‚ EntityBase.</typeparam>
+    /// <param name="collision">РћР±СЉРµРєС‚ СЃС‚РѕР»РєРЅРѕРІРµРЅРёСЏ.</param>
+    /// <param name="entity">РќР°Р№РґРµРЅРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ.</param>
+    /// <returns>True, РµСЃР»Рё СЃСѓС‰РЅРѕСЃС‚СЊ СѓСЃРїРµС€РЅРѕ РїРѕР»СѓС‡РµРЅР°, РёРЅР°С‡Рµ False.</returns>
     public static bool TryGetEntity<T>(this Collision collision, out T entity)
         where T : EntityBase
     {
@@ -23,12 +23,12 @@ public static class EntityExtensions
     }
 
     /// <summary>
-    /// Пытается получить сущность из коллайдера (Collider).
+    /// РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ РёР· РєРѕР»Р»Р°Р№РґРµСЂР° (Collider).
     /// </summary>
-    /// <typeparam name="T">Тип сущности, наследуемый от EntityBase.</typeparam>
-    /// <param name="collider">Коллайдер.</param>
-    /// <param name="entity">Найденная сущность.</param>
-    /// <returns>True, если сущность успешно получена, иначе False.</returns>
+    /// <typeparam name="T">РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё, РЅР°СЃР»РµРґСѓРµРјС‹Р№ РѕС‚ EntityBase.</typeparam>
+    /// <param name="collider">РљРѕР»Р»Р°Р№РґРµСЂ.</param>
+    /// <param name="entity">РќР°Р№РґРµРЅРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ.</param>
+    /// <returns>True, РµСЃР»Рё СЃСѓС‰РЅРѕСЃС‚СЊ СѓСЃРїРµС€РЅРѕ РїРѕР»СѓС‡РµРЅР°, РёРЅР°С‡Рµ False.</returns>
     public static bool TryGetEntity<T>(this Collider collider, out T entity)
         where T : EntityBase
     {
@@ -40,12 +40,12 @@ public static class EntityExtensions
     }
 
     /// <summary>
-    /// Пытается получить сущность из игрового объекта (GameObject).
+    /// РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ РёР· РёРіСЂРѕРІРѕРіРѕ РѕР±СЉРµРєС‚Р° (GameObject).
     /// </summary>
-    /// <typeparam name="T">Тип сущности, наследуемый от EntityBase.</typeparam>
-    /// <param name="gameObject">Игровой объект.</param>
-    /// <param name="entity">Найденная сущность.</param>
-    /// <returns>True, если сущность успешно получена, иначе False.</returns>
+    /// <typeparam name="T">РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё, РЅР°СЃР»РµРґСѓРµРјС‹Р№ РѕС‚ EntityBase.</typeparam>
+    /// <param name="gameObject">РРіСЂРѕРІРѕР№ РѕР±СЉРµРєС‚.</param>
+    /// <param name="entity">РќР°Р№РґРµРЅРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ.</param>
+    /// <returns>True, РµСЃР»Рё СЃСѓС‰РЅРѕСЃС‚СЊ СѓСЃРїРµС€РЅРѕ РїРѕР»СѓС‡РµРЅР°, РёРЅР°С‡Рµ False.</returns>
     public static bool TryGetEntity<T>(this GameObject gameObject, out T entity)
         where T : EntityBase
     {
@@ -57,12 +57,12 @@ public static class EntityExtensions
     }
 
     /// <summary>
-    /// Пытается получить сущность из объекта, если он является GameObject.
+    /// РџС‹С‚Р°РµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ СЃСѓС‰РЅРѕСЃС‚СЊ РёР· РѕР±СЉРµРєС‚Р°, РµСЃР»Рё РѕРЅ СЏРІР»СЏРµС‚СЃСЏ GameObject.
     /// </summary>
-    /// <typeparam name="T">Тип сущности, наследуемый от EntityBase.</typeparam>
-    /// <param name="obj">Произвольный объект.</param>
-    /// <param name="entity">Найденная сущность.</param>
-    /// <returns>True, если объект является GameObject и сущность успешно получена, иначе False.</returns>
+    /// <typeparam name="T">РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё, РЅР°СЃР»РµРґСѓРµРјС‹Р№ РѕС‚ EntityBase.</typeparam>
+    /// <param name="obj">РџСЂРѕРёР·РІРѕР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚.</param>
+    /// <param name="entity">РќР°Р№РґРµРЅРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ.</param>
+    /// <returns>True, РµСЃР»Рё РѕР±СЉРµРєС‚ СЏРІР»СЏРµС‚СЃСЏ GameObject Рё СЃСѓС‰РЅРѕСЃС‚СЊ СѓСЃРїРµС€РЅРѕ РїРѕР»СѓС‡РµРЅР°, РёРЅР°С‡Рµ False.</returns>
     public static bool TryGetEntity<T>(this object obj, out T entity)
         where T : EntityBase
     {

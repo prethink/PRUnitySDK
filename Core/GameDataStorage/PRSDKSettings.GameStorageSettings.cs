@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 public partial class PRSDKSettings
@@ -13,42 +13,42 @@ public partial class PRSDKSettings
 }
 
 /// <summary>
-/// Настройки для сохранения.
+/// РќР°СЃС‚СЂРѕР№РєРё РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ.
 /// </summary>
 [Serializable]
 public class GameStorageSettings
 {
     /// <summary>
-    /// Признак включенного автоматического сохранения данных.
+    /// РџСЂРёР·РЅР°Рє РІРєР»СЋС‡РµРЅРЅРѕРіРѕ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ СЃРѕС…СЂР°РЅРµРЅРёСЏ РґР°РЅРЅС‹С….
     /// </summary>
     [field: SerializeField] public bool EnabledAutoSave { get; private set; }
 
     /// <summary>
-    /// Период автоматического сохранения если оно включено.
+    /// РџРµСЂРёРѕРґ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ СЃРѕС…СЂР°РЅРµРЅРёСЏ РµСЃР»Рё РѕРЅРѕ РІРєР»СЋС‡РµРЅРѕ.
     /// </summary>
     [field: SerializeField] public uint AutoSaveSeconds { get; private set; }
 
     /// <summary>
-    /// Стратегия сохранения/загрузки.
+    /// РЎС‚СЂР°С‚РµРіРёСЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ/Р·Р°РіСЂСѓР·РєРё.
     /// </summary>
     [field: SerializeField] public SaveStrategy SaveStrategy { get; private set; }
 
     /// <summary>
-    /// Признак использования шифрования.
+    /// РџСЂРёР·РЅР°Рє РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ С€РёС„СЂРѕРІР°РЅРёСЏ.
     /// </summary>
     [field: SerializeField] public bool UseEncryption { get; private set; } = true;
 
     /// <summary>
-    /// Стратегия при загрузке шифрованных данных.
+    /// РЎС‚СЂР°С‚РµРіРёСЏ РїСЂРё Р·Р°РіСЂСѓР·РєРµ С€РёС„СЂРѕРІР°РЅРЅС‹С… РґР°РЅРЅС‹С….
     /// </summary>
     [field: SerializeField] public EncryptionLoadingStrategy EncryptionStrategy { get; private set; }
 
     /// <summary>
-    /// Таймаут между попытками сохранения данных.
+    /// РўР°Р№РјР°СѓС‚ РјРµР¶РґСѓ РїРѕРїС‹С‚РєР°РјРё СЃРѕС…СЂР°РЅРµРЅРёСЏ РґР°РЅРЅС‹С….
     /// </summary>
     [field: SerializeField] public long SaveCooldownSeconds { get; private set; }
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     /// <inheridoc />
     public void SetDefaultSettings()

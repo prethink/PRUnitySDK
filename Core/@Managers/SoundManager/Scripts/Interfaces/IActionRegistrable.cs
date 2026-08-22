@@ -1,10 +1,10 @@
-/// <summary>
-/// Общий интерфейс для обозначения объекта.
+п»ї/// <summary>
+/// РћР±С‰РёР№ РёРЅС‚РµСЂС„РµР№СЃ РґР»СЏ РѕР±РѕР·РЅР°С‡РµРЅРёСЏ РѕР±СЉРµРєС‚Р°.
 /// </summary>
 public interface IActionRegistrable
 {
     /// <summary>
-    /// Значение.
+    /// Р—РЅР°С‡РµРЅРёРµ.
     /// </summary>
     string ActionValue { get; }
 }

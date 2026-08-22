@@ -1,4 +1,4 @@
-using UnityEditor;
+п»їusing UnityEditor;
 using UnityEngine;
 
 [CustomPropertyDrawer(typeof(SpritePreviewAttribute))]
@@ -20,7 +20,7 @@ public class SpritePreviewDrawer : PropertyDrawer
         if (sprite == null)
             return;
 
-        // Получаем текстуру превью
+        // РџРѕР»СѓС‡Р°РµРј С‚РµРєСЃС‚СѓСЂСѓ РїСЂРµРІСЊСЋ
         Texture2D texture = AssetPreview.GetAssetPreview(sprite)
                             ?? AssetPreview.GetMiniThumbnail(sprite);
 

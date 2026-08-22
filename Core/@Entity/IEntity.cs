@@ -1,61 +1,61 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 /// <summary>
-/// Сущность.
+/// РЎСѓС‰РЅРѕСЃС‚СЊ.
 /// </summary>
 public partial interface IEntity : ITimeScaleLayer, IComponent
 {
     /// <summary>
-    /// Идентификатор сущности.
+    /// РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public long Id { get; }
 
     /// <summary>
-    /// Информация об сущности
+    /// РРЅС„РѕСЂРјР°С†РёСЏ РѕР± СЃСѓС‰РЅРѕСЃС‚Рё
     /// </summary>
     public EntityInfoContainer Info { get; }
 
     /// <summary>
-    /// Тип сущности.
+    /// РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public Enumeration EntityType { get; }
 
     /// <summary>
-    /// Время жизни сущности.
+    /// Р’СЂРµРјСЏ Р¶РёР·РЅРё СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public EntityLifeTime LifeTime { get; }
 
     /// <summary>
-    /// Находится сущность на сцене.
+    /// РќР°С…РѕРґРёС‚СЃСЏ СЃСѓС‰РЅРѕСЃС‚СЊ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public bool OnScene { get; }
 
     /// <summary>
-    /// Находится сущность на пуле.
+    /// РќР°С…РѕРґРёС‚СЃСЏ СЃСѓС‰РЅРѕСЃС‚СЊ РЅР° РїСѓР»Рµ.
     /// </summary>
     public bool InPool { get; }
 
     /// <summary>
-    /// Генерация идентификатора сущности.
+    /// Р“РµРЅРµСЂР°С†РёСЏ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР° СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
-    /// <param name="register">Регистратор.</param>
+    /// <param name="register">Р РµРіРёСЃС‚СЂР°С‚РѕСЂ.</param>
     public void GenerateId(Func<long> register);
 
     /// <summary>
-    /// Уничтожения сущности.
+    /// РЈРЅРёС‡С‚РѕР¶РµРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public void DestroyEntity();
 
     /// <summary>
-    /// Уничтожения сущности.
+    /// РЈРЅРёС‡С‚РѕР¶РµРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
-    /// <param name="options">Параметры</param>
+    /// <param name="options">РџР°СЂР°РјРµС‚СЂС‹</param>
     public void DestroyEntity(EntityDestroyOptions options);
 
     /// <summary>
-    /// Игровой объект от MonoBehaviour.
-    /// В Unity gameObject идет с маленькой буквы.
+    /// РРіСЂРѕРІРѕР№ РѕР±СЉРµРєС‚ РѕС‚ MonoBehaviour.
+    /// Р’ Unity gameObject РёРґРµС‚ СЃ РјР°Р»РµРЅСЊРєРѕР№ Р±СѓРєРІС‹.
     /// </summary>
     public GameObject gameObject { get; }
 }

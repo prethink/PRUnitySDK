@@ -1,5 +1,5 @@
-/// <summary>
-/// Информация о сущности.
+п»ї/// <summary>
+/// РРЅС„РѕСЂРјР°С†РёСЏ Рѕ СЃСѓС‰РЅРѕСЃС‚Рё.
 /// </summary>
 public interface IEntityInfo : INameProvider, IIconProvider, ILocalizationProvider, IQualityProvider, IComponent
 {

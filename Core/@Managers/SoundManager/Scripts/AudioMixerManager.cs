@@ -1,8 +1,8 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.Audio;
 
 /// <summary>
-/// Менеджер управления аудиомикшером.
+/// РњРµРЅРµРґР¶РµСЂ СѓРїСЂР°РІР»РµРЅРёСЏ Р°СѓРґРёРѕРјРёРєС€РµСЂРѕРј.
 /// </summary>
 public class AudioMixerManager : MonoBehaviour, IReadyGameEvent, IPauseStateListener
 {
@@ -27,19 +27,19 @@ public class AudioMixerManager : MonoBehaviour, IReadyGameEvent, IPauseStateList
         return Mathf.Clamp(value, 0.0001f, 1f);
     }
 
-    // Установка громкости для музыки
+    // РЈСЃС‚Р°РЅРѕРІРєР° РіСЂРѕРјРєРѕСЃС‚Рё РґР»СЏ РјСѓР·С‹РєРё
     public void SetMusicVolume(float value)
     {
         //mixer.SetFloat(MUSIC_MIXER, ChangeValue(value));
     }
 
-    // Установка громкости для эффектов
+    // РЈСЃС‚Р°РЅРѕРІРєР° РіСЂРѕРјРєРѕСЃС‚Рё РґР»СЏ СЌС„С„РµРєС‚РѕРІ
     public void SetEffectVolume(float value)
     {
        // mixer.SetFloat(EFFECT_MIXER, ChangeValue(value));
     }
 
-    // Установка громкости для UI-звуков
+    // РЈСЃС‚Р°РЅРѕРІРєР° РіСЂРѕРјРєРѕСЃС‚Рё РґР»СЏ UI-Р·РІСѓРєРѕРІ
     public void SetUIVolume(float value)
     {
         //mixer.SetFloat(UI_MIXER, ChangeValue(value));

@@ -1,5 +1,5 @@
-/// <summary>
-/// Тип игрока.
+п»ї/// <summary>
+/// РўРёРї РёРіСЂРѕРєР°.
 /// </summary>
 public enum PlayerType
 {

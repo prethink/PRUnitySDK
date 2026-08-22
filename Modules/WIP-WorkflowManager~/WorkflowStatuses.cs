@@ -1,60 +1,60 @@
-/// <summary>
-/// Статусы выполнения рабочего процесса.
+п»ї/// <summary>
+/// РЎС‚Р°С‚СѓСЃС‹ РІС‹РїРѕР»РЅРµРЅРёСЏ СЂР°Р±РѕС‡РµРіРѕ РїСЂРѕС†РµСЃСЃР°.
 /// </summary>
 public class WorkflowStatuses 
 {
     /// <summary>
-    /// Создан.
+    /// РЎРѕР·РґР°РЅ.
     /// </summary>
     public static readonly Enumeration Created = new("Created");   
 
     /// <summary>
-    /// Инициализация.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ.
     /// </summary>
     public static readonly Enumeration Starting = new("Starting");
 
     /// <summary>
-    /// Выполняется.
+    /// Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ.
     /// </summary>
     public static readonly Enumeration Running = new("Running");
 
     /// <summary>
-    /// Приостановленный.
+    /// РџСЂРёРѕСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹Р№.
     /// </summary>
     public static readonly Enumeration Suspended = new("Suspended");
 
     /// <summary>
-    /// Ожидает события.
+    /// РћР¶РёРґР°РµС‚ СЃРѕР±С‹С‚РёСЏ.
     /// </summary>
     public static readonly Enumeration Waiting = new("Waiting");
     
     /// <summary>
-    /// Завершает работу.
+    /// Р—Р°РІРµСЂС€Р°РµС‚ СЂР°Р±РѕС‚Сѓ.
     /// </summary>
     public static readonly Enumeration Completing = new("Completing");
 
     /// <summary>
-    /// Успешно завершен.
+    /// РЈСЃРїРµС€РЅРѕ Р·Р°РІРµСЂС€РµРЅ.
     /// </summary>
     public static readonly Enumeration Completed = new("Completed");
 
     /// <summary>
-    /// Отменяется.
+    /// РћС‚РјРµРЅСЏРµС‚СЃСЏ.
     /// </summary>
     public static readonly Enumeration Canceling = new("Canceling");
     
     /// <summary>
-    /// Отменен.
+    /// РћС‚РјРµРЅРµРЅ.
     /// </summary>
     public static readonly Enumeration Canceled = new("Canceled");
 
     /// <summary>
-    /// Ошибка.
+    /// РћС€РёР±РєР°.
     /// </summary>
     public static readonly Enumeration Faulted = new("Faulted");
     
     /// <summary>
-    /// Прерван.
+    /// РџСЂРµСЂРІР°РЅ.
     /// </summary>
     public static readonly Enumeration Terminated = new("Terminated");
 }

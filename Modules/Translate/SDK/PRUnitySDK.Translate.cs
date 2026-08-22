@@ -1,38 +1,38 @@
-public partial class PRUnitySDK
+п»їpublic partial class PRUnitySDK
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Приоритет.
+    /// РџСЂРёРѕСЂРёС‚РµС‚.
     /// </summary>
     private const int PRIORITY_TRANSLATE = 60;
 
     /// <summary>
-    /// Сервис переводов.
+    /// РЎРµСЂРІРёСЃ РїРµСЂРµРІРѕРґРѕРІ.
     /// </summary>
     public static ILanguageManager LanguageManager;
 
     /// <summary>
-    /// Приоритет.
+    /// РџСЂРёРѕСЂРёС‚РµС‚.
     /// </summary>
     private const int PRIORITY_L_LOCALIZE = 62;
 
     /// <summary>
-    /// Текущий язык.
+    /// РўРµРєСѓС‰РёР№ СЏР·С‹Рє.
     /// </summary>
     public static string CurrentLang => PRUnitySDK.LanguageManager.GetCurrentLang();
 
     /// <summary>
-    /// Язык по умолчанию.
+    /// РЇР·С‹Рє РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.
     /// </summary>
     public static string DefaultLanguage { get; private set; }
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Инициализация модуля.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     /// </summary>
     [MethodHook(MethodHookStage.SDK, PRIORITY_TRANSLATE)]
     private static void InitializeLanguageManager()
@@ -48,7 +48,7 @@ public partial class PRUnitySDK
     }
 
     /// <summary>
-    /// Инициализация модуля.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     /// </summary>
     [MethodHook(MethodHookStage.SDK, PRIORITY_L_LOCALIZE)]
     private static void InitializeLocalization()

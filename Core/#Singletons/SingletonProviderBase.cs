@@ -1,12 +1,12 @@
-using System;
+п»їusing System;
 
 public abstract class SingletonProviderBase<T> 
     where T : class
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Lazy инициализация глобального экземпляра настроек.
+    /// Lazy РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РіР»РѕР±Р°Р»СЊРЅРѕРіРѕ СЌРєР·РµРјРїР»СЏСЂР° РЅР°СЃС‚СЂРѕРµРє.
     /// </summary>
     protected static T instance;
 
@@ -26,10 +26,10 @@ public abstract class SingletonProviderBase<T>
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Установить новый экземпляр глобальных настроек.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ РіР»РѕР±Р°Р»СЊРЅС‹С… РЅР°СЃС‚СЂРѕРµРє.
     /// </summary>
     /// <param name="newInstance"></param>
     public static void Override(T newInstance)

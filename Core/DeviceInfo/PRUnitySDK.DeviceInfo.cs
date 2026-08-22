@@ -1,17 +1,17 @@
-public partial class PRUnitySDK
+п»їpublic partial class PRUnitySDK
 {
     /// <summary>
-    /// Приоритет.
+    /// РџСЂРёРѕСЂРёС‚РµС‚.
     /// </summary>
     private const int PRIORITY_DEVICE_INFO = 30;
 
     /// <summary>
-    /// Информация об устройстве.   
+    /// РРЅС„РѕСЂРјР°С†РёСЏ РѕР± СѓСЃС‚СЂРѕР№СЃС‚РІРµ.   
     /// </summary>
     public static DeviceInfoBase DeviceInfo;
 
     /// <summary>
-    /// Инициализация модуля.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     /// </summary>
     [MethodHook(MethodHookStage.SDK, PRIORITY_DEVICE_INFO)]
     private static void InitializeDeviceInfo()

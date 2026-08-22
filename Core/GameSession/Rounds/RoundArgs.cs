@@ -1,11 +1,11 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 
 public class EndRoundPlayerArgs : EndRoundArgsBase
 {
-    /// <summary> Победивший игрок (если игра одиночная или PvP). </summary>
+    /// <summary> РџРѕР±РµРґРёРІС€РёР№ РёРіСЂРѕРє (РµСЃР»Рё РёРіСЂР° РѕРґРёРЅРѕС‡РЅР°СЏ РёР»Рё PvP). </summary>
     public IPlayer WinnerPlayer { get; set; }
 
-    /// <summary> Все игроки, участвовавшие в раунде. </summary>
+    /// <summary> Р’СЃРµ РёРіСЂРѕРєРё, СѓС‡Р°СЃС‚РІРѕРІР°РІС€РёРµ РІ СЂР°СѓРЅРґРµ. </summary>
     public IReadOnlyList<IPlayer> Participants { get; set; }
 
     public override CategoryPath GetEventId()
@@ -16,13 +16,13 @@ public class EndRoundPlayerArgs : EndRoundArgsBase
 
 public class EndRoundTeamArgs : EndRoundArgsBase
 {
-    /// <summary> Победившая команда (если режим командный). </summary>
+    /// <summary> РџРѕР±РµРґРёРІС€Р°СЏ РєРѕРјР°РЅРґР° (РµСЃР»Рё СЂРµР¶РёРј РєРѕРјР°РЅРґРЅС‹Р№). </summary>
     public IPlayerTeam WinnerTeam { get;  set; }
 
-    /// <summary> Все игроки, участвовавшие в раунде. </summary>
+    /// <summary> Р’СЃРµ РёРіСЂРѕРєРё, СѓС‡Р°СЃС‚РІРѕРІР°РІС€РёРµ РІ СЂР°СѓРЅРґРµ. </summary>
     public IReadOnlyList<PlayerBase> Participants { get; set; }
 
-    /// <summary> Все команды (если применимо). </summary>
+    /// <summary> Р’СЃРµ РєРѕРјР°РЅРґС‹ (РµСЃР»Рё РїСЂРёРјРµРЅРёРјРѕ). </summary>
     public IReadOnlyList<IPlayerTeam> Teams { get;  set; }
 
     public override CategoryPath GetEventId()
@@ -53,17 +53,17 @@ public class StartRoundFactory
 public abstract class RoundArgsBase : GameSessionEventArgsBase
 {
     /// <summary>
-    /// Номер раунда.
+    /// РќРѕРјРµСЂ СЂР°СѓРЅРґР°.
     /// </summary>
     public int RoundNumber { get; set; }
 
     /// <summary>
-    /// Тип раунда.
+    /// РўРёРї СЂР°СѓРЅРґР°.
     /// </summary>
     public RoundType RoundType { get; set; }
 
     /// <summary>
-    /// Дополнительные данные, специфичные для режима. 
+    /// Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ, СЃРїРµС†РёС„РёС‡РЅС‹Рµ РґР»СЏ СЂРµР¶РёРјР°. 
     /// </summary>
     public Dictionary<string, object> CustomData { get; protected set; } = new();
 

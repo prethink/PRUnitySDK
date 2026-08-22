@@ -1,8 +1,8 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 
 public class DummyMetric : MetricBase
 {
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     public override void Send(string eventName) { }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public partial class PRSDKSettings : ScriptableObjectSingleton<PRSDKSettings>
 {
@@ -7,5 +7,5 @@ public partial class PRSDKSettings : ScriptableObjectSingleton<PRSDKSettings>
     [field: SerializeField] public DefaultSettings Default { get; protected set; } = new();
     [field: SerializeField] public BotSettings Bot { get; protected set; } = new();
     [field: SerializeField] public SceneTransitionSettings SceneTransition { get; protected set; } = new();
-    [field: SerializeField, Tooltip("Настройки качества")] public PRQualitySettings Quality { get; protected set; } = new();
+    [field: SerializeField, Tooltip("РќР°СЃС‚СЂРѕР№РєРё РєР°С‡РµСЃС‚РІР°")] public PRQualitySettings Quality { get; protected set; } = new();
 }

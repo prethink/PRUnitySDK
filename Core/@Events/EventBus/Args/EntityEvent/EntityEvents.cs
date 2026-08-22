@@ -1,25 +1,25 @@
-/// <summary>
-/// Предоставляет высокоуровневые доменные события, связанные с изменением состояния сущности.
+п»ї/// <summary>
+/// РџСЂРµРґРѕСЃС‚Р°РІР»СЏРµС‚ РІС‹СЃРѕРєРѕСѓСЂРѕРІРЅРµРІС‹Рµ РґРѕРјРµРЅРЅС‹Рµ СЃРѕР±С‹С‚РёСЏ, СЃРІСЏР·Р°РЅРЅС‹Рµ СЃ РёР·РјРµРЅРµРЅРёРµРј СЃРѕСЃС‚РѕСЏРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚Рё.
 /// </summary>
 public static class EntityEvents
 {
     /// <summary>
-    /// Уведомляет подписчиков о необходимости общего обновления сущности.
+    /// РЈРІРµРґРѕРјР»СЏРµС‚ РїРѕРґРїРёСЃС‡РёРєРѕРІ Рѕ РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РѕР±С‰РµРіРѕ РѕР±РЅРѕРІР»РµРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚Рё.
     /// </summary>
     public static void Refresh(IEntity entity) => EventBus.RaiseEvent<IEntityRefreshEvent>(invoke => invoke.RefreshEntity(new EntityRefreshEventArgs(entity)));
 
     /// <summary>
-    /// Уведомляет подписчиков о том, что характеристики сущности изменились и требуют пересчёта.
+    /// РЈРІРµРґРѕРјР»СЏРµС‚ РїРѕРґРїРёСЃС‡РёРєРѕРІ Рѕ С‚РѕРј, С‡С‚Рѕ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё СЃСѓС‰РЅРѕСЃС‚Рё РёР·РјРµРЅРёР»РёСЃСЊ Рё С‚СЂРµР±СѓСЋС‚ РїРµСЂРµСЃС‡С‘С‚Р°.
     /// </summary>
     public static void RefreshStats(IEntity entity) => EventBus.RaiseEvent<IEntityRefreshEvent>(invoke => invoke.RefreshEntity(new EntityRefreshStatsEventArgs(entity)));
 
     /// <summary>
-    /// Уведомляет подписчиков о том, что флаги состояния сущности изменились и требуют переоценки.
+    /// РЈРІРµРґРѕРјР»СЏРµС‚ РїРѕРґРїРёСЃС‡РёРєРѕРІ Рѕ С‚РѕРј, С‡С‚Рѕ С„Р»Р°РіРё СЃРѕСЃС‚РѕСЏРЅРёСЏ СЃСѓС‰РЅРѕСЃС‚Рё РёР·РјРµРЅРёР»РёСЃСЊ Рё С‚СЂРµР±СѓСЋС‚ РїРµСЂРµРѕС†РµРЅРєРё.
     /// </summary>
     public static void RefreshFlags(IEntity entity) => EventBus.RaiseEvent<IEntityRefreshEvent>(invoke => invoke.RefreshEntity(new EntityRefreshFlagsEventArgs(entity)));
 
     /// <summary>
-    /// Вызывает событие изменения экипировки сущности (оружие, броня, питомец и т.д.).
+    /// Р’С‹Р·С‹РІР°РµС‚ СЃРѕР±С‹С‚РёРµ РёР·РјРµРЅРµРЅРёСЏ СЌРєРёРїРёСЂРѕРІРєРё СЃСѓС‰РЅРѕСЃС‚Рё (РѕСЂСѓР¶РёРµ, Р±СЂРѕРЅСЏ, РїРёС‚РѕРјРµС† Рё С‚.Рґ.).
     /// </summary>
     public static void EquipmentChanged(IEntity entity) => EventBus.RaiseEvent<IEntityEquipmentChangedEvent>(invoke => invoke.OnEntityEquipmentChanged(new EntityEquipmentChangedEventArgs(entity)));
 }

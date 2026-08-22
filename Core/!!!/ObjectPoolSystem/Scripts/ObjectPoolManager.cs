@@ -1,19 +1,19 @@
-using System;
+п»їusing System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Система пула объектов на сцене.
+/// РЎРёСЃС‚РµРјР° РїСѓР»Р° РѕР±СЉРµРєС‚РѕРІ РЅР° СЃС†РµРЅРµ.
 /// </summary>
 public class ObjectPoolManager : MonoBehaviour
 {
-    #region Вложенные типы
+    #region Р’Р»РѕР¶РµРЅРЅС‹Рµ С‚РёРїС‹
 
     /// <summary>
-    /// Составной ключ пула: тип + категория. Используется вместо вложенных словарей,
-    /// чтобы не дублировать поиск по двум уровням в каждом методе.
+    /// РЎРѕСЃС‚Р°РІРЅРѕР№ РєР»СЋС‡ РїСѓР»Р°: С‚РёРї + РєР°С‚РµРіРѕСЂРёСЏ. РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІРјРµСЃС‚Рѕ РІР»РѕР¶РµРЅРЅС‹С… СЃР»РѕРІР°СЂРµР№,
+    /// С‡С‚РѕР±С‹ РЅРµ РґСѓР±Р»РёСЂРѕРІР°С‚СЊ РїРѕРёСЃРє РїРѕ РґРІСѓРј СѓСЂРѕРІРЅСЏРј РІ РєР°Р¶РґРѕРј РјРµС‚РѕРґРµ.
     /// </summary>
     private readonly struct PoolKey : IEquatable<PoolKey>
     {
@@ -41,7 +41,7 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Данные одного зарегистрированного пула: очередь свободных объектов и исходные префабы.
+    /// Р”Р°РЅРЅС‹Рµ РѕРґРЅРѕРіРѕ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРЅРѕРіРѕ РїСѓР»Р°: РѕС‡РµСЂРµРґСЊ СЃРІРѕР±РѕРґРЅС‹С… РѕР±СЉРµРєС‚РѕРІ Рё РёСЃС…РѕРґРЅС‹Рµ РїСЂРµС„Р°Р±С‹.
     /// </summary>
     private class PoolEntry
     {
@@ -52,40 +52,40 @@ public class ObjectPoolManager : MonoBehaviour
 
     #endregion
 
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Группа частиц.
+    /// Р“СЂСѓРїРїР° С‡Р°СЃС‚РёС†.
     /// </summary>
     [SerializeField] private Transform particles;
 
     /// <summary>
-    /// Группа игровых объектов.
+    /// Р“СЂСѓРїРїР° РёРіСЂРѕРІС‹С… РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
     [SerializeField] private Transform gameObjects;
 
     /// <summary>
-    /// Все зарегистрированные пулы, ключ — тип + категория.
+    /// Р’СЃРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРЅС‹Рµ РїСѓР»С‹, РєР»СЋС‡ вЂ” С‚РёРї + РєР°С‚РµРіРѕСЂРёСЏ.
     /// </summary>
     private readonly Dictionary<PoolKey, PoolEntry> pools = new();
 
     /// <summary>
-    /// Объекты, вытянутые из очереди и находящиеся на сцене.
+    /// РћР±СЉРµРєС‚С‹, РІС‹С‚СЏРЅСѓС‚С‹Рµ РёР· РѕС‡РµСЂРµРґРё Рё РЅР°С…РѕРґСЏС‰РёРµСЃСЏ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     private readonly List<PoolObject> objectOnScene = new();
 
     /// <summary>
-    /// Запущенные корутины возврата объектов по истечении времени жизни.
+    /// Р—Р°РїСѓС‰РµРЅРЅС‹Рµ РєРѕСЂСѓС‚РёРЅС‹ РІРѕР·РІСЂР°С‚Р° РѕР±СЉРµРєС‚РѕРІ РїРѕ РёСЃС‚РµС‡РµРЅРёРё РІСЂРµРјРµРЅРё Р¶РёР·РЅРё.
     /// </summary>
     private readonly Dictionary<Guid, Coroutine> runningCoroutines = new();
 
     /// <summary>
-    /// Формирует отчёт по всем пулам: сколько объектов создано, сколько активно, сколько в резерве.
+    /// Р¤РѕСЂРјРёСЂСѓРµС‚ РѕС‚С‡С‘С‚ РїРѕ РІСЃРµРј РїСѓР»Р°Рј: СЃРєРѕР»СЊРєРѕ РѕР±СЉРµРєС‚РѕРІ СЃРѕР·РґР°РЅРѕ, СЃРєРѕР»СЊРєРѕ Р°РєС‚РёРІРЅРѕ, СЃРєРѕР»СЊРєРѕ РІ СЂРµР·РµСЂРІРµ.
     /// </summary>
     public List<PoolSystemTableData> GenerateReport()
     {
-        // Считаем активные объекты один раз, а не заново для каждого пула,
-        // как это было раньше (Count() внутри двойного foreach).
+        // РЎС‡РёС‚Р°РµРј Р°РєС‚РёРІРЅС‹Рµ РѕР±СЉРµРєС‚С‹ РѕРґРёРЅ СЂР°Р·, Р° РЅРµ Р·Р°РЅРѕРІРѕ РґР»СЏ РєР°Р¶РґРѕРіРѕ РїСѓР»Р°,
+        // РєР°Рє СЌС‚Рѕ Р±С‹Р»Рѕ СЂР°РЅСЊС€Рµ (Count() РІРЅСѓС‚СЂРё РґРІРѕР№РЅРѕРіРѕ foreach).
         var activeCounts = new Dictionary<PoolKey, int>();
         foreach (var obj in objectOnScene)
         {
@@ -115,78 +115,78 @@ public class ObjectPoolManager : MonoBehaviour
 
     #endregion
 
-    #region Регистрация пулов
+    #region Р РµРіРёСЃС‚СЂР°С†РёСЏ РїСѓР»РѕРІ
 
     /// <summary>
-    /// Регистрирует новый пул объектов.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
-    /// <param name="type">Компонент, для которого регистрируется пул объектов.</param>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="obj">Префаб объекта.</param>
-    /// <param name="count">Количество объектов для создания (по умолчанию 1).</param>
+    /// <param name="type">РљРѕРјРїРѕРЅРµРЅС‚, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ РїСѓР» РѕР±СЉРµРєС‚РѕРІ.</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="obj">РџСЂРµС„Р°Р± РѕР±СЉРµРєС‚Р°.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(string type, string category, GameObject obj, int count = 1)
         => RegisterPoolObject(type, category, new List<GameObject> { obj }, count);
 
     /// <summary>
-    /// Регистрирует новый пул объектов под типом MonoBehaviour.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ РїРѕРґ С‚РёРїРѕРј MonoBehaviour.
     /// </summary>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="obj">Префаб объекта.</param>
-    /// <param name="count">Количество объектов для создания (по умолчанию 1).</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="obj">РџСЂРµС„Р°Р± РѕР±СЉРµРєС‚Р°.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(string category, GameObject obj, int count = 1)
         => RegisterPoolObject(DefaultTypeKey, category, new List<GameObject> { obj }, count);
 
     /// <summary>
-    /// Регистрирует новый пул объектов под типом MonoBehaviour.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ РїРѕРґ С‚РёРїРѕРј MonoBehaviour.
     /// </summary>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="objs">Префабы объектов.</param>
-    /// <param name="count">Количество объектов для создания (по умолчанию 1).</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="objs">РџСЂРµС„Р°Р±С‹ РѕР±СЉРµРєС‚РѕРІ.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(string category, List<GameObject> objs, int count = 1)
         => RegisterPoolObject(DefaultTypeKey, category, objs, count);
 
     /// <summary>
-    /// Регистрирует новый пул объектов.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
-    /// <param name="component">Компонент, чей тип используется как ключ пула.</param>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="obj">Префаб объекта.</param>
-    /// <param name="count">Количество объектов для создания (по умолчанию 1).</param>
+    /// <param name="component">РљРѕРјРїРѕРЅРµРЅС‚, С‡РµР№ С‚РёРї РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєР°Рє РєР»СЋС‡ РїСѓР»Р°.</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="obj">РџСЂРµС„Р°Р± РѕР±СЉРµРєС‚Р°.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(Component component, string category, GameObject obj, int count = 1)
         => RegisterPoolObject(TypeKeyOf(component), category, new List<GameObject> { obj }, count);
 
     /// <summary>
-    /// Регистрирует новый пул объектов.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
-    /// <param name="component">Компонент, чей тип используется как ключ пула.</param>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="objects">Префабы объектов.</param>
-    /// <param name="count">Количество объектов для создания (по умолчанию 1).</param>
+    /// <param name="component">РљРѕРјРїРѕРЅРµРЅС‚, С‡РµР№ С‚РёРї РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєР°Рє РєР»СЋС‡ РїСѓР»Р°.</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="objects">РџСЂРµС„Р°Р±С‹ РѕР±СЉРµРєС‚РѕРІ.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(Component component, string category, List<GameObject> objects, int count = 1)
         => RegisterPoolObject(TypeKeyOf(component), category, objects, count);
 
     /// <summary>
-    /// Регистрирует новый пул объектов.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
-    /// <param name="type">Тип, используемый как ключ пула.</param>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="obj">Префаб объекта.</param>
-    /// <param name="count">Количество объектов для создания (по умолчанию 1).</param>
+    /// <param name="type">РўРёРї, РёСЃРїРѕР»СЊР·СѓРµРјС‹Р№ РєР°Рє РєР»СЋС‡ РїСѓР»Р°.</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="obj">РџСЂРµС„Р°Р± РѕР±СЉРµРєС‚Р°.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(Type type, string category, GameObject obj, int count = 1)
         => RegisterPoolObject(type.ToString(), category, new List<GameObject> { obj }, count);
 
     /// <summary>
-    /// Регистрирует новый пул объектов. Основная реализация — все остальные перегрузки сводятся к ней.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РЅРѕРІС‹Р№ РїСѓР» РѕР±СЉРµРєС‚РѕРІ. РћСЃРЅРѕРІРЅР°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ вЂ” РІСЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ РїРµСЂРµРіСЂСѓР·РєРё СЃРІРѕРґСЏС‚СЃСЏ Рє РЅРµР№.
     /// </summary>
-    /// <param name="type">Тип, используемый как ключ пула.</param>
-    /// <param name="category">Категория пула.</param>
-    /// <param name="objects">Префабы объектов (случайно выбираются при создании экземпляра).</param>
-    /// <param name="count">Желаемое количество объектов в пуле (по умолчанию 1).</param>
+    /// <param name="type">РўРёРї, РёСЃРїРѕР»СЊР·СѓРµРјС‹Р№ РєР°Рє РєР»СЋС‡ РїСѓР»Р°.</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РїСѓР»Р°.</param>
+    /// <param name="objects">РџСЂРµС„Р°Р±С‹ РѕР±СЉРµРєС‚РѕРІ (СЃР»СѓС‡Р°Р№РЅРѕ РІС‹Р±РёСЂР°СЋС‚СЃСЏ РїСЂРё СЃРѕР·РґР°РЅРёРё СЌРєР·РµРјРїР»СЏСЂР°).</param>
+    /// <param name="count">Р–РµР»Р°РµРјРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РІ РїСѓР»Рµ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 1).</param>
     public void RegisterPoolObject(string type, string category, List<GameObject> objects, int count = 1)
     {
         if (objects == null || objects.Count == 0)
         {
-            Debug.LogError($"[ObjectPoolManager] Не удалось зарегистрировать пул '{type}/{category}': список префабов пуст.");
+            Debug.LogError($"[ObjectPoolManager] РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊ РїСѓР» '{type}/{category}': СЃРїРёСЃРѕРє РїСЂРµС„Р°Р±РѕРІ РїСѓСЃС‚.");
             return;
         }
 
@@ -197,8 +197,8 @@ public class ObjectPoolManager : MonoBehaviour
 
         if (pools.TryGetValue(key, out var entry))
         {
-            // Пул уже существует — при необходимости досоздаём недостающие объекты.
-            // Раньше эта проверка была недостижима из-за раннего return в начале метода.
+            // РџСѓР» СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ вЂ” РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РґРѕСЃРѕР·РґР°С‘Рј РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ РѕР±СЉРµРєС‚С‹.
+            // Р Р°РЅСЊС€Рµ СЌС‚Р° РїСЂРѕРІРµСЂРєР° Р±С‹Р»Р° РЅРµРґРѕСЃС‚РёР¶РёРјР° РёР·-Р·Р° СЂР°РЅРЅРµРіРѕ return РІ РЅР°С‡Р°Р»Рµ РјРµС‚РѕРґР°.
             var missing = count - entry.Queue.Count;
             if (missing > 0)
                 StartCoroutine(InstantiateObjects(entry, missing));
@@ -212,106 +212,106 @@ public class ObjectPoolManager : MonoBehaviour
 
     #endregion
 
-    #region Отображение объектов
+    #region РћС‚РѕР±СЂР°Р¶РµРЅРёРµ РѕР±СЉРµРєС‚РѕРІ
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(string category, Transform transform, Vector3 scaler)
         => ShowObject(DefaultTypeKey, category, transform.position, transform.rotation, scaler, transform);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Type type, string category, Transform transform, Vector3 scaler)
         => ShowObject(type.ToString(), category, transform.position, transform.rotation, scaler, transform);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Type type, string category, Transform transform)
         => ShowObject(type.ToString(), category, transform.position, transform.rotation, Vector3.one, transform);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Type type, string category, Vector3 position)
         => ShowObject(type.ToString(), category, position, Quaternion.identity, Vector3.one, null);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Type type, string category, Vector3 position, Vector3 scaler)
         => ShowObject(type.ToString(), category, position, Quaternion.identity, scaler, null);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Component component, string category, Transform transform, Vector3 scaler)
         => ShowObject(TypeKeyOf(component), category, transform.position, transform.rotation, scaler, transform);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Component component, string category, Transform transform)
         => ShowObject(TypeKeyOf(component), category, transform.position, transform.rotation, Vector3.one, null);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Component component, string category, Vector3 position)
         => ShowObject(TypeKeyOf(component), category, position, Quaternion.identity, Vector3.one, null);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(Component component, string category, Vector3 position, Vector3 scaler)
         => ShowObject(TypeKeyOf(component), category, position, Quaternion.identity, scaler, null);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(string category, Transform transform)
         => ShowObject(DefaultTypeKey, category, transform.position, transform.rotation, Vector3.one, transform);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(string category, Vector3 position)
         => ShowObject(DefaultTypeKey, category, position, Quaternion.identity, Vector3.one, null);
 
     /// <summary>
-    /// Отображает объект на сцене.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ.
     /// </summary>
     public PoolObject ShowObject(string category, Vector3 position, Vector3 scaler)
         => ShowObject(DefaultTypeKey, category, position, Quaternion.identity, scaler, null);
 
     /// <summary>
-    /// Отображает объект на сцене в позиции (0,0,0) без родителя.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ РІ РїРѕР·РёС†РёРё (0,0,0) Р±РµР· СЂРѕРґРёС‚РµР»СЏ.
     /// </summary>
     public PoolObject ShowObject(string category)
         => ShowObject(DefaultTypeKey, category, Vector3.zero, Quaternion.identity, Vector3.one, null);
 
     /// <summary>
-    /// Отображает объект на сцене. Основная реализация — все остальные перегрузки сводятся к ней.
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РѕР±СЉРµРєС‚ РЅР° СЃС†РµРЅРµ. РћСЃРЅРѕРІРЅР°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ вЂ” РІСЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ РїРµСЂРµРіСЂСѓР·РєРё СЃРІРѕРґСЏС‚СЃСЏ Рє РЅРµР№.
     /// </summary>
-    /// <param name="type">Тип, используемый как ключ пула.</param>
-    /// <param name="category">Категория объекта.</param>
-    /// <param name="position">Локальная позиция.</param>
-    /// <param name="rotation">Локальное вращение.</param>
-    /// <param name="scaler">Локальный размер.</param>
-    /// <param name="parent">Родительский transform (может быть null).</param>
-    /// <returns>Объект пула, либо null, если пул с таким ключом не зарегистрирован.</returns>
+    /// <param name="type">РўРёРї, РёСЃРїРѕР»СЊР·СѓРµРјС‹Р№ РєР°Рє РєР»СЋС‡ РїСѓР»Р°.</param>
+    /// <param name="category">РљР°С‚РµРіРѕСЂРёСЏ РѕР±СЉРµРєС‚Р°.</param>
+    /// <param name="position">Р›РѕРєР°Р»СЊРЅР°СЏ РїРѕР·РёС†РёСЏ.</param>
+    /// <param name="rotation">Р›РѕРєР°Р»СЊРЅРѕРµ РІСЂР°С‰РµРЅРёРµ.</param>
+    /// <param name="scaler">Р›РѕРєР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ.</param>
+    /// <param name="parent">Р РѕРґРёС‚РµР»СЊСЃРєРёР№ transform (РјРѕР¶РµС‚ Р±С‹С‚СЊ null).</param>
+    /// <returns>РћР±СЉРµРєС‚ РїСѓР»Р°, Р»РёР±Рѕ null, РµСЃР»Рё РїСѓР» СЃ С‚Р°РєРёРј РєР»СЋС‡РѕРј РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ.</returns>
     public PoolObject ShowObject(string type, string category, Vector3 position, Quaternion rotation, Vector3 scaler, Transform parent)
     {
         var key = new PoolKey(type, category);
         if (!pools.TryGetValue(key, out var entry))
         {
-            Debug.LogError($"[ObjectPoolManager] Пул '{key}' не зарегистрирован. Сначала вызовите RegisterPoolObject.");
+            Debug.LogError($"[ObjectPoolManager] РџСѓР» '{key}' РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ. РЎРЅР°С‡Р°Р»Р° РІС‹Р·РѕРІРёС‚Рµ RegisterPoolObject.");
             return null;
         }
 
-        // Если очередь пуста или объект был уничтожен извне (например, при смене сцены) — досоздаём один экземпляр.
+        // Р•СЃР»Рё РѕС‡РµСЂРµРґСЊ РїСѓСЃС‚Р° РёР»Рё РѕР±СЉРµРєС‚ Р±С‹Р» СѓРЅРёС‡С‚РѕР¶РµРЅ РёР·РІРЅРµ (РЅР°РїСЂРёРјРµСЂ, РїСЂРё СЃРјРµРЅРµ СЃС†РµРЅС‹) вЂ” РґРѕСЃРѕР·РґР°С‘Рј РѕРґРёРЅ СЌРєР·РµРјРїР»СЏСЂ.
         while (entry.Queue.Count > 0 && entry.Queue.Peek().InstanceGameObject == null)
             entry.Queue.Dequeue();
 
@@ -409,10 +409,10 @@ public class ObjectPoolManager : MonoBehaviour
 
     #endregion
 
-    #region Внутренняя логика
+    #region Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ Р»РѕРіРёРєР°
 
     /// <summary>
-    /// Строковый ключ типа по умолчанию — используется, когда вызывающий код не привязан к конкретному компоненту.
+    /// РЎС‚СЂРѕРєРѕРІС‹Р№ РєР»СЋС‡ С‚РёРїР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, РєРѕРіРґР° РІС‹Р·С‹РІР°СЋС‰РёР№ РєРѕРґ РЅРµ РїСЂРёРІСЏР·Р°РЅ Рє РєРѕРЅРєСЂРµС‚РЅРѕРјСѓ РєРѕРјРїРѕРЅРµРЅС‚Сѓ.
     /// </summary>
     private static string DefaultTypeKey { get; } = typeof(MonoBehaviour).ToString();
 
@@ -422,17 +422,17 @@ public class ObjectPoolManager : MonoBehaviour
         entry.Prefabs[UnityEngine.Random.Range(0, entry.Prefabs.Count)];
 
     /// <summary>
-    /// Корутина создания объектов в пуле.
+    /// РљРѕСЂСѓС‚РёРЅР° СЃРѕР·РґР°РЅРёСЏ РѕР±СЉРµРєС‚РѕРІ РІ РїСѓР»Рµ.
     /// </summary>
-    /// <param name="entry">Пул, в который добавляются объекты.</param>
-    /// <param name="count">Количество объектов для создания.</param>
+    /// <param name="entry">РџСѓР», РІ РєРѕС‚РѕСЂС‹Р№ РґРѕР±Р°РІР»СЏСЋС‚СЃСЏ РѕР±СЉРµРєС‚С‹.</param>
+    /// <param name="count">РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЉРµРєС‚РѕРІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ.</param>
     private IEnumerator InstantiateObjects(PoolEntry entry, int count)
     {
-        // Раньше здесь была отдельная проверка objects.Count == 0 без учёта null,
-        // что приводило к NullReferenceException, если objects == null.
+        // Р Р°РЅСЊС€Рµ Р·РґРµСЃСЊ Р±С‹Р»Р° РѕС‚РґРµР»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР° objects.Count == 0 Р±РµР· СѓС‡С‘С‚Р° null,
+        // С‡С‚Рѕ РїСЂРёРІРѕРґРёР»Рѕ Рє NullReferenceException, РµСЃР»Рё objects == null.
         if (count < 1 || entry?.Prefabs == null || entry.Prefabs.Count == 0)
         {
-            Debug.LogError("[ObjectPoolManager] Невозможно создать объекты пула: некорректные входные данные.");
+            Debug.LogError("[ObjectPoolManager] РќРµРІРѕР·РјРѕР¶РЅРѕ СЃРѕР·РґР°С‚СЊ РѕР±СЉРµРєС‚С‹ РїСѓР»Р°: РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РІС…РѕРґРЅС‹Рµ РґР°РЅРЅС‹Рµ.");
             yield break;
         }
 
@@ -447,10 +447,10 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Создаёт экземпляр объекта и кладёт его в очередь пула.
+    /// РЎРѕР·РґР°С‘С‚ СЌРєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р° Рё РєР»Р°РґС‘С‚ РµРіРѕ РІ РѕС‡РµСЂРµРґСЊ РїСѓР»Р°.
     /// </summary>
-    /// <param name="entry">Пул, в который добавляется созданный объект (хранит ключ типа/категории).</param>
-    /// <param name="prefab">Префаб, из которого создаётся экземпляр.</param>
+    /// <param name="entry">РџСѓР», РІ РєРѕС‚РѕСЂС‹Р№ РґРѕР±Р°РІР»СЏРµС‚СЃСЏ СЃРѕР·РґР°РЅРЅС‹Р№ РѕР±СЉРµРєС‚ (С…СЂР°РЅРёС‚ РєР»СЋС‡ С‚РёРїР°/РєР°С‚РµРіРѕСЂРёРё).</param>
+    /// <param name="prefab">РџСЂРµС„Р°Р±, РёР· РєРѕС‚РѕСЂРѕРіРѕ СЃРѕР·РґР°С‘С‚СЃСЏ СЌРєР·РµРјРїР»СЏСЂ.</param>
     private void CreateInstance(PoolEntry entry, GameObject prefab)
     {
         var instance = PRUnitySDK.Instantiate(prefab);
@@ -467,12 +467,12 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Очистка данных при смене сцены.
+    /// РћС‡РёСЃС‚РєР° РґР°РЅРЅС‹С… РїСЂРё СЃРјРµРЅРµ СЃС†РµРЅС‹.
     /// </summary>
     private void OnSceneEnd(string currentScene, string nextScene) => ClearData();
 
     /// <summary>
-    /// Полностью очищает все пулы, останавливает корутины и уничтожает объекты.
+    /// РџРѕР»РЅРѕСЃС‚СЊСЋ РѕС‡РёС‰Р°РµС‚ РІСЃРµ РїСѓР»С‹, РѕСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РєРѕСЂСѓС‚РёРЅС‹ Рё СѓРЅРёС‡С‚РѕР¶Р°РµС‚ РѕР±СЉРµРєС‚С‹.
     /// </summary>
     public void ClearData()
     {
@@ -504,7 +504,7 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Корутина возврата объекта в пул по истечении времени жизни.
+    /// РљРѕСЂСѓС‚РёРЅР° РІРѕР·РІСЂР°С‚Р° РѕР±СЉРµРєС‚Р° РІ РїСѓР» РїРѕ РёСЃС‚РµС‡РµРЅРёРё РІСЂРµРјРµРЅРё Р¶РёР·РЅРё.
     /// </summary>
     private IEnumerator BackToQueue(PoolObject poolObject)
     {
@@ -514,10 +514,10 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Уничтожение объекта пула — возвращает его обратно в очередь (либо уничтожает полностью).
+    /// РЈРЅРёС‡С‚РѕР¶РµРЅРёРµ РѕР±СЉРµРєС‚Р° РїСѓР»Р° вЂ” РІРѕР·РІСЂР°С‰Р°РµС‚ РµРіРѕ РѕР±СЂР°С‚РЅРѕ РІ РѕС‡РµСЂРµРґСЊ (Р»РёР±Рѕ СѓРЅРёС‡С‚РѕР¶Р°РµС‚ РїРѕР»РЅРѕСЃС‚СЊСЋ).
     /// </summary>
-    /// <param name="poolObject">Объект пула для возврата.</param>
-    /// <param name="fullDestroy">Если true — объект не возвращается в очередь (используется при полном удалении).</param>
+    /// <param name="poolObject">РћР±СЉРµРєС‚ РїСѓР»Р° РґР»СЏ РІРѕР·РІСЂР°С‚Р°.</param>
+    /// <param name="fullDestroy">Р•СЃР»Рё true вЂ” РѕР±СЉРµРєС‚ РЅРµ РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ РІ РѕС‡РµСЂРµРґСЊ (РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРё РїРѕР»РЅРѕРј СѓРґР°Р»РµРЅРёРё).</param>
     public void OnObjectDestroy(PoolObject poolObject, bool fullDestroy = false)
     {
         if (poolObject == null)
@@ -536,12 +536,12 @@ public class ObjectPoolManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"[ObjectPoolManager] Не найден пул с ключом '{key}'.");
+            Debug.LogError($"[ObjectPoolManager] РќРµ РЅР°Р№РґРµРЅ РїСѓР» СЃ РєР»СЋС‡РѕРј '{key}'.");
         }
     }
 
     /// <summary>
-    /// Уничтожение объекта по ссылке на GameObject.
+    /// РЈРЅРёС‡С‚РѕР¶РµРЅРёРµ РѕР±СЉРµРєС‚Р° РїРѕ СЃСЃС‹Р»РєРµ РЅР° GameObject.
     /// </summary>
     public void OnObjectDestroy(GameObject obj)
     {

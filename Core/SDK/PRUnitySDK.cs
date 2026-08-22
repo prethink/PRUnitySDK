@@ -1,42 +1,42 @@
-public sealed partial class PRUnitySDK
+п»їpublic sealed partial class PRUnitySDK
 {
     /// <summary>
-    /// Настройки.
+    /// РќР°СЃС‚СЂРѕР№РєРё.
     /// </summary>
     public static PRSDKSettings Settings => PRSDKSettings.Instance;
 
     /// <summary>
-    /// База данных.
+    /// Р‘Р°Р·Р° РґР°РЅРЅС‹С….
     /// </summary>
     public static PRSDKDatabase Database => PRSDKDatabase.Instance;
 
     /// <summary>
-    /// Утилиты.
+    /// РЈС‚РёР»РёС‚С‹.
     /// </summary>
     public static PRUtils Utils => PRUtils.Instance;
 
     /// <summary>
-    /// Трекеры.
+    /// РўСЂРµРєРµСЂС‹.
     /// </summary>
     public static PRTrackers Trackers = new();
 
     /// <summary>
-    /// Менеджеры.
+    /// РњРµРЅРµРґР¶РµСЂС‹.
     /// </summary>
     public readonly static PRManagerContainer Managers = new();
 
     /// <summary>
-    /// Менеджеры.
+    /// РњРµРЅРµРґР¶РµСЂС‹.
     /// </summary>
     public readonly static PRWindowsContainer Windows = new();
 
     /// <summary>
-    /// Пути для ресурсов.
+    /// РџСѓС‚Рё РґР»СЏ СЂРµСЃСѓСЂСЃРѕРІ.
     /// </summary>
     public readonly static ResourcePaths ResourcePaths = new();
 
     /// <summary>
-    /// Сервис управления паузой.
+    /// РЎРµСЂРІРёСЃ СѓРїСЂР°РІР»РµРЅРёСЏ РїР°СѓР·РѕР№.
     /// </summary>
     public static IPauseManager PauseManager => PauseProvider.Instance;
 }

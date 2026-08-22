@@ -1,12 +1,12 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using YG;
 
 /// <summary>
-/// Реализация метрик для YGPlugin.
+/// Р РµР°Р»РёР·Р°С†РёСЏ РјРµС‚СЂРёРє РґР»СЏ YGPlugin.
 /// </summary>
 public class YGMetrics : MetricBase
 {
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     /// <inheritdoc />
     public override void Send(string eventName)

@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,10 +7,10 @@ public static class L
     private static ILanguageManager languageTranslator;
 
     /// <summary>
-    /// Получить текущий перевод.
+    /// РџРѕР»СѓС‡РёС‚СЊ С‚РµРєСѓС‰РёР№ РїРµСЂРµРІРѕРґ.
     /// </summary>
     /// <param name="key"></param>
-    /// <param name="args">Аргументы.</param>
+    /// <param name="args">РђСЂРіСѓРјРµРЅС‚С‹.</param>
     /// <returns></returns>
     public static string Tr(string key, params string[] args)
     {

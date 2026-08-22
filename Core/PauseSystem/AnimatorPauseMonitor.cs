@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 public class AnimatorPauseMonitor : MonoBehaviour, IPauseStateListener
@@ -38,7 +38,7 @@ public class AnimatorPauseMonitor : MonoBehaviour, IPauseStateListener
             return;
 
         animators.Add(animator);
-        OnPauseStateChanged(new PauseStateEventArgs()); // если сразу надо применить
+        OnPauseStateChanged(new PauseStateEventArgs()); // РµСЃР»Рё СЃСЂР°Р·Сѓ РЅР°РґРѕ РїСЂРёРјРµРЅРёС‚СЊ
     }
 
     private void PauseAnimators()

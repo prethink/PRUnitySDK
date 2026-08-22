@@ -1,23 +1,23 @@
-using UnityEngine.SceneManagement;
+п»їusing UnityEngine.SceneManagement;
 
 //public static class BootstrapInitializer
 //{
-//    // Флаг, чтобы инициализация сработала только один раз
+//    // Р¤Р»Р°Рі, С‡С‚РѕР±С‹ РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃСЂР°Р±РѕС‚Р°Р»Р° С‚РѕР»СЊРєРѕ РѕРґРёРЅ СЂР°Р·
 //    private static bool _initialized = false;
 
-//    // Этот метод сработает **до всех Awake**
+//    // Р­С‚РѕС‚ РјРµС‚РѕРґ СЃСЂР°Р±РѕС‚Р°РµС‚ **РґРѕ РІСЃРµС… Awake**
 //    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
 //    private static void Initialize()
 //    {
-//        // Если уже инициализировано — выходим
+//        // Р•СЃР»Рё СѓР¶Рµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅРѕ вЂ” РІС‹С…РѕРґРёРј
 //        if (_initialized)
 //            return;
 
-//        _initialized = true; // ставим флаг, чтобы больше не срабатывало
-//        Debug.Log("Bootstrap: Инициализация до всех Awake");
+//        _initialized = true; // СЃС‚Р°РІРёРј С„Р»Р°Рі, С‡С‚РѕР±С‹ Р±РѕР»СЊС€Рµ РЅРµ СЃСЂР°Р±Р°С‚С‹РІР°Р»Рѕ
+//        Debug.Log("Bootstrap: РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РґРѕ РІСЃРµС… Awake");
 
-//        // Всегда вызываем загрузку первой сцены, чтобы гарантировать, что она будет загружена.
-//        // Это bootstrap сцена, которая может быть пустой или содержать только необходимые объекты для инициализации.
+//        // Р’СЃРµРіРґР° РІС‹Р·С‹РІР°РµРј Р·Р°РіСЂСѓР·РєСѓ РїРµСЂРІРѕР№ СЃС†РµРЅС‹, С‡С‚РѕР±С‹ РіР°СЂР°РЅС‚РёСЂРѕРІР°С‚СЊ, С‡С‚Рѕ РѕРЅР° Р±СѓРґРµС‚ Р·Р°РіСЂСѓР¶РµРЅР°.
+//        // Р­С‚Рѕ bootstrap СЃС†РµРЅР°, РєРѕС‚РѕСЂР°СЏ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚РѕР№ РёР»Рё СЃРѕРґРµСЂР¶Р°С‚СЊ С‚РѕР»СЊРєРѕ РЅРµРѕР±С…РѕРґРёРјС‹Рµ РѕР±СЉРµРєС‚С‹ РґР»СЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё.
 //        SceneManager.LoadScene(0);
 //    }
 //}
@@ -40,10 +40,10 @@ public static class PlayFromBootstrap
         if (state != PlayModeStateChange.ExitingEditMode)
             return;
 
-        // Берём сцену с индексом 0 из Build Settings
+        // Р‘РµСЂС‘Рј СЃС†РµРЅСѓ СЃ РёРЅРґРµРєСЃРѕРј 0 РёР· Build Settings
         var bootstrapPath = SceneUtility.GetScenePathByBuildIndex(0);
 
-        // Устанавливаем её как стартовую
+        // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј РµС‘ РєР°Рє СЃС‚Р°СЂС‚РѕРІСѓСЋ
         EditorSceneManager.playModeStartScene =
             AssetDatabase.LoadAssetAtPath<SceneAsset>(bootstrapPath);
     }

@@ -1,9 +1,9 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public static class VectorExtensions
 {
     /// <summary>
-    /// Возвращает случайное число в диапазоне x (min) и y (max).
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃР»СѓС‡Р°Р№РЅРѕРµ С‡РёСЃР»Рѕ РІ РґРёР°РїР°Р·РѕРЅРµ x (min) Рё y (max).
     /// </summary>
     public static float GetRandom(this Vector2 range)
     {
@@ -11,7 +11,7 @@ public static class VectorExtensions
     }
 
     /// <summary>
-    /// Возвращает случайное число в диапазоне x (min) и y (max).
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃР»СѓС‡Р°Р№РЅРѕРµ С‡РёСЃР»Рѕ РІ РґРёР°РїР°Р·РѕРЅРµ x (min) Рё y (max).
     /// </summary>
     public static long GetRandomLong(this Vector2 range)
     {

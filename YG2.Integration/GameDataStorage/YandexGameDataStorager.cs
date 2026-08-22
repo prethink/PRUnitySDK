@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using YG;
 
@@ -170,53 +169,6 @@ public class YandexGameDataStorager : IGameDataStorage
 
         if(requiredSave)
             Save();
-    }
-
-    public void SetValue<T>(Enumeration category, EnumerationType<T> enumeration, T value, bool isRequiredSave = true)
-    {
-        if (!this.saveData.Data.TryGetValue(category.Value, out var categoryDict))
-        {
-            categoryDict = new Dictionary<string, object>();
-            this.saveData.Data[category.Value] = categoryDict;
-        }
-
-        categoryDict[enumeration.Value] = value;
-
-        if (isRequiredSave)
-            Save();
-    }
-
-    public T GetValue<T>(Enumeration category, EnumerationType<T> enumeration, T defaultValue)
-    {
-        if (this.saveData.Data.TryGetValue(category.Value, out var categoryDict))
-        {
-            if (categoryDict.TryGetValue(enumeration.Value, out var value))
-            {
-                if (value is T typedValue)
-                    return typedValue;
-
-                return ConvertValue<T>(value, enumeration.ValueType);
-            }
-        }
-
-        return defaultValue;
-    }
-
-    private T ConvertValue<T>(object value, Type targetType)
-    {
-        if (targetType == typeof(float))
-            return (T)(object)Convert.ToSingle(value);
-
-        if (targetType == typeof(int))
-            return (T)(object)Convert.ToInt32(value);
-
-        if (targetType == typeof(bool))
-            return (T)(object)Convert.ToBoolean(value);
-
-        if (targetType.IsEnum)
-            return (T)Enum.Parse(targetType, value.ToString());
-
-        throw new Exception($"Unsupported type {targetType}");
     }
 
     public GameStorageSettings GetSettings()

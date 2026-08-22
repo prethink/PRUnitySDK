@@ -1,20 +1,20 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 [Serializable]
 public partial class GlobalGameSettings
 {
     /// <summary>
-    /// Базовые настройки игры
+    /// Р‘Р°Р·РѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё РёРіСЂС‹
     /// </summary>
-    [field: Header("Базовые игровые настройки")]
+    [field: Header("Р‘Р°Р·РѕРІС‹Рµ РёРіСЂРѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё")]
     [field: SerializeField]
     public BaseGameSettings BaseGameSettings { get; private set; }
 
     /// <summary>
-    /// Базовые настройки управления.
+    /// Р‘Р°Р·РѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё СѓРїСЂР°РІР»РµРЅРёСЏ.
     /// </summary>
-    [field: Header("Базовые игровые настройки")]
+    [field: Header("Р‘Р°Р·РѕРІС‹Рµ РёРіСЂРѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё")]
     [field: SerializeField]
     public DefaultControlSettings DefaultControlSettings { get; private set; }
 }
@@ -23,11 +23,11 @@ public partial class GlobalGameSettings
 [Serializable]
 public partial class BaseGameSettings
 {
-    [Header("Глобальные настройки проекта")]
-    [Tooltip("Скорость игрового мира")]
+    [Header("Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё РїСЂРѕРµРєС‚Р°")]
+    [Tooltip("РЎРєРѕСЂРѕСЃС‚СЊ РёРіСЂРѕРІРѕРіРѕ РјРёСЂР°")]
     [SerializeField] private float baseGameSpeed = 1f;
 
-    [Tooltip("Базовый урон")]
+    [Tooltip("Р‘Р°Р·РѕРІС‹Р№ СѓСЂРѕРЅ")]
     [SerializeField] private int baseDamage = 2;
 
     #region public

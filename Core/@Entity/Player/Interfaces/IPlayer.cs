@@ -1,86 +1,86 @@
-using System;
+п»їusing System;
 
 /// <summary>
-/// Сущность игрока.
+/// РЎСѓС‰РЅРѕСЃС‚СЊ РёРіСЂРѕРєР°.
 /// </summary>
 public partial interface IPlayer : IEntity
 {
     /// <summary>
-    /// Идентификатор игрока.
+    /// РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РёРіСЂРѕРєР°.
     /// </summary>
     public long PlayerId { get; }
 
     /// <summary>
-    /// Количество очков.
+    /// РљРѕР»РёС‡РµСЃС‚РІРѕ РѕС‡РєРѕРІ.
     /// </summary>
     public long Points { get; }
 
     /// <summary>
-    /// Количество смертей.
+    /// РљРѕР»РёС‡РµСЃС‚РІРѕ СЃРјРµСЂС‚РµР№.
     /// </summary>
     public int Deaths { get; }
 
     /// <summary>
-    /// Количество убийств.
+    /// РљРѕР»РёС‡РµСЃС‚РІРѕ СѓР±РёР№СЃС‚РІ.
     /// </summary>
     public int Kills { get;}
 
     /// <summary>
-    /// Тип игрока. Кто управляет, человек или AI.
+    /// РўРёРї РёРіСЂРѕРєР°. РљС‚Рѕ СѓРїСЂР°РІР»СЏРµС‚, С‡РµР»РѕРІРµРє РёР»Рё AI.
     /// </summary>
     public PlayerType PlayerType { get;}
 
     /// <summary>
-    /// Команда игрока.
+    /// РљРѕРјР°РЅРґР° РёРіСЂРѕРєР°.
     /// </summary>
     public IPlayerTeam PlayerTeam { get;}
 
     /// <summary>
-    /// Характеристики игрока.
+    /// РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё РёРіСЂРѕРєР°.
     /// </summary>
     public IPlayerStats PlayerStats { get;}
 
     /// <summary>
-    /// Генерация идентификатора игрока.
+    /// Р“РµРЅРµСЂР°С†РёСЏ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР° РёРіСЂРѕРєР°.
     /// </summary>
-    /// <param name="register">Регистратор.</param>
+    /// <param name="register">Р РµРіРёСЃС‚СЂР°С‚РѕСЂ.</param>
     public void GeneratePlayerId(Func<long> register);
 
     /// <summary>
-    /// Номер игрока. Используется когда несколько живых игроков на 1 экране. Для ботов значение -1.
+    /// РќРѕРјРµСЂ РёРіСЂРѕРєР°. РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєРѕРіРґР° РЅРµСЃРєРѕР»СЊРєРѕ Р¶РёРІС‹С… РёРіСЂРѕРєРѕРІ РЅР° 1 СЌРєСЂР°РЅРµ. Р”Р»СЏ Р±РѕС‚РѕРІ Р·РЅР°С‡РµРЅРёРµ -1.
     /// </summary>
     public int HumanId { get;}
 
     ///// <summary>
-    ///// Респавн игрока.
+    ///// Р РµСЃРїР°РІРЅ РёРіСЂРѕРєР°.
     ///// </summary>
-    ///// <param name="spawnPosition">Точка спавна.</param>
+    ///// <param name="spawnPosition">РўРѕС‡РєР° СЃРїР°РІРЅР°.</param>
     //public void ReSpawn(Vector3 spawnPosition);
 
     /// <summary>
-    /// Установить ник.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РЅРёРє.
     /// </summary>
-    /// <param name="playerName">Новый игровой ник.</param>
+    /// <param name="playerName">РќРѕРІС‹Р№ РёРіСЂРѕРІРѕР№ РЅРёРє.</param>
     public void SetNick(string playerName);
 
     /// <summary>
-    /// Установить команду игроку.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РєРѕРјР°РЅРґСѓ РёРіСЂРѕРєСѓ.
     /// </summary>
-    /// <param name="team">Команда игрока.</param>
+    /// <param name="team">РљРѕРјР°РЅРґР° РёРіСЂРѕРєР°.</param>
     public void SetTeam(IPlayerTeam team);
 
     /// <summary>
-    /// Добавить предмет игроку.
+    /// Р”РѕР±Р°РІРёС‚СЊ РїСЂРµРґРјРµС‚ РёРіСЂРѕРєСѓ.
     /// </summary>
     public bool AddPlayerItem(IPlayerItem item);
 
     /// <summary>
-    /// Игрок присоединился к игре.
+    /// РРіСЂРѕРє РїСЂРёСЃРѕРµРґРёРЅРёР»СЃСЏ Рє РёРіСЂРµ.
     /// </summary>
     public void JoinGame();
 
     ///// <summary>
-    ///// Инициализация игрока.
+    ///// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РёРіСЂРѕРєР°.
     ///// </summary>
     //public void PlayerInitialize();
 }

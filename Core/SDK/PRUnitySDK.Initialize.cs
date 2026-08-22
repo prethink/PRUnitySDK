@@ -1,41 +1,41 @@
-using Newtonsoft.Json;
+п»їusing Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Набор сервисов PR SDK.
+/// РќР°Р±РѕСЂ СЃРµСЂРІРёСЃРѕРІ PR SDK.
 /// </summary>
 public partial class PRUnitySDK
 {
     /// <summary>
-    /// Инициализированные типы.
+    /// РРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅРЅС‹Рµ С‚РёРїС‹.
     /// </summary>
     public readonly static HashSet<Type> InitializedTypes = new();
 
     /// <summary>
-    /// Признак, что SDK инициализирован.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ SDK РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ.
     /// </summary>
     public static bool IsInitialized { get; private set; }
 
     /// <summary>
-    /// Признак, что SDK начал инициализацию. 
-    /// Предотвращает повторный/одновременный запуск инициализации.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ SDK РЅР°С‡Р°Р» РёРЅРёС†РёР°Р»РёР·Р°С†РёСЋ. 
+    /// РџСЂРµРґРѕС‚РІСЂР°С‰Р°РµС‚ РїРѕРІС‚РѕСЂРЅС‹Р№/РѕРґРЅРѕРІСЂРµРјРµРЅРЅС‹Р№ Р·Р°РїСѓСЃРє РёРЅРёС†РёР°Р»РёР·Р°С†РёРё.
     /// </summary>
     public static bool IsStartInitialize { get; private set; }
 
     /// <summary>
-    /// Сигнал готовности SDK.
+    /// РЎРёРіРЅР°Р» РіРѕС‚РѕРІРЅРѕСЃС‚Рё SDK.
     /// </summary>
     public static IReadySignal ReadySignal => readySignal;
 
     /// <summary>
-    /// Сигнал готовности SDK.
+    /// РЎРёРіРЅР°Р» РіРѕС‚РѕРІРЅРѕСЃС‚Рё SDK.
     /// </summary>
     private static ReadySignal readySignal = new ReadySignal(typeof(PRUnitySDK));
 
     /// <summary>
-    /// Инициализация SDK.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ SDK.
     /// </summary>
     public static void InitializeSDK()
     {
@@ -81,7 +81,7 @@ public partial class PRUnitySDK
     }
 
     /// <summary>
-    /// Инициализация конвертеров.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РєРѕРЅРІРµСЂС‚РµСЂРѕРІ.
     /// </summary>
     private static void InitializeConverters()
     {
@@ -96,30 +96,30 @@ public partial class PRUnitySDK
     }
 
     /// <summary>
-    /// Признак, что сервис инициализирован.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЃРµСЂРІРёСЃ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ.
     /// </summary>
-    /// <param name="service">Тип сервиса.</param>
-    /// <returns>True если проинициализирован, False - если нет.</returns>
+    /// <param name="service">РўРёРї СЃРµСЂРІРёСЃР°.</param>
+    /// <returns>True РµСЃР»Рё РїСЂРѕРёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ, False - РµСЃР»Рё РЅРµС‚.</returns>
     public static bool IsInitialize(Type service)
     {
         return InitializedTypes.Contains(service);
     }
 
     /// <summary>
-    /// Признак, что сервис инициализирован.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ СЃРµСЂРІРёСЃ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ.
     /// </summary>
-    /// <typeparam name="T">Тип.</typeparam>
-    /// <returns>True если проинициализирован, False - если нет.</returns>
+    /// <typeparam name="T">РўРёРї.</typeparam>
+    /// <returns>True РµСЃР»Рё РїСЂРѕРёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ, False - РµСЃР»Рё РЅРµС‚.</returns>
     public static bool IsInitialize<T>()
     {
         return IsInitialize(typeof(T));
     }
 
     /// <summary>
-    /// Установить признак, что тип инициализирован.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РїСЂРёР·РЅР°Рє, С‡С‚Рѕ С‚РёРї РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ.
     /// </summary>
-    /// <typeparam name="T">Тип.</typeparam>
-    /// <param name="action">Кастомное действие.</param>
+    /// <typeparam name="T">РўРёРї.</typeparam>
+    /// <param name="action">РљР°СЃС‚РѕРјРЅРѕРµ РґРµР№СЃС‚РІРёРµ.</param>
     public static void InitializeType<T>(Action action, string name = null)
     {
         var result = InitializedTypes.Add(typeof(T));
@@ -140,10 +140,10 @@ public partial class PRUnitySDK
     }
 
     /// <summary>
-    /// Инициализация модуля SDK.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ SDK.
     /// </summary>
-    /// <param name="name">Название модуля.</param>
-    /// <param name="initializeAction">Метод инициализации.</param>
+    /// <param name="name">РќР°Р·РІР°РЅРёРµ РјРѕРґСѓР»СЏ.</param>
+    /// <param name="initializeAction">РњРµС‚РѕРґ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё.</param>
     private static void InitializeModuleSDK<T>(string name, Func<T> initializeAction)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();

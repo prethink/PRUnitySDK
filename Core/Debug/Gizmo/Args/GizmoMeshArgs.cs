@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public class GizmoMeshArgs : GizmoArgsBase
 {
@@ -9,9 +9,9 @@ public class GizmoMeshArgs : GizmoArgsBase
     public Quaternion Rotation { get; }
     public Vector3 Scale { get; }
 
-    /// <summary>Рисует меш каркасом (Gizmos.DrawWireMesh), а не сплошным
-    /// (Gizmos.DrawMesh) - обычно нужнее для отладки (видно сквозь объект).
-    /// Если нужен сплошной вариант - см. Wireframe в GizmoDrawer.DrawMesh.</summary>
+    /// <summary>Р РёСЃСѓРµС‚ РјРµС€ РєР°СЂРєР°СЃРѕРј (Gizmos.DrawWireMesh), Р° РЅРµ СЃРїР»РѕС€РЅС‹Рј
+    /// (Gizmos.DrawMesh) - РѕР±С‹С‡РЅРѕ РЅСѓР¶РЅРµРµ РґР»СЏ РѕС‚Р»Р°РґРєРё (РІРёРґРЅРѕ СЃРєРІРѕР·СЊ РѕР±СЉРµРєС‚).
+    /// Р•СЃР»Рё РЅСѓР¶РµРЅ СЃРїР»РѕС€РЅРѕР№ РІР°СЂРёР°РЅС‚ - СЃРј. Wireframe РІ GizmoDrawer.DrawMesh.</summary>
     public bool Wireframe { get; }
 
     public GizmoMeshArgs(Color color, Mesh mesh, Vector3 position, Quaternion rotation, Vector3 scale, bool wireframe = true)

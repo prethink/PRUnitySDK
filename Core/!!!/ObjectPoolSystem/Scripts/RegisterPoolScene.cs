@@ -1,15 +1,15 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 public class RegisterPoolScene : MonoBehaviour
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     [SerializeField] private List<RegisterPoolObject> registredObjets = new();
 
     #endregion
 
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     public void RegisterItems()
     {

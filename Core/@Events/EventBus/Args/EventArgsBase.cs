@@ -1,17 +1,17 @@
-using System;
+п»їusing System;
 
 /// <summary>
-/// Базовые аргументы события.
+/// Р‘Р°Р·РѕРІС‹Рµ Р°СЂРіСѓРјРµРЅС‚С‹ СЃРѕР±С‹С‚РёСЏ.
 /// </summary>
 public abstract class EventArgsBase
 {
     /// <summary>
-    /// Время события.
+    /// Р’СЂРµРјСЏ СЃРѕР±С‹С‚РёСЏ.
     /// </summary>
     public virtual DateTime EventTime { get; protected set; }
 
     /// <summary>
-    /// Получить EventId.
+    /// РџРѕР»СѓС‡РёС‚СЊ EventId.
     /// </summary>
     /// <returns>EventId.</returns>
     public virtual CategoryPath GetEventId()

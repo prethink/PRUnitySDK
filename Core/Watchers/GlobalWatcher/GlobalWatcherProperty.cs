@@ -1,9 +1,9 @@
-using System;
+п»їusing System;
 using System.Collections;
 
 public abstract class GlobalWatcherProperty
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     public abstract string Key { get; }
 
@@ -13,16 +13,16 @@ public abstract class GlobalWatcherProperty
 
     #endregion
 
-    #region События
+    #region РЎРѕР±С‹С‚РёСЏ
 
     public event Action OnTick;
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Вызов события тика.
+    /// Р’С‹Р·РѕРІ СЃРѕР±С‹С‚РёСЏ С‚РёРєР°.
     /// </summary>
     protected void OnTickInvoke()
     {
@@ -34,7 +34,7 @@ public abstract class GlobalWatcherProperty
 
 public abstract class GlobalWatcherProperty<T> : GlobalWatcherProperty
 {
-    #region События
+    #region РЎРѕР±С‹С‚РёСЏ
 
     public event Action<T> CallBackWithParameter;
 

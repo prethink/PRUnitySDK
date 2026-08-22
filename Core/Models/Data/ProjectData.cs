@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+п»їusing Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,34 +6,29 @@ using System.Linq;
 [Serializable]
 public partial class ProjectData : ICloneable
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Свойства проекта.
+    /// РЎРІРѕР№СЃС‚РІР° РїСЂРѕРµРєС‚Р°.
     /// </summary>
     public ProjectProperties ProjectProperties { get; set; } = new();
 
     /// <summary>
-    /// Идентификаторы открытых предметов.
+    /// РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂС‹ РѕС‚РєСЂС‹С‚С‹С… РїСЂРµРґРјРµС‚РѕРІ.
     /// </summary>
     public List<ItemStack> OpenedItems { get; set; } = new();
 
     /// <summary>
-    /// Идентификаторы открытых предметов.
+    /// РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂС‹ РѕС‚РєСЂС‹С‚С‹С… РїСЂРµРґРјРµС‚РѕРІ.
     /// </summary>
     public Dictionary<string, long> Resources { get; set; } = new();
 
-    /// <summary>
-    /// Временная переменная для клонирования. Используется для partial классов.
-    /// </summary>
-    private ProjectData clone;
-
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Инициализация данных проекта.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РґР°РЅРЅС‹С… РїСЂРѕРµРєС‚Р°.
     /// </summary>
     public void Initialize()
     {
@@ -48,22 +43,28 @@ public partial class ProjectData : ICloneable
 
     #region ICloneable
 
+    /// <summary>
+    /// РЎРѕР·РґР°С‘С‚ РєРѕРїРёСЋ РґР°РЅРЅС‹С… РїСЂРѕРµРєС‚Р°. Р¦РµР»РµРІРѕР№ РѕР±СЉРµРєС‚ РїРµСЂРµРґР°С‘С‚СЃСЏ РІ С…СѓРєРё СЃС‚Р°РґРёРё
+    /// <see cref="MethodHookStage.Cloning"/> Р°СЂРіСѓРјРµРЅС‚РѕРј, Р° РЅРµ С‡РµСЂРµР· РїРѕР»Рµ СЌРєР·РµРјРїР»СЏСЂР° -
+    /// РёРЅР°С‡Рµ РґРІР° РѕРґРЅРѕРІСЂРµРјРµРЅРЅС‹С… РєР»РѕРЅРёСЂРѕРІР°РЅРёСЏ РѕРґРЅРѕРіРѕ РѕР±СЉРµРєС‚Р° РїРµСЂРµР·Р°РїРёСЃС‹РІР°Р»Рё Р±С‹ РґСЂСѓРі РґСЂСѓРіСѓ
+    /// РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ, Рё РјРѕРґСѓР»Рё РїРёСЃР°Р»Рё Р±С‹ СЃРІРѕРё РґР°РЅРЅС‹Рµ РІ С‡СѓР¶РѕР№ РєР»РѕРЅ.
+    /// </summary>
     public object Clone()
     {
-        clone = new ProjectData();
+        var clone = new ProjectData();
 
         clone.ProjectProperties = (ProjectProperties)ProjectProperties.Clone();
         clone.Resources = new Dictionary<string, long>(Resources);
         clone.OpenedItems = OpenedItems.ToList();
 
-        this.RunMethodHooks(MethodHookStage.Cloning);
+        this.RunMethodHooks(MethodHookStage.Cloning, clone);
 
         return clone;
     }
 
     #endregion
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public ProjectData()
     {

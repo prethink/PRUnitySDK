@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 
 public static class PlayerUtils 
 {
@@ -6,7 +6,7 @@ public static class PlayerUtils
     {
         Dictionary<LangType, string> defaultPlayerNameDict = new Dictionary<LangType, string>()
         {
-            { LangType.Russian, "Èãðîê" },
+            { LangType.Russian, "Ð˜Ð³Ñ€Ð¾Ðº" },
             { LangType.English, "Player" },
             { LangType.Turkey, "Oyuncu" }
         };

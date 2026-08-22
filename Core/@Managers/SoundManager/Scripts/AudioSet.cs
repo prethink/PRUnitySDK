@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AudioSet
 {
-    #region Константы
+    #region РљРѕРЅСЃС‚Р°РЅС‚С‹
 
     private const float DEFAULT_VOLUME = 1f;
     private const float DEFAULT_PITCH = 1f;
@@ -22,7 +22,7 @@ public class AudioSet
 
     #endregion
 
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     [SerializeField] private string key;
     [SerializeField] private List<AudioClip> audioClips;
@@ -32,12 +32,12 @@ public class AudioSet
     public List<AudioClip> AudioClips => audioClips.ToList();
     public SoundType SoundType => soundType;
 
-    [Header("Настройки для AudioSource")]
+    [Header("РќР°СЃС‚СЂРѕР№РєРё РґР»СЏ AudioSource")]
     public float Volume = DEFAULT_VOLUME;
     public float Pitch = DEFAULT_PITCH;
     public float PanStereo = DEFAULT_PAN_STEREO;
 
-    [Header("Гибкие настройки")]
+    [Header("Р“РёР±РєРёРµ РЅР°СЃС‚СЂРѕР№РєРё")]
     public bool RandomPitch;
 
     //[MinMaxSlider(-3f,3f)]
@@ -45,7 +45,7 @@ public class AudioSet
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     public float GetPitch()
     {
@@ -79,7 +79,7 @@ public class AudioSet
 
     #endregion
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public AudioSet(List<AudioClip> audioClips, SoundType soundType) 
         : this(typeof(MonoBehaviour).ToString(), audioClips, soundType) { }

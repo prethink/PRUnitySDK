@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using Newtonsoft.Json;
 
 public class PRJsonUtils 
@@ -32,15 +32,15 @@ public class PRJsonUtils
     {
         var settings = new JsonSerializerSettings
         {
-            MissingMemberHandling = MissingMemberHandling.Ignore, // Игнорировать неизвестные поля
-            NullValueHandling = NullValueHandling.Include, // Включать null
+            MissingMemberHandling = MissingMemberHandling.Ignore, // РРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ РЅРµРёР·РІРµСЃС‚РЅС‹Рµ РїРѕР»СЏ
+            NullValueHandling = NullValueHandling.Include, // Р’РєР»СЋС‡Р°С‚СЊ null
             DateFormatHandling = DateFormatHandling.IsoDateFormat,
             Error = (sender, args) =>
             {
                 if(showError)
-                    PRLog.WriteWarning(typeof(PRJsonUtils), $"Ошибка десериализации: {args.ErrorContext.Error.Message} Путь: {args.ErrorContext.Path}");
+                    PRLog.WriteWarning(typeof(PRJsonUtils), $"РћС€РёР±РєР° РґРµСЃРµСЂРёР°Р»РёР·Р°С†РёРё: {args.ErrorContext.Error.Message} РџСѓС‚СЊ: {args.ErrorContext.Path}");
 
-                args.ErrorContext.Handled = true; // Игнорировать ошибку и продолжить
+                args.ErrorContext.Handled = true; // РРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ РѕС€РёР±РєСѓ Рё РїСЂРѕРґРѕР»Р¶РёС‚СЊ
             }
         };
         return settings;
@@ -53,7 +53,7 @@ public class PRJsonUtils
 
 
     /// <summary>
-    /// Шифрует объект в строку JSON и затем применяет AES-256.
+    /// РЁРёС„СЂСѓРµС‚ РѕР±СЉРµРєС‚ РІ СЃС‚СЂРѕРєСѓ JSON Рё Р·Р°С‚РµРј РїСЂРёРјРµРЅСЏРµС‚ AES-256.
     /// </summary>
     public static string SerializeObjectWithEncryption(object obj)
     {
@@ -62,7 +62,7 @@ public class PRJsonUtils
     }
 
     /// <summary>
-    /// Расшифровывает AES-256 строку в JSON и десериализует в объект.
+    /// Р Р°СЃС€РёС„СЂРѕРІС‹РІР°РµС‚ AES-256 СЃС‚СЂРѕРєСѓ РІ JSON Рё РґРµСЃРµСЂРёР°Р»РёР·СѓРµС‚ РІ РѕР±СЉРµРєС‚.
     /// </summary>
     public static T Decrypt<T>(string encryptedJson)
     {
@@ -71,7 +71,7 @@ public class PRJsonUtils
     }
 
     /// <summary>
-    /// Расшифровывает AES-256 строку в JSON и десериализует в объект.
+    /// Р Р°СЃС€РёС„СЂРѕРІС‹РІР°РµС‚ AES-256 СЃС‚СЂРѕРєСѓ РІ JSON Рё РґРµСЃРµСЂРёР°Р»РёР·СѓРµС‚ РІ РѕР±СЉРµРєС‚.
     /// </summary>
     public static bool TryDeserializeObjectDecrypt<T>(string encryptedJson, out T result)
     {

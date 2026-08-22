@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using System.Collections;
 using System.Linq;
 using System.Threading;
@@ -7,20 +7,20 @@ using UnityEngine;
 
 public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IReadySignalProvider
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Игровые настройки.
+    /// РРіСЂРѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё.
     /// </summary>
     private GameSettings gameSettings { get; set; }
 
     /// <summary>
-    /// Данные проекта.
+    /// Р”Р°РЅРЅС‹Рµ РїСЂРѕРµРєС‚Р°.
     /// </summary>
     private ProjectData projectData { get; set; }
 
     /// <summary>
-    /// Глобальные настройки сессии.
+    /// Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё СЃРµСЃСЃРёРё.
     /// </summary>
     public GlobalGameSettingsSession GameSettingsSession { get; private set; }
 
@@ -47,7 +47,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     private void Start()
     {
         this.RunMethodHooks(MethodHookStage.PreStart);
-        this.RunMethodHooks(MethodHookStage.PostAwake);
+        this.RunMethodHooks(MethodHookStage.PostStart);
     }
 
     private void OnApplicationPause(bool pauseStatus)
@@ -73,12 +73,14 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         bool isHidden = isHiddenInt == 1;
         PRLog.WriteDebug(this, $"WebGL Visibility Changed. Hidden: {isHidden}", new PRLogSettings() { LevelDebug = 5 });
 
-        PRUnitySDK.PauseManager.SetFocusPaused(!isHidden, this);
+        // РЎРєСЂС‹С‚Р°СЏ СЃС‚СЂР°РЅРёС†Р° - СЌС‚Рѕ Рё РµСЃС‚СЊ РїРѕРІРѕРґ РїРѕСЃС‚Р°РІРёС‚СЊ РїР°СѓР·Сѓ, РїРѕСЌС‚РѕРјСѓ isHidden РїРµСЂРµРґР°С‘С‚СЃСЏ
+        // РєР°Рє РµСЃС‚СЊ: SetFocusPaused РїСЂРёРЅРёРјР°РµС‚ РїСЂРёР·РЅР°Рє "РЅСѓР¶РЅР° РїР°СѓР·Р°", РєР°Рє Рё РІ OnApplicationFocus.
+        PRUnitySDK.PauseManager.SetFocusPaused(isHidden, this);
     }
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     public void InitializeGameManager()
     {
@@ -285,9 +287,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     }
 
     /// <summary>
-    /// Событие старта подготовленной сцены.
+    /// РЎРѕР±С‹С‚РёРµ СЃС‚Р°СЂС‚Р° РїРѕРґРіРѕС‚РѕРІР»РµРЅРЅРѕР№ СЃС†РµРЅС‹.
     /// </summary>
-    /// <param name="scene">Название сцены.</param>
+    /// <param name="scene">РќР°Р·РІР°РЅРёРµ СЃС†РµРЅС‹.</param>
     public void OnStartScene(string scene)
     {
         GameSettingsSession.Reset();

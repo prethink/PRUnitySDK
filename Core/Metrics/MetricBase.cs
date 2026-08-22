@@ -1,28 +1,28 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 
 /// <summary>
-/// Базовый класс работы с метриками.
+/// Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ СЂР°Р±РѕС‚С‹ СЃ РјРµС‚СЂРёРєР°РјРё.
 /// </summary>
 public abstract class MetricBase 
 {
     /// <summary>
-    /// Отправить метрику.
+    /// РћС‚РїСЂР°РІРёС‚СЊ РјРµС‚СЂРёРєСѓ.
     /// </summary>
-    /// <param name="eventName">Название события.</param>
+    /// <param name="eventName">РќР°Р·РІР°РЅРёРµ СЃРѕР±С‹С‚РёСЏ.</param>
     public abstract void Send(string eventName);
 
     /// <summary>
-    /// Отправить метрику.
+    /// РћС‚РїСЂР°РІРёС‚СЊ РјРµС‚СЂРёРєСѓ.
     /// </summary>
-    /// <param name="rootKeyEvent">Корневое название события.</param>
-    /// <param name="subKeyEvent">Дочерний ключ события.</param>
-    /// <param name="subValueEvent">Дочернее значение события.</param>
+    /// <param name="rootKeyEvent">РљРѕСЂРЅРµРІРѕРµ РЅР°Р·РІР°РЅРёРµ СЃРѕР±С‹С‚РёСЏ.</param>
+    /// <param name="subKeyEvent">Р”РѕС‡РµСЂРЅРёР№ РєР»СЋС‡ СЃРѕР±С‹С‚РёСЏ.</param>
+    /// <param name="subValueEvent">Р”РѕС‡РµСЂРЅРµРµ Р·РЅР°С‡РµРЅРёРµ СЃРѕР±С‹С‚РёСЏ.</param>
     public abstract void Send(string rootKeyEvent, string subKeyEvent, string subValueEvent);
 
     /// <summary>
-    /// Отправить метрику.
+    /// РћС‚РїСЂР°РІРёС‚СЊ РјРµС‚СЂРёРєСѓ.
     /// </summary>
-    /// <param name="eventName">Название события.</param>
-    /// <param name="eventParams">Параметры события.</param>
+    /// <param name="eventName">РќР°Р·РІР°РЅРёРµ СЃРѕР±С‹С‚РёСЏ.</param>
+    /// <param name="eventParams">РџР°СЂР°РјРµС‚СЂС‹ СЃРѕР±С‹С‚РёСЏ.</param>
     public abstract void Send(string eventName, Dictionary<string, string> eventParams);
 }

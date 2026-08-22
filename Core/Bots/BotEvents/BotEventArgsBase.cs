@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using UnityEngine;
 
 public abstract class BotEventArgsBase : EventArgsBase
@@ -19,7 +19,7 @@ public class BotAddEventArgs : BotEventArgsBase
     public BotAddEventArgs(int count)
     {
         if(count < 1)
-            throw new ArgumentOutOfRangeException(nameof(count), "Count äîëæåí áûòü >= 1");
+            throw new ArgumentOutOfRangeException(nameof(count), "Count Ð´Ð¾Ð»Ð¶ÐµÐ½ Ð±Ñ‹Ñ‚ÑŒ >= 1");
         Count = count;
     }
 }

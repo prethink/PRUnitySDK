@@ -1,8 +1,8 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 /// <summary>
-/// Базовый класс для управления камерой в игре.
-/// Отвечает за активацию/деактивацию камеры и обработку её логики.
+/// Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ РєР°РјРµСЂРѕР№ РІ РёРіСЂРµ.
+/// РћС‚РІРµС‡Р°РµС‚ Р·Р° Р°РєС‚РёРІР°С†РёСЋ/РґРµР°РєС‚РёРІР°С†РёСЋ РєР°РјРµСЂС‹ Рё РѕР±СЂР°Р±РѕС‚РєСѓ РµС‘ Р»РѕРіРёРєРё.
 /// </summary>
 public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
 {
@@ -31,24 +31,24 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Обновление логики активной камеры.
+    /// РћР±РЅРѕРІР»РµРЅРёРµ Р»РѕРіРёРєРё Р°РєС‚РёРІРЅРѕР№ РєР°РјРµСЂС‹.
     /// </summary>
     protected abstract void HandleCamera();
 
     /// <summary>
-    /// Устанавливает эту камеру как основную.
+    /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЌС‚Сѓ РєР°РјРµСЂСѓ РєР°Рє РѕСЃРЅРѕРІРЅСѓСЋ.
     /// </summary>
     public virtual void SetMain(bool pushInStack = true)
     {
         if (gameObject == null)
         {
-            Debug.LogError("SetMain вызван на уничтоженном объекте");
+            Debug.LogError("SetMain РІС‹Р·РІР°РЅ РЅР° СѓРЅРёС‡С‚РѕР¶РµРЅРЅРѕРј РѕР±СЉРµРєС‚Рµ");
             return;
         }
 
         if (tracker == null)
         {
-            Debug.LogError("CameraTracker не инициализирован", gameObject);
+            Debug.LogError("CameraTracker РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ", gameObject);
             return;
         }
 
@@ -57,7 +57,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
         var newCamera = CameraEvents.InvokeChangeCamera(gameObject);
         if (newCamera == null)
         {
-            Debug.LogWarning("CameraEvents.InvokeChangeCamera вернул null", gameObject);
+            Debug.LogWarning("CameraEvents.InvokeChangeCamera РІРµСЂРЅСѓР» null", gameObject);
             return;
         }
 
@@ -70,7 +70,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Инициализирует камеру через трекер.
+    /// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ РєР°РјРµСЂСѓ С‡РµСЂРµР· С‚СЂРµРєРµСЂ.
     /// </summary>
     protected virtual void SetCameraHandler()
     {
@@ -80,7 +80,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
         CurrentCamera = tracker.MainCamera;
         if (CurrentCamera == null)
         {
-            Debug.LogError("MainCamera в CameraTracker равна null", gameObject);
+            Debug.LogError("MainCamera РІ CameraTracker СЂР°РІРЅР° null", gameObject);
             return;
         }
 
@@ -89,7 +89,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Устанавливает, является ли эта камера текущей.
+    /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё СЌС‚Р° РєР°РјРµСЂР° С‚РµРєСѓС‰РµР№.
     /// </summary>
     public virtual void SetCurrent(bool value)
     {
@@ -105,16 +105,16 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Вызывается когда состояние камеры изменяется.
-    /// Переопределите для кастомной логики.
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєРѕРіРґР° СЃРѕСЃС‚РѕСЏРЅРёРµ РєР°РјРµСЂС‹ РёР·РјРµРЅСЏРµС‚СЃСЏ.
+    /// РџРµСЂРµРѕРїСЂРµРґРµР»РёС‚Рµ РґР»СЏ РєР°СЃС‚РѕРјРЅРѕР№ Р»РѕРіРёРєРё.
     /// </summary>
     protected virtual void OnCameraStateChanged(bool isActive)
     {
-        // Может быть переопределено в наследниках
+        // РњРѕР¶РµС‚ Р±С‹С‚СЊ РїРµСЂРµРѕРїСЂРµРґРµР»РµРЅРѕ РІ РЅР°СЃР»РµРґРЅРёРєР°С…
     }
 
     /// <summary>
-    /// Очищает камеру и помечает как неактивную.
+    /// РћС‡РёС‰Р°РµС‚ РєР°РјРµСЂСѓ Рё РїРѕРјРµС‡Р°РµС‚ РєР°Рє РЅРµР°РєС‚РёРІРЅСѓСЋ.
     /// </summary>
     public virtual void ClearCamera()
     {
@@ -123,10 +123,10 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Восстанавливает предыдущую камеру из стека.
+    /// Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РїСЂРµРґС‹РґСѓС‰СѓСЋ РєР°РјРµСЂСѓ РёР· СЃС‚РµРєР°.
     /// </summary>
     /// <summary>
-    /// Восстанавливает предыдущую камеру из стека.
+    /// Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РїСЂРµРґС‹РґСѓС‰СѓСЋ РєР°РјРµСЂСѓ РёР· СЃС‚РµРєР°.
     /// </summary>
     public virtual void Restore()
     {
@@ -134,15 +134,15 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
         if (tracker == null)
             return;
 
-        // ВАЖНО: Удаляем себя из стека ВЕЗДЕ, не только с вершины!
+        // Р’РђР–РќРћ: РЈРґР°Р»СЏРµРј СЃРµР±СЏ РёР· СЃС‚РµРєР° Р’Р•Р—Р”Р•, РЅРµ С‚РѕР»СЊРєРѕ СЃ РІРµСЂС€РёРЅС‹!
         tracker.RemoveFromStack(this);
 
-        // Восстанавливаем следующую живую камеру
+        // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃР»РµРґСѓСЋС‰СѓСЋ Р¶РёРІСѓСЋ РєР°РјРµСЂСѓ
         tracker.RestorePreviousCamera();
     }
 
     /// <summary>
-    /// Обрабатывает события смены камеры.
+    /// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ СЃРѕР±С‹С‚РёСЏ СЃРјРµРЅС‹ РєР°РјРµСЂС‹.
     /// </summary>
     public virtual void Track(GameplayEventArgsBase args)
     {
@@ -151,7 +151,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
 
         if (args is CameraChangerEvent cameraArgs)
         {
-            // Если это событие от другого объекта, деактивируем нашу камеру
+            // Р•СЃР»Рё СЌС‚Рѕ СЃРѕР±С‹С‚РёРµ РѕС‚ РґСЂСѓРіРѕРіРѕ РѕР±СЉРµРєС‚Р°, РґРµР°РєС‚РёРІРёСЂСѓРµРј РЅР°С€Сѓ РєР°РјРµСЂСѓ
             if (cameraArgs.Executer != null && cameraArgs.Executer != gameObject)
             {
                 ClearCamera();
@@ -160,13 +160,13 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Очистка при уничтожении.
+    /// РћС‡РёСЃС‚РєР° РїСЂРё СѓРЅРёС‡С‚РѕР¶РµРЅРёРё.
     /// </summary>
     protected virtual void OnDestroy()
     {
         ClearCamera();
 
-        // Если мы были активной камерой, пытаемся восстановить предыдущую
+        // Р•СЃР»Рё РјС‹ Р±С‹Р»Рё Р°РєС‚РёРІРЅРѕР№ РєР°РјРµСЂРѕР№, РїС‹С‚Р°РµРјСЃСЏ РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ РїСЂРµРґС‹РґСѓС‰СѓСЋ
         if (IsCurrent)
         {
             Restore();

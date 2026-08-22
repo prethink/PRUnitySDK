@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 
@@ -64,7 +64,7 @@ public class PRPhysicsHost : PRMonoBehaviour
         RaycastHit bestHit = default;
         float bestDot = -Mathf.Infinity;
 
-        // убираем вертикаль
+        // СѓР±РёСЂР°РµРј РІРµСЂС‚РёРєР°Р»СЊ
         moveDirection.y = 0f;
         moveDirection.Normalize();
 

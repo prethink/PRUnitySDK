@@ -1,23 +1,23 @@
-public partial class PRUnitySDK
+п»їpublic partial class PRUnitySDK
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Приоритет.
+    /// РџСЂРёРѕСЂРёС‚РµС‚.
     /// </summary>
     private const int PRIORITY_METRICS = 40;
 
     /// <summary>
-    /// Метрики.
+    /// РњРµС‚СЂРёРєРё.
     /// </summary>
     public static MetricBase Metric;
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Инициализация модуля.
+    /// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґСѓР»СЏ.
     /// </summary>
     [MethodHook(MethodHookStage.SDK, PRIORITY_METRICS)]
     private static void InitializeMetrics()

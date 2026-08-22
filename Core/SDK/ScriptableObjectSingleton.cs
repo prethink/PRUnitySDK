@@ -1,4 +1,4 @@
-using System.IO;
+п»їusing System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -57,7 +57,7 @@ public class ScriptableObjectSingleton<T> : ScriptableObject
 #endif
 
     /// <summary>
-    /// Установить настройки по умолчанию.
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.
     /// </summary>
     protected virtual void SetDefaultSettings()
     {

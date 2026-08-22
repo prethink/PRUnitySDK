@@ -1,30 +1,30 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Центральный хост, управляющий пользовательским циклом обновления.
+/// Р¦РµРЅС‚СЂР°Р»СЊРЅС‹Р№ С…РѕСЃС‚, СѓРїСЂР°РІР»СЏСЋС‰РёР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРј С†РёРєР»РѕРј РѕР±РЅРѕРІР»РµРЅРёСЏ.
 /// </summary>
 public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourHost>, ISingletonInitializer
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Объекты, участвующие в кастомном FixedUpdate цикле.
+    /// РћР±СЉРµРєС‚С‹, СѓС‡Р°СЃС‚РІСѓСЋС‰РёРµ РІ РєР°СЃС‚РѕРјРЅРѕРј FixedUpdate С†РёРєР»Рµ.
     /// </summary>
     private List<IPRFixedUpdate> fixedUpdates = new();
 
     /// <summary>
-    /// Объекты, участвующие в кастомном Update цикле.
+    /// РћР±СЉРµРєС‚С‹, СѓС‡Р°СЃС‚РІСѓСЋС‰РёРµ РІ РєР°СЃС‚РѕРјРЅРѕРј Update С†РёРєР»Рµ.
     /// </summary>
     private List<IPRUpdate> updates = new();
 
     /// <summary>
-    /// Объекты, участвующие в тиковом (интервальном) обновлении.
+    /// РћР±СЉРµРєС‚С‹, СѓС‡Р°СЃС‚РІСѓСЋС‰РёРµ РІ С‚РёРєРѕРІРѕРј (РёРЅС‚РµСЂРІР°Р»СЊРЅРѕРј) РѕР±РЅРѕРІР»РµРЅРёРё.
     /// </summary>
     private List<IPRTickable> tickables = new();
 
     /// <summary>
-    /// Кулдаун, управляющий частотой вызова PRTick().
+    /// РљСѓР»РґР°СѓРЅ, СѓРїСЂР°РІР»СЏСЋС‰РёР№ С‡Р°СЃС‚РѕС‚РѕР№ РІС‹Р·РѕРІР° PRTick().
     /// </summary>
     private CooldownBase tickCooldown = new CooldownGameTime();
 
@@ -33,8 +33,8 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     #region Registration
 
     /// <summary>
-    /// Регистрирует объект в Update цикле.
-    /// Возвращает false, если объект уже зарегистрирован.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РѕР±СЉРµРєС‚ РІ Update С†РёРєР»Рµ.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ false, РµСЃР»Рё РѕР±СЉРµРєС‚ СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ.
     /// </summary>
     public bool Register(IPRUpdate update)
     {
@@ -46,8 +46,8 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     }
 
     /// <summary>
-    /// Удаляет объект из Update цикла.
-    /// Возвращает true, если удаление прошло успешно.
+    /// РЈРґР°Р»СЏРµС‚ РѕР±СЉРµРєС‚ РёР· Update С†РёРєР»Р°.
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ true, РµСЃР»Рё СѓРґР°Р»РµРЅРёРµ РїСЂРѕС€Р»Рѕ СѓСЃРїРµС€РЅРѕ.
     /// </summary>
     public bool Unregister(IPRUpdate update)
     {
@@ -55,7 +55,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     }
 
     /// <summary>
-    /// Регистрирует объект в Tick цикле (интервальное обновление).
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РѕР±СЉРµРєС‚ РІ Tick С†РёРєР»Рµ (РёРЅС‚РµСЂРІР°Р»СЊРЅРѕРµ РѕР±РЅРѕРІР»РµРЅРёРµ).
     /// </summary>
     public bool Register(IPRTickable tickable)
     {
@@ -67,7 +67,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     }
 
     /// <summary>
-    /// Удаляет объект из Tick цикла.
+    /// РЈРґР°Р»СЏРµС‚ РѕР±СЉРµРєС‚ РёР· Tick С†РёРєР»Р°.
     /// </summary>
     public bool Unregister(IPRTickable tickable)
     {
@@ -75,7 +75,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     }
 
     /// <summary>
-    /// Регистрирует объект в FixedUpdate цикле.
+    /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РѕР±СЉРµРєС‚ РІ FixedUpdate С†РёРєР»Рµ.
     /// </summary>
     public bool Register(IPRFixedUpdate fixedUpdate)
     {
@@ -87,7 +87,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     }
 
     /// <summary>
-    /// Удаляет объект из FixedUpdate цикла.
+    /// РЈРґР°Р»СЏРµС‚ РѕР±СЉРµРєС‚ РёР· FixedUpdate С†РёРєР»Р°.
     /// </summary>
     public bool Unregister(IPRFixedUpdate fixedUpdate)
     {
@@ -96,7 +96,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
 
     #endregion
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     /// <summary>
     /// <inheritdoc/>
@@ -131,10 +131,10 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     /// <summary>
-    /// Вызов тикового обновления для всех зарегистрированных объектов.
+    /// Р’С‹Р·РѕРІ С‚РёРєРѕРІРѕРіРѕ РѕР±РЅРѕРІР»РµРЅРёСЏ РґР»СЏ РІСЃРµС… Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРЅС‹С… РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
     protected void PRTick()
     {
@@ -143,7 +143,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     }
 
     /// <summary>
-    /// Получить текущий интервал тика из настроек проекта.
+    /// РџРѕР»СѓС‡РёС‚СЊ С‚РµРєСѓС‰РёР№ РёРЅС‚РµСЂРІР°Р» С‚РёРєР° РёР· РЅР°СЃС‚СЂРѕРµРє РїСЂРѕРµРєС‚Р°.
     /// </summary>
     /// <returns></returns>
     public float GetHostTick()

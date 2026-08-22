@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+п»їusing System.Threading.Tasks;
 using UnityEngine;
 
 public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListener, IReadySceneGameEvent, IReadyGameEvent, ISaveable
@@ -194,10 +194,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     #endregion
 
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     /// <summary>
-    /// Время тика.
+    /// Р’СЂРµРјСЏ С‚РёРєР°.
     /// </summary>
     public long TickTime { get; protected set; }
 
@@ -223,7 +223,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     public virtual void OnReadyScene() { }
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     public virtual void PRDestroy(GameObject obj, float timeout)
     {

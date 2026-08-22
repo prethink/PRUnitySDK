@@ -1,11 +1,11 @@
-using System;
+п»їusing System;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class MethodHookAttribute : Attribute
 {
     /// <summary>
-    /// Приоритет.
-    /// Чем значение ниже, тем выше приоритет.
+    /// РџСЂРёРѕСЂРёС‚РµС‚.
+    /// Р§РµРј Р·РЅР°С‡РµРЅРёРµ РЅРёР¶Рµ, С‚РµРј РІС‹С€Рµ РїСЂРёРѕСЂРёС‚РµС‚.
     /// </summary>
     public int Order { get; }
     public string MethodHookStage { get; }

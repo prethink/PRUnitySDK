@@ -1,20 +1,20 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
 
-// Абстрактная “виртуальная система атрибутов”
+// РђР±СЃС‚СЂР°РєС‚РЅР°СЏ вЂњРІРёСЂС‚СѓР°Р»СЊРЅР°СЏ СЃРёСЃС‚РµРјР° Р°С‚СЂРёР±СѓС‚РѕРІвЂќ
 public abstract class VirtualAttributeProcessor<T> : Editor where T : UnityEngine.Object
 {
     /// <summary>
-    /// Аналог Odin ProcessChildMemberAttributes
-    /// Здесь передаются уже существующие атрибуты поля/свойства
-    /// Можно добавить новые виртуальные атрибуты
+    /// РђРЅР°Р»РѕРі Odin ProcessChildMemberAttributes
+    /// Р—РґРµСЃСЊ РїРµСЂРµРґР°СЋС‚СЃСЏ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ Р°С‚СЂРёР±СѓС‚С‹ РїРѕР»СЏ/СЃРІРѕР№СЃС‚РІР°
+    /// РњРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ РЅРѕРІС‹Рµ РІРёСЂС‚СѓР°Р»СЊРЅС‹Рµ Р°С‚СЂРёР±СѓС‚С‹
     /// </summary>
-    /// <param name="prop">SerializedProperty текущего поля</param>
-    /// <param name="member">MemberInfo поля/свойства</param>
-    /// <param name="attributes">Список всех текущих атрибутов, сюда можно добавить новые</param>
+    /// <param name="prop">SerializedProperty С‚РµРєСѓС‰РµРіРѕ РїРѕР»СЏ</param>
+    /// <param name="member">MemberInfo РїРѕР»СЏ/СЃРІРѕР№СЃС‚РІР°</param>
+    /// <param name="attributes">РЎРїРёСЃРѕРє РІСЃРµС… С‚РµРєСѓС‰РёС… Р°С‚СЂРёР±СѓС‚РѕРІ, СЃСЋРґР° РјРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ РЅРѕРІС‹Рµ</param>
     protected abstract void ProcessMemberAttributes(SerializedProperty prop, MemberInfo member, List<Attribute> attributes);
 
     public override void OnInspectorGUI()
@@ -30,20 +30,20 @@ public abstract class VirtualAttributeProcessor<T> : Editor where T : UnityEngin
         {
             enterChildren = false;
 
-            // Получаем MemberInfo поля
+            // РџРѕР»СѓС‡Р°РµРј MemberInfo РїРѕР»СЏ
             var member = targetType.GetMember(prop.name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault();
 
-            // Берем все реальные атрибуты поля/свойства
+            // Р‘РµСЂРµРј РІСЃРµ СЂРµР°Р»СЊРЅС‹Рµ Р°С‚СЂРёР±СѓС‚С‹ РїРѕР»СЏ/СЃРІРѕР№СЃС‚РІР°
             var currentAttributes = new List<Attribute>();
             if (member != null)
             {
                 currentAttributes.AddRange(member.GetCustomAttributes(true).Cast<Attribute>());
 
-                // Вызываем метод, где пользователь может добавить виртуальные атрибуты
+                // Р’С‹Р·С‹РІР°РµРј РјРµС‚РѕРґ, РіРґРµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РјРѕР¶РµС‚ РґРѕР±Р°РІРёС‚СЊ РІРёСЂС‚СѓР°Р»СЊРЅС‹Рµ Р°С‚СЂРёР±СѓС‚С‹
                 ProcessMemberAttributes(prop, member, currentAttributes);
             }
 
-            // После этого Inspector отрисовывает поле как обычно
+            // РџРѕСЃР»Рµ СЌС‚РѕРіРѕ Inspector РѕС‚СЂРёСЃРѕРІС‹РІР°РµС‚ РїРѕР»Рµ РєР°Рє РѕР±С‹С‡РЅРѕ
             EditorGUILayout.PropertyField(prop, true);
         }
 

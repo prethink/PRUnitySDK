@@ -1,8 +1,8 @@
-public partial class PRUtils : SingletonProviderBase<PRUtils>
+п»їpublic partial class PRUtils : SingletonProviderBase<PRUtils>
 {
     /// <summary>
-    /// Сервис предоставляет набор готовых имён.
-    /// Путь к файлу с именами: Assets/PRUnitySDK/Resources/Names.txt
+    /// РЎРµСЂРІРёСЃ РїСЂРµРґРѕСЃС‚Р°РІР»СЏРµС‚ РЅР°Р±РѕСЂ РіРѕС‚РѕРІС‹С… РёРјС‘РЅ.
+    /// РџСѓС‚СЊ Рє С„Р°Р№Р»Сѓ СЃ РёРјРµРЅР°РјРё: Assets/PRUnitySDK/Resources/Names.txt
     /// </summary>
     public NameService NameService => NameService.Instance;
 }

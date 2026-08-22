@@ -1,49 +1,49 @@
-using Newtonsoft.Json;
+п»їusing Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
 public class ProjectProperties : ICloneable
 {
     /// <summary>
-    /// Словарь для хранения универсальных объектов.
+    /// РЎР»РѕРІР°СЂСЊ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹С… РѕР±СЉРµРєС‚РѕРІ.
     /// </summary>
     [JsonProperty("obj")]
     public Dictionary<string, object> ObjectProperties = new();
 
     /// <summary>
-    /// Словарь для хранения свойств типа int.
+    /// РЎР»РѕРІР°СЂСЊ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЃРІРѕР№СЃС‚РІ С‚РёРїР° int.
     /// </summary>
     [JsonProperty("long")]
     public Dictionary<string, long> LongProperties = new();
 
     /// <summary>
-    /// Словарь для хранения свойств типа DateTime.
+    /// РЎР»РѕРІР°СЂСЊ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЃРІРѕР№СЃС‚РІ С‚РёРїР° DateTime.
     /// </summary>
     [JsonProperty("DateTime")]
     public Dictionary<string, DateTime> DateTimeProperties = new();
 
     /// <summary>
-    /// Словарь для хранения свойств типа string.
+    /// РЎР»РѕРІР°СЂСЊ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЃРІРѕР№СЃС‚РІ С‚РёРїР° string.
     /// </summary>
     [JsonProperty("str")]
     public Dictionary<string, string> StringProperties = new();
 
     /// <summary>
-    /// Словарь для хранения свойств типа float.
+    /// РЎР»РѕРІР°СЂСЊ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЃРІРѕР№СЃС‚РІ С‚РёРїР° float.
     /// </summary>
     [JsonProperty("float")]
     public Dictionary<string, float> FloatProperties = new();
 
     /// <summary>
-    /// Словарь для хранения свойств типа bool.
+    /// РЎР»РѕРІР°СЂСЊ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЃРІРѕР№СЃС‚РІ С‚РёРїР° bool.
     /// </summary>
     [JsonProperty("bool")]
     public Dictionary<string, bool> BoolProperties = new();
 
     /// <summary>
-    /// Создает глубокую копию объекта ProjectProperties.
+    /// РЎРѕР·РґР°РµС‚ РіР»СѓР±РѕРєСѓСЋ РєРѕРїРёСЋ РѕР±СЉРµРєС‚Р° ProjectProperties.
     /// </summary>
-    /// <returns>Глубокая копия объекта ProjectProperties.</returns>
+    /// <returns>Р“Р»СѓР±РѕРєР°СЏ РєРѕРїРёСЏ РѕР±СЉРµРєС‚Р° ProjectProperties.</returns>
     public object Clone()
     {
         var clone = new ProjectProperties

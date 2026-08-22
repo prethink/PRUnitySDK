@@ -1,23 +1,23 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
 
 public class ButtonBase : PRMonoBehaviour
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     protected Button button;
 
     #endregion
 
-    [Header("Ресурсы")]
+    [Header("Р РµСЃСѓСЂСЃС‹")]
     [SerializeField] protected Image buttonIcon;
     [SerializeField] protected AudioClip clickSound;
 
-    [Header("Настройки", order = 0)]
-    [SerializeField][Tooltip("Отключить кнопку после клика.")] protected bool disablePostClick;
-    [SerializeField][Tooltip("Скрыть кнопку после клика.")] protected bool hidePostClick;
-    [SerializeField][Tooltip("Кликабельность кнопки зависит от паузы")] protected bool changeStateButtonByPauseEvent;
-    [SerializeField][Tooltip("Возможность кликабельности кнопки при паузе.")] protected bool canExecuteOnPause;
+    [Header("РќР°СЃС‚СЂРѕР№РєРё", order = 0)]
+    [SerializeField][Tooltip("РћС‚РєР»СЋС‡РёС‚СЊ РєРЅРѕРїРєСѓ РїРѕСЃР»Рµ РєР»РёРєР°.")] protected bool disablePostClick;
+    [SerializeField][Tooltip("РЎРєСЂС‹С‚СЊ РєРЅРѕРїРєСѓ РїРѕСЃР»Рµ РєР»РёРєР°.")] protected bool hidePostClick;
+    [SerializeField][Tooltip("РљР»РёРєР°Р±РµР»СЊРЅРѕСЃС‚СЊ РєРЅРѕРїРєРё Р·Р°РІРёСЃРёС‚ РѕС‚ РїР°СѓР·С‹")] protected bool changeStateButtonByPauseEvent;
+    [SerializeField][Tooltip("Р’РѕР·РјРѕР¶РЅРѕСЃС‚СЊ РєР»РёРєР°Р±РµР»СЊРЅРѕСЃС‚Рё РєРЅРѕРїРєРё РїСЂРё РїР°СѓР·Рµ.")] protected bool canExecuteOnPause;
     [SerializeField] protected string metricKey;
 
     protected override void InitializationComponents()

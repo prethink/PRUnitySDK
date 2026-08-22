@@ -1,29 +1,29 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Базовый прокси-класс для MonoBehaviour.
-/// Позволяет делегировать работу на другой объект и получать компоненты через прокси.
+/// Р‘Р°Р·РѕРІС‹Р№ РїСЂРѕРєСЃРё-РєР»Р°СЃСЃ РґР»СЏ MonoBehaviour.
+/// РџРѕР·РІРѕР»СЏРµС‚ РґРµР»РµРіРёСЂРѕРІР°С‚СЊ СЂР°Р±РѕС‚Сѓ РЅР° РґСЂСѓРіРѕР№ РѕР±СЉРµРєС‚ Рё РїРѕР»СѓС‡Р°С‚СЊ РєРѕРјРїРѕРЅРµРЅС‚С‹ С‡РµСЂРµР· РїСЂРѕРєСЃРё.
 /// </summary>
 public class PRMonoBehaviourProxy : PRMonoBehaviour
 {
-    // Ссылка на реальный объект, которому делегируются события
+    // РЎСЃС‹Р»РєР° РЅР° СЂРµР°Р»СЊРЅС‹Р№ РѕР±СЉРµРєС‚, РєРѕС‚РѕСЂРѕРјСѓ РґРµР»РµРіРёСЂСѓСЋС‚СЃСЏ СЃРѕР±С‹С‚РёСЏ
     [SerializeField] protected PRMonoBehaviour refObject;
     [SerializeField] protected HashSet<PRMonoBehaviour> registeredLink = new();
 
     /// <summary>
-    /// Универсальный метод для получения компонента с реального объекта через прокси.
+    /// РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ РјРµС‚РѕРґ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РєРѕРјРїРѕРЅРµРЅС‚Р° СЃ СЂРµР°Р»СЊРЅРѕРіРѕ РѕР±СЉРµРєС‚Р° С‡РµСЂРµР· РїСЂРѕРєСЃРё.
     /// </summary>
-    /// <typeparam name="T">Тип компонента</typeparam>
-    /// <param name="component">Выходной параметр для найденного компонента</param>
-    /// <returns>true, если компонент найден, иначе false</returns>
+    /// <typeparam name="T">РўРёРї РєРѕРјРїРѕРЅРµРЅС‚Р°</typeparam>
+    /// <param name="component">Р’С‹С…РѕРґРЅРѕР№ РїР°СЂР°РјРµС‚СЂ РґР»СЏ РЅР°Р№РґРµРЅРЅРѕРіРѕ РєРѕРјРїРѕРЅРµРЅС‚Р°</param>
+    /// <returns>true, РµСЃР»Рё РєРѕРјРїРѕРЅРµРЅС‚ РЅР°Р№РґРµРЅ, РёРЅР°С‡Рµ false</returns>
     public bool TryComponentFromProxy<T>(out T component)
     {
         component = default(T);
 
-        // Пытаемся получить компонент с реального объекта
+        // РџС‹С‚Р°РµРјСЃСЏ РїРѕР»СѓС‡РёС‚СЊ РєРѕРјРїРѕРЅРµРЅС‚ СЃ СЂРµР°Р»СЊРЅРѕРіРѕ РѕР±СЉРµРєС‚Р°
         if (refObject?.TryGetComponent<T>(out component) == true)
             return true;
 

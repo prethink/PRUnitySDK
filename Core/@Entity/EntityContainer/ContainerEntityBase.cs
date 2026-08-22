@@ -1,7 +1,7 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 /// <summary>
-/// Контейнер для хранения эффекта.
+/// РљРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЌС„С„РµРєС‚Р°.
 /// </summary>
 [RequireComponent(typeof(BoxCollider), typeof(Rigidbody))]
 public abstract class ContainerEntityBase : RuntimeEntityBase
@@ -58,12 +58,12 @@ public abstract class ContainerEntityBase<T> : ContainerEntityBase
     where T : IIconProvider
 {
     /// <summary>
-    /// Фабрика для создания эффекта.
+    /// Р¤Р°Р±СЂРёРєР° РґР»СЏ СЃРѕР·РґР°РЅРёСЏ СЌС„С„РµРєС‚Р°.
     /// </summary>
     [SerializeField] protected T containerItem;
 
     /// <summary>
-    /// Обновить спрайт.
+    /// РћР±РЅРѕРІРёС‚СЊ СЃРїСЂР°Р№С‚.
     /// </summary>
     protected override void InitializationComponents()
     {

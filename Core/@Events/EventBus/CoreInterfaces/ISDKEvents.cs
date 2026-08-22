@@ -1,10 +1,10 @@
-/// <summary>
-/// События SDK.
+п»ї/// <summary>
+/// РЎРѕР±С‹С‚РёСЏ SDK.
 /// </summary>
 public interface ISDKEvents : IGlobalSubscriber
 {
     /// <summary>
-    /// События завершения инициализации SDK.
+    /// РЎРѕР±С‹С‚РёСЏ Р·Р°РІРµСЂС€РµРЅРёСЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё SDK.
     /// </summary>
     void OnInitialized();
 }

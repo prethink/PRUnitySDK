@@ -1,11 +1,11 @@
-using System;
+п»їusing System;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class InvokePartialAttribute : Attribute
 {
     public int Order { get; }
 
-    #region Конструкторы
+    #region РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹
 
     public InvokePartialAttribute(int order = 0)
     {

@@ -1,18 +1,18 @@
-using System;
+п»їusing System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Базовая сущность игрока.
+/// Р‘Р°Р·РѕРІР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ РёРіСЂРѕРєР°.
 /// </summary>
 public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
     protected IPlayerTeam playerTeam = new DefaultTeam();
 
-    [Header("Игрок")]
+    [Header("РРіСЂРѕРє")]
     [SerializeField] protected string playerName;
 
     [Header("Debug")]
@@ -101,7 +101,7 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 
     #endregion
 
-    #region Базовый класс
+    #region Р‘Р°Р·РѕРІС‹Р№ РєР»Р°СЃСЃ
 
     //public override bool Kill()
     //{
@@ -186,7 +186,7 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 
     #endregion
 
-    #region События
+    #region РЎРѕР±С‹С‚РёСЏ
 
     public event Action<long> OnPointsChanged;
     public event Action<long> OnPointAdd;
@@ -200,7 +200,7 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 
     #endregion
 
-    #region Методы
+    #region РњРµС‚РѕРґС‹
 
     public virtual void Teleport(Vector3 position)
     {

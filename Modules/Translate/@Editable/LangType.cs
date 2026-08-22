@@ -1,11 +1,11 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public enum LangType
 {
-    [InspectorName("Русский")]
+    [InspectorName("Р СѓСЃСЃРєРёР№")]
     Russian = 0,
-    [InspectorName("Английский")]
+    [InspectorName("РђРЅРіР»РёР№СЃРєРёР№")]
     English = 1,
-    [InspectorName("Турецкий")]
+    [InspectorName("РўСѓСЂРµС†РєРёР№")]
     Turkey = 2,
 }

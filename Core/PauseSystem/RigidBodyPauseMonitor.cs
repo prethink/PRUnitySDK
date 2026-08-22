@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
@@ -12,12 +12,12 @@ public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
     }
 
     /// <summary>
-    /// Отслеживаемые rigidbodies.
+    /// РћС‚СЃР»РµР¶РёРІР°РµРјС‹Рµ rigidbodies.
     /// </summary>
     protected List<Rigidbody> rigidbodies = new List<Rigidbody>();
 
     /// <summary>
-    /// Состояние rigidbodies.
+    /// РЎРѕСЃС‚РѕСЏРЅРёРµ rigidbodies.
     /// </summary>
     protected Dictionary<Rigidbody, RigidbodyData> rigidbodyStates = new();
 
@@ -43,7 +43,7 @@ public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
     #endregion
 
     /// <summary>
-    /// Регистрация rigidBody.
+    /// Р РµРіРёСЃС‚СЂР°С†РёСЏ rigidBody.
     /// </summary>
     /// <param name="rigidbody">rigidbody.</param>
     public virtual void RegisterRigidBody(Rigidbody rigidbody)
@@ -65,7 +65,7 @@ public class RigidBodyPauseMonitor : MonoBehaviour, IPauseStateListener
             if (rb == null || rb.isKinematic)
                 continue;
 
-            //TODO: Баг с бесконечным открыванием магазина обби
+            //TODO: Р‘Р°Рі СЃ Р±РµСЃРєРѕРЅРµС‡РЅС‹Рј РѕС‚РєСЂС‹РІР°РЅРёРµРј РјР°РіР°Р·РёРЅР° РѕР±Р±Рё
             //rb.isKinematic = data.IsKinematic;
             rb.useGravity = data.UseGravity;
             rb.velocity = data.Velocity;

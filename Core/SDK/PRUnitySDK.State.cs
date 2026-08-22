@@ -1,14 +1,14 @@
-public partial class PRUnitySDK
+п»їpublic partial class PRUnitySDK
 {
     /// <summary>
-    /// Признак, того что сейчас открыто окно.
+    /// РџСЂРёР·РЅР°Рє, С‚РѕРіРѕ С‡С‚Рѕ СЃРµР№С‡Р°СЃ РѕС‚РєСЂС‹С‚Рѕ РѕРєРЅРѕ.
     /// </summary>
     public static bool IsWindowOpen { get; private set; }
 
     /// <summary>
-    /// Установить признак, что окно открыто или нет. 
+    /// РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РїСЂРёР·РЅР°Рє, С‡С‚Рѕ РѕРєРЅРѕ РѕС‚РєСЂС‹С‚Рѕ РёР»Рё РЅРµС‚. 
     /// </summary>
-    /// <param name="isOpen">True - открыто, False - закрыто.</param>
+    /// <param name="isOpen">True - РѕС‚РєСЂС‹С‚Рѕ, False - Р·Р°РєСЂС‹С‚Рѕ.</param>
     public static void SetWindowsState(bool isOpen)
     {
         IsWindowOpen = isOpen;

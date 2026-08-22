@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,25 +7,25 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class SoundManager : MonoBehaviour
 {
-    #region Поля и свойства
+    #region РџРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°
 
-    [SerializeField] private AudioSource effectsSource; // шаблон настроек для пула + fallback
+    [SerializeField] private AudioSource effectsSource; // С€Р°Р±Р»РѕРЅ РЅР°СЃС‚СЂРѕРµРє РґР»СЏ РїСѓР»Р° + fallback
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioSource uiSource;
 
-    [Header("Пул источников для одноразовых эффектов")]
-    [Tooltip("Каждый одновременно играющий эффект получает свой AudioSource из пула - " +
-             "иначе pitch одного эффекта 'протекает' в уже играющий другой (pitch - " +
-             "свойство всего AudioSource, а не отдельного voice внутри PlayOneShot), " +
-             "и второй эффект не обрывает первый (раньше это делал source.Stop()).")]
+    [Header("РџСѓР» РёСЃС‚РѕС‡РЅРёРєРѕРІ РґР»СЏ РѕРґРЅРѕСЂР°Р·РѕРІС‹С… СЌС„С„РµРєС‚РѕРІ")]
+    [Tooltip("РљР°Р¶РґС‹Р№ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ РёРіСЂР°СЋС‰РёР№ СЌС„С„РµРєС‚ РїРѕР»СѓС‡Р°РµС‚ СЃРІРѕР№ AudioSource РёР· РїСѓР»Р° - " +
+             "РёРЅР°С‡Рµ pitch РѕРґРЅРѕРіРѕ СЌС„С„РµРєС‚Р° 'РїСЂРѕС‚РµРєР°РµС‚' РІ СѓР¶Рµ РёРіСЂР°СЋС‰РёР№ РґСЂСѓРіРѕР№ (pitch - " +
+             "СЃРІРѕР№СЃС‚РІРѕ РІСЃРµРіРѕ AudioSource, Р° РЅРµ РѕС‚РґРµР»СЊРЅРѕРіРѕ voice РІРЅСѓС‚СЂРё PlayOneShot), " +
+             "Рё РІС‚РѕСЂРѕР№ СЌС„С„РµРєС‚ РЅРµ РѕР±СЂС‹РІР°РµС‚ РїРµСЂРІС‹Р№ (СЂР°РЅСЊС€Рµ СЌС‚Рѕ РґРµР»Р°Р» source.Stop()).")]
     [SerializeField] private int effectsPoolInitialSize = 4;
 
-    [Header("Пул позиционных (3D) эффектов")]
-    [Tooltip("Отдельный пул от обычных эффектов - эти источники физически расставляются " +
-             "в точке звука (шаги, удары и т.п.), поэтому нужен spatialBlend = 1. " +
-             "Важно для игры с несколькими игроками: каждый источник в пуле переиспользуется " +
-             "и просто переставляется в новую позицию, когда освобождается - никаких " +
-             "Instantiate/Destroy на каждый шаг, даже при частых шагах у многих игроков одновременно.")]
+    [Header("РџСѓР» РїРѕР·РёС†РёРѕРЅРЅС‹С… (3D) СЌС„С„РµРєС‚РѕРІ")]
+    [Tooltip("РћС‚РґРµР»СЊРЅС‹Р№ РїСѓР» РѕС‚ РѕР±С‹С‡РЅС‹С… СЌС„С„РµРєС‚РѕРІ - СЌС‚Рё РёСЃС‚РѕС‡РЅРёРєРё С„РёР·РёС‡РµСЃРєРё СЂР°СЃСЃС‚Р°РІР»СЏСЋС‚СЃСЏ " +
+             "РІ С‚РѕС‡РєРµ Р·РІСѓРєР° (С€Р°РіРё, СѓРґР°СЂС‹ Рё С‚.Рї.), РїРѕСЌС‚РѕРјСѓ РЅСѓР¶РµРЅ spatialBlend = 1. " +
+             "Р’Р°Р¶РЅРѕ РґР»СЏ РёРіСЂС‹ СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё РёРіСЂРѕРєР°РјРё: РєР°Р¶РґС‹Р№ РёСЃС‚РѕС‡РЅРёРє РІ РїСѓР»Рµ РїРµСЂРµРёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ " +
+             "Рё РїСЂРѕСЃС‚Рѕ РїРµСЂРµСЃС‚Р°РІР»СЏРµС‚СЃСЏ РІ РЅРѕРІСѓСЋ РїРѕР·РёС†РёСЋ, РєРѕРіРґР° РѕСЃРІРѕР±РѕР¶РґР°РµС‚СЃСЏ - РЅРёРєР°РєРёС… " +
+             "Instantiate/Destroy РЅР° РєР°Р¶РґС‹Р№ С€Р°Рі, РґР°Р¶Рµ РїСЂРё С‡Р°СЃС‚С‹С… С€Р°РіР°С… Сѓ РјРЅРѕРіРёС… РёРіСЂРѕРєРѕРІ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ.")]
     [SerializeField] private int positionalEffectsPoolInitialSize = 8;
     [SerializeField] private float positionalMinDistance = 1f;
     [SerializeField] private float positionalMaxDistance = 25f;
@@ -70,9 +70,9 @@ public class SoundManager : MonoBehaviour
         isInit = true;
     }
 
-    /// <summary>Создаёт стартовый набор источников для пула эффектов заранее,
-    /// чтобы первые же несколько одновременных звуков не создавали AudioSource
-    /// прямо в момент проигрывания.</summary>
+    /// <summary>РЎРѕР·РґР°С‘С‚ СЃС‚Р°СЂС‚РѕРІС‹Р№ РЅР°Р±РѕСЂ РёСЃС‚РѕС‡РЅРёРєРѕРІ РґР»СЏ РїСѓР»Р° СЌС„С„РµРєС‚РѕРІ Р·Р°СЂР°РЅРµРµ,
+    /// С‡С‚РѕР±С‹ РїРµСЂРІС‹Рµ Р¶Рµ РЅРµСЃРєРѕР»СЊРєРѕ РѕРґРЅРѕРІСЂРµРјРµРЅРЅС‹С… Р·РІСѓРєРѕРІ РЅРµ СЃРѕР·РґР°РІР°Р»Рё AudioSource
+    /// РїСЂСЏРјРѕ РІ РјРѕРјРµРЅС‚ РїСЂРѕРёРіСЂС‹РІР°РЅРёСЏ.</summary>
     private void PrewarmEffectsPool()
     {
         for (int i = 0; i < effectsPoolInitialSize; i++)
@@ -87,14 +87,14 @@ public class SoundManager : MonoBehaviour
         var source = gameObject.AddComponent<AudioSource>();
         source.playOnAwake = false;
         source.loop = false;
-        source.spatialBlend = 0f; // 2D - обычные UI-подобные эффекты без позиции в мире
+        source.spatialBlend = 0f; // 2D - РѕР±С‹С‡РЅС‹Рµ UI-РїРѕРґРѕР±РЅС‹Рµ СЌС„С„РµРєС‚С‹ Р±РµР· РїРѕР·РёС†РёРё РІ РјРёСЂРµ
         source.volume = effectsSource != null ? effectsSource.volume : 1f;
         return source;
     }
 
-    /// <summary>Источник для позиционных эффектов - отдельный дочерний GameObject
-    /// (не на самом SoundManager), т.к. его Transform будет физически переставляться
-    /// в точку звука при каждом вызове PlaySoundEffectAtPoint.</summary>
+    /// <summary>РСЃС‚РѕС‡РЅРёРє РґР»СЏ РїРѕР·РёС†РёРѕРЅРЅС‹С… СЌС„С„РµРєС‚РѕРІ - РѕС‚РґРµР»СЊРЅС‹Р№ РґРѕС‡РµСЂРЅРёР№ GameObject
+    /// (РЅРµ РЅР° СЃР°РјРѕРј SoundManager), С‚.Рє. РµРіРѕ Transform Р±СѓРґРµС‚ С„РёР·РёС‡РµСЃРєРё РїРµСЂРµСЃС‚Р°РІР»СЏС‚СЊСЃСЏ
+    /// РІ С‚РѕС‡РєСѓ Р·РІСѓРєР° РїСЂРё РєР°Р¶РґРѕРј РІС‹Р·РѕРІРµ PlaySoundEffectAtPoint.</summary>
     private AudioSource CreatePooledPositionalSource()
     {
         var go = new GameObject("PositionalEffectSource");
@@ -103,7 +103,7 @@ public class SoundManager : MonoBehaviour
         var source = go.AddComponent<AudioSource>();
         source.playOnAwake = false;
         source.loop = false;
-        source.spatialBlend = 1f; // полноценный 3D-звук
+        source.spatialBlend = 1f; // РїРѕР»РЅРѕС†РµРЅРЅС‹Р№ 3D-Р·РІСѓРє
         source.rolloffMode = AudioRolloffMode.Logarithmic;
         source.minDistance = positionalMinDistance;
         source.maxDistance = positionalMaxDistance;
@@ -165,7 +165,7 @@ public class SoundManager : MonoBehaviour
 
     #endregion
 
-    #region Регистрация звуков
+    #region Р РµРіРёСЃС‚СЂР°С†РёСЏ Р·РІСѓРєРѕРІ
 
     public void RegisterSoundList(AudioSet audio)
     {
@@ -199,11 +199,11 @@ public class SoundManager : MonoBehaviour
 
     #endregion
 
-    #region Одноразовые эффекты (пул)
+    #region РћРґРЅРѕСЂР°Р·РѕРІС‹Рµ СЌС„С„РµРєС‚С‹ (РїСѓР»)
 
-    /// <summary>Возвращает свободный (не играющий сейчас) источник из пула эффектов,
-    /// либо создаёт новый, если все заняты - пул растёт по требованию под пиковую
-    /// нагрузку и дальше переиспользуется, не создавая источники заново каждый раз.</summary>
+    /// <summary>Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРІРѕР±РѕРґРЅС‹Р№ (РЅРµ РёРіСЂР°СЋС‰РёР№ СЃРµР№С‡Р°СЃ) РёСЃС‚РѕС‡РЅРёРє РёР· РїСѓР»Р° СЌС„С„РµРєС‚РѕРІ,
+    /// Р»РёР±Рѕ СЃРѕР·РґР°С‘С‚ РЅРѕРІС‹Р№, РµСЃР»Рё РІСЃРµ Р·Р°РЅСЏС‚С‹ - РїСѓР» СЂР°СЃС‚С‘С‚ РїРѕ С‚СЂРµР±РѕРІР°РЅРёСЋ РїРѕРґ РїРёРєРѕРІСѓСЋ
+    /// РЅР°РіСЂСѓР·РєСѓ Рё РґР°Р»СЊС€Рµ РїРµСЂРµРёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, РЅРµ СЃРѕР·РґР°РІР°СЏ РёСЃС‚РѕС‡РЅРёРєРё Р·Р°РЅРѕРІРѕ РєР°Р¶РґС‹Р№ СЂР°Р·.</summary>
     private AudioSource GetFreeEffectSource()
     {
         foreach (var source in effectsPool)
@@ -217,9 +217,9 @@ public class SoundManager : MonoBehaviour
         return newSource;
     }
 
-    /// <summary>Аналог GetFreeEffectSource, но для позиционного пула - источник не
-    /// перемещается, пока реально играет (проверка isPlaying), поэтому переиспользование
-    /// никогда не "переставит" звук, который уже кто-то слушает в процессе.</summary>
+    /// <summary>РђРЅР°Р»РѕРі GetFreeEffectSource, РЅРѕ РґР»СЏ РїРѕР·РёС†РёРѕРЅРЅРѕРіРѕ РїСѓР»Р° - РёСЃС‚РѕС‡РЅРёРє РЅРµ
+    /// РїРµСЂРµРјРµС‰Р°РµС‚СЃСЏ, РїРѕРєР° СЂРµР°Р»СЊРЅРѕ РёРіСЂР°РµС‚ (РїСЂРѕРІРµСЂРєР° isPlaying), РїРѕСЌС‚РѕРјСѓ РїРµСЂРµРёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ
+    /// РЅРёРєРѕРіРґР° РЅРµ "РїРµСЂРµСЃС‚Р°РІРёС‚" Р·РІСѓРє, РєРѕС‚РѕСЂС‹Р№ СѓР¶Рµ РєС‚Рѕ-С‚Рѕ СЃР»СѓС€Р°РµС‚ РІ РїСЂРѕС†РµСЃСЃРµ.</summary>
     private AudioSource GetFreePositionalSource()
     {
         foreach (var source in positionalEffectsPool)
@@ -233,10 +233,10 @@ public class SoundManager : MonoBehaviour
         return newSource;
     }
 
-    /// <summary>Долгоживущий (петлевой) эффект с собственным идентификатором -
-    /// например, гул двигателя, который нужно явно остановить через RemoveEffect.
-    /// Отдельный механизм от пула одноразовых - этому источнику нельзя внезапно
-    /// подменяться другим звуком, пока RemoveEffect не вызван явно.</summary>
+    /// <summary>Р”РѕР»РіРѕР¶РёРІСѓС‰РёР№ (РїРµС‚Р»РµРІРѕР№) СЌС„С„РµРєС‚ СЃ СЃРѕР±СЃС‚РІРµРЅРЅС‹Рј РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРј -
+    /// РЅР°РїСЂРёРјРµСЂ, РіСѓР» РґРІРёРіР°С‚РµР»СЏ, РєРѕС‚РѕСЂС‹Р№ РЅСѓР¶РЅРѕ СЏРІРЅРѕ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ С‡РµСЂРµР· RemoveEffect.
+    /// РћС‚РґРµР»СЊРЅС‹Р№ РјРµС…Р°РЅРёР·Рј РѕС‚ РїСѓР»Р° РѕРґРЅРѕСЂР°Р·РѕРІС‹С… - СЌС‚РѕРјСѓ РёСЃС‚РѕС‡РЅРёРєСѓ РЅРµР»СЊР·СЏ РІРЅРµР·Р°РїРЅРѕ
+    /// РїРѕРґРјРµРЅСЏС‚СЊСЃСЏ РґСЂСѓРіРёРј Р·РІСѓРєРѕРј, РїРѕРєР° RemoveEffect РЅРµ РІС‹Р·РІР°РЅ СЏРІРЅРѕ.</summary>
     public void PlayEffectWithLifetime(Guid guid, AudioClip sound)
     {
         if (sound == null || loopingEffectSources.ContainsKey(guid))
@@ -277,13 +277,13 @@ public class SoundManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Позиционный (3D) одноразовый эффект - например, шаги, удары, любые звуки,
-    /// у которых важно направление/расстояние до слушателя. В отличие от
-    /// PlaySoundEffectOneShot, источник физически ставится в position - при
-    /// нескольких игроках/источниках звука одновременно будет слышно, откуда
-    /// именно идёт каждый звук. Использует отдельный позиционный пул (см.
-    /// positionalEffectsPool) - переиспользуемые источники, без Instantiate/Destroy
-    /// на каждый вызов, поэтому безопасно дёргать часто и от многих игроков сразу.
+    /// РџРѕР·РёС†РёРѕРЅРЅС‹Р№ (3D) РѕРґРЅРѕСЂР°Р·РѕРІС‹Р№ СЌС„С„РµРєС‚ - РЅР°РїСЂРёРјРµСЂ, С€Р°РіРё, СѓРґР°СЂС‹, Р»СЋР±С‹Рµ Р·РІСѓРєРё,
+    /// Сѓ РєРѕС‚РѕСЂС‹С… РІР°Р¶РЅРѕ РЅР°РїСЂР°РІР»РµРЅРёРµ/СЂР°СЃСЃС‚РѕСЏРЅРёРµ РґРѕ СЃР»СѓС€Р°С‚РµР»СЏ. Р’ РѕС‚Р»РёС‡РёРµ РѕС‚
+    /// PlaySoundEffectOneShot, РёСЃС‚РѕС‡РЅРёРє С„РёР·РёС‡РµСЃРєРё СЃС‚Р°РІРёС‚СЃСЏ РІ position - РїСЂРё
+    /// РЅРµСЃРєРѕР»СЊРєРёС… РёРіСЂРѕРєР°С…/РёСЃС‚РѕС‡РЅРёРєР°С… Р·РІСѓРєР° РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ Р±СѓРґРµС‚ СЃР»С‹С€РЅРѕ, РѕС‚РєСѓРґР°
+    /// РёРјРµРЅРЅРѕ РёРґС‘С‚ РєР°Р¶РґС‹Р№ Р·РІСѓРє. РСЃРїРѕР»СЊР·СѓРµС‚ РѕС‚РґРµР»СЊРЅС‹Р№ РїРѕР·РёС†РёРѕРЅРЅС‹Р№ РїСѓР» (СЃРј.
+    /// positionalEffectsPool) - РїРµСЂРµРёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РёСЃС‚РѕС‡РЅРёРєРё, Р±РµР· Instantiate/Destroy
+    /// РЅР° РєР°Р¶РґС‹Р№ РІС‹Р·РѕРІ, РїРѕСЌС‚РѕРјСѓ Р±РµР·РѕРїР°СЃРЅРѕ РґС‘СЂРіР°С‚СЊ С‡Р°СЃС‚Рѕ Рё РѕС‚ РјРЅРѕРіРёС… РёРіСЂРѕРєРѕРІ СЃСЂР°Р·Сѓ.
     /// </summary>
     public void PlaySoundEffectAtPoint(AudioClip sound, Vector3 position, Vector2? randomPitch = null, float volume = 1f)
     {
@@ -298,7 +298,7 @@ public class SoundManager : MonoBehaviour
 
     #endregion
 
-    #region UI и позиционные звуки
+    #region UI Рё РїРѕР·РёС†РёРѕРЅРЅС‹Рµ Р·РІСѓРєРё
 
     public void PlaySoundUIOneShot(AudioClip sound, float volume)
     {
@@ -331,7 +331,7 @@ public class SoundManager : MonoBehaviour
 
     #endregion
 
-    #region Категоризированное воспроизведение
+    #region РљР°С‚РµРіРѕСЂРёР·РёСЂРѕРІР°РЅРЅРѕРµ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµ
 
     public bool IsMute()
     {
@@ -378,9 +378,9 @@ public class SoundManager : MonoBehaviour
         switch (audioCollection.SoundType)
         {
             case SoundType.Music:
-                // Музыка - не одноразовый эффект, а полноценная смена текущего трека,
-                // поэтому здесь осознанно Stop+Play (а не PlayOneShot) - два трека
-                // одновременно на musicSource звучать не должны.
+                // РњСѓР·С‹РєР° - РЅРµ РѕРґРЅРѕСЂР°Р·РѕРІС‹Р№ СЌС„С„РµРєС‚, Р° РїРѕР»РЅРѕС†РµРЅРЅР°СЏ СЃРјРµРЅР° С‚РµРєСѓС‰РµРіРѕ С‚СЂРµРєР°,
+                // РїРѕСЌС‚РѕРјСѓ Р·РґРµСЃСЊ РѕСЃРѕР·РЅР°РЅРЅРѕ Stop+Play (Р° РЅРµ PlayOneShot) - РґРІР° С‚СЂРµРєР°
+                // РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ РЅР° musicSource Р·РІСѓС‡Р°С‚СЊ РЅРµ РґРѕР»Р¶РЅС‹.
                 audioCollection.ApplySettings(musicSource);
                 musicSource.Stop();
                 musicSource.loop = false;
@@ -403,7 +403,7 @@ public class SoundManager : MonoBehaviour
 
     #endregion
 
-    #region Фоновая музыка
+    #region Р¤РѕРЅРѕРІР°СЏ РјСѓР·С‹РєР°
 
     public void PlayBackgroundMusic()
     {
@@ -412,8 +412,8 @@ public class SoundManager : MonoBehaviour
 
         PlayCurrentTrack();
 
-        // Persistent-наблюдатель запускается один раз, а не при каждом PlayBackgroundMusic -
-        // сам крутится вечно и переключает треки по мере естественного завершения.
+        // Persistent-РЅР°Р±Р»СЋРґР°С‚РµР»СЊ Р·Р°РїСѓСЃРєР°РµС‚СЃСЏ РѕРґРёРЅ СЂР°Р·, Р° РЅРµ РїСЂРё РєР°Р¶РґРѕРј PlayBackgroundMusic -
+        // СЃР°Рј РєСЂСѓС‚РёС‚СЃСЏ РІРµС‡РЅРѕ Рё РїРµСЂРµРєР»СЋС‡Р°РµС‚ С‚СЂРµРєРё РїРѕ РјРµСЂРµ РµСЃС‚РµСЃС‚РІРµРЅРЅРѕРіРѕ Р·Р°РІРµСЂС€РµРЅРёСЏ.
         if (musicWatcherCoroutine == null)
             musicWatcherCoroutine = StartCoroutine(MusicPlaylistWatcher());
     }
@@ -424,16 +424,16 @@ public class SoundManager : MonoBehaviour
 
         var settings = PRUnitySDK.Managers.Game.GetGameSettings();
         musicSource.volume = (settings.OffSound || settings.OffMusic) ? 0 : Mathf.Clamp(settings.MusicVolume, 0, settings.MasterVolume);
-        musicSource.loop = false; // зацикливаем ПЛЕЙЛИСТ целиком через watcher, а не один трек
+        musicSource.loop = false; // Р·Р°С†РёРєР»РёРІР°РµРј РџР›Р•Р™Р›РРЎРў С†РµР»РёРєРѕРј С‡РµСЂРµР· watcher, Р° РЅРµ РѕРґРёРЅ С‚СЂРµРє
         musicSource.Play();
     }
 
     /// <summary>
-    /// Следит за естественным завершением текущего трека и переключает на следующий.
-    /// КРИТИЧНО: во время логической паузы (PRUnitySDK.PauseManager.IsLogicPaused)
-    /// проверка пропускается - раньше (в исходной версии) пауза, останавливающая
-    /// AudioSource, приводила к ложному "трек закончился" и он перезапускался с
-    /// начала. Явный Pause()/UnPause() синхронизирован с тем же флагом в Update().
+    /// РЎР»РµРґРёС‚ Р·Р° РµСЃС‚РµСЃС‚РІРµРЅРЅС‹Рј Р·Р°РІРµСЂС€РµРЅРёРµРј С‚РµРєСѓС‰РµРіРѕ С‚СЂРµРєР° Рё РїРµСЂРµРєР»СЋС‡Р°РµС‚ РЅР° СЃР»РµРґСѓСЋС‰РёР№.
+    /// РљР РРўРР§РќРћ: РІРѕ РІСЂРµРјСЏ Р»РѕРіРёС‡РµСЃРєРѕР№ РїР°СѓР·С‹ (PRUnitySDK.PauseManager.IsLogicPaused)
+    /// РїСЂРѕРІРµСЂРєР° РїСЂРѕРїСѓСЃРєР°РµС‚СЃСЏ - СЂР°РЅСЊС€Рµ (РІ РёСЃС…РѕРґРЅРѕР№ РІРµСЂСЃРёРё) РїР°СѓР·Р°, РѕСЃС‚Р°РЅР°РІР»РёРІР°СЋС‰Р°СЏ
+    /// AudioSource, РїСЂРёРІРѕРґРёР»Р° Рє Р»РѕР¶РЅРѕРјСѓ "С‚СЂРµРє Р·Р°РєРѕРЅС‡РёР»СЃСЏ" Рё РѕРЅ РїРµСЂРµР·Р°РїСѓСЃРєР°Р»СЃСЏ СЃ
+    /// РЅР°С‡Р°Р»Р°. РЇРІРЅС‹Р№ Pause()/UnPause() СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅ СЃ С‚РµРј Р¶Рµ С„Р»Р°РіРѕРј РІ Update().
     /// </summary>
     private IEnumerator MusicPlaylistWatcher()
     {

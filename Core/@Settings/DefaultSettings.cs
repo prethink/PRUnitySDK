@@ -1,61 +1,61 @@
-using System;
+п»їusing System;
 using UnityEngine;
 
 [Serializable]
 public class DefaultSettings 
 {
     /// <summary>
-    /// Чувствительность мыши.
+    /// Р§СѓРІСЃС‚РІРёС‚РµР»СЊРЅРѕСЃС‚СЊ РјС‹С€Рё.
     /// </summary>
     [field: SerializeField] public float Sensitivity { get; protected set; } = 0.3f;
 
     /// <summary>
-    /// Инвертировать горизонтальный ввод.
+    /// РРЅРІРµСЂС‚РёСЂРѕРІР°С‚СЊ РіРѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅС‹Р№ РІРІРѕРґ.
     /// </summary>
     [field: SerializeField] public bool InvertHorizontalInput { get; protected set; } = false;
 
     /// <summary>
-    /// Инвертировать вертикальный ввод.
+    /// РРЅРІРµСЂС‚РёСЂРѕРІР°С‚СЊ РІРµСЂС‚РёРєР°Р»СЊРЅС‹Р№ РІРІРѕРґ.
     /// </summary>
     [field: SerializeField] public bool InvertVerticalInput { get; protected set; } = false;
 
     /// <summary>
-    /// Громкость общая.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ РѕР±С‰Р°СЏ.
     /// </summary>
     [field: SerializeField] public float MasterVolume { get; protected set; } = 1;
 
     /// <summary>
-    /// Громкость музыка.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ РјСѓР·С‹РєР°.
     /// </summary>
     [field: SerializeField] public float MusicVolume { get; protected set; } = 1;
 
     /// <summary>
-    /// Громкость эффектов.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ СЌС„С„РµРєС‚РѕРІ.
     /// </summary>
     [field: SerializeField] public float EffectVolume { get; protected set; } = 1;
 
     /// <summary>
-    /// Признак, что музыка отключена.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ РјСѓР·С‹РєР° РѕС‚РєР»СЋС‡РµРЅР°.
     /// </summary>
     [field: SerializeField] public bool OffMusic { get; protected set; } = false;
 
     /// <summary>
-    /// Признак, что звук выключен.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ Р·РІСѓРє РІС‹РєР»СЋС‡РµРЅ.
     /// </summary>
     [field: SerializeField] public bool OffSound { get; protected set; } = false;
 
     /// <summary>
-    /// Громкость UI.
+    /// Р“СЂРѕРјРєРѕСЃС‚СЊ UI.
     /// </summary>
     [field: SerializeField] public float UIVolume { get; protected set; } = 1;
 
     /// <summary>
-    /// Признак, что музыка отключена.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ РјСѓР·С‹РєР° РѕС‚РєР»СЋС‡РµРЅР°.
     /// </summary>
     [field: SerializeField] public bool OffEffect { get; protected set; } = false;
 
     /// <summary>
-    /// Признак, что требуется показать курсор.
+    /// РџСЂРёР·РЅР°Рє, С‡С‚Рѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕРєР°Р·Р°С‚СЊ РєСѓСЂСЃРѕСЂ.
     /// </summary>
     [field: SerializeField] public bool IsShowCursor { get; protected set; } = true;
 }

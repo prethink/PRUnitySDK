@@ -1,4 +1,4 @@
-using AYellowpaper.SerializedCollections;
+п»їusing AYellowpaper.SerializedCollections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,12 +10,12 @@ public class EntityStatsBase<TEnum> : EntityStatsBase
     private SerializedDictionary<EnumerationReference<TEnum>, float> stats = new();
 
     /// <summary>
-    /// Только чтение для внешнего мира.
+    /// РўРѕР»СЊРєРѕ С‡С‚РµРЅРёРµ РґР»СЏ РІРЅРµС€РЅРµРіРѕ РјРёСЂР°.
     /// </summary>
     public IReadOnlyDictionary<EnumerationReference<TEnum>, float> Stats => stats;
 
     /// <summary>
-    /// Получить значение.
+    /// РџРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.
     /// </summary>
     public override bool TryGet(Enumeration key, out float value)
     {
@@ -33,7 +33,7 @@ public class EntityStatsBase<TEnum> : EntityStatsBase
     }
 
     /// <summary>
-    /// Получить значение или дефолт.
+    /// РџРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ РёР»Рё РґРµС„РѕР»С‚.
     /// </summary>
     public override float Get(Enumeration key, float defaultValue = default)
     {
@@ -46,12 +46,12 @@ public class EntityStatsBase<TEnum> : EntityStatsBase
 public abstract class EntityStatsBase : ScriptableObject
 {
     /// <summary>
-    /// Получить значение.
+    /// РџРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.
     /// </summary>
     public abstract bool TryGet(Enumeration key, out float value);
 
     /// <summary>
-    /// Получить значение или дефолт.
+    /// РџРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ РёР»Рё РґРµС„РѕР»С‚.
     /// </summary>
     public abstract float Get(Enumeration key, float defaultValue = default);
 }

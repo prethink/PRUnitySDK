@@ -7,24 +7,44 @@ public static class PRGameStorageService
 }
 
 
+/// <summary>
+/// База для типизированных хранилищ значений, сгруппированных по категории.
+/// Значения лежат в ProjectData.ProjectProperties и обслуживаются
+/// <see cref="ProjectPropertiesManager"/> - раньше здесь был отдельный механизм в
+/// IGameDataStorage (свой словарь object'ов в PRSaveData), который дублировал
+/// ProjectPropertiesManager и был реализован только в Yandex-хранилище, а в
+/// PlayerPrefs кидал NotImplementedException.
+/// </summary>
 public abstract class GameStorageBase
 {
     public abstract Enumeration Category { get; }
 
     protected T GetValue<T>(EnumerationType<T> enumeration, T defaultValue)
     {
-        return PRUnitySDK.GameDataStorage.GetValue<T>(Category, enumeration, defaultValue);
+        return ProjectPropertiesManager.Instance.GetValue(BuildKey(enumeration), defaultValue);
     }
 
     protected void SetValue<T>(EnumerationType<T> enumeration, T value, bool IsRequiredSave = true)
     {
-        PRUnitySDK.GameDataStorage.SetValue<T>(Category, enumeration, value, IsRequiredSave);
+        ProjectPropertiesManager.Instance.SetValue(BuildKey(enumeration), value, IsRequiredSave);
+    }
+
+    /// <summary>
+    /// Категория входит в имя свойства, чтобы одинаковые ключи из разных хранилищ
+    /// не пересекались в общих словарях ProjectProperties.
+    /// </summary>
+    private string BuildKey<T>(EnumerationType<T> enumeration)
+    {
+        if (enumeration == null)
+            throw new System.ArgumentNullException(nameof(enumeration));
+
+        return $"{Category.Value}.{enumeration.Value}";
     }
 }
 
 public class GameSettingsStorage : GameStorageBase
 {
-    public override Enumeration Category => new Enumeration("GameSettings");
+    public override Enumeration Category => Enumeration.GetOrCreate("GameSettings");
 
     public float GetSensitivity()
     {
@@ -34,7 +54,7 @@ public class GameSettingsStorage : GameStorageBase
 
 public class ResourceStorage : GameStorageBase
 {
-    public override Enumeration Category => new Enumeration("Resources");
+    public override Enumeration Category => Enumeration.GetOrCreate("Resources");
 
     public float GetValue(EnumerationType<float> enumeration, float defaultValue) 
     {
