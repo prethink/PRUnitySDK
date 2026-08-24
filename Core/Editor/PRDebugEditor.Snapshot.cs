@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ public partial class PRDebugEditor
         nextRefresh = EditorApplication.timeSinceStartup + Math.Max(0.1d, refreshInterval);
         ClearSnapshot();
 
-        if (!EditorApplication.isPlaying || !PRUnitySDK.IsInitialized)
+        if (!EditorApplication.isPlaying)
         {
             lastRefreshUtc = DateTime.UtcNow;
             return;
@@ -19,11 +20,22 @@ public partial class PRDebugEditor
         try
         {
             CaptureInitialization();
+            CaptureEventHistory();
+
+            if (!PRUnitySDK.IsInitialized)
+            {
+                CaptureProblems();
+                lastRefreshUtc = DateTime.UtcNow;
+                return;
+            }
+
             CapturePause();
             CapturePlayers();
             CaptureEntities();
             CapturePools();
             CaptureFlags();
+            CaptureMonoWindows();
+            CaptureProblems();
         }
         catch (Exception exception)
         {
@@ -35,6 +47,7 @@ public partial class PRDebugEditor
 
     private void ClearSnapshot()
     {
+        problems.Clear();
         players.Clear();
         entities.Clear();
         entityInstances.Clear();
@@ -42,11 +55,170 @@ public partial class PRDebugEditor
         flagResolvers.Clear();
         flagProviders.Clear();
         initializationEntries.Clear();
+        monoWindows.Clear();
+        eventRows.Clear();
+        aggregatedEventRows.Clear();
         snapshotError = null;
         pause = default;
         humanCount = aiCount = 0;
         entityTotal = entityOnScene = entityInPool = 0;
         initializationTotalMilliseconds = 0d;
+    }
+
+    private void DiscoverHealthChecks()
+    {
+        healthChecks.Clear();
+        healthCheckLoadErrors.Clear();
+
+        foreach (Type checkType in TypeCache.GetTypesDerivedFrom<IPRDebugHealthCheck>())
+        {
+            if (checkType.IsAbstract || checkType.ContainsGenericParameters)
+                continue;
+
+            try
+            {
+                if (Activator.CreateInstance(checkType) is IPRDebugHealthCheck check)
+                    healthChecks.Add(check);
+            }
+            catch (Exception exception)
+            {
+                healthCheckLoadErrors.Add(new PRDebugProblem(PRDebugProblemSeverity.Error, "Health Check",
+                    "CheckCreationFailed",
+                    $"Cannot create health check '{checkType.FullName}': {exception.GetBaseException().Message}",
+                    sourceType: checkType));
+            }
+        }
+
+        healthChecks.Sort((left, right) => string.CompareOrdinal(
+            left.GetType().FullName, right.GetType().FullName));
+    }
+
+    private void CaptureProblems()
+    {
+        problems.AddRange(healthCheckLoadErrors);
+
+        foreach (IPRDebugHealthCheck check in healthChecks)
+        {
+            try
+            {
+                var results = check.Check();
+                if (results == null)
+                    continue;
+
+                foreach (PRDebugProblem problem in results)
+                {
+                    if (problem != null)
+                        problems.Add(problem);
+                }
+            }
+            catch (Exception exception)
+            {
+                Type checkType = check.GetType();
+                problems.Add(new PRDebugProblem(PRDebugProblemSeverity.Error, "Health Check",
+                    "CheckExecutionFailed",
+                    $"Health check '{checkType.FullName}' failed: {exception.GetBaseException().Message}",
+                    sourceType: checkType));
+            }
+        }
+
+        problems.Sort((left, right) =>
+        {
+            int severity = right.Severity.CompareTo(left.Severity);
+            if (severity != 0)
+                return severity;
+
+            int category = string.CompareOrdinal(left.Category, right.Category);
+            return category != 0 ? category : string.CompareOrdinal(left.Code, right.Code);
+        });
+    }
+
+    private void CaptureMonoWindows()
+    {
+        MonoWindowsTracker tracker = PRUnitySDK.Trackers.MonoWindows;
+        foreach (MonoWindowBase window in tracker.Elements)
+        {
+            if (window == null)
+                continue;
+
+            monoWindows.Add(new MonoWindowRow
+            {
+                Window = window,
+                GameObject = window.gameObject,
+                Type = window.GetType(),
+                Key = SafeValue(() => window.Key?.Value, "<null>"),
+                Visible = SafeValue(() => window.IsVisible, false),
+                Active = window.gameObject.activeInHierarchy,
+                Current = tracker.CurrentWindow == window
+            });
+        }
+
+        monoWindows.Sort((left, right) => string.CompareOrdinal(left.Key, right.Key));
+    }
+
+    private void OnEventBusRaised(Type eventType, int subscriberCount)
+    {
+        if (!captureEvents)
+            return;
+
+        DateTime timestampUtc = DateTime.UtcNow;
+        lock (eventHistoryLock)
+        {
+            if (eventType != null && AggregatedEventTypes.Contains(eventType))
+            {
+                if (!aggregatedEventHistory.TryGetValue(eventType, out EventBusAccumulator accumulator))
+                {
+                    accumulator = new EventBusAccumulator
+                    {
+                        FirstTimestampUtc = timestampUtc
+                    };
+                    aggregatedEventHistory.Add(eventType, accumulator);
+                }
+
+                accumulator.Count++;
+                accumulator.LastTimestampUtc = timestampUtc;
+                accumulator.SubscriberCount = subscriberCount;
+            }
+            else
+            {
+                long sequence = Interlocked.Increment(ref eventSequence);
+                while (eventHistory.Count >= EventHistoryCapacity)
+                    eventHistory.Dequeue();
+
+                eventHistory.Enqueue(new EventBusRow(sequence, timestampUtc, eventType, subscriberCount));
+            }
+        }
+
+        eventHistoryDirty = true;
+    }
+
+    private void CaptureEventHistory()
+    {
+        lock (eventHistoryLock)
+        {
+            eventRows.AddRange(eventHistory);
+
+            foreach (var item in aggregatedEventHistory.OrderBy(item => item.Key.FullName, StringComparer.Ordinal))
+            {
+                EventBusAccumulator accumulator = item.Value;
+                aggregatedEventRows.Add(new AggregatedEventBusRow(item.Key, accumulator.Count,
+                    accumulator.FirstTimestampUtc, accumulator.LastTimestampUtc,
+                    accumulator.SubscriberCount));
+            }
+        }
+    }
+
+    private void ClearEventHistory()
+    {
+        lock (eventHistoryLock)
+        {
+            eventHistory.Clear();
+            aggregatedEventHistory.Clear();
+        }
+
+        eventRows.Clear();
+        aggregatedEventRows.Clear();
+        eventHistoryDirty = false;
+        Repaint();
     }
 
     private void CaptureInitialization()

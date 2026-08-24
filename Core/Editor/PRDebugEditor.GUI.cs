@@ -231,4 +231,11 @@ public partial class PRDebugEditor
         FlagDecision.Deny => new Color(1f, 0.45f, 0.45f),
         _ => Color.gray
     };
+
+    private static Color ProblemColor(PRDebugProblemSeverity severity) => severity switch
+    {
+        PRDebugProblemSeverity.Error => new Color(1f, 0.45f, 0.45f),
+        PRDebugProblemSeverity.Warning => new Color(1f, 0.78f, 0.35f),
+        _ => new Color(0.55f, 0.75f, 1f)
+    };
 }

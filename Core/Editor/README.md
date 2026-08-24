@@ -12,6 +12,51 @@
 Кнопка `Source` выбирает и подсвечивает в Project/Inspector скрипт фактической реализации;
 если отдельный скрипт реализации не найден, окно пытается выбрать скрипт контракта.
 
+Вкладка `Problems` запускает автоматически обнаруженные реализации `IPRDebugHealthCheck` и
+собирает найденные проблемы в одну таблицу с уровнями `Info`, `Warning` и `Error`. Встроенная
+проверка диагностирует незавершённую инициализацию, несовместимость contract/implementation,
+отсутствующие managers и контейнеры, повторяющиеся Entity ID, конфликт состояний scene/pool,
+расхождение счётчиков pools и некорректное состояние MonoWindows. Ошибка одной проверки
+показывается как отдельная проблема и не прерывает остальные проверки. `Object` выбирает
+связанный runtime-объект, а `Source` открывает скрипт типа, отвечающего за проблему.
+
+Чтобы добавить проектную проверку, создайте Editor-only конкретный класс с конструктором без
+параметров:
+
+```csharp
+public sealed class ExampleHealthCheck : IPRDebugHealthCheck
+{
+    public IEnumerable<PRDebugProblem> Check()
+    {
+        if (ExampleService.Instance == null)
+        {
+            yield return new PRDebugProblem(
+                PRDebugProblemSeverity.Error,
+                "Example",
+                "MissingService",
+                "ExampleService is not initialized.",
+                sourceType: typeof(ExampleService));
+        }
+    }
+}
+```
+
+Регистрировать проверку в центральном Debug-окне не требуется: Editor обнаруживает наследников
+через `TypeCache` после domain reload.
+
+Вкладка `Windows` показывает зарегистрированные `MonoWindowBase`: фактический тип, key,
+`Visible`, активность GameObject и признак `CurrentWindow`. Окно и его скрипт можно выбрать,
+видимое окно — принудительно закрыть без сохранения, а скрытое — открыть с
+`MonoWindowArgsEmpty`. Окна с обязательными типизированными args следует открывать обычным
+игровым способом.
+
+Вкладка `Events` записывает последние 200 обычных вызовов `EventBus`, пока Debug-окно открыто и
+включён `Capture`. Покадровые `IOnUpdateEvent` и `IOnPRUpdateEvent` не занимают ring buffer:
+они выводятся в отдельной агрегированной таблице с общим числом вызовов, средней частотой,
+числом подписчиков и временем последнего вызова. Список таких типов централизован в
+`PRDebugEditor.AggregatedEventTypes`; другие покадровые интерфейсы можно добавить туда без
+изменения EventBus. Payload намеренно не удерживается. Историю можно поставить на паузу и очистить.
+
 Вкладка `Entities` сохраняет агрегированную статистику по типам и дополнительно показывает
 каждый зарегистрированный экземпляр. `Select` выбирает его GameObject в Hierarchy/Inspector.
 `Dispose` после подтверждения вызывает `IEntity.DestroyEntity()`, поэтому соблюдает

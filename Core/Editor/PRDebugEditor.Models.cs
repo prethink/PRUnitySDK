@@ -103,4 +103,67 @@ public partial class PRDebugEditor
             Flags = flags;
         }
     }
+
+    private sealed class MonoWindowRow
+    {
+        public MonoWindowBase Window;
+        public GameObject GameObject;
+        public Type Type;
+        public string Key;
+        public bool Visible;
+        public bool Active;
+        public bool Current;
+    }
+
+    private readonly struct EventBusRow
+    {
+        public readonly long Sequence;
+        public readonly DateTime TimestampUtc;
+        public readonly Type EventType;
+        public readonly int SubscriberCount;
+
+        public EventBusRow(long sequence, DateTime timestampUtc, Type eventType, int subscriberCount)
+        {
+            Sequence = sequence;
+            TimestampUtc = timestampUtc;
+            EventType = eventType;
+            SubscriberCount = subscriberCount;
+        }
+    }
+
+    private sealed class EventBusAccumulator
+    {
+        public long Count;
+        public DateTime FirstTimestampUtc;
+        public DateTime LastTimestampUtc;
+        public int SubscriberCount;
+    }
+
+    private readonly struct AggregatedEventBusRow
+    {
+        public readonly Type EventType;
+        public readonly long Count;
+        public readonly DateTime FirstTimestampUtc;
+        public readonly DateTime LastTimestampUtc;
+        public readonly int SubscriberCount;
+
+        public AggregatedEventBusRow(Type eventType, long count, DateTime firstTimestampUtc,
+            DateTime lastTimestampUtc, int subscriberCount)
+        {
+            EventType = eventType;
+            Count = count;
+            FirstTimestampUtc = firstTimestampUtc;
+            LastTimestampUtc = lastTimestampUtc;
+            SubscriberCount = subscriberCount;
+        }
+
+        public double AverageCallsPerSecond
+        {
+            get
+            {
+                double seconds = (LastTimestampUtc - FirstTimestampUtc).TotalSeconds;
+                return seconds > 0d ? Math.Max(0d, Count - 1L) / seconds : 0d;
+            }
+        }
+    }
 }

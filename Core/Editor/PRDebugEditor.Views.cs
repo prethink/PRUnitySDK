@@ -19,7 +19,47 @@ public partial class PRDebugEditor
         DrawSectionHeader("Summary");
         DrawSummaryLine(("Players", players.Count), ("Humans", humanCount), ("AI", aiCount),
             ("Initialized", initializationEntries.Count), ("Entities", entityTotal), ("On scene", entityOnScene),
-            ("In pool", entityInPool), ("Pools", pools.Count));
+            ("In pool", entityInPool), ("Pools", pools.Count),
+            ("Errors", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Error)),
+            ("Warnings", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Warning)));
+    }
+
+    private void DrawProblems()
+    {
+        int errorCount = problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Error);
+        int warningCount = problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Warning);
+        int infoCount = problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Info);
+
+        DrawSectionHeader($"Health check — {errorCount} errors, {warningCount} warnings, {infoCount} info");
+        DrawFixedRow(true, ("Severity", 65), ("Category", 95), ("Code", 145),
+            ("Message", 420), ("Object", 60), ("Source", 60));
+
+        int count = 0;
+        foreach (PRDebugProblem problem in problems)
+        {
+            string targetName = SafeValue(() => problem.Target == null ? null : problem.Target.name, null);
+            if (!MatchesSearch(problem.Severity, problem.Category, problem.Code, problem.Message,
+                    problem.SourceType?.FullName, targetName))
+                continue;
+
+            count++;
+            EditorGUILayout.BeginHorizontal();
+            Color previousColor = GUI.color;
+            GUI.color = ProblemColor(problem.Severity);
+            Label(problem.Severity, 65);
+            GUI.color = previousColor;
+            Label(problem.Category, 95);
+            Label(problem.Code, 145);
+            Label(problem.Message, 420);
+            DrawObjectButton(problem.Target);
+            using (new EditorGUI.DisabledScope(problem.SourceType == null))
+                DrawScriptButton(problem.SourceType, null);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(count, problems.Count == 0
+            ? "No problems were found."
+            : "No problems match the current search.");
     }
 
     private void DrawInitialization()
@@ -34,6 +74,136 @@ public partial class PRDebugEditor
         DrawInitializationTable(PRInitializationCategory.MonoWindow, "MonoWindows");
         DrawInitializationTable(PRInitializationCategory.Notifier, "Notifiers");
         DrawInitializationTable(PRInitializationCategory.Type, "Other initialized types");
+    }
+
+    private void DrawMonoWindows()
+    {
+        DrawSectionHeader($"MonoWindows runtime ({monoWindows.Count})");
+        DrawFixedRow(true, ("Implementation", 230), ("Key", 180), ("Visible", 55),
+            ("Active", 50), ("Current", 55), ("Object", 60), ("Source", 60), ("Action", 65));
+
+        int count = 0;
+        foreach (MonoWindowRow row in monoWindows.ToArray())
+        {
+            if (!MatchesSearch(row.Type?.FullName, row.Key, row.Visible, row.Active, row.Current))
+                continue;
+
+            count++;
+            EditorGUILayout.BeginHorizontal();
+            Label(row.Type?.FullName ?? "<unknown>", 230);
+            Label(row.Key, 180);
+            Label(row.Visible, 55);
+            Label(row.Active, 50);
+            Label(row.Current, 55);
+            DrawObjectButton(row.GameObject);
+            DrawScriptButton(row.Type, null);
+            DrawMonoWindowAction(row);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(count, "No MonoWindows match the current search.");
+        EditorGUILayout.HelpBox(
+            "Open uses MonoWindowArgsEmpty. Windows that require typed args should be opened through their normal game flow.",
+            MessageType.None);
+    }
+
+    private void DrawMonoWindowAction(MonoWindowRow row)
+    {
+        using (new EditorGUI.DisabledScope(row.Window == null || row.Key == "<null>"))
+        {
+            string label = row.Visible ? "Close" : "Open";
+            if (!GUILayout.Button(label, GUILayout.Width(60f)))
+                return;
+        }
+
+        EditorApplication.delayCall += () => ExecuteMonoWindowAction(row);
+    }
+
+    private void ExecuteMonoWindowAction(MonoWindowRow row)
+    {
+        if (this == null || row?.Window == null)
+            return;
+
+        try
+        {
+            if (row.Window.IsVisible)
+                row.Window.Hide(isForceClose: true);
+            else
+                PRUnitySDK.Trackers.MonoWindows.TryShowWindow(row.Window.Key, new MonoWindowArgsEmpty());
+
+            RefreshSnapshot();
+            Repaint();
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"MonoWindow action failed: {exception.GetType().Name}: {exception.Message}";
+        }
+    }
+
+    private void DrawEvents()
+    {
+        DrawSectionHeader($"EventBus monitor — {aggregatedEventRows.Count} aggregated, " +
+                          $"latest {eventRows.Count}/{EventHistoryCapacity}");
+        EditorGUILayout.BeginHorizontal();
+        captureEvents = GUILayout.Toggle(captureEvents, "Capture", EditorStyles.toolbarButton, GUILayout.Width(70f));
+        if (GUILayout.Button("Clear", GUILayout.Width(55f)))
+            ClearEventHistory();
+        GUILayout.FlexibleSpace();
+        EditorGUILayout.EndHorizontal();
+
+        DrawSectionHeader("High-frequency events");
+        DrawFixedRow(true, ("Event interface", 310), ("Calls", 75), ("Average/s", 75),
+            ("Subscribers", 80), ("Last", 90), ("Source", 60));
+
+        int aggregatedCount = 0;
+        foreach (AggregatedEventBusRow row in aggregatedEventRows)
+        {
+            if (!MatchesSearch(row.EventType?.FullName, row.Count, row.SubscriberCount))
+                continue;
+
+            aggregatedCount++;
+            EditorGUILayout.BeginHorizontal();
+            Label(row.EventType?.FullName ?? "<unknown>", 310);
+            Label(row.Count, 75);
+            Label($"{row.AverageCallsPerSecond:F1}", 75);
+            Label(row.SubscriberCount, 80);
+            Label(row.LastTimestampUtc.ToLocalTime().ToString("HH:mm:ss.fff"), 90);
+            DrawScriptButton(row.EventType, null);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(aggregatedCount, captureEvents
+            ? "No high-frequency EventBus events have been captured yet."
+            : "EventBus capture is paused.");
+
+        DrawSectionHeader("Recent events");
+        DrawFixedRow(true, ("#", 55), ("Time", 90), ("Event interface", 360),
+            ("Subscribers", 80), ("Source", 60));
+
+        int count = 0;
+        for (int index = eventRows.Count - 1; index >= 0; index--)
+        {
+            EventBusRow row = eventRows[index];
+            if (!MatchesSearch(row.Sequence, row.EventType?.FullName, row.SubscriberCount))
+                continue;
+
+            count++;
+            EditorGUILayout.BeginHorizontal();
+            Label(row.Sequence, 55);
+            Label(row.TimestampUtc.ToLocalTime().ToString("HH:mm:ss.fff"), 90);
+            Label(row.EventType?.FullName ?? "<unknown>", 360);
+            Label(row.SubscriberCount, 80);
+            DrawScriptButton(row.EventType, null);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(count, captureEvents
+            ? "No regular EventBus events have been captured yet."
+            : "EventBus capture is paused.");
+        EditorGUILayout.HelpBox(
+            "IOnUpdateEvent and IOnPRUpdateEvent are aggregated above and do not occupy the recent-events ring buffer. " +
+            "The monitor records only while this Debug window is open. Payload is not captured.",
+            MessageType.None);
     }
 
     private void DrawInitializationTable(PRInitializationCategory category, string title)

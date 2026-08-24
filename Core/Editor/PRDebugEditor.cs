@@ -11,7 +11,24 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private const float WideContentMinWidth = 700f;
     private const float CompactContentMinWidth = 260f;
     private const float ContentMaxWidth = 1000f;
+    private const int EventHistoryCapacity = 200;
 
+    /// <summary>
+    /// События, которые агрегируются отдельно и не занимают обычный ring buffer.
+    /// Добавляйте сюда другие покадровые event-интерфейсы.
+    /// </summary>
+    private static readonly HashSet<Type> AggregatedEventTypes = new()
+    {
+        typeof(IOnUpdateEvent),
+        typeof(IOnPRUpdateEvent),
+        typeof(IOnRealSecondsEvent),
+        typeof(IOnGameSecondsEvent),
+        typeof(IPauseStateListener)
+    };
+
+    private readonly List<PRDebugProblem> problems = new();
+    private readonly List<PRDebugProblem> healthCheckLoadErrors = new();
+    private readonly List<IPRDebugHealthCheck> healthChecks = new();
     private readonly List<PlayerRow> players = new();
     private readonly List<EntityRow> entities = new();
     private readonly List<EntityInstanceRow> entityInstances = new();
@@ -19,6 +36,12 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private readonly List<FlagResolverRow> flagResolvers = new();
     private readonly List<FlagProviderRow> flagProviders = new();
     private readonly List<InitializationRow> initializationEntries = new();
+    private readonly List<MonoWindowRow> monoWindows = new();
+    private readonly Queue<EventBusRow> eventHistory = new();
+    private readonly List<EventBusRow> eventRows = new();
+    private readonly Dictionary<Type, EventBusAccumulator> aggregatedEventHistory = new();
+    private readonly List<AggregatedEventBusRow> aggregatedEventRows = new();
+    private readonly object eventHistoryLock = new();
     private readonly object debugFlagSource = new();
 
     private Vector2 scroll;
@@ -37,6 +60,9 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private double initializationTotalMilliseconds;
     private int selectedFlagProviderIndex;
     private int selectedFlagIndex;
+    private volatile bool captureEvents = true;
+    private volatile bool eventHistoryDirty;
+    private long eventSequence;
 
     [MenuItem("PRUnitySDK/Tools/Debug Window")]
     public static void ShowWindow()
@@ -49,6 +75,8 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     {
         autoRefresh = SessionState.GetBool(AutoRefreshKey, true);
         refreshInterval = SessionState.GetFloat(RefreshIntervalKey, 1f);
+        DiscoverHealthChecks();
+        EventBus.OnEventRaised += OnEventBusRaised;
         EditorApplication.update += AutoRefresh;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
         RefreshSnapshot();
@@ -57,6 +85,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private void OnDisable()
     {
         ClearDebugFlags(false);
+        EventBus.OnEventRaised -= OnEventBusRaised;
         EditorApplication.update -= AutoRefresh;
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         SessionState.SetBool(AutoRefreshKey, autoRefresh);
@@ -71,6 +100,15 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 
     private void AutoRefresh()
     {
+        if (eventHistoryDirty)
+        {
+            eventHistoryDirty = false;
+            eventRows.Clear();
+            aggregatedEventRows.Clear();
+            CaptureEventHistory();
+            Repaint();
+        }
+
         if (!autoRefresh || EditorApplication.timeSinceStartup < nextRefresh)
             return;
 
@@ -90,10 +128,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         }
 
         if (!PRUnitySDK.IsInitialized)
-        {
             EditorGUILayout.HelpBox("PRUnitySDK is not initialized yet.", MessageType.Warning);
-            return;
-        }
 
         if (!string.IsNullOrEmpty(snapshotError))
             EditorGUILayout.HelpBox(snapshotError, MessageType.Error);
@@ -101,7 +136,10 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         var tabs = new (string name, Action draw)[]
         {
             ("Overview", DrawOverview),
+            ($"Problems ({problems.Count})", DrawProblems),
             ($"Initialization ({initializationEntries.Count})", DrawInitialization),
+            ($"Windows ({monoWindows.Count})", DrawMonoWindows),
+            ($"Events ({eventRows.Count})", DrawEvents),
             ($"Players ({players.Count})", DrawPlayers),
             ($"Entities ({entityInstances.Count})", DrawEntities),
             ($"Pools ({pools.Count})", DrawPools),

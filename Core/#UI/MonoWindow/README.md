@@ -119,6 +119,18 @@ bool hasOpenWindows = PRUnitySDK.Trackers.MonoWindows.HasOpenWindows;
 bool isWindowOpen = PRUnitySDK.IsWindowOpen;
 ```
 
+## Диагностика в PRUnitySDK Debug
+
+В Play Mode вкладка `Windows` показывает все окна, зарегистрированные в
+`PRUnitySDK.Trackers.MonoWindows`: фактический тип, key, `IsVisible`, активность GameObject и
+соответствие `CurrentWindow`. `Object` выбирает экземпляр в Hierarchy/Inspector, а `Source` —
+его MonoScript.
+
+Кнопка `Close` вызывает принудительное закрытие без запуска сохранения. `Open` использует
+`MonoWindowArgsEmpty`; для окна, требующего обязательные типизированные данные, используйте
+обычный игровой сценарий открытия. Вкладка `Problems` дополнительно сообщает о повторяющихся
+ключах, нескольких одновременно видимых окнах и невидимом `CurrentWindow`.
+
 ## EventBus
 
 Трекер реализует `IMonoWindowEvents` и автоматически подписывается на `EventBus`. Поэтому окно можно открыть

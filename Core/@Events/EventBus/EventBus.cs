@@ -17,6 +17,14 @@ public static class EventBus
     /// </summary>
     private static readonly Dictionary<Type, SubscribersList<IGlobalSubscriber>> subscribers = new();
 
+#if UNITY_EDITOR
+    /// <summary>
+    /// Диагностическое событие Editor: тип вызванного event-интерфейса и число его живых подписчиков.
+    /// Payload намеренно не захватывается.
+    /// </summary>
+    public static event Action<Type, int> OnEventRaised;
+#endif
+
     /// <summary>
     /// Регистрирует объект во всех реализованных им event-интерфейсах.
     /// </summary>
@@ -99,16 +107,30 @@ public static class EventBus
         lock (subscribersLock)
         {
             if (!subscribers.TryGetValue(typeof(TSubscriber), out SubscribersList<IGlobalSubscriber> list))
-                return;
-
-            snapshot = list.GetSnapshot();
-
-            if (snapshot.Length == 0)
             {
-                subscribers.Remove(typeof(TSubscriber));
-                return;
+                snapshot = Array.Empty<IGlobalSubscriber>();
+            }
+            else
+            {
+                snapshot = list.GetSnapshot();
+                if (snapshot.Length == 0)
+                    subscribers.Remove(typeof(TSubscriber));
             }
         }
+
+#if UNITY_EDITOR
+        try
+        {
+            OnEventRaised?.Invoke(typeof(TSubscriber), snapshot.Length);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+        }
+#endif
+
+        if (snapshot.Length == 0)
+            return;
 
         foreach (IGlobalSubscriber subscriber in snapshot)
         {
