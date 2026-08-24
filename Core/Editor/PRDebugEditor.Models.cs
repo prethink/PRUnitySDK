@@ -63,6 +63,19 @@ public partial class PRDebugEditor
         public long InPool;
     }
 
+    private sealed class EntityInstanceRow
+    {
+        public IEntity Entity;
+        public GameObject GameObject;
+        public long Id;
+        public string Type;
+        public string Name;
+        public string LifeTime;
+        public string PoolStatus;
+        public bool OnScene;
+        public bool InPool;
+    }
+
     private sealed class FlagResolverRow
     {
         public string Name { get; }
@@ -73,6 +86,20 @@ public partial class PRDebugEditor
         {
             Name = name;
             Owner = owner;
+            Flags = flags;
+        }
+    }
+
+    private sealed class FlagProviderRow
+    {
+        public Type Type { get; }
+        public string Name { get; }
+        public IReadOnlyList<Enumeration> Flags { get; }
+
+        public FlagProviderRow(Type type, IReadOnlyList<Enumeration> flags)
+        {
+            Type = type;
+            Name = type?.FullName ?? "<unknown>";
             Flags = flags;
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using UnityEditor;
+using UnityEngine;
 
 public partial class PRDebugEditor
 {
@@ -36,8 +37,10 @@ public partial class PRDebugEditor
     {
         players.Clear();
         entities.Clear();
+        entityInstances.Clear();
         pools.Clear();
         flagResolvers.Clear();
+        flagProviders.Clear();
         initializationEntries.Clear();
         snapshotError = null;
         pause = default;
@@ -103,6 +106,7 @@ public partial class PRDebugEditor
     private void CaptureEntities()
     {
         var tracker = PRUnitySDK.Trackers.Entities;
+        var trackedEntities = tracker.Entities;
         entityTotal = tracker.GetExistsEntityCount();
         entityOnScene = tracker.GetEntityOnSceneCount();
         entityInPool = tracker.GetEntityInPoolCount();
@@ -110,7 +114,7 @@ public partial class PRDebugEditor
         foreach (var item in tracker.RegisteredEntity)
         {
             long onScene = tracker.GetExactEntityOnSceneCount(item.Key);
-            var entity = tracker.Entities.FirstOrDefault(value =>
+            var entity = trackedEntities.FirstOrDefault(value =>
                 value != null && !value.IsNull() && value.EntityType == item.Key);
 
             entities.Add(new EntityRow
@@ -125,6 +129,39 @@ public partial class PRDebugEditor
         }
 
         entities.Sort((left, right) => right.Registered.CompareTo(left.Registered));
+
+        foreach (var entity in trackedEntities)
+        {
+            if (entity == null || entity.IsNull())
+                continue;
+
+            string poolStatus = "-";
+            if (entity is IPoolable poolable)
+            {
+                poolStatus = entity.InPool
+                    ? "In pool"
+                    : poolable.PoolBehaviour?.IsInitialize == true ? "Ready" : "No";
+            }
+
+            entityInstances.Add(new EntityInstanceRow
+            {
+                Entity = entity,
+                GameObject = entity.gameObject,
+                Id = entity.Id,
+                Type = entity.EntityType?.ToString() ?? "<null>",
+                Name = SafeValue(() => entity.Info?.GetName(), "-"),
+                LifeTime = entity.LifeTime.ToString(),
+                PoolStatus = poolStatus,
+                OnScene = entity.OnScene,
+                InPool = entity.InPool
+            });
+        }
+
+        entityInstances.Sort((left, right) =>
+        {
+            int typeComparison = string.Compare(left.Type, right.Type, StringComparison.OrdinalIgnoreCase);
+            return typeComparison != 0 ? typeComparison : left.Id.CompareTo(right.Id);
+        });
     }
 
     private static T SafeValue<T>(Func<T> getter, T fallback)
@@ -149,6 +186,8 @@ public partial class PRDebugEditor
 
     private void CaptureFlags()
     {
+        CaptureFlagProviders();
+
         var manager = PRUnitySDK.Managers.Flags;
         if (manager != null)
         {
@@ -160,5 +199,39 @@ public partial class PRDebugEditor
 
         foreach (var component in FindObjectsOfType<FlagResolverMono>())
             flagResolvers.Add(new FlagResolverRow(component.name, component.gameObject, component.Link.GetDebugSnapshot()));
+    }
+
+    private void CaptureFlagProviders()
+    {
+        foreach (Type providerType in TypeCache.GetTypesDerivedFrom<FlagsProviderBase>())
+        {
+            if (providerType.IsAbstract || providerType.ContainsGenericParameters)
+                continue;
+
+            try
+            {
+                if (Activator.CreateInstance(providerType) is not FlagsProviderBase provider)
+                    continue;
+
+                var flags = provider.GetOptions()
+                    .Where(flag => flag != null)
+                    .GroupBy(flag => flag.Value, StringComparer.Ordinal)
+                    .Select(group => group.First())
+                    .OrderBy(flag => flag.Value, StringComparer.Ordinal)
+                    .ToArray();
+                if (flags.Length > 0)
+                    flagProviders.Add(new FlagProviderRow(providerType, flags));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Cannot read flags from provider '{providerType.FullName}': {exception.Message}");
+            }
+        }
+
+        flagProviders.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+        selectedFlagProviderIndex = Mathf.Clamp(selectedFlagProviderIndex, 0, Math.Max(0, flagProviders.Count - 1));
+
+        int flagCount = flagProviders.Count > 0 ? flagProviders[selectedFlagProviderIndex].Flags.Count : 0;
+        selectedFlagIndex = Mathf.Clamp(selectedFlagIndex, 0, Math.Max(0, flagCount - 1));
     }
 }

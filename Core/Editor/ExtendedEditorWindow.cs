@@ -74,24 +74,45 @@ public abstract class ExtendedEditorWindow : EditorWindow
 
     private int tabIndex;
 
+    protected int SelectedTabIndex => tabIndex;
+
     protected void Tabs(params (string name, Action draw)[] tabs)
     {
-        // header
+        Tabs(false, tabs);
+    }
+
+    protected void Tabs(bool compact, params (string name, Action draw)[] tabs)
+    {
+        DrawTabsHeader(compact, tabs);
+        DrawSelectedTab(tabs);
+    }
+
+    protected void DrawTabsHeader(bool compact, params (string name, Action draw)[] tabs)
+    {
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
 
         string[] names = tabs.Select(t => t.name).ToArray();
 
-        tabIndex = GUILayout.Toolbar(
-            tabIndex,
-            names,
-            EditorStyles.toolbarButton
-        );
+        if (compact)
+        {
+            tabIndex = EditorGUILayout.Popup(tabIndex, names, EditorStyles.toolbarPopup);
+        }
+        else
+        {
+            tabIndex = GUILayout.Toolbar(
+                tabIndex,
+                names,
+                EditorStyles.toolbarButton
+            );
+        }
 
         GUILayout.FlexibleSpace();
 
         EditorGUILayout.EndHorizontal();
+    }
 
-        // content
+    protected void DrawSelectedTab(params (string name, Action draw)[] tabs)
+    {
         if (tabIndex >= 0 && tabIndex < tabs.Length)
         {
             tabs[tabIndex].draw?.Invoke();

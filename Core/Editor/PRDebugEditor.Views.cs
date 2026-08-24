@@ -17,7 +17,7 @@ public partial class PRDebugEditor
                 ("Music", pause.Music), ("Tutorial", pause.Tutorial), ("Cutscene", pause.Cutscene));
 
         DrawSectionHeader("Summary");
-        DrawCards(("Players", players.Count), ("Humans", humanCount), ("AI", aiCount),
+        DrawSummaryLine(("Players", players.Count), ("Humans", humanCount), ("AI", aiCount),
             ("Initialized", initializationEntries.Count), ("Entities", entityTotal), ("On scene", entityOnScene),
             ("In pool", entityInPool), ("Pools", pools.Count));
     }
@@ -55,7 +55,7 @@ public partial class PRDebugEditor
             return;
 
         DrawSectionHeader($"{title} ({totalCount}) — {totalMilliseconds:F2} ms");
-        DrawFixedRow(true, ("Name", 140), ("Contract", 205), ("Implementation", 205),
+        DrawFixedRow(true, ("Implementation", 280), ("Contract", 250),
             ("Time", 75), ("Source", 60));
 
         foreach (var row in initializationEntries)
@@ -68,9 +68,8 @@ public partial class PRDebugEditor
 
             visibleCount++;
             EditorGUILayout.BeginHorizontal();
-            Label(row.Name, 140);
-            Label(row.ContractType, 205);
-            Label(row.ImplementationType, 205);
+            Label(row.ImplementationType, 280);
+            Label(row.ContractType, 250);
             Label($"{row.DurationMilliseconds:F2} ms", 75);
             DrawScriptButton(row.ImplementationTypeReference, row.ContractTypeReference);
             EditorGUILayout.EndHorizontal();
@@ -118,28 +117,155 @@ public partial class PRDebugEditor
             EditorGUILayout.EndHorizontal();
         }
         DrawEmpty(count, "No entity types match the current search.");
+
+        DrawSectionHeader($"Entity instances ({entityInstances.Count})");
+        DrawFixedRow(true, ("ID", 65), ("Type", 145), ("Name", 145), ("Lifetime", 75),
+            ("Scene", 50), ("Pool", 60), ("Object", 60), ("Dispose", 60));
+
+        int instanceCount = 0;
+        foreach (var row in entityInstances)
+        {
+            if (!MatchesSearch(row.Id, row.Type, row.Name, row.LifeTime))
+                continue;
+
+            instanceCount++;
+            EditorGUILayout.BeginHorizontal();
+            Label(row.Id, 65);
+            Label(row.Type, 145);
+            Label(row.Name, 145);
+            Label(row.LifeTime, 75);
+            Label(row.OnScene, 50);
+            Label(row.PoolStatus, 60);
+            DrawObjectButton(row.GameObject);
+            DrawEntityDisposeButton(row);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(instanceCount, "No entity instances match the current search.");
+    }
+
+    private void DrawEntityDisposeButton(EntityInstanceRow row)
+    {
+        bool unavailable = row.Entity == null || row.Entity.IsNull() || row.InPool;
+        using (new EditorGUI.DisabledScope(unavailable))
+        {
+            if (!GUILayout.Button("Dispose", GUILayout.Width(55f)))
+                return;
+        }
+
+        string message = $"Dispose entity '{row.Name}' ({row.Type}, ID {row.Id}) through IEntity.DestroyEntity()?\n\n" +
+                         "Depending on EntityDisposeAction, it may be returned to the pool instead of being fully destroyed.";
+        if (!EditorUtility.DisplayDialog("Dispose entity", message, "Dispose", "Cancel"))
+            return;
+
+        try
+        {
+            row.Entity.DestroyEntity();
+            EditorApplication.delayCall += () =>
+            {
+                RefreshSnapshot();
+                Repaint();
+            };
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"Entity dispose failed: {exception.GetType().Name}: {exception.Message}";
+        }
     }
 
     private void DrawPools()
     {
-        DrawSectionHeader("Object pools");
-        DrawFixedRow(true, ("Type", 170), ("Category", 210), ("Total", 65),
-            ("Active", 65), ("Free", 65), ("Usage", 70));
+        DrawSectionHeader($"Object pools ({pools.Count})");
+
+        using (new EditorGUI.DisabledScope(pools.Count == 0 || PRUnitySDK.Managers.ObjectPool == null))
+        {
+            if (GUILayout.Button("Clear all pools", GUILayout.Width(120f)))
+                ClearAllPools();
+        }
+
+        EditorGUILayout.Space(3f);
+        DrawFixedRow(true, ("Type", 150), ("Category", 185), ("Total", 55),
+            ("Active", 55), ("Free", 55), ("Usage", 60), ("Clear", 55));
         int count = 0;
         foreach (var row in pools)
         {
             if (!MatchesSearch(row.Type, row.Category)) continue;
             count++;
             float usage = row.TotalCount > 0 ? row.ShowCount / (float)row.TotalCount : 0f;
-            DrawFixedRow(false, (row.Type ?? "-", 170), (row.Category ?? "-", 210),
-                (row.TotalCount.ToString(), 65), (row.ShowCount.ToString(), 65),
-                (row.HideCount.ToString(), 65), ($"{usage:P0}", 70));
+            EditorGUILayout.BeginHorizontal();
+            Label(row.Type, 150);
+            Label(row.Category, 185);
+            Label(row.TotalCount, 55);
+            Label(row.ShowCount, 55);
+            Label(row.HideCount, 55);
+            Label($"{usage:P0}", 60);
+            DrawPoolClearButton(row);
+            EditorGUILayout.EndHorizontal();
         }
         DrawEmpty(count, "No pools match the current search.");
     }
 
+    private void DrawPoolClearButton(PoolSystemTableData row)
+    {
+        using (new EditorGUI.DisabledScope(PRUnitySDK.Managers.ObjectPool == null))
+        {
+            if (!GUILayout.Button("Clear", GUILayout.Width(50f)))
+                return;
+        }
+
+        string message = $"Clear pool '{row.Type}/{row.Category}'?\n\n" +
+                         $"All {row.TotalCount} GameObjects ({row.ShowCount} active, {row.HideCount} free) " +
+                         "will be destroyed and the pool registration will be removed.";
+        if (!EditorUtility.DisplayDialog("Clear object pool", message, "Clear", "Cancel"))
+            return;
+
+        try
+        {
+            if (!PRUnitySDK.Managers.ObjectPool.ClearPool(row.Type, row.Category))
+                snapshotError = $"Pool '{row.Type}/{row.Category}' no longer exists.";
+
+            RefreshAfterPoolClear();
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"Pool clear failed: {exception.GetType().Name}: {exception.Message}";
+        }
+    }
+
+    private void ClearAllPools()
+    {
+        long total = pools.Sum(row => row.TotalCount);
+        long active = pools.Sum(row => row.ShowCount);
+        long free = pools.Sum(row => row.HideCount);
+        string message = $"Clear all {pools.Count} pools?\n\n" +
+                         $"All {total} GameObjects ({active} active, {free} free) will be destroyed " +
+                         "and every pool registration will be removed.";
+        if (!EditorUtility.DisplayDialog("Clear all object pools", message, "Clear all", "Cancel"))
+            return;
+
+        try
+        {
+            PRUnitySDK.Managers.ObjectPool.ClearData();
+            RefreshAfterPoolClear();
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"Pools clear failed: {exception.GetType().Name}: {exception.Message}";
+        }
+    }
+
+    private void RefreshAfterPoolClear()
+    {
+        EditorApplication.delayCall += () =>
+        {
+            RefreshSnapshot();
+            Repaint();
+        };
+    }
+
     private void DrawFlags()
     {
+        DrawGlobalFlagControls();
         DrawSectionHeader("Flag resolvers");
         int count = 0;
         foreach (var resolver in flagResolvers)
@@ -178,5 +304,135 @@ public partial class PRDebugEditor
             EditorGUILayout.EndVertical();
         }
         DrawEmpty(count, "No flag resolvers match the current search.");
+    }
+
+    private void DrawGlobalFlagControls()
+    {
+        DrawSectionHeader("Global test flags");
+
+        var manager = PRUnitySDK.Managers.Flags;
+        if (manager == null)
+        {
+            EditorGUILayout.HelpBox("FlagsManager is not initialized.", MessageType.Info);
+            return;
+        }
+
+        if (flagProviders.Count == 0)
+        {
+            EditorGUILayout.HelpBox("No concrete FlagsProviderBase providers with flags were found.", MessageType.Info);
+            return;
+        }
+
+        string[] providerNames = flagProviders.Select(provider => provider.Name).ToArray();
+        int previousProviderIndex = selectedFlagProviderIndex;
+        selectedFlagProviderIndex = EditorGUILayout.Popup("Provider", selectedFlagProviderIndex, providerNames);
+        if (selectedFlagProviderIndex != previousProviderIndex)
+            selectedFlagIndex = 0;
+
+        FlagProviderRow providerRow = flagProviders[selectedFlagProviderIndex];
+        string[] flagNames = providerRow.Flags.Select(flag => flag.Value).ToArray();
+        selectedFlagIndex = Mathf.Clamp(selectedFlagIndex, 0, flagNames.Length - 1);
+        selectedFlagIndex = EditorGUILayout.Popup("Flag", selectedFlagIndex, flagNames);
+
+        Enumeration flag = providerRow.Flags[selectedFlagIndex];
+        var globalSnapshot = manager.Global.GetDebugSnapshot();
+        FlagDecision debugDecision = GetDebugFlagDecision(globalSnapshot, flag);
+        FlagDecision globalDecision = manager.Global.Resolve(flag);
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField($"Global: {globalDecision}", GUILayout.Width(130f));
+        EditorGUILayout.LabelField($"Debug: {debugDecision}", GUILayout.Width(130f));
+        GUILayout.FlexibleSpace();
+
+        if (GUILayout.Button("Allow", GUILayout.Width(55f)))
+            SetDebugFlag(flag, FlagDecision.Allow);
+        if (GUILayout.Button("Deny", GUILayout.Width(55f)))
+            SetDebugFlag(flag, FlagDecision.Deny);
+
+        using (new EditorGUI.DisabledScope(debugDecision == FlagDecision.Unspecified))
+        {
+            if (GUILayout.Button("Remove", GUILayout.Width(65f)))
+                SetDebugFlag(flag, FlagDecision.Unspecified);
+        }
+
+        bool hasDebugFlags = globalSnapshot.Any(info => info.Influences.Any(influence =>
+            ReferenceEquals(influence.Source, debugFlagSource)));
+        using (new EditorGUI.DisabledScope(!hasDebugFlags))
+        {
+            if (GUILayout.Button("Clear test flags", GUILayout.Width(100f)))
+                ClearDebugFlags(true);
+        }
+
+        EditorGUILayout.EndHorizontal();
+        EditorGUILayout.HelpBox(
+            "These changes affect only the project-wide Global resolver and are cleared when the Debug window closes or scripts reload.",
+            MessageType.None);
+    }
+
+    private FlagDecision GetDebugFlagDecision(
+        System.Collections.Generic.IReadOnlyList<FlagDebugInfo> snapshot,
+        Enumeration flag)
+    {
+        foreach (var info in snapshot)
+        {
+            if (info.Key != flag)
+                continue;
+
+            foreach (var influence in info.Influences)
+            {
+                if (ReferenceEquals(influence.Source, debugFlagSource))
+                    return influence.Decision;
+            }
+        }
+
+        return FlagDecision.Unspecified;
+    }
+
+    private void SetDebugFlag(Enumeration flag, FlagDecision decision)
+    {
+        try
+        {
+            var manager = PRUnitySDK.Managers.Flags;
+            if (manager == null || flag == null)
+                return;
+
+            switch (decision)
+            {
+                case FlagDecision.Allow:
+                    manager.Allow(flag, debugFlagSource);
+                    break;
+                case FlagDecision.Deny:
+                    manager.Deny(flag, debugFlagSource);
+                    break;
+                default:
+                    manager.Remove(flag, debugFlagSource);
+                    break;
+            }
+
+            RefreshSnapshot();
+            Repaint();
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"Test flag change failed: {exception.GetType().Name}: {exception.Message}";
+        }
+    }
+
+    private void ClearDebugFlags(bool refresh)
+    {
+        try
+        {
+            PRUnitySDK.Managers.Flags?.ClearSource(debugFlagSource);
+            if (refresh)
+            {
+                RefreshSnapshot();
+                Repaint();
+            }
+        }
+        catch (System.Exception exception)
+        {
+            if (refresh)
+                snapshotError = $"Test flags clear failed: {exception.GetType().Name}: {exception.Message}";
+        }
     }
 }

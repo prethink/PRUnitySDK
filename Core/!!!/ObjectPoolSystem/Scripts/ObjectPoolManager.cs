@@ -80,6 +80,11 @@ public class ObjectPoolManager : MonoBehaviour
     private readonly Dictionary<Guid, Coroutine> runningCoroutines = new();
 
     /// <summary>
+    /// Корутины наполнения зарегистрированных пулов.
+    /// </summary>
+    private readonly Dictionary<PoolKey, Coroutine> poolCreationCoroutines = new();
+
+    /// <summary>
     /// Формирует отчёт по всем пулам: сколько объектов создано, сколько активно, сколько в резерве.
     /// </summary>
     public List<PoolSystemTableData> GenerateReport()
@@ -201,13 +206,13 @@ public class ObjectPoolManager : MonoBehaviour
             // Раньше эта проверка была недостижима из-за раннего return в начале метода.
             var missing = count - entry.Queue.Count;
             if (missing > 0)
-                StartCoroutine(InstantiateObjects(entry, missing));
+                StartPoolInstantiation(entry, missing);
             return;
         }
 
         entry = new PoolEntry { Key = key, Prefabs = objects };
         pools[key] = entry;
-        StartCoroutine(InstantiateObjects(entry, count));
+        StartPoolInstantiation(entry, count);
     }
 
     #endregion
@@ -446,6 +451,27 @@ public class ObjectPoolManager : MonoBehaviour
         }
     }
 
+    private void StartPoolInstantiation(PoolEntry entry, int count)
+    {
+        StopPoolInstantiation(entry.Key);
+        poolCreationCoroutines[entry.Key] = StartCoroutine(InstantiateObjectsTracked(entry, count));
+    }
+
+    private IEnumerator InstantiateObjectsTracked(PoolEntry entry, int count)
+    {
+        yield return InstantiateObjects(entry, count);
+        poolCreationCoroutines.Remove(entry.Key);
+    }
+
+    private void StopPoolInstantiation(PoolKey key)
+    {
+        if (!poolCreationCoroutines.TryGetValue(key, out var coroutine))
+            return;
+
+        StopCoroutine(coroutine);
+        poolCreationCoroutines.Remove(key);
+    }
+
     /// <summary>
     /// Создаёт экземпляр объекта и кладёт его в очередь пула.
     /// </summary>
@@ -478,14 +504,50 @@ public class ObjectPoolManager : MonoBehaviour
     {
         StopAllRunningCoroutines();
 
-        foreach (var entry in pools.Values)
-        {
-            foreach (var poolObject in entry.Queue)
-                poolObject.Dispose();
-        }
+        foreach (var key in pools.Keys.ToList())
+            ClearPool(key);
 
+        foreach (var poolObject in objectOnScene.ToList())
+            poolObject.Dispose();
+
+        poolCreationCoroutines.Clear();
         pools.Clear();
         objectOnScene.Clear();
+    }
+
+    /// <summary>
+    /// Удаляет регистрацию одного пула и уничтожает все его активные и свободные объекты.
+    /// </summary>
+    /// <param name="type">Тип ключа пула.</param>
+    /// <param name="category">Категория ключа пула.</param>
+    /// <returns>True, если пул существовал и был удалён.</returns>
+    public bool ClearPool(string type, string category)
+    {
+        return ClearPool(new PoolKey(type, category));
+    }
+
+    private bool ClearPool(PoolKey key)
+    {
+        if (!pools.TryGetValue(key, out var entry))
+            return false;
+
+        StopPoolInstantiation(key);
+
+        foreach (var poolObject in entry.Queue)
+            poolObject.Dispose();
+
+        foreach (var poolObject in objectOnScene
+                     .Where(item => new PoolKey(item.Type, item.Category).Equals(key))
+                     .ToList())
+        {
+            StopRunningCoroutine(poolObject.Guid);
+            objectOnScene.Remove(poolObject);
+            poolObject.Dispose();
+        }
+
+        entry.Queue.Clear();
+        pools.Remove(key);
+        return true;
     }
 
     private void StopAllRunningCoroutines()
@@ -494,6 +556,15 @@ public class ObjectPoolManager : MonoBehaviour
             StopCoroutine(coroutine);
 
         runningCoroutines.Clear();
+    }
+
+    private void StopRunningCoroutine(Guid guid)
+    {
+        if (!runningCoroutines.TryGetValue(guid, out var coroutine))
+            return;
+
+        StopCoroutine(coroutine);
+        runningCoroutines.Remove(guid);
     }
 
     private Coroutine StartCoroutineTracking(Guid guid, IEnumerator routine)

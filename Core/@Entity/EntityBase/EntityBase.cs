@@ -63,6 +63,9 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public virtual void DestroyEntity(EntityDestroyOptions options)
     {
+        if (!options.FullDestroy && InPool)
+            return;
+
         OnEntityDestroy?.Invoke(this);
 
         if(options.FullDestroy)
