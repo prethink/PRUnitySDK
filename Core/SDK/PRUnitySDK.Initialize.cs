@@ -8,10 +8,18 @@ using UnityEngine;
 /// </summary>
 public partial class PRUnitySDK
 {
+    private static readonly List<PRInitializationInfo> initializationHistory = new();
+    private static readonly IReadOnlyList<PRInitializationInfo> initializationHistoryView = initializationHistory.AsReadOnly();
+
     /// <summary>
     /// Инициализированные типы.
     /// </summary>
     public readonly static HashSet<Type> InitializedTypes = new();
+
+    /// <summary>
+    /// Диагностические данные успешно завершённых элементов инициализации SDK в порядке их запуска.
+    /// </summary>
+    public static IReadOnlyList<PRInitializationInfo> InitializationHistory => initializationHistoryView;
 
     /// <summary>
     /// Признак, что SDK инициализирован.
@@ -74,8 +82,20 @@ public partial class PRUnitySDK
     private static void InitializeSingletons()
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        PRMonoBehaviourHost.Instance.SingletonInitialize();
-        PRTimeScale.Instance.SingletonInitialize();
+        TrackInitialization<PRMonoBehaviourHost>(nameof(PRMonoBehaviourHost), PRInitializationCategory.Singleton,
+            () =>
+            {
+                var instance = PRMonoBehaviourHost.Instance;
+                instance.SingletonInitialize();
+                return instance;
+            });
+        TrackInitialization<PRTimeScale>(nameof(PRTimeScale), PRInitializationCategory.Singleton,
+            () =>
+            {
+                var instance = PRTimeScale.Instance;
+                instance.SingletonInitialize();
+                return instance;
+            });
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize InitializeSingletons complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();
     }
@@ -120,23 +140,40 @@ public partial class PRUnitySDK
     /// </summary>
     /// <typeparam name="T">Тип.</typeparam>
     /// <param name="action">Кастомное действие.</param>
+    /// <param name="name">Отображаемое имя.</param>
     public static void InitializeType<T>(Action action, string name = null)
+    {
+        InitializeTrackedType<T>(() =>
+        {
+            action?.Invoke();
+            return default;
+        }, name, PRInitializationCategory.Type);
+    }
+
+    /// <summary>
+    /// Инициализирует manager и автоматически сохраняет его фактический тип.
+    /// </summary>
+    internal static void InitializeManager<T>(Func<T> initializeAction, string name = null)
+    {
+        InitializeTrackedType(initializeAction, name, PRInitializationCategory.Manager);
+    }
+
+    private static void InitializeTrackedType<T>(Func<T> initializeAction, string name,
+        PRInitializationCategory category)
     {
         var result = InitializedTypes.Add(typeof(T));
 
         if (!result)
         {
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Type {typeof(T)} already initialized.");
-            action?.Invoke();
+            initializeAction?.Invoke();
             return;
         }
 
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        action?.Invoke();
-        stopwatch.Stop();
-
         string displayName = string.IsNullOrEmpty(name) ? typeof(T).Name : name;
-        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{displayName}</color> in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        double durationMilliseconds = TrackInitialization<T>(displayName, category,
+            () => (object)(initializeAction == null ? default : initializeAction.Invoke()));
+        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{displayName}</color> in {durationMilliseconds:F2} ms.");
     }
 
     /// <summary>
@@ -150,7 +187,12 @@ public partial class PRUnitySDK
 
         try
         {
-            InitializeType<T>(() => { RegisterService(initializeAction.Invoke()); }, name);
+            InitializeTrackedType<T>(() =>
+            {
+                T implementation = initializeAction.Invoke();
+                RegisterService(implementation);
+                return implementation;
+            }, name, PRInitializationCategory.Module);
         }
         catch (Exception exception)
         {
@@ -182,5 +224,20 @@ public partial class PRUnitySDK
 
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize RegisterFactories complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();
+    }
+
+    /// <summary>
+    /// Выполняет операцию и сохраняет её длительность в общей диагностике инициализации.
+    /// </summary>
+    internal static double TrackInitialization<TContract>(string name,
+        PRInitializationCategory category, Func<object> initializeAction)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        object implementation = initializeAction?.Invoke();
+        stopwatch.Stop();
+
+        initializationHistory.Add(new PRInitializationInfo(category, name, typeof(TContract),
+            implementation?.GetType() ?? typeof(TContract), stopwatch.Elapsed.TotalMilliseconds));
+        return stopwatch.Elapsed.TotalMilliseconds;
     }
 }

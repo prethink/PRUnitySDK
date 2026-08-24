@@ -71,13 +71,21 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 20)]
     public void InitializeProjectPropertiesManager()
     {
-        PRUnitySDK.InitializeType<ProjectPropertiesManager>(() => { ProjectProperties = ProjectPropertiesManager.Instance; });
+        PRUnitySDK.InitializeManager(() =>
+        {
+            ProjectProperties = ProjectPropertiesManager.Instance;
+            return ProjectProperties;
+        });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 20)]
     public void InitializeResourceManager()
     {
-        PRUnitySDK.InitializeType<ResourceManager>(() => { Resource = ResourceManager.Instance; });
+        PRUnitySDK.InitializeManager(() =>
+        {
+            Resource = ResourceManager.Instance;
+            return Resource;
+        });
     }
 
     [MethodHook(MethodHookStage.PostOperation, 20)]
@@ -114,9 +122,10 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 40)]
     public void InitializeOpenItemManager()
     {
-        PRUnitySDK.InitializeType<OpenedItemsManager>(() =>
+        PRUnitySDK.InitializeManager(() =>
         {
             OpenedItems = OpenedItemsManager.Instance;
+            return OpenedItems;
         });
     }
 
@@ -132,10 +141,11 @@ public partial class PRManagerContainer
 
     public void InitializeMonoManager<T>(Func<T> factory) where T : MonoBehaviour
     {
-        PRUnitySDK.InitializeType<T>(() =>
+        PRUnitySDK.InitializeManager(() =>
         {
             var instance = factory();
             instance.transform.SetParent(ManagerContainer.transform);
+            return instance;
         });
 
     }

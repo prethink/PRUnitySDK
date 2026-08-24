@@ -100,6 +100,38 @@ public partial class PRDebugEditor
         }
     }
 
+    private static void DrawScriptButton(Type primaryType, Type fallbackType)
+    {
+        if (!GUILayout.Button("Select", GUILayout.Width(55f)))
+            return;
+
+        MonoScript script = FindMonoScript(primaryType) ?? FindMonoScript(fallbackType);
+        if (script == null)
+        {
+            Debug.LogWarning($"Cannot find MonoScript for '{primaryType?.FullName ?? fallbackType?.FullName ?? "<unknown>"}'.");
+            return;
+        }
+
+        Selection.activeObject = script;
+        EditorGUIUtility.PingObject(script);
+    }
+
+    private static MonoScript FindMonoScript(Type type)
+    {
+        if (type == null)
+            return null;
+
+        foreach (string guid in AssetDatabase.FindAssets($"{type.Name} t:MonoScript"))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
+            if (script != null && script.GetClass() == type)
+                return script;
+        }
+
+        return null;
+    }
+
     private static void DrawEmpty(int count, string message)
     {
         if (count == 0)

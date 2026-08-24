@@ -36,6 +36,11 @@ public abstract class PRMonoBehaviourSingletonBase<T> : PRMonoBehaviour
 
     public static void RegisterFactory(MonoBehaviourFactoryBase<T> factory)
     {
-        CustomFactory = factory;
+        PRUnitySDK.TrackInitialization<MonoBehaviourFactoryBase<T>>(
+            factory?.GetType().Name ?? "<null>", PRInitializationCategory.Factory, () =>
+            {
+                CustomFactory = factory;
+                return factory;
+            });
     }
 }

@@ -8,10 +8,11 @@
     [MethodHook(MethodHookStage.PostOperation, 110)]
     public void InitializeXPManager()
     {
-        PRUnitySDK.InitializeType<XPManager>(() =>
+        PRUnitySDK.InitializeManager(() =>
         {
             XPManager = XPManager.Instance;
             XPManager.Init();
+            return XPManager;
         });
     }
 }

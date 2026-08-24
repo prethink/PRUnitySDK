@@ -1,8 +1,20 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public partial class PRDebugEditor
 {
+    private sealed class InitializationRow
+    {
+        public PRInitializationCategory Category;
+        public string Name;
+        public string ContractType;
+        public string ImplementationType;
+        public Type ContractTypeReference;
+        public Type ImplementationTypeReference;
+        public double DurationMilliseconds;
+    }
+
     private readonly struct PauseSnapshot
     {
         public readonly bool Project;

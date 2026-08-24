@@ -31,7 +31,7 @@ PRUnitySDK.Managers.Game.ReadySignal.SubscribeOnReady(() =>
 
 ## Добавление менеджера
 
-Расширяйте `PRManagerContainer` отдельным partial-файлом рядом с модулем. Выберите свободный приоритет, создайте экземпляр через принятую factory/singleton-схему и зарегистрируйте его через `PRUnitySDK.InitializeType<T>()`. Для `MonoBehaviour` используйте `InitializeMonoManager`, чтобы объект стал дочерним для runtime-контейнера `Managers`.
+Расширяйте `PRManagerContainer` отдельным partial-файлом рядом с модулем. Выберите свободный приоритет, создайте экземпляр через принятую factory/singleton-схему и верните его из `PRUnitySDK.InitializeManager(...)`. Для `MonoBehaviour` используйте `InitializeMonoManager`, чтобы объект стал дочерним для runtime-контейнера `Managers`.
 
 ```csharp
 public partial class PRManagerContainer

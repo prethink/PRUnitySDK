@@ -18,7 +18,65 @@ public partial class PRDebugEditor
 
         DrawSectionHeader("Summary");
         DrawCards(("Players", players.Count), ("Humans", humanCount), ("AI", aiCount),
-            ("Entities", entityTotal), ("On scene", entityOnScene), ("In pool", entityInPool), ("Pools", pools.Count));
+            ("Initialized", initializationEntries.Count), ("Entities", entityTotal), ("On scene", entityOnScene),
+            ("In pool", entityInPool), ("Pools", pools.Count));
+    }
+
+    private void DrawInitialization()
+    {
+        DrawSectionHeader("PRUnitySDK initialization");
+        DrawKeyValue("Tracked total", $"{initializationTotalMilliseconds:F2} ms");
+
+        DrawInitializationTable(PRInitializationCategory.Module, "Modules");
+        DrawInitializationTable(PRInitializationCategory.Manager, "Managers");
+        DrawInitializationTable(PRInitializationCategory.Singleton, "Singletons");
+        DrawInitializationTable(PRInitializationCategory.Factory, "Factories");
+        DrawInitializationTable(PRInitializationCategory.MonoWindow, "MonoWindows");
+        DrawInitializationTable(PRInitializationCategory.Notifier, "Notifiers");
+        DrawInitializationTable(PRInitializationCategory.Type, "Other initialized types");
+    }
+
+    private void DrawInitializationTable(PRInitializationCategory category, string title)
+    {
+        int totalCount = 0;
+        int visibleCount = 0;
+        double totalMilliseconds = 0d;
+
+        foreach (var row in initializationEntries)
+        {
+            if (row.Category != category)
+                continue;
+
+            totalCount++;
+            totalMilliseconds += row.DurationMilliseconds;
+        }
+
+        if (totalCount == 0)
+            return;
+
+        DrawSectionHeader($"{title} ({totalCount}) — {totalMilliseconds:F2} ms");
+        DrawFixedRow(true, ("Name", 140), ("Contract", 205), ("Implementation", 205),
+            ("Time", 75), ("Source", 60));
+
+        foreach (var row in initializationEntries)
+        {
+            if (row.Category != category)
+                continue;
+
+            if (!MatchesSearch(row.Category, row.Name, row.ContractType, row.ImplementationType))
+                continue;
+
+            visibleCount++;
+            EditorGUILayout.BeginHorizontal();
+            Label(row.Name, 140);
+            Label(row.ContractType, 205);
+            Label(row.ImplementationType, 205);
+            Label($"{row.DurationMilliseconds:F2} ms", 75);
+            DrawScriptButton(row.ImplementationTypeReference, row.ContractTypeReference);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(visibleCount, $"No {title.ToLowerInvariant()} match the current search.");
     }
 
     private void DrawPlayers()

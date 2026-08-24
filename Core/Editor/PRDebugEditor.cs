@@ -12,6 +12,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private readonly List<EntityRow> entities = new();
     private readonly List<PoolSystemTableData> pools = new();
     private readonly List<FlagResolverRow> flagResolvers = new();
+    private readonly List<InitializationRow> initializationEntries = new();
 
     private Vector2 scroll;
     private string search = string.Empty;
@@ -26,6 +27,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private long entityTotal;
     private long entityOnScene;
     private long entityInPool;
+    private double initializationTotalMilliseconds;
 
     [MenuItem("PRUnitySDK/Tools/Debug Window")]
     public static void ShowWindow()
@@ -88,6 +90,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         Tabs(
             ("Overview", DrawOverview),
+            ($"Initialization ({initializationEntries.Count})", DrawInitialization),
             ($"Players ({players.Count})", DrawPlayers),
             ($"Entities ({entityTotal})", DrawEntities),
             ($"Pools ({pools.Count})", DrawPools),

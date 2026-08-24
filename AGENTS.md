@@ -89,7 +89,7 @@ public partial class PRUnitySDK
 
 Перед добавлением или изменением менеджера определите модель владения:
 
-- обычный C# singleton — контейнер получает существующий `Instance` внутри `PRUnitySDK.InitializeType<T>()`;
+- обычный C# singleton — контейнер возвращает существующий `Instance` из `PRUnitySDK.InitializeManager(...)`;
 - `MonoBehaviour` — контейнер создаёт его через принятую factory base и `InitializeMonoManager`, который регистрирует тип и помещает объект под runtime-контейнер `Managers`;
 - сменная реализация — публичное поле/свойство и потребители зависят от интерфейса, а созданный экземпляр дополнительно регистрируется через `PRUnitySDK.RegisterService(...)`;
 - самостоятельный SDK-сервис без GameObject и manager-семантики регистрируется через partial `PRUnitySDK`, а не маскируется под менеджер.
@@ -125,10 +125,11 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 120)]
     private void InitializeExampleManager()
     {
-        PRUnitySDK.InitializeType<ExampleManager>(() =>
+        PRUnitySDK.InitializeManager(() =>
         {
             Example = ExampleManager.Instance;
             Example.Initialize();
+            return Example;
         });
     }
 }
@@ -139,7 +140,7 @@ public partial class PRManagerContainer
 - runtime-менеджеры инициализируются на `MethodHookStage.PostOperation`, потому что `ManagerContainer` создаётся между `PreOperation` и `PostOperation`;
 - меньший priority выполняется раньше; проверьте hooks во всех partial-файлах, а не только в `Core/@Managers`;
 - одинаковый priority не является контрактом взаимного порядка; зависимому менеджеру задайте явно больший priority;
-- initializer должен быть идемпотентным через `PRUnitySDK.InitializeType<T>()` или собственную доказанную защиту и не должен вызываться вручную;
+- initializer должен быть идемпотентным через `PRUnitySDK.InitializeManager(...)` или собственную доказанную защиту и не должен вызываться вручную;
 - наличие ссылки в `PRUnitySDK.Managers` не всегда означает готовность данных. Если менеджер предоставляет `ReadySignal`, потребители ждут его;
 - не читайте `ProjectData`, `GameSettings` и зависящие от storage данные до `GameManager.ReadySignal`;
 - подписки `EventBus`, корутины и другие долгоживущие ресурсы должны иметь симметричное освобождение в подходящем lifecycle-методе.

@@ -42,7 +42,9 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
             return null;
         }
 
-        T createdWindow = Object.Instantiate(prefab, parent, WorldPositionStays);
+        T createdWindow = null;
+        PRUnitySDK.TrackInitialization<MonoWindowBase>(typeof(T).Name, PRInitializationCategory.MonoWindow,
+            () => createdWindow = Object.Instantiate(prefab, parent, WorldPositionStays));
         if (IsSingleton)
             instance = createdWindow;
 

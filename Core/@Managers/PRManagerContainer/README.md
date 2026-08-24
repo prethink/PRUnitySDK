@@ -19,7 +19,7 @@
 
 ## InitializeMonoManager
 
-`InitializeMonoManager<T>(Func<T>)` оборачивает создание в `PRUnitySDK.InitializeType<T>()` и после создания делает компонент дочерним объектом `ManagerContainer`. Фабрика должна вернуть уже созданный `MonoBehaviour`.
+`InitializeMonoManager<T>(Func<T>)` оборачивает создание в `PRUnitySDK.InitializeManager(...)` и после создания делает компонент дочерним объектом `ManagerContainer`. Фабрика должна вернуть уже созданный `MonoBehaviour`.
 
 ```csharp
 InitializeMonoManager(() =>
@@ -32,9 +32,10 @@ InitializeMonoManager(() =>
 Обычные C# singleton-менеджеры регистрируются напрямую:
 
 ```csharp
-PRUnitySDK.InitializeType<ExampleManager>(() =>
+PRUnitySDK.InitializeManager(() =>
 {
     Example = ExampleManager.Instance;
+    return Example;
 });
 ```
 
@@ -50,10 +51,11 @@ public partial class PRManagerContainer
     [MethodHook(MethodHookStage.PostOperation, 120)]
     private void InitializeExampleManager()
     {
-        PRUnitySDK.InitializeType<ExampleManager>(() =>
+        PRUnitySDK.InitializeManager(() =>
         {
             Example = ExampleManager.Instance;
             Example.Initialize();
+            return Example;
         });
     }
 }

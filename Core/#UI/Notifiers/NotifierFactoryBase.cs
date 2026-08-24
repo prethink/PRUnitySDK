@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public abstract class NotifierFactoryBase<T> : INotifierFactory 
-    where T : MonoBehaviour
+    where T : NotifierBase
 {
     public abstract string ResourcePath { get; }
 
@@ -16,8 +16,12 @@ public abstract class NotifierFactoryBase<T> : INotifierFactory
         if (IsSingleton && instance != null)
             return instance;
 
-        instance = Object.Instantiate(Resources.Load<T>(ResourcePath));
-        instance.gameObject.transform.SetParent(PRUnitySDK.Windows.Notifiers.transform);
+        PRUnitySDK.TrackInitialization<NotifierBase>(typeof(T).Name, PRInitializationCategory.Notifier, () =>
+        {
+            instance = Object.Instantiate(Resources.Load<T>(ResourcePath));
+            instance.gameObject.transform.SetParent(PRUnitySDK.Windows.Notifiers.transform);
+            return instance;
+        });
         return instance;
     }
 }

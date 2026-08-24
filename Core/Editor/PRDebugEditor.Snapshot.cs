@@ -17,6 +17,7 @@ public partial class PRDebugEditor
 
         try
         {
+            CaptureInitialization();
             CapturePause();
             CapturePlayers();
             CaptureEntities();
@@ -37,10 +38,30 @@ public partial class PRDebugEditor
         entities.Clear();
         pools.Clear();
         flagResolvers.Clear();
+        initializationEntries.Clear();
         snapshotError = null;
         pause = default;
         humanCount = aiCount = 0;
         entityTotal = entityOnScene = entityInPool = 0;
+        initializationTotalMilliseconds = 0d;
+    }
+
+    private void CaptureInitialization()
+    {
+        foreach (var entry in PRUnitySDK.InitializationHistory)
+        {
+            initializationEntries.Add(new InitializationRow
+            {
+                Category = entry.Category,
+                Name = entry.Name,
+                ContractType = entry.ContractType?.FullName ?? "<unknown>",
+                ImplementationType = entry.ImplementationType?.FullName ?? "<unknown>",
+                ContractTypeReference = entry.ContractType,
+                ImplementationTypeReference = entry.ImplementationType,
+                DurationMilliseconds = entry.DurationMilliseconds
+            });
+            initializationTotalMilliseconds += entry.DurationMilliseconds;
+        }
     }
 
     private void CapturePause()
