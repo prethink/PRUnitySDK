@@ -14,6 +14,11 @@
 | `IconActionBase` | ScriptableObject-действие с иконкой |
 | `OpenURLAction` | Открывает проверенный HTTP/HTTPS URL |
 | `LangAction` | Переключает язык через LanguageManager SDK |
+| `AddBoolValueAction` | Устанавливает bool-свойство в `ProjectPropertiesManager` |
+| `AddLongValueAction` | Прибавляет значение к long-свойству в `ProjectPropertiesManager` |
+| `AddFloatValueAction` | Прибавляет значение к float-свойству в `ProjectPropertiesManager` |
+| `AddStringValueAction` | Устанавливает string-свойство в `ProjectPropertiesManager` |
+| `AddDateTimeValueAction` | Устанавливает DateTime-свойство из ISO-8601 строки |
 
 `ActionExecuter` намеренно используется через композицию: `ScriptableObject` и `MonoBehaviour` не могут наследоваться от одного общего класса действий, но должны выполнять одинаковую проверку.
 
@@ -109,6 +114,19 @@ if (provider.Action?.Execute() == true)
 ## OpenURLAction
 
 `OpenURLAction` выполняется только для абсолютных URL со схемой `http` или `https`. Пустые строки, относительные адреса и другие схемы отклоняются через `CanExecute()`.
+
+## Действия ProjectProperties
+
+Набор покрывает все типы `ProjectPropertiesManager`:
+
+- `AddBoolValueAction` устанавливает bool (историческое имя сохранено для совместимости);
+- `AddLongValueAction` и `AddFloatValueAction` прибавляют `count`;
+- `AddStringValueAction` устанавливает строку, включая пустую;
+- `AddDateTimeValueAction` устанавливает дату из ISO-8601 строки, например `2026-12-31T23:59:59Z`.
+
+Все действия требуют непустой `propertyName`; DateTime-действие дополнительно проверяет формат даты в `CanExecute()`.
+
+`AddLongValueAction` и `AddFloatValueAction` выполняют изменение с `save: false`. Это позволяет составному reward/purchase-процессу выполнить одну общую запись после нескольких изменений. Остальные действия сохраняют данные сразу через стандартные `Set*`-методы.
 
 ## Рекомендации
 

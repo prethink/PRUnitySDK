@@ -14,4 +14,15 @@ public class ResourceItemDefinition : ItemDefinitionBase
     public override IReadOnlyDictionary<LangType, string> LocalizationValues => localization;
 
     public override string Id => CurrencyType.ToString();
+
+    /// <summary>
+    /// Пытается получить runtime-тип ресурса из сериализованной ссылки definition.
+    /// </summary>
+    /// <param name="resourceType">Настроенный тип ресурса или null.</param>
+    /// <returns>true, если CurrencyType настроен корректно.</returns>
+    public bool TryGetResourceType(out Enumeration resourceType)
+    {
+        resourceType = CurrencyType?.ToEnumeration();
+        return resourceType != null;
+    }
 }

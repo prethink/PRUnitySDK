@@ -43,7 +43,7 @@ public class WalletResources
 
     private static bool TryGetCurrency(ResourceItemDefinition resource, out Enumeration currency)
     {
-        currency = resource?.CurrencyType?.ToEnumeration();
-        return currency != null;
+        currency = null;
+        return resource != null && resource.TryGetResourceType(out currency);
     }
 }

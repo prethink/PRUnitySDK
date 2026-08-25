@@ -226,6 +226,8 @@ PRUnitySDK/
 - [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
 - [Enumeration](Core/Models/Enumeration/README.md)
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
+- [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
+- [ResourceManager](Core/Items/Resources/README.md) — игровые ресурсы, баланс, списание и события изменений
 - [Utils](Core/Utils/README.md)
 - [Proxies](Core/Proxies/README.md)
 - [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`.

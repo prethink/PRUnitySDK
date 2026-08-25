@@ -117,23 +117,19 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// </summary>
     public void SetValue<T>(string name, T value, bool save = true, bool requiredNotify = true)
     {
-        var properties = GetProperties<T>();
-
-        // Старое значение читается до записи по двум причинам: чтобы не рассылать уведомление,
-        // когда значение фактически не изменилось (например, AddLong(name, 0) или повторная
-        // установка того же флага), и чтобы передать его типизированным подписчикам - тогда
-        // им не нужно хранить собственную копию для расчёта разницы.
-        var isChanged = !properties.TryGetValue(name, out var previousValue)
-            || !EqualityComparer<T>.Default.Equals(previousValue, value);
-
-        properties[name] = value;
+        // ProjectDataMap сам сравнивает старое значение с новым и возвращает предыдущее:
+        // менеджеру не нужно ни читать словарь до записи, ни держать собственную
+        // логику сравнения - она общая с ResourceManager.
+        var change = GetMap<T>().SetValue(name, value);
 
         if (save)
             GameManager.Instance.SaveProjectData();
 
-        // Уведомление идёт после сохранения, чтобы подписчик видел уже зафиксированное состояние.
-        if (requiredNotify && isChanged)
-            ProjectPropertyEvents.RaiseChanged(name, previousValue, value);
+        // Уведомление идёт после сохранения, чтобы подписчик видел уже зафиксированное
+        // состояние, и только при фактическом изменении: повторная установка того же
+        // значения (например, AddLong(name, 0)) подписчиков не будит.
+        if (requiredNotify && change.Changed)
+            ProjectPropertyEvents.RaiseChanged(name, change.PreviousValue, change.CurrentValue);
     }
 
     #endregion
@@ -287,7 +283,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// </summary>
     public bool TryGetValue<T>(string name, out T value)
     {
-        return GetProperties<T>().TryGetValue(name, out value);
+        return GetMap<T>().TryGetValue(name, out value);
     }
 
     /// <summary>
@@ -296,7 +292,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// </summary>
     public T GetValue<T>(string name, T fallback = default)
     {
-        return TryGetValue<T>(name, out var value) ? value : fallback;
+        return GetMap<T>().GetValue(name, fallback);
     }
 
     #endregion
@@ -312,19 +308,18 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// </summary>
     public void RemoveProperty(string propertyName, Type type, bool save = true, bool requiredNotify = true)
     {
-        var properties = GetProjectProperties();
         bool removed;
 
         if (type == typeof(long))
-            removed = properties.LongProperties.Remove(propertyName);
+            removed = longMap.TryRemoveValue(propertyName, out _);
         else if (type == typeof(float))
-            removed = properties.FloatProperties.Remove(propertyName);
+            removed = floatMap.TryRemoveValue(propertyName, out _);
         else if (type == typeof(DateTime))
-            removed = properties.DateTimeProperties.Remove(propertyName);
+            removed = dateTimeMap.TryRemoveValue(propertyName, out _);
         else if (type == typeof(string))
-            removed = properties.StringProperties.Remove(propertyName);
+            removed = stringMap.TryRemoveValue(propertyName, out _);
         else if (type == typeof(bool))
-            removed = properties.BoolProperties.Remove(propertyName);
+            removed = boolMap.TryRemoveValue(propertyName, out _);
         else
         {
             // Неизвестный тип - раньше метод просто ничего не делал и всё равно
@@ -352,7 +347,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// </summary>
     public void RemoveProperty<T>(string propertyName, bool save = true, bool requiredNotify = true)
     {
-        var removed = GetProperties<T>().Remove(propertyName);
+        var removed = GetMap<T>().TryRemoveValue(propertyName, out _);
 
         if (!removed)
             return;
@@ -380,47 +375,56 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     #region Внутреннее
 
     /// <summary>
-    /// Единая точка доступа к словарю нужного типа. typeof(T) сравнивается на
+    /// Адаптеры к словарям ProjectProperties. Создаются один раз: сам словарь
+    /// достаётся из актуального ProjectData при каждом обращении, поэтому
+    /// перезагрузка сохранения их не ломает.
+    /// </summary>
+    private readonly ProjectDataMap<string, long> longMap;
+    private readonly ProjectDataMap<string, float> floatMap;
+    private readonly ProjectDataMap<string, DateTime> dateTimeMap;
+    private readonly ProjectDataMap<string, string> stringMap;
+    private readonly ProjectDataMap<string, bool> boolMap;
+
+    public ProjectPropertiesManager()
+    {
+        longMap = CreateMap(properties => properties.LongProperties);
+        floatMap = CreateMap(properties => properties.FloatProperties);
+        dateTimeMap = CreateMap(properties => properties.DateTimeProperties);
+        stringMap = CreateMap(properties => properties.StringProperties);
+        boolMap = CreateMap(properties => properties.BoolProperties);
+    }
+
+    private static ProjectDataMap<string, T> CreateMap<T>(Func<ProjectProperties, IDictionary<string, T>> selector)
+    {
+        return new ProjectDataMap<string, T>(
+            () => GameManager.Instance.GetProjectData(),
+            projectData => selector(projectData.ProjectProperties));
+    }
+
+    /// <summary>
+    /// Единая точка доступа к хранилищу нужного типа. typeof(T) сравнивается на
     /// этапе выполнения (T всегда известен статически из вызывающего Set*/TryGet*,
     /// поэтому ветка всегда конкретна) - обычный приём для generic-диспетчеризации
     /// по набору заранее известных типов без reflection.
     /// </summary>
-    private Dictionary<string, T> GetProperties<T>()
+    private ProjectDataMap<string, T> GetMap<T>()
     {
-        var properties = GetProjectProperties();
-
         if (typeof(T) == typeof(long))
-            return (Dictionary<string, T>)(object)properties.LongProperties;
+            return (ProjectDataMap<string, T>)(object)longMap;
 
         if (typeof(T) == typeof(float))
-            return (Dictionary<string, T>)(object)properties.FloatProperties;
+            return (ProjectDataMap<string, T>)(object)floatMap;
 
         if (typeof(T) == typeof(DateTime))
-            return (Dictionary<string, T>)(object)properties.DateTimeProperties;
+            return (ProjectDataMap<string, T>)(object)dateTimeMap;
 
         if (typeof(T) == typeof(string))
-            return (Dictionary<string, T>)(object)properties.StringProperties;
+            return (ProjectDataMap<string, T>)(object)stringMap;
 
         if (typeof(T) == typeof(bool))
-            return (Dictionary<string, T>)(object)properties.BoolProperties;
+            return (ProjectDataMap<string, T>)(object)boolMap;
 
         throw new NotSupportedException($"Тип свойства '{typeof(T)}' не поддерживается ProjectPropertiesManager.");
-    }
-
-    /// <summary>
-    /// Единая точка получения ProjectProperties - раньше GameManager.Instance.GetProjectData()
-    /// вызывался напрямую в каждом из ~15 методов, и если GetProjectData() вернёт null
-    /// (например, обращение до полной загрузки данных проекта), падать пришлось бы
-    /// в каждом месте отдельно. Теперь понятная ошибка кидается один раз, здесь.
-    /// </summary>
-    private ProjectProperties GetProjectProperties()
-    {
-        var data = GameManager.Instance.GetProjectData();
-
-        if (data == null)
-            throw new InvalidOperationException("ProjectPropertiesManager: GameManager.GetProjectData() вернул null - данные проекта ещё не загружены.");
-
-        return data.ProjectProperties;
     }
 
     #endregion

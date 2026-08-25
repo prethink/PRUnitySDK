@@ -23,6 +23,16 @@ public partial class ProjectData : ICloneable
     /// </summary>
     public Dictionary<string, long> Resources { get; set; } = new();
 
+    /// <summary>
+    /// Временные награды: ключ награды и момент окончания её действия.
+    /// <para>
+    /// Отдельный словарь, а не даты в ProjectProperties: так награды можно перечислить,
+    /// проверить на истечение и очистить, не задевая прочие свойства проекта, а ключи
+    /// наград не пересекаются с произвольными DateTime-свойствами.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, DateTime> TimeLimitedRewards { get; set; } = new();
+
     #endregion
 
     #region Методы
@@ -35,6 +45,7 @@ public partial class ProjectData : ICloneable
         ProjectProperties = new();
         OpenedItems = new();
         Resources = new();
+        TimeLimitedRewards = new();
 
         this.RunMethodHooks(MethodHookStage.Initializing);
     }
@@ -56,6 +67,7 @@ public partial class ProjectData : ICloneable
         clone.ProjectProperties = (ProjectProperties)ProjectProperties.Clone();
         clone.Resources = new Dictionary<string, long>(Resources);
         clone.OpenedItems = OpenedItems.ToList();
+        clone.TimeLimitedRewards = new Dictionary<string, DateTime>(TimeLimitedRewards);
 
         this.RunMethodHooks(MethodHookStage.Cloning, clone);
 

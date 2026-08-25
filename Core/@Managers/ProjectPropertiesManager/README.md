@@ -147,6 +147,17 @@ public class CoinsView : MonoBehaviour, ILongProjectPropertyChangedEvent
 | чтение с fallback | `GetDateTime`, `GetLong`, `GetString`, `GetFloat`, `GetBool`, `GetValue<T>` — все с необязательным `fallback` |
 | удаление | `RemoveProperty(string, Type)`, `RemoveProperty<T>(string)`, `RemoveProperty<T>(EnumerationType<T>)` |
 
+## Универсальное хранилище
+
+Внутри менеджер работает через `ProjectDataMap<string, T>` — по одному адаптеру на
+поддерживаемый тип. Map отвечает только за операции со словарём внутри `ProjectData`
+и возвращает `ValueChange<T>`; решение о сохранении и уведомлении остаётся в менеджере.
+
+Тот же слой использует [ResourceManager](../../Items/Resources/README.md), поэтому логика
+«изменилось ли значение» одна на оба менеджера и не дублируется.
+
+Подробности — в [GameDataStorage](../../GameDataStorage/README.md).
+
 ## Ограничения
 
 - Доступ требует загруженного `ProjectData`; до `GameManager.ReadySignal` чтение и запись завершатся исключением.

@@ -1,31 +1,24 @@
-
+﻿/// <summary>
+/// События игровых ресурсов.
+/// </summary>
 public static class ResourceEvents
 {
-    public static void RaiseResourceUpdate(ResourceEventArgs args) => EventBus.RaiseEvent<IResourceEvent>(x => x.OnResourceUpdate(args));
-    public static void RaiseResourceValueChange(ResourceValueChangeEventArgs args) => EventBus.RaiseEvent<IResourceEvent>(x => x.OnResourceUpdate(args));
-}
-
-public interface IResourceEvent : IGlobalSubscriber
-{
-    void OnResourceUpdate(ResourceEventArgs args);
-}
-
-public class ResourceEventArgs : EventArgsBase
-{
-    public Enumeration ResourceType { get; protected set; }
-
-    public ResourceEventArgs(Enumeration resourceType) : base()
+    /// <summary>
+    /// Публикует общее уведомление об изменении ресурса.
+    /// </summary>
+    public static void RaiseResourceUpdate(ResourceEventArgs args)
     {
-        this.ResourceType = resourceType;
+        EventBus.RaiseEvent<IResourceEvent>(x => x.OnResourceUpdate(args));
     }
-}
 
-public class ResourceValueChangeEventArgs : ResourceEventArgs
-{
-    public long Value { get; protected set; }
-
-    public ResourceValueChangeEventArgs(Enumeration resourceType, long value) : base(resourceType)
+    /// <summary>
+    /// Публикует изменение количества ресурса: сначала подписчикам со значениями,
+    /// затем общим. Порядок такой же, как у событий свойств проекта - обработчик,
+    /// которому нужны значения, отрабатывает до тех, кто реагирует на факт изменения.
+    /// </summary>
+    public static void RaiseResourceValueChange(ResourceValueChangeEventArgs args)
     {
-        this.Value = value;
+        EventBus.RaiseEvent<IResourceValueChangedEvent>(x => x.OnResourceValueChanged(args));
+        EventBus.RaiseEvent<IResourceEvent>(x => x.OnResourceUpdate(args));
     }
 }
