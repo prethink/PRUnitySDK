@@ -72,6 +72,8 @@ public partial class PRDebugEditor
                     ResetTimeScale();
             }
 
+            DrawTimeScaleModifiers();
+
             EditorGUILayout.Space(3f);
             EditorGUILayout.LabelField("Temporary global override", EditorStyles.miniBoldLabel);
             temporaryGlobalTimeScale = DrawTimeScaleSlider("Scale", temporaryGlobalTimeScale,
@@ -93,6 +95,66 @@ public partial class PRDebugEditor
             }
             EditorGUILayout.EndHorizontal();
         }
+    }
+
+    /// <summary>
+    /// Список наложенных модификаторов с их источниками.
+    /// <para>
+    /// Раньше по значению слоя нельзя было понять, кто именно его изменил, - теперь
+    /// видно каждый источник и оставшееся время, и любой можно снять по отдельности.
+    /// </para>
+    /// </summary>
+    private void DrawTimeScaleModifiers()
+    {
+        if (!PRUnitySDK.IsInitialized)
+            return;
+
+        var provider = new PRTimeScaleEnumerationProvider();
+        var hasAny = false;
+
+        foreach (Enumeration layer in provider.GetOptions())
+        {
+            var layerModifiers = PRTimeScale.Instance.GetModifiers(layer);
+            if (layerModifiers.Count == 0)
+                continue;
+
+            if (!hasAny)
+            {
+                EditorGUILayout.Space(3f);
+                EditorGUILayout.LabelField("Active modifiers", EditorStyles.miniBoldLabel);
+                hasAny = true;
+            }
+
+            foreach (TimeScaleModifier modifier in layerModifiers.ToArray())
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField($"{layer.Value} × {modifier.Value:0.###}",
+                    GUILayout.MinWidth(90f), GUILayout.MaxWidth(140f));
+                EditorGUILayout.LabelField(modifier.OwnerName, EditorStyles.miniLabel,
+                    GUILayout.MinWidth(70f));
+                EditorGUILayout.LabelField(GetModifierRemaining(modifier), EditorStyles.miniLabel,
+                    GUILayout.Width(70f));
+
+                if (GUILayout.Button("×", GUILayout.Width(22f)))
+                {
+                    PRTimeScale.Instance.RemoveModifier(
+                        new TimeScaleModifierHandle(modifier.Id, layer));
+                    RefreshTimeScaleSnapshotDelayed();
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+    }
+
+    private static string GetModifierRemaining(TimeScaleModifier modifier)
+    {
+        if (!modifier.EndRealTime.HasValue)
+            return "permanent";
+
+        float remaining = modifier.EndRealTime.Value - Time.realtimeSinceStartup;
+
+        return remaining > 0f ? $"{remaining:0.0}s" : "expiring";
     }
 
     /// <summary>
