@@ -5,11 +5,21 @@ using YG;
 /// <summary>
 /// Менеджер сохранения для работы с yandexSDK.
 /// </summary>
-public class YandexGameDataStorager : IGameDataStorage
+public class YandexGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
 {
     #region Поля и свойства
 
     private PRSaveData saveData;
+
+    public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
+        ? null
+        : saveData.SaveDate;
+
+    public DateTime? LastUpdateDate => saveData == null
+        ? null
+        : saveData.UpdateDate != default
+            ? saveData.UpdateDate
+            : CreationDate;
 
     #endregion
 
@@ -33,7 +43,9 @@ public class YandexGameDataStorager : IGameDataStorage
         }
         else if (GetSettings().SaveStrategy == SaveStrategy.Class)
         {
-            saveData = ((PRSaveData)YG2.saves?.PRSaveData?.Clone() ?? new PRSaveData());
+            PRSaveData storedSaveData = YG2.saves?.PRSaveData;
+            result = storedSaveData != null;
+            saveData = (PRSaveData)storedSaveData?.Clone() ?? new PRSaveData();
         }
         else
         {
@@ -117,6 +129,7 @@ public class YandexGameDataStorager : IGameDataStorage
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
+        saveData.UpdateDate = PRUnitySDK.ServerTime.GetNow();
         PRLog.WriteDebug(this, $"Try save data use strategy {GetSettings().SaveStrategy}");
         if (GetSettings().SaveStrategy == SaveStrategy.Serialize)
         {

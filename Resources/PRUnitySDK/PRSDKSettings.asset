@@ -21,7 +21,7 @@ MonoBehaviour:
     <SaveCooldownSeconds>k__BackingField: 10
   <Project>k__BackingField:
     <ReleaseType>k__BackingField: 0
-    <DebugLogLevel>k__BackingField: 9
+    <DebugLogLevel>k__BackingField: 8
     <ResolveStrategy>k__BackingField: 0
     <PRMonobehaviourHost>k__BackingField:
       <Tick>k__BackingField: 1
@@ -157,3 +157,57 @@ MonoBehaviour:
     <MaxMessageCount>k__BackingField: 5
     <WarningIcon>k__BackingField: {fileID: 0}
     <ErrorIcon>k__BackingField: {fileID: 0}
+  <CaseRoll>k__BackingField:
+    <PauseOnExternalPause>k__BackingField: 1
+    <Duration>k__BackingField: 6.6
+    <MinimumRollCardCount>k__BackingField: 32
+    <LeadingBufferCount>k__BackingField: 8
+    <TrailingBufferCount>k__BackingField: 10
+    <IdleCardCount>k__BackingField: 28
+    <MovementCurve>k__BackingField:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 1.45
+        outSlope: 1.45
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.58
+        value: 0.73
+        inSlope: 0.8
+        outSlope: 0.8
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.84
+        value: 0.92
+        inSlope: 0.42
+        outSlope: 0.42
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0.18
+        outSlope: 0.18
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    <UseCustomMovementCurve>k__BackingField: 0
+    <EndSpeedShare>k__BackingField: 0.16
+    <ResultSettleDuration>k__BackingField: 0.18
+    <MaximumFrameDeltaTime>k__BackingField: 0.025
+    <IterationSound>k__BackingField: {fileID: 0}

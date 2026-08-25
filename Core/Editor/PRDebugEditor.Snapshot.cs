@@ -30,6 +30,7 @@ public partial class PRDebugEditor
             }
 
             CapturePause();
+            CaptureSaveDiagnostics();
             CapturePlayers();
             CaptureEntities();
             CapturePools();
@@ -62,6 +63,12 @@ public partial class PRDebugEditor
         pause = default;
         humanCount = aiCount = 0;
         entityTotal = entityOnScene = entityInPool = 0;
+        saveState = GameSaveState.NotStarted;
+        saveCreationTimeUtc = null;
+        lastSaveTimeUtc = null;
+        hasLoadedSave = false;
+        canStartSave = false;
+        saveCooldownRemainingSeconds = 0;
         initializationTotalMilliseconds = 0d;
     }
 
@@ -244,6 +251,20 @@ public partial class PRDebugEditor
         var manager = PRUnitySDK.PauseManager;
         pause = new PauseSnapshot(manager.IsProjectPaused, manager.IsLogicPaused, manager.IsFocusPaused,
             manager.IsMusicPaused, manager.IsTutorialPaused, manager.IsCutScenePaused);
+    }
+
+    private void CaptureSaveDiagnostics()
+    {
+        GameManager manager = PRUnitySDK.Managers?.Game;
+        if (manager == null)
+            return;
+
+        saveState = manager.SaveState;
+        saveCreationTimeUtc = manager.SaveCreationTimeUtc;
+        lastSaveTimeUtc = manager.LastSaveTimeUtc;
+        hasLoadedSave = manager.HasLoadedSave;
+        canStartSave = manager.CanStartSave();
+        saveCooldownRemainingSeconds = manager.SaveCooldownRemainingSeconds;
     }
 
     private void CapturePlayers()

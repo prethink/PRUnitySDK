@@ -16,12 +16,35 @@ public partial class PRDebugEditor
             DrawToggleGrid(("Project", pause.Project), ("Logic", pause.Logic), ("Focus", pause.Focus),
                 ("Music", pause.Music), ("Tutorial", pause.Tutorial), ("Cutscene", pause.Cutscene));
 
+        DrawSaveInfo();
+
         DrawSectionHeader("Summary");
         DrawSummaryLine(("Players", players.Count), ("Humans", humanCount), ("AI", aiCount),
             ("Initialized", initializationEntries.Count), ("Entities", entityTotal), ("On scene", entityOnScene),
             ("In pool", entityInPool), ("Pools", pools.Count),
             ("Errors", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Error)),
             ("Warnings", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Warning)));
+    }
+
+    private void DrawSaveInfo()
+    {
+        DrawSectionHeader("Save Info");
+        DrawKeyValue("Loaded existing save", hasLoadedSave);
+        DrawKeyValue("State", saveState.ToString());
+        DrawKeyValue("Created", saveCreationTimeUtc?.ToLocalTime().ToString("G") ?? "Unknown");
+        DrawKeyValue("Last updated", lastSaveTimeUtc?.ToLocalTime().ToString("G") ?? "Never");
+        DrawKeyValue("Cooldown", saveCooldownRemainingSeconds > 0
+            ? $"{saveCooldownRemainingSeconds}s remaining"
+            : "Ready");
+
+        using (new EditorGUI.DisabledScope(!canStartSave))
+        {
+            if (GUILayout.Button("Save", GUILayout.Width(90f)))
+            {
+                PRUnitySDK.Managers.Game.StartSaveTask();
+                RefreshSnapshot();
+            }
+        }
     }
 
     private void DrawProblems()

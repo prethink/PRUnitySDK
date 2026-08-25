@@ -8,7 +8,7 @@ using UnityEngine;
 /// JsonUtility не умеет ни свойств (а всё в ProjectData - свойства), ни словарей,
 /// поэтому раньше в PlayerPrefs уезжал фактически пустой объект.
 /// </summary>
-public class PlayerPrefsSaveLoadManager : IGameDataStorage
+public class PlayerPrefsSaveLoadManager : IGameDataStorage, IGameDataStorageSaveInfo
 {
     #region Поля и свойства
 
@@ -18,6 +18,16 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
     private const string SaveDataKey = "PRSaveData";
 
     private PRSaveData saveData;
+
+    public System.DateTime? CreationDate => saveData == null || saveData.SaveDate == default
+        ? null
+        : saveData.SaveDate;
+
+    public System.DateTime? LastUpdateDate => saveData == null
+        ? null
+        : saveData.UpdateDate != default
+            ? saveData.UpdateDate
+            : CreationDate;
 
     #endregion
 
@@ -59,6 +69,8 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
+
+        saveData.UpdateDate = PRUnitySDK.ServerTime.GetNow();
 
         var rawData = GetSettings().UseEncryption
             ? PRJsonUtils.SerializeObjectWithEncryption(saveData)

@@ -56,6 +56,20 @@ public partial class PRDebugEditor
 
     private void DrawSummaryLine(params (string Label, long Value)[] values)
     {
+        DrawSummaryLineCore(values
+            .Select(value => (value.Label, (object)value.Value))
+            .ToArray());
+    }
+
+    private void DrawSummaryLine(params (string Label, string Value)[] values)
+    {
+        DrawSummaryLineCore(values
+            .Select(value => (value.Label, (object)value.Value))
+            .ToArray());
+    }
+
+    private void DrawSummaryLineCore(params (string Label, object Value)[] values)
+    {
         float availableWidth = Mathf.Max(CompactContentMinWidth, position.width - 28f);
         GUIStyle style = summaryMetricStyle ??= new GUIStyle(EditorStyles.miniLabel)
         {

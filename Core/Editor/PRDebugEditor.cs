@@ -57,6 +57,12 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private long entityTotal;
     private long entityOnScene;
     private long entityInPool;
+    private GameSaveState saveState;
+    private DateTime? saveCreationTimeUtc;
+    private DateTime? lastSaveTimeUtc;
+    private bool hasLoadedSave;
+    private bool canStartSave;
+    private long saveCooldownRemainingSeconds;
     private double initializationTotalMilliseconds;
     private int selectedFlagProviderIndex;
     private int selectedFlagIndex;

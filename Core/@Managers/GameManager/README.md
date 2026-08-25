@@ -43,6 +43,10 @@ PRUnitySDK.Managers.Game.ReadySignal.SubscribeOnReady(() =>
 
 `SaveProjectData()` и `SaveGameSettingsData()` передают в storage только соответствующую модель с флагом немедленного обновления. Для согласованного сохранения обеих моделей и `ISaveable` используйте `StartSaveTask()`.
 
+Все три пути обновляют диагностику менеджера. `SaveState` принимает значения `NotStarted`, `Saving`, `Succeeded` и `Failed`; `HasLoadedSave` сообщает, был ли при запуске успешно загружен существующий save. Стандартные storage сохраняют дату создания в `PRSaveData.SaveDate`, а дату записи — в `UpdateDate`, поэтому `SaveCreationTimeUtc` и `LastSaveTimeUtc` восстанавливаются после перезапуска. Для custom storage метаданные доступны через необязательный `IGameDataStorageSaveInfo`.
+
+`CanStartSave()` проверяет параллельное сохранение и `SaveCooldownSeconds`, не изменяя состояние таймера. `SaveCooldownRemainingSeconds` отсчитывается от последней успешной save-операции и позволяет показать оставшееся время в UI. Обычный `StartSaveTask()` использует ту же проверку; overload с `isUserExecuter: true` по-прежнему явно обходит cooldown. Одновременные операции отображаются как `Saving`, пока не завершится последняя из них. Для платформенного storage `Succeeded` означает отсутствие синхронной ошибки при передаче данных, а не подтверждение удалённой cloud-записи: текущий `IGameDataStorage` не предоставляет такой callback.
+
 Autosave включается настройкой `GameStorage.EnabledAutoSave` и ждёт `AutoSaveSeconds` через `WaitForSeconds`.
 
 ## Публичный API
@@ -56,6 +60,12 @@ Autosave включается настройкой `GameStorage.EnabledAutoSave`
 | `StartSaveTask(bool)` | запускает полное асинхронное сохранение |
 | `SaveProjectData()` | передаёт текущий `ProjectData` в storage |
 | `SaveGameSettingsData()` | передаёт текущий `GameSettings` в storage |
+| `SaveState` | состояние save-операций текущей сессии |
+| `HasLoadedSave` | был ли существующий save успешно загружен в текущей сессии |
+| `SaveCreationTimeUtc` | UTC-время создания текущего save или `null` |
+| `LastSaveTimeUtc` | сохранённое UTC-время последней записи или `null` |
+| `CanStartSave(bool)` | проверяет доступность полного сохранения без изменения cooldown |
+| `SaveCooldownRemainingSeconds` | оставшееся время cooldown в целых секундах |
 | `LoadDefaultControlSettings(...)` | применяет default control settings по текущей логике и при необходимости сохраняет |
 | `LoadingUserCursorState()` / `ChangeCursorState()` | legacy-управление `Cursor.visible` через `GameSettings.IsShowCursor` |
 | `OnPageVisibilityChange(int)` | WebGL/iOS-мост видимости страницы для системы пауз |

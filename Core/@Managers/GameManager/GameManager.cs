@@ -30,6 +30,78 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     private bool isSaving;
     private long saveCooldownCounter;
     private SynchronizationContext synchronizationContext;
+    private readonly object saveDiagnosticsLock = new();
+    private int activeSaveOperationCount;
+    private bool activeSaveOperationFailed;
+    private GameSaveState saveState = GameSaveState.NotStarted;
+    private DateTime? saveCreationTimeUtc;
+    private DateTime? lastSaveTimeUtc;
+    private bool hasLoadedSave;
+
+    /// <summary>
+    /// Состояние save-операций в текущей игровой сессии.
+    /// </summary>
+    public GameSaveState SaveState
+    {
+        get
+        {
+            lock (saveDiagnosticsLock)
+                return saveState;
+        }
+    }
+
+    /// <summary>
+    /// UTC-время последнего сохранения. После успешной загрузки восстанавливается
+    /// из storage; null означает, что дата ещё неизвестна.
+    /// </summary>
+    public DateTime? LastSaveTimeUtc
+    {
+        get
+        {
+            lock (saveDiagnosticsLock)
+                return lastSaveTimeUtc;
+        }
+    }
+
+    /// <summary>
+    /// UTC-время создания текущего save или null, если storage не предоставляет метаданные.
+    /// </summary>
+    public DateTime? SaveCreationTimeUtc
+    {
+        get
+        {
+            lock (saveDiagnosticsLock)
+                return saveCreationTimeUtc;
+        }
+    }
+
+    /// <summary>
+    /// True when the current session successfully loaded an existing save.
+    /// </summary>
+    public bool HasLoadedSave
+    {
+        get
+        {
+            lock (saveDiagnosticsLock)
+                return hasLoadedSave;
+        }
+    }
+
+    /// <summary>
+    /// Whole seconds remaining before a regular save can start.
+    /// </summary>
+    public long SaveCooldownRemainingSeconds
+    {
+        get
+        {
+            long cooldownSeconds = GetStorageSettings().SaveCooldownSeconds;
+            if (cooldownSeconds <= 0)
+                return 0;
+
+            long elapsedSeconds = PRTime.Instance.CurrentRealSecond - saveCooldownCounter;
+            return Math.Max(0, cooldownSeconds - elapsedSeconds);
+        }
+    }
 
     #endregion
 
@@ -52,14 +124,14 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     private void OnApplicationPause(bool pauseStatus)
     {
-        PRLog.WriteDebug(this, $"{nameof(OnApplicationPause)} pauseStatus - {pauseStatus}", new PRLogSettings() { LevelDebug = 5 });
+        PRLog.WriteDebug(this, $"{nameof(OnApplicationPause)} pauseStatus - {pauseStatus}", new PRLogSettings() { LevelDebug = 9 });
 
         PRUnitySDK.PauseManager.SetProjectPaused(pauseStatus, this);
     }
 
     private void OnApplicationFocus(bool hasFocus)
     {
-        PRLog.WriteDebug(this, $"{nameof(OnApplicationFocus)} pauseStatus - {hasFocus}", new PRLogSettings() { LevelDebug = 5 });
+        PRLog.WriteDebug(this, $"{nameof(OnApplicationFocus)} pauseStatus - {hasFocus}", new PRLogSettings() { LevelDebug = 9 });
 
         var requiredPause = !hasFocus;
         PRUnitySDK.PauseManager.SetFocusPaused(requiredPause, this);
@@ -90,7 +162,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         synchronizationContext = SynchronizationContext.Current;
 
         gameDataStorage = PRUnitySDK.GameDataStorage;
-        bool isRequiredFirstInitialize = !gameDataStorage.TryLoad();
+        bool loadedExistingSave = gameDataStorage.TryLoad();
+        CaptureLoadedSaveInfo(loadedExistingSave);
+        bool isRequiredFirstInitialize = !loadedExistingSave;
         gameDataStorage.ReadySignal.SubscribeOnReady(() =>
         {
             LoadingData();
@@ -129,37 +203,33 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     public async void StartSaveTask(bool isUserExecuter = false)
     {
-        if (!CanSave(isUserExecuter))
+        if (!CanStartSave(isUserExecuter))
             return;
 
         await InternalSave();
     }
 
-    private bool CanSave(bool isUserExecuter)
+    /// <summary>
+    /// Returns whether a full save can start without changing the cooldown.
+    /// </summary>
+    public bool CanStartSave(bool ignoreCooldown = false)
     {
         if (isSaving)
             return false;
 
-        if (isUserExecuter)
+        if (ignoreCooldown)
             return true;
 
-        var saveCooldownSeconds = PRUnitySDK.Settings.GameStorage.SaveCooldownSeconds;
-        if (saveCooldownSeconds <= 0)
-            return true;
-
-        if(PRTime.Instance.CurrentRealSecond > saveCooldownCounter + saveCooldownSeconds)
-        {
-            saveCooldownCounter = PRTime.Instance.CurrentRealSecond;
-            return true;
-        }
-
-        return false;
+        return SaveCooldownRemainingSeconds <= 0;
     }
 
     private async Task InternalSave()
     {
         if (isSaving)
             return;
+
+        bool succeeded = false;
+        BeginSaveOperation();
 
         try
         {
@@ -173,9 +243,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
             gameDataStorage.UpdateProjectData(projectData);
             gameDataStorage.UpdateGameSettings(gameSettings);
             gameDataStorage.Save();
+            succeeded = true;
 
             GameplayEvents.RaiseSaveEvent();
-
         }
         catch(Exception ex) 
         {
@@ -184,6 +254,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         finally
         {
             isSaving = false;
+            CompleteSaveOperation(succeeded, GetSuccessfulSaveInfo(succeeded));
         }
     }
 
@@ -222,12 +293,101 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     public void SaveProjectData()
     {
-        gameDataStorage.UpdateProjectData(projectData, true);
+        ExecuteImmediateSave(() => gameDataStorage.UpdateProjectData(projectData, true));
     }
 
     public void SaveGameSettingsData()
     {
-        gameDataStorage.UpdateGameSettings(gameSettings, true);
+        ExecuteImmediateSave(() => gameDataStorage.UpdateGameSettings(gameSettings, true));
+    }
+
+    private void ExecuteImmediateSave(Action saveAction)
+    {
+        bool succeeded = false;
+        BeginSaveOperation();
+
+        try
+        {
+            saveAction.Invoke();
+            succeeded = true;
+        }
+        finally
+        {
+            CompleteSaveOperation(succeeded, GetSuccessfulSaveInfo(succeeded));
+        }
+    }
+
+    private void BeginSaveOperation()
+    {
+        lock (saveDiagnosticsLock)
+        {
+            if (activeSaveOperationCount == 0)
+                activeSaveOperationFailed = false;
+
+            activeSaveOperationCount++;
+            saveState = GameSaveState.Saving;
+        }
+    }
+
+    private void CompleteSaveOperation(bool succeeded, (DateTime? creationTimeUtc, DateTime? updateTimeUtc) saveInfo)
+    {
+        lock (saveDiagnosticsLock)
+        {
+            if (succeeded)
+            {
+                saveCreationTimeUtc = saveInfo.creationTimeUtc ?? saveCreationTimeUtc;
+                lastSaveTimeUtc = saveInfo.updateTimeUtc ?? ToUtc(PRUnitySDK.ServerTime.GetNow());
+                saveCooldownCounter = PRTime.Instance.CurrentRealSecond;
+            }
+            else
+                activeSaveOperationFailed = true;
+
+            activeSaveOperationCount = Math.Max(0, activeSaveOperationCount - 1);
+            saveState = activeSaveOperationCount > 0
+                ? GameSaveState.Saving
+                : activeSaveOperationFailed
+                    ? GameSaveState.Failed
+                    : GameSaveState.Succeeded;
+        }
+    }
+
+    private void CaptureLoadedSaveInfo(bool loadedExistingSave)
+    {
+        var saveInfo = loadedExistingSave
+            ? GetStorageSaveInfoUtc()
+            : (creationTimeUtc: (DateTime?)null, updateTimeUtc: (DateTime?)null);
+
+        lock (saveDiagnosticsLock)
+        {
+            hasLoadedSave = loadedExistingSave;
+            saveCreationTimeUtc = saveInfo.creationTimeUtc;
+            lastSaveTimeUtc = saveInfo.updateTimeUtc;
+        }
+    }
+
+    private (DateTime? creationTimeUtc, DateTime? updateTimeUtc) GetSuccessfulSaveInfo(bool succeeded)
+    {
+        return succeeded
+            ? GetStorageSaveInfoUtc()
+            : (null, null);
+    }
+
+    private (DateTime? creationTimeUtc, DateTime? updateTimeUtc) GetStorageSaveInfoUtc()
+    {
+        if (!(gameDataStorage is IGameDataStorageSaveInfo saveInfo))
+            return (null, null);
+
+        return (ToUtc(saveInfo.CreationDate), ToUtc(saveInfo.LastUpdateDate));
+    }
+
+    private static DateTime? ToUtc(DateTime? date)
+    {
+        if (!date.HasValue)
+            return null;
+
+        return date.Value.Kind == DateTimeKind.Utc
+            ? date.Value
+            : date.Value.ToUniversalTime();
     }
 
     public void AutoSaveHandler()

@@ -3,6 +3,19 @@
 Папка содержит контракты сохранения PRUnitySDK, реализации storage и общие адаптеры
 для данных внутри `ProjectData`.
 
+## Save metadata
+
+`PRSaveData.SaveDate` хранит дату создания save, а `UpdateDate` обновляется непосредственно
+перед каждой записью стандартными `PlayerPrefsSaveLoadManager` и `YandexGameDataStorager`.
+Обе даты берутся из `PRUnitySDK.ServerTime`, поэтому используют единый настроенный источник времени.
+Поле добавлено обратно совместимо: для старого save без `UpdateDate` стандартные storage
+используют `SaveDate` как fallback до следующей записи.
+
+Storage может дополнительно реализовать `IGameDataStorageSaveInfo`, не расширяя обязательный
+контракт `IGameDataStorage`. `GameManager` использует этот интерфейс, чтобы восстановить даты
+создания и последнего обновления после перезапуска. Собственная реализация storage может вернуть `null`,
+если метаданные недоступны.
+
 ## ProjectDataMap
 
 `ProjectDataMap<TKey, TValue>` предоставляет единый набор операций над выбранным
