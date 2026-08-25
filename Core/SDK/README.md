@@ -85,6 +85,11 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 Например, при Yandex-интеграции модуль хранилища отображается с контрактом
 `IGameDataStorage` и реализацией `YandexGameDataStorager`.
 
+## ResourcePaths
+
+Канонические пути для `Resources.Load`, правила их использования и расширения модулями
+описаны в отдельной [документации ResourcePaths](../ResourcePaths/README.md).
+
 ## Настройки и база данных
 
 `PRSDKSettings` и `PRSDKDatabase` наследуются от `ScriptableObjectSingleton<T>`. Поиск

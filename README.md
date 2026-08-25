@@ -190,7 +190,8 @@ PRUnitySDK/
 ### Ядро и расширение SDK
 
 - [Core](Core/README.md)
-- [SDK](Core/SDK/README.md)
+- [SDK](Core/SDK/README.md) — facade, инициализация и service resolver
+- [ResourcePaths](Core/ResourcePaths/README.md) — канонические пути к runtime-ресурсам и правила расширения
 - [Окна Database и Settings](Core/Editor/README.md) — секции, поиск, заполнение каталогов и валидация definitions
 - [Attributes](Core/@Attributes/README.md)
 - [Actions](Core/@Actions/README.md)

@@ -1,4 +1,4 @@
-public partial class ResourcePaths 
+public partial class ResourcePaths
 {
     public const string MonoWindowFolderName        = "MonoWindows";
     public const string WindowFolderName            = "Windows";
