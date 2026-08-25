@@ -30,6 +30,7 @@ public partial class PRDebugEditor
             }
 
             CapturePause();
+            CaptureTimeScale();
             CaptureSaveDiagnostics();
             CapturePlayers();
             CaptureEntities();
@@ -57,6 +58,7 @@ public partial class PRDebugEditor
         flagProviders.Clear();
         initializationEntries.Clear();
         monoWindows.Clear();
+        timeScaleRows.Clear();
         eventRows.Clear();
         aggregatedEventRows.Clear();
         snapshotError = null;
@@ -69,6 +71,10 @@ public partial class PRDebugEditor
         hasLoadedSave = false;
         canStartSave = false;
         saveCooldownRemainingSeconds = 0;
+        timeScaleCombineMode = "-";
+        timeScaleSubscriberCount = 0;
+        hasActiveTemporaryTimeScales = false;
+        globalTemporaryTimeScaleActive = false;
         initializationTotalMilliseconds = 0d;
     }
 
@@ -251,6 +257,31 @@ public partial class PRDebugEditor
         var manager = PRUnitySDK.PauseManager;
         pause = new PauseSnapshot(manager.IsProjectPaused, manager.IsLogicPaused, manager.IsFocusPaused,
             manager.IsMusicPaused, manager.IsTutorialPaused, manager.IsCutScenePaused);
+    }
+
+    private void CaptureTimeScale()
+    {
+        PRTimeScale timeScale = PRTimeScale.Instance;
+        timeScaleCombineMode = PRUnitySDK.Settings.Project.TimeScaleCombineMode.ToString();
+        timeScaleSubscriberCount = EventBus.GetSubscriberCount<IOnPRTimeScaleChange>();
+        hasActiveTemporaryTimeScales = timeScale.HasActiveTemporaryTimeScales;
+        globalTemporaryTimeScaleActive = timeScale.IsTimeScaleTemporaryActive(
+            PRTimeScaleEnumerationProvider.Global);
+
+        foreach (Enumeration layer in new PRTimeScaleEnumerationProvider().GetOptions()
+                     .Where(value => value != null)
+                     .GroupBy(value => value.Value, StringComparer.Ordinal)
+                     .Select(group => group.First())
+                     .OrderBy(value => value == PRTimeScaleEnumerationProvider.Global ? 0 : 1)
+                     .ThenBy(value => value.Value, StringComparer.Ordinal))
+        {
+            float value = timeScale.GetTimeScale(layer);
+            float resolvedValue = layer == PRTimeScaleEnumerationProvider.Global
+                ? timeScale.Resolve()
+                : timeScale.Resolve(layer);
+
+            timeScaleRows.Add(new TimeScaleRow(layer, value, resolvedValue));
+        }
     }
 
     private void CaptureSaveDiagnostics()

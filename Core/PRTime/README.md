@@ -18,6 +18,9 @@
 | `CurrentGameSecond` | Полная секунда `GameTime` |
 | `LastRawTime` | Последнее значение `Time.realtimeSinceStartup` |
 
+Глобальный scale читается через `PRTimeScale.Resolve()` без передачи global layer. Передача
+`Global` как обычного слоя при режиме `Multiply` умножила бы значение само на себя.
+
 Термин `Real` означает «без PR time scale», но не «выполняется во время паузы».
 При активной логической паузе обе delta time устанавливаются в `0`, а накопленные
 `RealTime` и `GameTime` не увеличиваются.
@@ -96,4 +99,3 @@ PRTime.Instance.Reset();
 - [PauseSystem](../PauseSystem/README.md)
 - [Coroutines](../Coroutines/README.md)
 - [Yields](../Yields/README.md)
-

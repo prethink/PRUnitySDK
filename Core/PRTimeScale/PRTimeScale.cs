@@ -13,6 +13,19 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public int InitializeOrder => -1;
 
+    /// <summary>
+    /// Возвращает true, если хотя бы для одного слоя действует временное изменение.
+    /// </summary>
+    public bool HasActiveTemporaryTimeScales => activeTaskTimeScaleTemporaly.Count > 0;
+
+    /// <summary>
+    /// Возвращает true, если для указанного слоя действует временное изменение.
+    /// </summary>
+    public bool IsTimeScaleTemporaryActive(Enumeration layer)
+    {
+        return layer != null && activeTaskTimeScaleTemporaly.Contains(layer);
+    }
+
     public float GetTimeScale(Enumeration layer = null)
     {
         if (layer == null || !layers.TryGetValue(layer, out var value))
@@ -84,10 +97,15 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         if (!isInitialize)
             return DefaultTimeScale;
 
-        if (layer == null)
-            return layers[PRTimeScaleEnumerationProvider.Global];
+        var globalLayer = PRTimeScaleEnumerationProvider.Global;
+        var global = layers[globalLayer];
 
-        var global = layers[PRTimeScaleEnumerationProvider.Global];
+        // Global is the root scale, not a child layer. Combining it with itself
+        // would square the value in Multiply mode (0.5 -> 0.25) and make global
+        // animations run at a different speed than PRTime and physics.
+        if (layer == null || layer == globalLayer)
+            return global;
+
         var value = layers[layer];
 
         var currentSettings = combineMode != null 

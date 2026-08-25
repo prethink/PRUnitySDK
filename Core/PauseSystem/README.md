@@ -59,11 +59,63 @@ public class PauseView : MonoBehaviour, IPauseStateListener
 
 ## Мониторы Unity-компонентов
 
+Для анимации есть два способа остановки — со снимком скорости и с ручным тиком. Они
+сосуществуют: аниматор, которым управляет `AnimatorTimeScaleDriver`, монитор не трогает.
+
+| | `AnimatorPauseMonitor` | `AnimatorTimeScaleDriver` |
+| --- | --- | --- |
+| Кто обновляет аниматор | Unity | драйвер вручную |
+| Пауза | `speed = 0` + снимок прежней скорости | шаг времени не передаётся |
+| Замедление | через `animator.speed` | через размер шага времени |
+| Слои `PRTimeScale` | общий множитель скорости | шаг умножается на `Resolve(layer)` |
+| Root motion | работает как обычно | требует ручного применения |
+
 ### AnimatorPauseMonitor
 
 Находит `Animator` на текущем объекте и в детях, сохраняет их скорость, устанавливает
 `speed = 0` при логической паузе и восстанавливает сохранённое значение после неё.
 Дополнительный Animator можно зарегистрировать через `RegisterAnimator()`.
+
+**Скорость такого аниматора нельзя менять напрямую.** Пока пауза активна, реальное
+значение равно нулю, а исходное лежит в снимке — прямая запись `animator.speed`
+потеряется при возобновлении. Используйте `AnimatorPauseMonitor.SetSpeed(animator, speed)`:
+он пишет в снимок во время паузы и в аниматор в остальное время.
+
+```csharp
+// PlayerAnimationController
+private void ApplyTimeScale()
+{
+    var timeScale = PRTimeScale.Instance.Resolve(entity.GetTimeScaleLayer());
+    AnimatorPauseMonitor.SetSpeed(animator, timeScale);
+}
+```
+
+### AnimatorTimeScaleDriver
+
+Тикает аниматор вручную — так же, как хост тикает физику через
+`Physics.Simulate(GameFixedDeltaTime)`. Компонент выводит аниматор из автоматического
+обновления (`animator.enabled = false`) и продвигает его в `PRUpdate`:
+
+```csharp
+var deltaTime = PRTime.Instance.RealDeltaTime * PRTimeScale.Instance.Resolve(layer);
+animator.Update(deltaTime);
+```
+
+`PRMonoBehaviour` не вызывает `PRUpdate` во время логической паузы, поэтому анимация
+останавливается сама — снимок скорости не нужен, и затирать нечего.
+
+Настройки компонента:
+
+| Поле | Назначение |
+| --- | --- |
+| `animator` | управляемый аниматор, по умолчанию берётся с этого объекта |
+| `timeScaleLayer` | слой масштаба времени; пусто — глобальный |
+| `restoreOnDisable` | вернуть автообновление при выключении; нужно для объектов из пула |
+
+Когда выбирать драйвер: нужны разные скорости у разных сущностей (замедлить врага, но не
+игрока), детерминированное продвижение анимации или единый источник времени с физикой.
+
+Когда оставить монитор: у объекта root motion, либо достаточно обычной остановки на паузе.
 
 ### RigidBodyPauseMonitor
 

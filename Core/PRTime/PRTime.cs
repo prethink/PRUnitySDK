@@ -138,7 +138,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
     private void UpdateGameTime()
     {
-        float globalScale = PRTimeScale.Instance.Resolve(PRTimeScaleEnumerationProvider.Global);
+        float globalScale = PRTimeScale.Instance.Resolve();
         GameDeltaTime = this.RealDeltaTime * globalScale;
         GameTime += GameDeltaTime;
 

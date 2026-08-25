@@ -35,6 +35,20 @@ public partial class PRDebugEditor
         }
     }
 
+    private readonly struct TimeScaleRow
+    {
+        public readonly Enumeration Layer;
+        public readonly float Value;
+        public readonly float ResolvedValue;
+
+        public TimeScaleRow(Enumeration layer, float value, float resolvedValue)
+        {
+            Layer = layer;
+            Value = value;
+            ResolvedValue = resolvedValue;
+        }
+    }
+
     private sealed class PlayerRow
     {
         public GameObject GameObject;

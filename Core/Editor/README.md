@@ -97,6 +97,14 @@ public sealed class ExampleHealthCheck : IPRDebugHealthCheck
 а `Summary` — компактную строку с переносом только при нехватке места. Горизонтальная полоса
 остаётся только на табличных вкладках.
 
+Секция `PRTimeScale` показывает combine mode, число подписчиков `IOnPRTimeScaleChange` и все слои
+из `PRTimeScaleEnumerationProvider`: собственное значение слоя и итоговый результат `Resolve`.
+Постоянное значение каждого слоя можно изменить числом. Отдельный блок временного global override
+принимает scale и длительность в реальных секундах; presets `0`, `0.25`, `0.5`, `1`, `2` заполняют
+scale, а `Apply` вызывает `SetGlobalTimeScaleTemporarily`. Повторное применение недоступно до
+автоматического восстановления. Debug-окно использует только публичные методы `PRTimeScale` и
+не изменяет `UnityEngine.Time.timeScale`.
+
 ## PRSDKDatabase и PRSDKSettings
 
 Assets `PRSDKDatabase` и `PRSDKSettings` редактируются в отдельных растягиваемых `EditorWindow`. Обычный Unity

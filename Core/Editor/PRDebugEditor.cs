@@ -37,6 +37,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private readonly List<FlagProviderRow> flagProviders = new();
     private readonly List<InitializationRow> initializationEntries = new();
     private readonly List<MonoWindowRow> monoWindows = new();
+    private readonly List<TimeScaleRow> timeScaleRows = new();
     private readonly Queue<EventBusRow> eventHistory = new();
     private readonly List<EventBusRow> eventRows = new();
     private readonly Dictionary<Type, EventBusAccumulator> aggregatedEventHistory = new();
@@ -63,6 +64,12 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private bool hasLoadedSave;
     private bool canStartSave;
     private long saveCooldownRemainingSeconds;
+    private string timeScaleCombineMode = "-";
+    private int timeScaleSubscriberCount;
+    private bool hasActiveTemporaryTimeScales;
+    private bool globalTemporaryTimeScaleActive;
+    private float temporaryGlobalTimeScale = 0.5f;
+    private float temporaryGlobalDurationSeconds = 8f;
     private double initializationTotalMilliseconds;
     private int selectedFlagProviderIndex;
     private int selectedFlagIndex;
