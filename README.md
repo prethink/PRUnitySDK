@@ -189,24 +189,23 @@ PRUnitySDK/
 
 ### Ядро и расширение SDK
 
-- [Core](Core/README.md)
 - [SDK](Core/SDK/README.md) — facade, инициализация и service resolver
 - [ResourcePaths](Core/ResourcePaths/README.md) — канонические пути к runtime-ресурсам и правила расширения
 - [Окна Database и Settings](Core/Editor/README.md) — секции, поиск, заполнение каталогов и валидация definitions
-- [Attributes](Core/@Attributes/README.md)
-- [Actions](Core/@Actions/README.md)
-- [EventBus](Core/@Events/EventBus/README.md)
-- [HookSystem](Core/HookSystem/README.md)
-- [FlagsSystem](Core/FlagsSystem/README.md)
+- [Attributes](Core/@Attributes/README.md) — method hooks, переопределение сервисов и расширение Inspector
+- [Actions](Core/@Actions/README.md) — переиспользуемые действия с единым контрактом проверки и выполнения
+- [EventBus](Core/@Events/EventBus/README.md) — типизированная шина уведомлений о произошедшем
+- [HookSystem](Core/HookSystem/README.md) — перехват действий с возможностью изменить или запретить их
+- [FlagsSystem](Core/FlagsSystem/README.md) — согласование независимых решений компонентов без прямых зависимостей
 
 ### Жизненный цикл и время
 
-- [PRMonoBehaviour](Core/PRMonoBehaviour/README.md)
-- [Coroutines](Core/Coroutines/README.md)
-- [Yields](Core/Yields/README.md)
-- [PauseSystem](Core/PauseSystem/README.md)
-- [PRTime](Core/PRTime/README.md)
-- [PRTimeScale](Core/PRTimeScale/README.md)
+- [PRMonoBehaviour](Core/PRMonoBehaviour/README.md) — базовый компонент с lifecycle-хуками, учитывающими логическую паузу
+- [Coroutines](Core/Coroutines/README.md) — обёртки над корутинами с запуском, перезапуском и остановкой
+- [Yields](Core/Yields/README.md) — `CustomYieldInstruction`, останавливающие корутины на логической паузе
+- [PauseSystem](Core/PauseSystem/README.md) — раздельные причины паузы и мониторы аниматоров и физических тел
+- [PRTime](Core/PRTime/README.md) — источник времени: реальное, игровое и учёт паузы
+- [PRTimeScale](Core/PRTimeScale/README.md) — слои скорости времени, модификаторы с владельцами и драйверы для анимации и физики
 
 ### Менеджеры
 
@@ -215,7 +214,7 @@ PRUnitySDK/
 - [ProjectPropertiesManager](Core/@Managers/ProjectPropertiesManager/README.md) — свойства `long`, `float`, `DateTime`, `string` и `bool`
 - [OpenedItemsManager](Core/@Managers/OpenedItemsManager/README.md) — открытые предметы и количество в `ProjectData`
 - [PRManagerContainer](Core/@Managers/PRManagerContainer/README.md) — hook-порядок создания runtime-менеджеров
-- [SoundManager](Core/@Managers/SoundManager/README.md)
+- [SoundManager](Core/@Managers/SoundManager/README.md) — музыка, UI-звуки, позиционные эффекты и наборы `AudioSet`
 - [CursorManager](Core/@Managers/CursorManager/README.md) — запросы Show/Hide курсора с приоритетом последнего обращения
 
 ### Модели, сервисы и утилиты
@@ -224,21 +223,21 @@ PRUnitySDK/
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия
 - [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
-- [Enumeration](Core/Models/Enumeration/README.md)
+- [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
 - [ResourceManager](Core/Items/Resources/README.md) — игровые ресурсы, баланс, списание и события изменений
-- [Utils](Core/Utils/README.md)
-- [Proxies](Core/Proxies/README.md)
+- [Utils](Core/Utils/README.md) — вспомогательные классы: время, отложенные вызовы, имена
+- [Proxies](Core/Proxies/README.md) — переадресация Unity-callback'ов с дочерних объектов родительским компонентам
 - [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`.
 
 
 ### Модули и интеграции
 
-- [Modules](Modules/README.md)
-- [DOTweenEffects](Modules/DOTweenEffects/README.md)
-- [YG2 Integration](YG2.Integration/README.md)
-- [Zenject Integration](Core.Zenject.Integration~/README.md)
+- [Modules](Modules/README.md) — опциональные игровые модули: `StateManager`, `XPManager`
+- [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
+- [YG2 Integration](YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
+- [Zenject Integration](Core.Zenject.Integration~/README.md) — отключена по умолчанию; папку включают удалением `~` из имени
 
 ## Текущие ограничения
 
