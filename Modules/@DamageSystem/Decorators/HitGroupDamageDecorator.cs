@@ -13,7 +13,9 @@ public sealed class HitGroupDamageDecorator : IDamageProvider, IDamageModifier
     /// <summary>
     /// Стабильный идентификатор зонального модификатора.
     /// </summary>
-    public Guid ModifierIdentifier => Guid.Parse("5e2cc760-3847-4862-b7b4-161481331796");
+    private static readonly Guid Identifier = new Guid("5e2cc760-3847-4862-b7b4-161481331796");
+
+    public Guid ModifierIdentifier => Identifier;
 
     /// <summary>
     /// Читаемое имя модификатора.
@@ -58,7 +60,7 @@ public sealed class HitGroupDamageDecorator : IDamageProvider, IDamageModifier
         if (critical)
             data.DamageType |= DamageType.Critical;
 
-        data.AppliedModifiers.Add(this);
+        data.AddModifier(this);
         return data;
     }
 }

@@ -249,19 +249,53 @@ public class SensorWithoutStay : PRMonoBehaviour
 }
 ```
 
-Проверка выполняется через `IsMethodDisabled(nameof(...))`. В текущем
-`PRMonoBehaviour` она применяется к:
+Проверка выполняется через `this.IsMethodDisabled(...)` внутри вызывающего кода.
+В текущем `PRMonoBehaviour` она применяется к десяти именам:
 
-- 3D trigger callback'ам;
-- 3D collision callback'ам;
-- 2D trigger callback'ам;
-- `OnPauseStateChanged`.
+```text
+OnTriggerEnter      OnCollisionEnter     OnTriggerEnter2D
+OnTriggerStay       OnCollisionStay      OnTriggerStay2D
+OnTriggerExit       OnCollisionExit      OnTriggerExit2D
+OnPauseStateChanged
+```
 
 Атрибут не отключает произвольный метод автоматически. Имя должно совпадать с тем,
-которое конкретный вызывающий код передаёт в `IsMethodDisabled`.
+которое конкретный вызывающий код передаёт в `IsMethodDisabled`. Указывается имя
+Unity-метода, а не PR-хука: `"OnTriggerStay"`, не `"PROnTriggerStay"`.
 
-Атрибут наследуется, а список методов хранится на типе. Проверка использует reflection
-при каждом вызове, что особенно важно учитывать для частых `Stay` callback'ов.
+Физические callback'и объявлены в `PRMonoBehaviour` как `private`, поэтому `nameof`
+в наследнике для них недоступен (CS0122) — остаётся строковый литерал, а опечатка
+молча ничего не отключит. Для `OnPauseStateChanged` (он `public virtual`) `nameof`
+работает.
+
+### Наследование заменяет список
+
+`Inherited = true` означает не объединение, а перекрытие: атрибут производного класса
+полностью вытесняет список базового.
+
+```csharp
+[DisableMethods("OnTriggerStay", "OnCollisionStay")]
+public class Base : PRMonoBehaviour { }
+
+public class ChildA : Base { }                 // OnTriggerStay, OnCollisionStay
+
+[DisableMethods("OnTriggerEnter")]
+public class ChildB : Base { }                 // только OnTriggerEnter — Stay снова разрешены
+
+[DisableMethods()]
+public class ChildC : Base { }                 // блокировок нет вовсе
+```
+
+Пустой атрибут — штатный способ вернуть наследнику callback'и, отключённые базовым
+классом. Обратная сторона: добавив атрибут в производный класс, легко незаметно
+включить обратно всё остальное.
+
+Результат чтения атрибута кэшируется в `ClassExtension` по типу
+(`ConcurrentDictionary<Type, HashSet<string>>`), поэтому reflection выполняется один
+раз, а на вызове остаётся поиск по набору строк — это важно для частых `Stay`
+callback'ов. Атрибут читается с фактического типа экземпляра и кеш живёт до
+перезагрузки домена, поэтому включить или снять блокировку для отдельного объекта
+в рантайме нельзя — только для типа целиком.
 
 ## Inspector-атрибуты
 

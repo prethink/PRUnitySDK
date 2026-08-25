@@ -94,6 +94,19 @@ public class RotatingObject : PRMonoBehaviour
 Для временных расчётов используйте `PRTime`, если система должна следовать правилам
 паузы SDK.
 
+Физические callback'и объявлены в базовом классе, поэтому Unity вызывает их у любого
+наследника. Ненужные отключаются на уровне типа:
+
+```csharp
+[DisableMethods("OnTriggerStay", "OnCollisionStay")]
+public class Pickup : PRMonoBehaviour { }
+```
+
+Атрибут действует только на физические callback'и и `OnPauseStateChanged`, имена
+задаются строками, а у наследника список заменяется целиком, а не дополняется —
+подробности в [PRMonoBehaviour](Core/PRMonoBehaviour/README.md#disablemethodsattribute--блокировка-callbackов).
+Там же чек-лист «метод не вызывается — что проверить».
+
 ### 3. Подпишитесь на глобальное событие
 
 Событие описывается интерфейсом:
@@ -171,6 +184,95 @@ delay.Execute();
 Повторный параллельный запуск блокируется флагом `PRUnitySDK.IsStartInitialize`.
 Готовность можно проверить через `PRUnitySDK.IsInitialized` или
 `PRUnitySDK.ReadySignal`.
+
+## Какой механизм расширения выбрать
+
+В SDK шесть способов вклиниться в чужое поведение. Они не взаимозаменяемы: каждый решает
+свою задачу, и выбор определяется одним вопросом — **что вам нужно сделать с чужим кодом**.
+
+| Нужно | Механизм | Где описан |
+| --- | --- | --- |
+| Выполнить свой код в определённый момент | `MethodHookAttribute` | [Attributes](Core/@Attributes/README.md) |
+| Узнать, что что-то уже произошло | `EventBus` | [EventBus](Core/@Events/EventBus/README.md) |
+| Изменить или запретить действие до того, как оно случилось | `HookSystem` | [HookSystem](Core/HookSystem/README.md) |
+| Согласовать решение, на которое влияют несколько компонентов | `FlagsSystem` | [FlagsSystem](Core/FlagsSystem/README.md) |
+| Собрать данные из всех модулей в один список | `InvokePartialAttribute` | [Attributes](Core/@Attributes/README.md) |
+| Подменить стандартную реализацию сервиса | `OverridePropertyAttribute` | [Attributes](Core/@Attributes/README.md) |
+
+### Как отличить друг от друга
+
+**`MethodHook` — «выполни это на такой-то стадии».** Инициализация модуля, регистрация
+фабрик, клонирование данных. Порядок задаётся числом, результат не собирается.
+
+```csharp
+[MethodHook(MethodHookStage.SDK, order: 20)]
+private static void InitializeInventory() { }
+```
+
+**`EventBus` — «сообщи, что уже случилось».** Отправитель не ждёт ответа и не знает
+подписчиков. Обновить UI, проиграть звук, записать метрику.
+
+```csharp
+public class CoinsView : MonoBehaviour, IResourceValueChangedEvent { }
+```
+
+**`HookSystem` — «дай вмешаться до того, как случится».** В отличие от `EventBus`,
+обработчик получает изменяемый контекст: может уменьшить урон, заменить награду или
+отменить действие. Обработчики идут цепочкой в порядке `Order`.
+
+```csharp
+public class DamageResistanceComponent : PRMonoBehaviour, IHookListener<DamageHookEvent> { }
+```
+
+**`FlagsSystem` — «можно ли сейчас?».** Когда на один вопрос («можно ли прыгать»)
+влияют несколько независимых источников — оглушение, катсцена, туториал. Каждый
+добавляет своё влияние, система сводит их к ответу.
+
+```csharp
+flagResolver.Add(PlayerFlags.CanJump, this, false);
+```
+
+**`InvokePartial` — «соберите со всех».** Каждый модуль возвращает свой кусок, вызывающий
+получает объединённый результат.
+
+```csharp
+IEnumerable<Modifier> modifiers = this.CollectPartialResult<Modifier>(context);
+```
+
+**`OverrideProperty` — «замени реализацию».** Интеграция подставляет свой сервис вместо
+стандартного до применения fallback: серверное время платформы вместо локального,
+облачное хранилище вместо PlayerPrefs.
+
+```csharp
+[OverrideProperty(typeof(IServerTime), order: -100)]
+private static void UsePlatformServerTime() => ServerTime = new PlatformServerTime();
+```
+
+### Частые ошибки выбора
+
+- **`EventBus` там, где нужен `HookSystem`.** Если обработчику надо повлиять на результат,
+  событие не подойдёт: оно уведомляет уже после того, как решение принято.
+- **`HookSystem` там, где хватило бы `EventBus`.** Перехват дороже и делает поток
+  неочевидным: обработчик может незаметно отменить действие.
+- **Свой флаг вместо `FlagsSystem`.** Булево поле «нельзя прыгать» на компоненте ломается,
+  когда источников запрета становится двое: кто снял — тот и разрешил, хотя второй ещё против.
+- **`MethodHook` для реакции на игровое событие.** Хуки стадий вызываются там, где код явно
+  их запускает; для игровых событий есть `EventBus`.
+
+### Расширение без вклинивания
+
+Отдельно стоят механизмы, которые не перехватывают чужое поведение, а **дополняют данные**.
+Им не нужен ни один из шести способов выше:
+
+| Что добавить | Как |
+| --- | --- |
+| Поле в сохранение | `partial class ProjectData` + `[MethodHook(Cloning)]` |
+| Новое окно | `partial class MonoWindowKeyEnumerationProvider` + `partial class PRWindowsContainer` |
+| Путь к ресурсам модуля | `partial class ResourcePaths` |
+| Новый ключ, тип, слой | наследник `EnumerationProviderBase` или `partial`-часть существующего |
+
+Правило простое: **общие файлы SDK править не нужно** — почти всё расширяется `partial`-частью
+рядом с модулем.
 
 ## Структура репозитория
 

@@ -52,10 +52,15 @@ public class DamageData
     public HitGroup HitGroup { get; set; }
 
     /// <summary>
-    /// Список уникальных идентификаторов модификаторов, применённых к этому урону.
+    /// Идентификаторы модификаторов, уже применённых к этому урону.
     /// Используется для предотвращения повторного применения одного и того же эффекта.
+    /// <para>
+    /// Хранятся именно идентификаторы, а не сами модификаторы: декоратор создаётся заново
+    /// на каждое попадание, поэтому сравнение по ссылке не отличило бы два экземпляра
+    /// одного и того же модификатора, а объединение наборов дало бы дубликаты.
+    /// </para>
     /// </summary>
-    public HashSet<IDamageModifier> AppliedModifiers { get;  set; } = new();
+    public HashSet<Guid> AppliedModifiers { get; set; } = new();
 
     /// <summary>
     /// Показывает степень болевого шока, вызванного этим уроном (0–100).  
@@ -74,7 +79,17 @@ public class DamageData
     /// <returns><c>true</c>, если модификатор уже был применён; иначе — <c>false</c>.</returns>
     public bool IsAppliedModifier(IDamageModifier modifier)
     {
-        return AppliedModifiers.Any(x => x.ModifierIdentifier == modifier.ModifierIdentifier);
+        return modifier != null && AppliedModifiers.Contains(modifier.ModifierIdentifier);
+    }
+
+    /// <summary>
+    /// Отмечает модификатор как применённый.
+    /// </summary>
+    /// <param name="modifier">Применённый модификатор.</param>
+    /// <returns><c>true</c>, если модификатор отмечен впервые.</returns>
+    public bool AddModifier(IDamageModifier modifier)
+    {
+        return modifier != null && AppliedModifiers.Add(modifier.ModifierIdentifier);
     }
 
     /// <summary>
@@ -146,7 +161,7 @@ public class DamageData
             DamageSource = this.DamageSource,
             HitGroup = this.HitGroup,
             PainShock = this.PainShock,
-            AppliedModifiers = new HashSet<IDamageModifier>(this.AppliedModifiers)
+            AppliedModifiers = new HashSet<Guid>(this.AppliedModifiers)
         };
     }
 }

@@ -109,55 +109,34 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         Collider hitCollider)
     {
         if (damageProvider == null)
-        {
-            var notHandledOutcome = new DamageOutcome(
-                DamageResult.NotHandled, null, Health, Health, hitPoint, hitCollider);
-            CompleteDamageAttempt(notHandledOutcome);
-            RaiseDamageProcessed(attacker, weapon, notHandledOutcome);
-            return DamageResult.NotHandled;
-        }
+            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
+
+        // Пауза - не промах: на Miss вешают звук и эффект уклонения, а урон, пришедший
+        // во время паузы, просто не обрабатывается.
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
         var damageHook = HookManager.Instance.Publish(new DamageHookEvent(attacker, weapon, this.Entity, damageProvider, DamageResult.NotHandled));
-        if (!IsAlive() || PRUnitySDK.PauseManager.IsLogicPaused || damageHook.DamageResult == DamageResult.Miss)
+        if (!IsAlive() || damageHook.DamageResult == DamageResult.Miss)
         {
             InternalMissedDamage();
-            var missedOutcome = new DamageOutcome(
-                DamageResult.Miss, null, Health, Health, hitPoint, hitCollider);
-            CompleteDamageAttempt(missedOutcome);
-            RaiseDamageProcessed(attacker, weapon, missedOutcome);
-            return DamageResult.Miss;
+            return FailAttempt(DamageResult.Miss, attacker, weapon, hitPoint, hitCollider);
         }
 
         if (IsBlockDamage || !CanTakeDamage() || damageHook.DamageResult == DamageResult.Blocked)
         {
             InternalBlockDamage();
-            var blockedOutcome = new DamageOutcome(
-                DamageResult.Blocked, null, Health, Health, hitPoint, hitCollider);
-            CompleteDamageAttempt(blockedOutcome);
-            RaiseDamageProcessed(attacker, weapon, blockedOutcome);
-            return DamageResult.Blocked;
+            return FailAttempt(DamageResult.Blocked, attacker, weapon, hitPoint, hitCollider);
         }
 
         if (damageHook.DamageProvider == null)
-        {
-            var missingHookDamageOutcome = new DamageOutcome(
-                DamageResult.NotHandled, null, Health, Health, hitPoint, hitCollider);
-            CompleteDamageAttempt(missingHookDamageOutcome);
-            RaiseDamageProcessed(attacker, weapon, missingHookDamageOutcome);
-            return DamageResult.NotHandled;
-        }
+            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
         InternalTakeDamage();
         var startHealth = Health;
         var currentDamage = damageHook.DamageProvider.GetDamageData();
         if (currentDamage == null)
-        {
-            var emptyOutcome = new DamageOutcome(
-                DamageResult.NotHandled, null, Health, Health, hitPoint, hitCollider);
-            CompleteDamageAttempt(emptyOutcome);
-            RaiseDamageProcessed(attacker, weapon, emptyOutcome);
-            return DamageResult.NotHandled;
-        }
+            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
         if (currentDamage.RawDamage == 0f && currentDamage.Damage != 0f)
             currentDamage.RawDamage = currentDamage.Damage;
@@ -227,6 +206,35 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
             this.Entity,
             outcome,
             weapon));
+    }
+
+    /// <summary>
+    /// Завершает попытку, не изменившую здоровье: промах, блок или необработанный урон.
+    /// <para>
+    /// Собран в один метод, потому что у всех таких веток одинаковый хвост - снимок
+    /// исхода, уведомление подписчиков и публикация события. Раньше он был скопирован
+    /// в каждую ветку, и добавление новой причины отказа легко теряло один из шагов.
+    /// </para>
+    /// </summary>
+    /// <param name="result">Причина отказа.</param>
+    /// <param name="attacker">Кто наносил урон.</param>
+    /// <param name="weapon">Чем наносился урон.</param>
+    /// <param name="hitPoint">Точка попадания, если была передана.</param>
+    /// <param name="hitCollider">Коллайдер попадания, если был передан.</param>
+    /// <returns>Та же причина отказа - для возврата из ProcessDamage.</returns>
+    private DamageResult FailAttempt(
+        DamageResult result,
+        IEntity attacker,
+        IWeapon weapon,
+        Vector3? hitPoint,
+        Collider hitCollider)
+    {
+        var outcome = new DamageOutcome(result, null, Health, Health, hitPoint, hitCollider);
+
+        CompleteDamageAttempt(outcome);
+        RaiseDamageProcessed(attacker, weapon, outcome);
+
+        return result;
     }
 
     public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point)

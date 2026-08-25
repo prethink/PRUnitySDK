@@ -77,7 +77,10 @@ public sealed class DamageResistanceComponent : PRMonoBehaviour, IHookListener<D
     /// <param name="eventArgs">Изменяемый контекст попытки нанесения урона.</param>
     public void HandleHook(DamageHookEvent eventArgs)
     {
-        if (eventArgs.Victim != entity || eventArgs.DamageProvider == null)
+        // Сравнение идёт через ReferenceEquals: Victim объявлен как IEntity, и оператор !=
+        // выбирается для интерфейса, минуя перегрузку UnityEngine.Object. Компилятор
+        // предупреждал об этом (CS0252), а поведение зависело бы от статического типа.
+        if (!ReferenceEquals(eventArgs.Victim, entity) || eventArgs.DamageProvider == null)
             return;
 
         var data = eventArgs.DamageProvider.GetDamageData().Clone();

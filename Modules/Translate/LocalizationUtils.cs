@@ -4,10 +4,11 @@ using System.Collections.Generic;
 public static class LocalizationUtils 
 {
     /// <summary>
-    /// �������� ���� ����� � ������� ������ ��������� enum.
+    /// Код языка для платформы по значению перечисления.
+    /// Неизвестный язык отдаёт язык проекта по умолчанию.
     /// </summary>
-    /// <param name="language">enum ���� �����.</param>
-    /// <returns>��������� �������� ����� �����.</returns>
+    /// <param name="language">Язык из перечисления.</param>
+    /// <returns>Строковый код языка.</returns>
     public static string GetLanguageCode(LangType language)
     {
         switch (language)
@@ -19,15 +20,16 @@ public static class LocalizationUtils
             case LangType.Turkey:
                 return LangDropDown.TR;
             default:
-                return PRUnitySDK.DefaultLanguage; // �� ��������� ����������
+                return PRUnitySDK.DefaultLanguage; // язык проекта по умолчанию
         }
     }
 
     /// <summary>
-    /// �������� enum �������� ����� ��������� ���� �����.
+    /// Значение перечисления по коду языка.
+    /// Неизвестный код трактуется как английский.
     /// </summary>
-    /// <param name="languageCode">���� �����.</param>
-    /// <returns>���� ����� � ������� enum.</returns>
+    /// <param name="languageCode">Строковый код языка.</param>
+    /// <returns>Язык из перечисления.</returns>
     public static LangType GetLanguageEnum(string languageCode)
     {
         switch (languageCode)

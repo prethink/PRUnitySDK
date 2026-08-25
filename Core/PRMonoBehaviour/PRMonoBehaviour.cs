@@ -76,10 +76,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerStay(Collider other)
     {
-        if (this.IsMethodDisabled(nameof(OnTriggerStay)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerStay)))
             return;
 
         if (PRTime.Instance.GameTime < LastTriggerTick + PROnTriggerStayTimeout())
@@ -95,10 +95,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerEnter(Collider other)
     {
-        if (this.IsMethodDisabled(nameof(OnTriggerEnter)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerEnter)))
             return;
         
         if (other.attachedRigidbody != null)
@@ -109,10 +109,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerExit(Collider other)
     {
-        if (this.IsMethodDisabled(nameof(OnTriggerExit)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerExit)))
             return;
 
         if (other.attachedRigidbody != null)
@@ -123,10 +123,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (this.IsMethodDisabled(nameof(OnCollisionEnter)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnCollisionEnter)))
             return;
 
         PROnCollisionEnter(collision);
@@ -134,10 +134,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionStay(Collision collision)
     {
-        if (this.IsMethodDisabled(nameof(OnCollisionStay)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnCollisionStay)))
             return;
 
         if (PRTime.Instance.GameTime < LastCollisionTick + PROnCollisionStayTimeout())
@@ -150,10 +150,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnCollisionExit(Collision collision)
     {
-        if (this.IsMethodDisabled(nameof(OnCollisionExit)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnCollisionExit)))
             return;
 
         PROnCollisionExit(collision);
@@ -161,10 +161,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (this.IsMethodDisabled(nameof(OnTriggerEnter2D)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerEnter2D)))
             return;
 
         PROnTriggerEnter2D(collision);
@@ -172,10 +172,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if (this.IsMethodDisabled(nameof(OnTriggerExit2D)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerExit2D)))
             return;
 
         PROnTriggerExit2D(collision);
@@ -183,10 +183,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if (this.IsMethodDisabled(nameof(OnTriggerStay2D)))
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
+        if (this.IsMethodDisabled(nameof(OnTriggerStay2D)))
             return;
 
         PROnTriggerStay2D(collision);

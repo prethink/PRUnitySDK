@@ -28,7 +28,7 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
             currentData.DamageType = currentData.DamageType | DamageType.Critical;
 
         currentData.Damage = currentData.Damage * multiply;
-        currentData.AppliedModifiers.Add(this);
+        currentData.AddModifier(this);
 
         return currentData;
     }
@@ -37,7 +37,9 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 
     #region IDamageModifier
 
-    public Guid ModifierIdentifier => Guid.Parse("6c02086d-f022-49d3-9e84-9678e40e3e88");
+    private static readonly Guid Identifier = new Guid("6c02086d-f022-49d3-9e84-9678e40e3e88");
+
+    public Guid ModifierIdentifier => Identifier;
 
     public string ModifierName => nameof(MultiplyDamageDecorator);
 

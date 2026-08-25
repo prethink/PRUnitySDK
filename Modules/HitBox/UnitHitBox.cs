@@ -16,9 +16,21 @@ public class UnitHitBox : EntityHitBoxBase
     [field: SerializeField, Min(0f)] public float DamageMultiplier { get; private set; } = 1f;
 
     /// <summary>
-    /// Следует ли всегда помечать попадание как критическое.
+    /// Следует ли помечать попадание как критическое.
+    /// Для зоны <see cref="global::HitGroup.Head"/> включается по умолчанию, но
+    /// флаг можно снять: правило про голову задаётся настройкой, а не кодом,
+    /// иначе выключить крит для отдельного юнита было бы нельзя.
     /// </summary>
     [field: SerializeField] public bool IsCritical { get; private set; }
+
+    /// <summary>
+    /// Выставляет значения по умолчанию для новой зоны: голова считается
+    /// критической, остальные - нет.
+    /// </summary>
+    private void Reset()
+    {
+        IsCritical = HitGroup == global::HitGroup.Head;
+    }
 
     /// <summary>
     /// Добавляет к урону зону, множитель и при необходимости критический флаг.
@@ -31,6 +43,6 @@ public class UnitHitBox : EntityHitBoxBase
             damage,
             HitGroup,
             DamageMultiplier,
-            IsCritical || HitGroup == global::HitGroup.Head);
+            IsCritical);
     }
 }
