@@ -212,6 +212,7 @@ PRUnitySDK/
 - [Обзор менеджеров](Core/@Managers/README.md) — доступ, жизненный цикл, порядок и расширение контейнера
 - [GameManager](Core/@Managers/GameManager/README.md) — загрузка и сохранение `ProjectData`/`GameSettings`, autosave и готовность данных
 - [ProjectPropertiesManager](Core/@Managers/ProjectPropertiesManager/README.md) — свойства `long`, `float`, `DateTime`, `string` и `bool`
+- [ResourceManager](Core/Items/Resources/README.md) — игровые ресурсы, баланс, списание и события изменений
 - [OpenedItemsManager](Core/@Managers/OpenedItemsManager/README.md) — открытые предметы и количество в `ProjectData`
 - [PRManagerContainer](Core/@Managers/PRManagerContainer/README.md) — hook-порядок создания runtime-менеджеров
 - [SoundManager](Core/@Managers/SoundManager/README.md) — музыка, UI-звуки, позиционные эффекты и наборы `AudioSet`
@@ -226,7 +227,6 @@ PRUnitySDK/
 - [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
-- [ResourceManager](Core/Items/Resources/README.md) — игровые ресурсы, баланс, списание и события изменений
 - [Utils](Core/Utils/README.md) — вспомогательные классы: время, отложенные вызовы, имена
 - [Proxies](Core/Proxies/README.md) — переадресация Unity-callback'ов с дочерних объектов родительским компонентам
 - [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`.
