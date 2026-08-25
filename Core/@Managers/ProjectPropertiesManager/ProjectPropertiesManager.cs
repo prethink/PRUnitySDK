@@ -4,9 +4,21 @@ using System.Collections.Generic;
 /// <summary>
 /// Менеджер произвольных свойств проекта (long/float/DateTime/string/bool),
 /// хранимых по строковому имени в GameManager.GetProjectData().ProjectProperties.
-/// Каждый Set* сохраняет значение и по умолчанию сразу пишет данные на диск
-/// (save = true) и рассылает уведомление об изменении (requiredNotify = true) -
-/// оба поведения можно отключить отдельно на каждый вызов.
+/// Каждый Set* сохраняет значение и по умолчанию сразу пишет данные на диск (save = true).
+/// <para>
+/// Ключ задаётся тремя способами: строкой, <see cref="Enumeration"/> (общий ключ) и
+/// <see cref="EnumerationType{T}"/> (ключ вместе с типом значения). У каждого Get*-метода
+/// есть необязательный параметр fallback - значение, которое вернётся, если свойство
+/// ещё ни разу не сохранялось; по умолчанию это default(T). Указывать fallback стоит
+/// там, где сохранённые 0/false/null нужно отличать от отсутствующего свойства.
+/// </para>
+/// <para>
+/// Параметр requiredNotify включает рассылку событий через <see cref="ProjectPropertyEvents"/>:
+/// типизированного (<see cref="ILongProjectPropertyChangedEvent"/> и аналоги - с предыдущим
+/// и новым значением) и общего (<see cref="IProjectPropertyChangedEvent"/> - только имя свойства).
+/// Уведомление отправляется только если значение действительно изменилось, и уже после
+/// сохранения. Удаление свойства рассылает <see cref="IProjectPropertyRemovedEvent"/>.
+/// </para>
 /// </summary>
 public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesManager>
 {
@@ -15,7 +27,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Сохраняет значение DateTime под именем name. save определяет, будет ли
     /// сразу вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
     public void SetDateTime(string name, DateTime value, bool save = true, bool requiredNotify = true)
     {
@@ -25,7 +37,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Сохраняет значение long под именем name. save определяет, будет ли сразу
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
     public void SetLong(string name, long value, bool save = true, bool requiredNotify = true)
     {
@@ -46,7 +58,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Сохраняет значение string под именем name. save определяет, будет ли сразу
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
     public void SetString(string name, string value, bool save = true, bool requiredNotify = true)
     {
@@ -56,7 +68,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Сохраняет значение float под именем name. save определяет, будет ли сразу
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
     public void SetFloat(string name, float value, bool save = true, bool requiredNotify = true)
     {
@@ -77,7 +89,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Сохраняет значение bool под именем name. save определяет, будет ли сразу
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
-    /// будет ли разослано уведомление об изменении через EventBus.
+    /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
     public void SetBool(string name, bool value, bool save = true, bool requiredNotify = true)
     {
@@ -105,10 +117,23 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// </summary>
     public void SetValue<T>(string name, T value, bool save = true, bool requiredNotify = true)
     {
-        GetProperties<T>()[name] = value;
+        var properties = GetProperties<T>();
+
+        // Старое значение читается до записи по двум причинам: чтобы не рассылать уведомление,
+        // когда значение фактически не изменилось (например, AddLong(name, 0) или повторная
+        // установка того же флага), и чтобы передать его типизированным подписчикам - тогда
+        // им не нужно хранить собственную копию для расчёта разницы.
+        var isChanged = !properties.TryGetValue(name, out var previousValue)
+            || !EqualityComparer<T>.Default.Equals(previousValue, value);
+
+        properties[name] = value;
 
         if (save)
             GameManager.Instance.SaveProjectData();
+
+        // Уведомление идёт после сохранения, чтобы подписчик видел уже зафиксированное состояние.
+        if (requiredNotify && isChanged)
+            ProjectPropertyEvents.RaiseChanged(name, previousValue, value);
     }
 
     #endregion
@@ -140,91 +165,103 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// value будет содержать false.</summary>
     public bool TryGetBool(string name, out bool value) => TryGetValue(name, out value);
 
-    /// <summary>Возвращает значение DateTime по имени name, либо default(DateTime),
-    /// если свойство не найдено - удобно, когда отсутствие свойства не является
-    /// ошибкой и можно просто использовать значение по умолчанию.</summary>
-    public DateTime GetDateTime(string name) => TryGetDateTime(name, out var value) ? value : default;
+    /// <summary>Возвращает значение DateTime по имени name, либо fallback, если свойство
+    /// ещё не сохранялось. Без указания fallback возвращается default(DateTime) - то же
+    /// поведение, что и раньше у GetDateTime(name).</summary>
+    public DateTime GetDateTime(string name, DateTime fallback = default) => TryGetDateTime(name, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение long по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public long GetLong(string name) => TryGetLong(name, out var value) ? value : default;
+    /// <summary>Возвращает значение long по имени name, либо fallback, если свойство
+    /// ещё не сохранялось - например, стартовое количество ресурса у нового игрока.</summary>
+    public long GetLong(string name, long fallback = 0) => TryGetLong(name, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение string по имени name, либо null, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public string GetString(string name) => TryGetString(name, out var value) ? value : default;
+    /// <summary>Возвращает значение string по имени name, либо fallback, если свойство
+    /// ещё не сохранялось. Явно сохранённый null считается значением и возвращается
+    /// как есть - fallback подставляется только при отсутствии ключа.</summary>
+    public string GetString(string name, string fallback = null) => TryGetString(name, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение float по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public float GetFloat(string name) => TryGetFloat(name, out var value) ? value : default;
+    /// <summary>Возвращает значение float по имени name, либо fallback, если свойство
+    /// ещё не сохранялось - например, значение настройки по умолчанию.</summary>
+    public float GetFloat(string name, float fallback = 0f) => TryGetFloat(name, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение bool по имени name, либо false, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public bool GetBool(string name) => TryGetBool(name, out var value) ? value : default;
+    /// <summary>Возвращает значение bool по имени name, либо fallback, если свойство
+    /// ещё не сохранялось. Указывать fallback нужно там, где значимо именно
+    /// "по умолчанию включено": с fallback = false сохранённый false неотличим
+    /// от отсутствующего свойства.</summary>
+    public bool GetBool(string name, bool fallback = false) => TryGetBool(name, out var value) ? value : fallback;
 
-    /// <summary>Пытается получить значение DateTime по имени name. Возвращает
+    /// <summary>Пытается получить значение DateTime по ключу enumeration. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать default(DateTime).</summary>
     public bool TryGetDateTime(Enumeration enumeration, out DateTime value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение long по имени name. Возвращает
+    /// <summary>Пытается получить значение long по ключу enumeration. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать 0.</summary>
     public bool TryGetLong(Enumeration enumeration, out long value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение string по имени name. Возвращает
+    /// <summary>Пытается получить значение string по ключу enumeration. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать null.</summary>
     public bool TryGetString(Enumeration enumeration, out string value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение float по имени name. Возвращает
+    /// <summary>Пытается получить значение float по ключу enumeration. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать 0.</summary>
     public bool TryGetFloat(Enumeration enumeration, out float value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Пытается получить значение bool по имени name. Возвращает
+    /// <summary>Пытается получить значение bool по ключу enumeration. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать false.</summary>
     public bool TryGetBool(Enumeration enumeration, out bool value) => TryGetValue(enumeration.Value, out value);
 
-    /// <summary>Возвращает значение DateTime по имени name, либо default(DateTime),
-    /// если свойство не найдено - удобно, когда отсутствие свойства не является
-    /// ошибкой и можно просто использовать значение по умолчанию.</summary>
-    public DateTime GetDateTime(Enumeration enumeration) => TryGetDateTime(enumeration.Value, out var value) ? value : default;
+    /// <summary>Возвращает значение DateTime по ключу enumeration, либо fallback,
+    /// если свойство ещё не сохранялось.</summary>
+    public DateTime GetDateTime(Enumeration enumeration, DateTime fallback = default) => TryGetDateTime(enumeration.Value, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение long по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public long GetLong(Enumeration enumeration) => TryGetLong(enumeration.Value, out var value) ? value : default;
+    /// <summary>Возвращает значение long по ключу enumeration, либо fallback,
+    /// если свойство ещё не сохранялось.</summary>
+    public long GetLong(Enumeration enumeration, long fallback = 0) => TryGetLong(enumeration.Value, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение string по имени name, либо null, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public string GetString(Enumeration enumeration) => TryGetString(enumeration.Value, out var value) ? value : default;
+    /// <summary>Возвращает значение string по ключу enumeration, либо fallback, если
+    /// свойство ещё не сохранялось. Явно сохранённый null считается значением
+    /// и возвращается как есть.</summary>
+    public string GetString(Enumeration enumeration, string fallback = null) => TryGetString(enumeration.Value, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение float по имени name, либо 0, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public float GetFloat(Enumeration enumeration) => TryGetFloat(enumeration.Value, out var value) ? value : default;
+    /// <summary>Возвращает значение float по ключу enumeration, либо fallback,
+    /// если свойство ещё не сохранялось.</summary>
+    public float GetFloat(Enumeration enumeration, float fallback = 0f) => TryGetFloat(enumeration.Value, out var value) ? value : fallback;
 
-    /// <summary>Возвращает значение bool по имени name, либо false, если свойство
-    /// не найдено - удобно, когда отсутствие свойства не является ошибкой
-    /// и можно просто использовать значение по умолчанию.</summary>
-    public bool GetBool(Enumeration enumeration) => TryGetBool(enumeration.Value, out var value) ? value : default;
+    /// <summary>Возвращает значение bool по ключу enumeration, либо fallback,
+    /// если свойство ещё не сохранялось.</summary>
+    public bool GetBool(Enumeration enumeration, bool fallback = false) => TryGetBool(enumeration.Value, out var value) ? value : fallback;
 
-
+    /// <summary>
+    /// Пытается получить значение по типизированному ключу <see cref="EnumerationType{T}"/>.
+    /// Тип значения задаёт сам ключ, поэтому вызывающему коду не нужно выбирать
+    /// конкретный TryGetLong/TryGetFloat/... вручную.
+    /// </summary>
     public bool TryGetValue<T>(EnumerationType<T> enumerationType, out T value) => TryGetValue(enumerationType.Value, out value);
 
     /// <summary>
-    /// Возвращает значение по <see cref="EnumerationType{T}"/> или defaultValue, если
+    /// Возвращает значение по <see cref="EnumerationType{T}"/> или fallback, если
     /// ключ ещё не сохранён. Тот же паттерн, что GetLong/GetFloat/GetBool/..., но без
     /// привязки к конкретному T — подходит для любого поддерживаемого типа.
     /// </summary>
-    public T GetValue<T>(EnumerationType<T> enumerationType, T defaultValue) =>
-        TryGetValue(enumerationType, out var value) ? value : defaultValue;
+    public T GetValue<T>(EnumerationType<T> enumerationType, T fallback = default) =>
+        TryGetValue(enumerationType, out var value) ? value : fallback;
+
+    /// <summary>
+    /// Возвращает значение по нетипизированному ключу <see cref="Enumeration"/> или fallback,
+    /// если ключ ещё не сохранён. Тип задаётся параметром T - нужен, когда ключ общий
+    /// (<see cref="Enumeration"/>), а тип значения известен вызывающему коду.
+    /// </summary>
+    public T GetValue<T>(Enumeration enumeration, T fallback = default)
+    {
+        if (enumeration == null)
+            throw new ArgumentNullException(nameof(enumeration));
+
+        return GetValue(enumeration.Value, fallback);
+    }
 
     /// <summary>
     /// Перегрузка AddLong для типизированного ключа <see cref="EnumerationType{T}"/> с T = long.
@@ -254,12 +291,12 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
-    /// Возвращает значение по строковому имени, либо defaultValue, если свойство
-    /// ещё не сохранялось.
+    /// Возвращает значение по строковому имени, либо fallback, если свойство
+    /// ещё не сохранялось. Общая реализация для всех Get*-методов с подстановкой.
     /// </summary>
-    public T GetValue<T>(string name, T defaultValue)
+    public T GetValue<T>(string name, T fallback = default)
     {
-        return TryGetValue<T>(name, out var value) ? value : defaultValue;
+        return TryGetValue<T>(name, out var value) ? value : fallback;
     }
 
     #endregion
@@ -302,6 +339,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
 
         if (save)
             GameManager.Instance.SaveProjectData();
+
+        if (requiredNotify)
+            ProjectPropertyEvents.RaiseRemoved(propertyName, type);
     }
 
     /// <summary>
@@ -319,6 +359,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
 
         if (save)
             GameManager.Instance.SaveProjectData();
+
+        if (requiredNotify)
+            ProjectPropertyEvents.RaiseRemoved(propertyName, typeof(T));
     }
 
     /// <summary>

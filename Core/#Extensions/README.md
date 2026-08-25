@@ -45,5 +45,5 @@ IEnumerable<Modifier> modifiers = this.CollectPartialResult<Modifier>(context);
 - `GetComponentsInSelfOrChildren` включает компоненты корневого объекта без повторов.
 - Методы циклической навигации меняют переданный через `ref` индекс и выбрасывают `InvalidOperationException` для пустого списка.
 - `DoScaleUpDown` создаёт бесконечный Tween; владелец должен вызвать `Kill`, когда анимация больше не нужна.
-- Reflection-методы не стоит вызывать каждый кадр без дополнительного кэширования.
+- `RunMethodHooks`, `RunStaticMethodHooks` и `TryOverrideProperty` кешируют результат сканирования типа, поэтому повторные вызовы не перебирают методы заново. Остальные reflection-методы (`CollectPartialResult`, `FindClassesImplementingInterface`) кеша не имеют — их не стоит вызывать каждый кадр.
 - Методы `TryGetEntity` ищут `EntityLinkBase<T>` на том же `GameObject`, а не в родительской иерархии.

@@ -38,7 +38,7 @@ public partial class PRUnitySDK
 typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
 ```
 
-Методы hook вызываются reflection без аргументов:
+Методы hook вызываются reflection в порядке `Order`:
 
 ```text
 RunStaticMethodHooks(SDK)
@@ -49,7 +49,47 @@ RunStaticMethodHooks(SDK)
 ```
 
 Метод может быть `private`, `protected` или `public`. Для static runner он должен быть
-статическим, для instance runner — экземплярным. Параметры не поддерживаются.
+статическим, для instance runner — экземплярным.
+
+### Аргументы hook-методов
+
+По умолчанию hook вызывается без аргументов. Instance runner дополнительно умеет передавать
+аргументы — это нужно, когда стадии требуется контекст, а не только факт её наступления:
+
+```csharp
+public object Clone()
+{
+    var clone = new ProjectData();
+    // ...
+    this.RunMethodHooks(MethodHookStage.Cloning, clone);
+    return clone;
+}
+```
+
+```csharp
+[MethodHook(MethodHookStage.Cloning)]
+public void CloneInventory(ProjectData clone)
+{
+    clone.InventoryData = (InventoryData)InventoryData.Clone();
+}
+```
+
+Правила сопоставления на одной стадии:
+
+- hook без параметров вызывается всегда, независимо от переданных аргументов — старые hook'и
+  продолжают работать после того, как вызывающий код начал передавать контекст;
+- hook, у которого число параметров совпадает с числом аргументов, получает их;
+- при несовпадении hook пропускается с предупреждением в лог, а не роняет всю стадию.
+
+Аргументы поддерживает только instance runner (`RunMethodHooks`); `RunStaticMethodHooks`
+вызывает статические hook'и без аргументов.
+
+### Кеширование
+
+`ReflectionExtension` кеширует результат сканирования типа по паре (тип, стадия), поэтому
+атрибуты читаются один раз, а не на каждом вызове. Это важно для стадий, которые
+выполняются часто: `Cloning` и `Initializing` у `ProjectData` срабатывают на каждом
+сохранении.
 
 ### Стандартные стадии
 

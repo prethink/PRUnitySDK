@@ -64,8 +64,8 @@ Autosave включается настройкой `GameStorage.EnabledAutoSave`
 
 `OnApplicationPause` передаёт состояние в `PRUnitySDK.PauseManager.SetProjectPaused`, а `OnApplicationFocus` — в `SetFocusPaused`. `OnPageVisibilityChange` обрабатывается только для iOS и ожидает `0/1` от WebGL-моста.
 
-## Текущие ограничения
+Все три метода передают в `PauseManager` признак «нужна пауза»: скрытая страница (`isHidden = 1`) и потерянный фокус ставят паузу, видимая страница и полученный фокус — снимают.
 
-- В `Start()` после `PreStart` повторно запускается `PostAwake`; стадия `PostStart` текущей реализацией не вызывается.
+## Текущие ограничения
 - `GameSettingsSession` объявлен, но в этом partial-классе не создаётся. `OnStartScene()` вызывает у него `Reset()`, поэтому интеграция обязана инициализировать сессию до этого вызова.
 - Методы управления курсором в `GameManager` являются legacy API; для конкурирующих UI-запросов используйте [CursorManager](../CursorManager/README.md).
