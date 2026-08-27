@@ -13,6 +13,7 @@ Inspector. Большинство runtime-атрибутов обрабатыв�
 | Runtime control | `DisableMethodsAttribute` | Отключение отдельных callback'ов `PRMonoBehaviour` |
 | Автоматическая регистрация | `AutoBackgroundTaskAttribute` | Создание и регистрация [фоновой задачи](../BackgroundTasks/README.md) при старте SDK |
 | Inspector | `SpritePreviewAttribute`, `PrefabPreviewAttribute` | Preview сериализованных Unity-объектов |
+| Inspector | `ReferenceSelectorAttribute` | Выбор реализации для поля `[SerializeReference]` |
 | Virtual metadata | `VirtualAttributeAttribute` | Описание виртуально добавляемого атрибута |
 
 ## MethodHookAttribute
@@ -297,6 +298,42 @@ public class ChildC : Base { }                 // блокировок нет в
 callback'ов. Атрибут читается с фактического типа экземпляра и кеш живёт до
 перезагрузки домена, поэтому включить или снять блокировку для отдельного объекта
 в рантайме нельзя — только для типа целиком.
+
+## ReferenceSelectorAttribute
+
+Unity умеет сериализовать в поле `[SerializeReference]` экземпляр произвольного класса,
+но выбрать тип в инспекторе не даёт — поле остаётся пустым. Атрибут добавляет выпадающий
+список подходящих реализаций и рисует их поля тут же:
+
+```csharp
+[SerializeReference, ReferenceSelector] private IAction action;
+[SerializeReference, ReferenceSelector] private List<IAction> actions;
+```
+
+Так настройка хранится внутри объекта-владельца, и отдельный ассет под каждое значение
+не нужен. Основное применение — [встроенные действия](../@Actions/README.md#встроенное-действие).
+
+Реализация попадает в список, если она:
+
+- не абстрактная, не интерфейс и не открытый generic;
+- помечена `[Serializable]`;
+- имеет публичный конструктор без параметров;
+- **не** наследует `UnityEngine.Object`.
+
+Последнее — ограничение самого Unity: ScriptableObject и MonoBehaviour сериализуются
+ссылкой на ассет или компонент, в `[SerializeReference]` они не попадают. Для них нужно
+обычное поле, как это сделано двумя списками в `ActionRunner`.
+
+Список реализаций собирается через `TypeCache` и кэшируется до перезагрузки домена.
+Параметр `showFullName: true` выводит типы с namespace — полезно, когда одинаковые
+имена встречаются в разных модулях.
+
+Ограничения, о которых стоит помнить:
+
+- переименование класса или смена namespace теряют сохранённую ссылку; штатное лечение —
+  атрибут `[MovedFrom]` из `UnityEngine.Scripting.APIUpdating`;
+- поле, у которого тип был удалён из проекта, выглядит так же, как незаполненное;
+- значения полей не переносятся при смене типа — выбор реализации создаёт новый экземпляр.
 
 ## Inspector-атрибуты
 

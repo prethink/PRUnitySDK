@@ -11,7 +11,14 @@
 | `ActionExecuter` | Общая механика проверки и выполнения для разных базовых Unity-типов |
 | `ActionBase` | Основа ScriptableObject-действий |
 | `ActionMonoBehaviourBase` | Основа действий-компонентов |
+| `InlineActionBase` | Основа действий, настраиваемых прямо в инспекторе владельца |
 | `IconActionBase` | ScriptableObject-действие с иконкой |
+| `InlineActionContainer` | Ассет с одним встроенным действием |
+| `InlineActionPipeline` | Ассет из нескольких встроенных действий по порядку |
+| `ActionSequence` | Последовательное выполнение набора действий |
+| `ActionRunner` | Компонент, выполняющий список действий по порядку |
+| `OpenUrlInlineAction` | Встроенный вариант открытия URL |
+| `AddResourceInlineAction` | Встроенное начисление ресурса |
 | `OpenURLAction` | Открывает проверенный HTTP/HTTPS URL |
 | `LangAction` | Переключает язык через LanguageManager SDK |
 | `AddBoolValueAction` | Устанавливает bool-свойство в `ProjectPropertiesManager` |
@@ -88,6 +95,109 @@ public sealed class DisableObjectAction : ActionMonoBehaviourBase
 ```
 
 `ActionMonoBehaviourBase` подходит для действий, зависящих от состояния конкретного `GameObject`.
+
+## Встроенное действие
+
+Когда действие уникально для одного объекта, заводить под него ассет незачем:
+`InlineActionBase` настраивается прямо в инспекторе владельца.
+
+```csharp
+[Serializable]
+public class GiveCoinsAction : InlineActionBase
+{
+    [SerializeField] private long amount = 100;
+
+    public override bool CanExecute() => base.CanExecute() && amount > 0;
+
+    protected override void Action()
+    {
+        WalletService.Instance.Add(ResourceEnumerationProvider.Coin, amount);
+    }
+}
+```
+
+Поле владельца объявляется с `[SerializeReference]` и атрибутом
+[`ReferenceSelector`](../@Attributes/README.md#referenceselectorattribute), который
+добавляет выпадающий список реализаций:
+
+```csharp
+[SerializeReference, ReferenceSelector] private IAction action;
+[SerializeReference, ReferenceSelector] private List<IAction> actions;
+```
+
+В инспекторе выбирается тип, и его поля рисуются тут же. Отдельный файл не создаётся —
+данные лежат внутри объекта-владельца.
+
+Правило простое: настройка общая для многих мест — ассет; настройка своя у каждого
+объекта — встроенное действие. Если нужно и то и другое сразу, есть третий вариант.
+
+### Ассеты из встроенных действий
+
+Третий вариант снимает недостатки обоих: ассет **переиспользуется и ссылается отовсюду**,
+а его содержимое настраивается встроенными действиями — без класса под каждую комбинацию.
+Есть в двух видах.
+
+**`InlineActionContainer`** — одно действие. Простой и самый частый случай: нужно
+переиспользуемое «дать 100 монет», а писать под него класс незачем.
+
+```text
+PRUnitySDK/Actions/Inline action
+└── Стартовый бонус
+    └── AddResourceInlineAction  (Coin, 100)
+```
+
+**`InlineActionPipeline`** — несколько действий по порядку.
+
+```text
+PRUnitySDK/Actions/Inline action pipeline
+└── Награда за вход
+    ├── AddResourceInlineAction  (Coin, 100)
+    ├── OpenUrlInlineAction      (...)
+    └── ...
+```
+
+Список из одного элемента только загромождает инспектор кнопками массива, поэтому для
+единственного действия берите первый вариант, а конвейер — когда действий правда несколько.
+
+Оба наследуют `IconActionBase`, поэтому у них есть иконка и они подходят везде, где она
+нужна. Ссылаться на них можно как на обычное действие: полем `ActionBase`, из
+`ActionRunner`, из `ActionContainer`.
+
+> Не путайте с `ActionContainer` из [@Entity](../@Entity/README.md#контейнеры): там
+> «контейнер» — это подбираемая сущность на сцене, здесь — обёртка над действием.
+
+Проверки у них разные, и это намеренно:
+
+- `InlineActionContainer.CanExecute()` требует, чтобы вложенное действие было выбрано
+  **и готово** — обёртка над одним действием обязана честно отвечать за него;
+- `InlineActionPipeline.CanExecute()` проверяет только, что конвейер не пуст: частично
+  применимый набор — обычная ситуация, часть наград может быть уже выдана. Узнать,
+  сработает ли хоть что-то, можно через `CanExecuteAny()`, а число сработавших после
+  выполнения — через `LastExecutedCount`.
+
+### Четыре способа хранения — что выбрать
+
+| | `ActionBase` | `InlineActionBase` | `InlineActionContainer` | `InlineActionPipeline` |
+| --- | --- | --- | --- | --- |
+| Где живёт | свой ассет | внутри владельца | свой ассет | свой ассет |
+| Нужен новый класс | на каждое действие | на каждый вид действия | нет | нет |
+| Переиспользование | да | нет | да | да |
+| Сколько действий | одно | одно | одно | несколько |
+| Когда брать | нужна своя логика | уникальная настройка объекта | одно действие, много ссылок | цепочка, много ссылок |
+
+### ActionRunner
+
+Готовый компонент для кнопок и триггеров: держит список встроенных действий, список
+ассетных и выполняет их по порядку.
+
+```csharp
+GetComponent<ActionRunner>().Execute();   // вернёт число успешных
+```
+
+Флаг `stopOnFailure` прерывает цепочку на первом отказавшем действии — например, чтобы
+не выдавать награду, если списание не прошло. Два списка нужны потому, что
+`[SerializeReference]` не хранит наследников `UnityEngine.Object`: ассетные действия
+кладутся отдельным полем.
 
 ## Использование через provider
 
