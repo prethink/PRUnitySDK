@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -23,11 +24,50 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
     private readonly Dictionary<string, AssetGridViewState> gridViewStates = new();
     private readonly Dictionary<string, Vector2> gridScrollPositions = new();
     private readonly Dictionary<string, UnityEngine.Object> selectedAssets = new();
+
+    /// <summary>
+    /// Выделенные карточки каждой секции.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="selectedAssets"/>: там лежит активная карточка, чьи свойства
+    /// показаны справа, а здесь — всё, что попадёт под групповое действие.
+    /// </remarks>
+    private readonly Dictionary<string, HashSet<UnityEngine.Object>> selections = new();
+
+    /// <summary>
+    /// Карточка, от которой отсчитывается выделение диапазоном.
+    /// </summary>
+    private readonly Dictionary<string, int> selectionAnchors = new();
+
+    /// <summary>
+    /// Секция, в которой последний раз щёлкали.
+    /// </summary>
+    /// <remarks>
+    /// Развёрнутых секций может быть несколько, а клавиша одна: без этого Delete
+    /// сработал бы сразу во всех, где что-то выделено.
+    /// </remarks>
+    private string activeSectionKey;
     private readonly Dictionary<string, UnityEditor.Editor> selectedAssetEditors = new();
     [SerializeField] private PRSDKDatabase database;
     [SerializeField] private float gridSplit = 0.58f;
     private string search = string.Empty;
     private SerializedObject serializedDatabase;
+
+    /// <summary>
+    /// Разобранный набор, ожидающий подтверждения.
+    /// </summary>
+    /// <remarks>
+    /// Набор применяется в два шага: сначала отчёт, потом изменение базы. Он приезжает
+    /// из другой игры или ветки, где ассеты могли переехать или исчезнуть.
+    /// </remarks>
+    private PRSDKDatabasePresetReport pendingPreset;
+
+    private Vector2 presetReportScroll;
+
+    /// <summary>
+    /// Что делать с тем, что уже лежит в каталогах.
+    /// </summary>
+    private PRSDKDatabasePresetApplyMode presetApplyMode = PRSDKDatabasePresetApplyMode.Replace;
     private Vector2 scrollPosition;
     private GUIStyle cardNameStyle;
     private GUIStyle invalidBadgeStyle;
@@ -97,6 +137,7 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         serializedDatabase.UpdateIfRequiredOrScript();
         PRSDKInspectorUtility.DrawHeader("PRUnitySDK Database", database);
         DrawToolbar();
+        DrawPresetReport();
 
         IReadOnlyList<SerializedProperty> properties =
             PRSDKInspectorUtility.GetRootProperties(serializedDatabase);
@@ -142,6 +183,8 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                 serializedDatabase.ApplyModifiedProperties();
                 AssetDatabase.SaveAssets();
             }
+            if (GUILayout.Button("Наборы", EditorStyles.toolbarDropDown, GUILayout.Width(66f)))
+                ShowPresetMenu();
             if (GUILayout.Button("Asset", EditorStyles.toolbarButton, GUILayout.Width(52f)))
             {
                 Selection.activeObject = database;
@@ -149,6 +192,249 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
             }
         }
     }
+
+    #region Наборы
+
+    /// <summary>
+    /// Показывает меню работы с наборами.
+    /// </summary>
+    private void ShowPresetMenu()
+    {
+        var menu = new GenericMenu();
+        menu.AddItem(new GUIContent("Сохранить набор..."), false, SavePreset);
+        menu.AddItem(new GUIContent("Загрузить набор..."), false, LoadPreset);
+        menu.ShowAsContext();
+    }
+
+    /// <summary>
+    /// Сохраняет текущий состав базы в файл.
+    /// </summary>
+    private void SavePreset()
+    {
+        serializedDatabase.ApplyModifiedProperties();
+
+        string folder = PRSDKDatabasePresetService.DefaultFolder;
+        string path = EditorUtility.SaveFilePanel(
+            "Сохранить набор базы", folder, "database-preset", "json");
+
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        PRSDKDatabasePreset preset = PRSDKDatabasePresetService.Capture(
+            database, Path.GetFileNameWithoutExtension(path));
+
+        PRSDKDatabasePresetService.Save(preset, path);
+
+        int items = preset.sections.Sum(section => section.items.Count);
+        ShowNotification(new GUIContent($"Сохранено: {items} шт."));
+        Debug.Log($"[PRSDKDatabase] Набор «{preset.name}» сохранён: {path}");
+    }
+
+    /// <summary>
+    /// Читает набор и готовит отчёт; база пока не меняется.
+    /// </summary>
+    private void LoadPreset()
+    {
+        string path = EditorUtility.OpenFilePanel(
+            "Загрузить набор базы", PRSDKDatabasePresetService.DefaultFolder, "json");
+
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        PRSDKDatabasePreset preset = PRSDKDatabasePresetService.Load(path, out string error);
+
+        if (preset == null)
+        {
+            EditorUtility.DisplayDialog("Набор не прочитан", error, "Понятно");
+            return;
+        }
+
+        pendingPreset = PRSDKDatabasePresetService.Analyze(preset, database);
+        presetReportScroll = Vector2.zero;
+    }
+
+    /// <summary>
+    /// Рисует отчёт по разобранному набору.
+    /// </summary>
+    private void DrawPresetReport()
+    {
+        if (pendingPreset == null)
+            return;
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                $"Набор «{pendingPreset.Preset.name}»",
+                EditorStyles.boldLabel);
+
+            EditorGUILayout.LabelField(
+                $"Сохранён: {pendingPreset.Preset.savedAt}   •   проект: {pendingPreset.Preset.project}",
+                EditorStyles.miniLabel);
+
+            DrawPresetMode();
+
+            string outgoing = presetApplyMode == PRSDKDatabasePresetApplyMode.Replace
+                ? $"уйдёт из базы: {pendingPreset.OutgoingCount}"
+                : $"останется сверх набора: {pendingPreset.OutgoingCount}";
+
+            EditorGUILayout.LabelField(
+                $"Встанет в базу: {pendingPreset.ResolvedCount}   •   {outgoing}   •   " +
+                $"ошибок: {pendingPreset.ErrorCount}   •   предупреждений: {pendingPreset.WarningCount}");
+
+            DrawPresetOutgoing();
+            DrawPresetIssues();
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUI.DisabledScope(pendingPreset.IsEmpty))
+                {
+                    if (GUILayout.Button("Применить", GUILayout.Width(100f)))
+                        ApplyPreset();
+                }
+
+                if (GUILayout.Button("Отмена", GUILayout.Width(80f)))
+                    pendingPreset = null;
+
+                GUILayout.FlexibleSpace();
+            }
+
+            if (pendingPreset != null && pendingPreset.IsEmpty)
+                EditorGUILayout.HelpBox("Применять нечего: ни один каталог набора не подошёл.", MessageType.Error);
+        }
+    }
+
+    /// <summary>
+    /// Рисует выбор режима применения.
+    /// </summary>
+    private void DrawPresetMode()
+    {
+        var options = new[]
+        {
+            new GUIContent("Заменить состав", "Каталоги станут ровно такими, как в наборе. Лишнее уйдёт."),
+            new GUIContent("Дополнить", "Существующее останется, из набора добавится недостающее.")
+        };
+
+        presetApplyMode = (PRSDKDatabasePresetApplyMode)GUILayout.Toolbar(
+            (int)presetApplyMode, options, GUILayout.Height(20f));
+    }
+
+    /// <summary>
+    /// Рассказывает о том, что лежит в базе сверх набора.
+    /// </summary>
+    /// <remarks>
+    /// Не находка сверки, а следствие режима: при замене эти элементы уйдут,
+    /// при дополнении останутся.
+    /// </remarks>
+    private void DrawPresetOutgoing()
+    {
+        if (pendingPreset.OutgoingCount == 0)
+            return;
+
+        IEnumerable<string> names = pendingPreset.Sections
+            .Where(section => !section.Skipped)
+            .SelectMany(section => section.Outgoing)
+            .Where(asset => asset != null)
+            .Select(asset => asset.name)
+            .Take(6);
+
+        string listed = string.Join(", ", names);
+        if (pendingPreset.OutgoingCount > 6)
+            listed += $" и ещё {pendingPreset.OutgoingCount - 6}";
+
+        if (presetApplyMode == PRSDKDatabasePresetApplyMode.Replace)
+        {
+            EditorGUILayout.HelpBox(
+                $"В базе есть {pendingPreset.OutgoingCount} элементов вне набора — будут убраны: {listed}.\n" +
+                "Сами ассеты останутся в проекте.",
+                MessageType.Warning);
+        }
+        else
+        {
+            EditorGUILayout.HelpBox(
+                $"В базе есть {pendingPreset.OutgoingCount} элементов вне набора — останутся: {listed}.",
+                MessageType.Info);
+        }
+    }
+
+    /// <summary>
+    /// Рисует находки сверки, самые важные сверху.
+    /// </summary>
+    private void DrawPresetIssues()
+    {
+        if (pendingPreset.Issues.Count == 0)
+        {
+            EditorGUILayout.HelpBox("Набор сошёлся с проектом полностью.", MessageType.Info);
+            return;
+        }
+
+        using (var scroll = new EditorGUILayout.ScrollViewScope(presetReportScroll, GUILayout.MaxHeight(160f)))
+        {
+            IEnumerable<PRSDKDatabasePresetIssue> ordered = pendingPreset.Issues
+                .OrderByDescending(issue => issue.Severity);
+
+            foreach (PRSDKDatabasePresetIssue issue in ordered)
+            {
+                EditorGUILayout.HelpBox(
+                    $"{issue.Section}: {issue.Message}",
+                    ToMessageType(issue.Severity));
+            }
+
+            presetReportScroll = scroll.scrollPosition;
+        }
+    }
+
+    private static MessageType ToMessageType(PRSDKDatabasePresetSeverity severity)
+    {
+        return severity switch
+        {
+            PRSDKDatabasePresetSeverity.Error => MessageType.Error,
+            PRSDKDatabasePresetSeverity.Warning => MessageType.Warning,
+            _ => MessageType.Info
+        };
+    }
+
+    /// <summary>
+    /// Записывает разобранный набор в базу.
+    /// </summary>
+    private void ApplyPreset()
+    {
+        bool replace = presetApplyMode == PRSDKDatabasePresetApplyMode.Replace;
+
+        var lines = new List<string>
+        {
+            replace
+                ? "Состав каталогов будет заменён набором."
+                : "Набор добавится к текущему составу каталогов."
+        };
+
+        if (replace && pendingPreset.OutgoingCount > 0)
+        {
+            lines.Add(
+                $"Из базы уйдёт элементов: {pendingPreset.OutgoingCount}. " +
+                "Сами ассеты останутся в проекте.");
+        }
+
+        if (pendingPreset.ErrorCount > 0)
+            lines.Add($"Записей набора не удалось применить: {pendingPreset.ErrorCount}.");
+
+        lines.Add("Продолжить?");
+
+        string message = string.Join("\n\n", lines);
+
+        if (!EditorUtility.DisplayDialog("Применить набор", message, "Применить", "Отмена"))
+            return;
+
+        int changed = PRSDKDatabasePresetService.Apply(pendingPreset, database, presetApplyMode);
+
+        pendingPreset = null;
+        assetCache.Clear();
+        serializedDatabase = new SerializedObject(database);
+
+        ShowNotification(new GUIContent($"Каталогов обновлено: {changed}"));
+        Repaint();
+    }
+
+    #endregion
 
     private void DrawSection(SerializedProperty property, string sectionName)
     {
@@ -330,6 +616,9 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         Type elementType,
         IReadOnlyCollection<DatabaseValidationIssue> validationIssues)
     {
+        PruneSelection(sectionKey, data);
+        HandleGridShortcuts(sectionKey, data);
+
         UnityEngine.Object selected = ResolveSelectedAsset(sectionKey, data);
         AssetGridViewState viewState = GetGridViewState(sectionKey);
         AssetCardEntry[] visibleEntries = GetVisibleEntries(data, viewState, validationIssues);
@@ -354,7 +643,7 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                            gridScroll,
                            GUILayout.ExpandHeight(true)))
                 {
-                    DrawAssetCards(sectionKey, visibleEntries, selected, leftWidth);
+                    DrawAssetCards(sectionKey, visibleEntries, leftWidth);
                     gridScroll = gridScrollView.scrollPosition;
                 }
 
@@ -546,7 +835,6 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
     private void DrawAssetCards(
         string sectionKey,
         IReadOnlyList<AssetCardEntry> entries,
-        UnityEngine.Object selected,
         float availableWidth)
     {
         EnsureCardStyles();
@@ -562,8 +850,9 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                     AssetCardEntry entry = entries[index];
                     DrawAssetCard(
                         sectionKey,
-                        entry.Asset,
-                        entry.Asset == selected,
+                        entries,
+                        index,
+                        IsSelected(sectionKey, entry.Asset),
                         entry.IsInvalid);
                 }
 
@@ -583,10 +872,13 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
 
     private void DrawAssetCard(
         string sectionKey,
-        UnityEngine.Object asset,
+        IReadOnlyList<AssetCardEntry> entries,
+        int entryIndex,
         bool selected,
         bool isInvalid)
     {
+        UnityEngine.Object asset = entries[entryIndex].Asset;
+
         Rect cardRect = GUILayoutUtility.GetRect(
             CardWidth,
             CardHeight,
@@ -603,11 +895,10 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         string tooltip = asset != null ? AssetDatabase.GetAssetPath(asset) : "Пустая ссылка";
         if (isInvalid)
             tooltip += "\nЕсть проблемы валидации";
+        tooltip += "\nCtrl — добавить к выделению, Shift — диапазон, Del — убрать из базы";
+
         if (GUI.Button(cardRect, new GUIContent(string.Empty, tooltip), GUIStyle.none))
-        {
-            selectedAssets[sectionKey] = asset;
-            Repaint();
-        }
+            HandleCardClick(sectionKey, entries, entryIndex);
 
         Rect iconRect = new(cardRect.x + 8f, cardRect.y + 8f, cardRect.width - 16f, 88f);
         Sprite icon = asset is IIconProvider iconProvider ? iconProvider.Icon : null;
@@ -634,6 +925,161 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         }
     }
 
+    #region Выделение
+
+    /// <summary>
+    /// Выделенные карточки секции.
+    /// </summary>
+    private HashSet<UnityEngine.Object> GetSelection(string sectionKey)
+    {
+        if (selections.TryGetValue(sectionKey, out HashSet<UnityEngine.Object> selection))
+            return selection;
+
+        selection = new HashSet<UnityEngine.Object>();
+        selections[sectionKey] = selection;
+        return selection;
+    }
+
+    private bool IsSelected(string sectionKey, UnityEngine.Object asset)
+    {
+        return asset != null
+               && selections.TryGetValue(sectionKey, out HashSet<UnityEngine.Object> selection)
+               && selection.Contains(asset);
+    }
+
+    /// <summary>
+    /// Обрабатывает щелчок по карточке с учётом модификаторов.
+    /// </summary>
+    /// <remarks>
+    /// Правила те же, что в Project и Hierarchy: обычный щелчок выделяет одну карточку,
+    /// Ctrl добавляет и убирает по одной, Shift берёт диапазон от последней отмеченной.
+    /// </remarks>
+    private void HandleCardClick(string sectionKey, IReadOnlyList<AssetCardEntry> entries, int entryIndex)
+    {
+        activeSectionKey = sectionKey;
+
+        UnityEngine.Object asset = entries[entryIndex].Asset;
+        HashSet<UnityEngine.Object> selection = GetSelection(sectionKey);
+        Event current = Event.current;
+        bool additive = current.control || current.command;
+
+        if (current.shift && selectionAnchors.TryGetValue(sectionKey, out int anchor)
+                          && anchor >= 0 && anchor < entries.Count)
+        {
+            if (!additive)
+                selection.Clear();
+
+            int from = Mathf.Min(anchor, entryIndex);
+            int to = Mathf.Max(anchor, entryIndex);
+
+            for (int index = from; index <= to; index++)
+            {
+                if (entries[index].Asset != null)
+                    selection.Add(entries[index].Asset);
+            }
+        }
+        else if (additive)
+        {
+            if (asset != null && !selection.Add(asset))
+                selection.Remove(asset);
+
+            selectionAnchors[sectionKey] = entryIndex;
+        }
+        else
+        {
+            selection.Clear();
+
+            if (asset != null)
+                selection.Add(asset);
+
+            selectionAnchors[sectionKey] = entryIndex;
+        }
+
+        // Активной остаётся та, по которой щёлкнули: её свойства и показывает панель справа.
+        selectedAssets[sectionKey] = asset;
+        Repaint();
+    }
+
+    /// <summary>
+    /// Спрашивает, точно ли убирать выбранное из каталога.
+    /// </summary>
+    /// <remarks>
+    /// Про одну карточку спрашивает по имени: так видно, что именно уйдёт, если клавишу
+    /// нажали не глядя.
+    /// </remarks>
+    private static bool ConfirmRemoval(ICollection<UnityEngine.Object> targets)
+    {
+        string message = targets.Count == 1
+            ? $"Убрать «{GetAssetName(targets.First())}» из каталога?"
+            : $"Убрать из каталога элементов: {targets.Count}?";
+
+        return EditorUtility.DisplayDialog(
+            "Удалить из базы",
+            $"{message}\n\nСам ассет останется в проекте.",
+            "Удалить",
+            "Отмена");
+    }
+
+    /// <summary>
+    /// Убирает из выделения то, чего в каталоге уже нет.
+    /// </summary>
+    /// <remarks>
+    /// Каталог меняется и мимо окна — набором, кнопкой «Убрать null», правкой ассета.
+    /// Выделение, пережившее такое изменение, привело бы к удалению не того.
+    /// </remarks>
+    private void PruneSelection(string sectionKey, SerializedProperty data)
+    {
+        if (!selections.TryGetValue(sectionKey, out HashSet<UnityEngine.Object> selection)
+            || selection.Count == 0)
+        {
+            return;
+        }
+
+        var present = new HashSet<UnityEngine.Object>();
+
+        for (int index = 0; index < data.arraySize; index++)
+        {
+            UnityEngine.Object value = data.GetArrayElementAtIndex(index).objectReferenceValue;
+
+            if (value != null)
+                present.Add(value);
+        }
+
+        selection.RemoveWhere(asset => asset == null || !present.Contains(asset));
+    }
+
+    /// <summary>
+    /// Обрабатывает клавиши в сетке каталога.
+    /// </summary>
+    /// <remarks>
+    /// Backspace наравне с Delete: на маке это одна и та же клавиша.
+    /// </remarks>
+    private void HandleGridShortcuts(string sectionKey, SerializedProperty data)
+    {
+        Event current = Event.current;
+
+        if (current.type != EventType.KeyDown || activeSectionKey != sectionKey)
+            return;
+
+        if (current.keyCode != KeyCode.Delete && current.keyCode != KeyCode.Backspace)
+            return;
+
+        UnityEngine.Object[] selected = GetSelection(sectionKey)
+            .Where(asset => asset != null)
+            .ToArray();
+
+        if (selected.Length == 0)
+            return;
+
+        current.Use();
+
+        // Клавишу можно задеть случайно, в отличие от кнопки, поэтому спрашиваем всегда -
+        // даже об одной карточке.
+        RemoveAssets(sectionKey, data, selected, alwaysConfirm: true);
+    }
+
+    #endregion
+
     private void DrawSelectedAsset(
         string sectionKey,
         SerializedProperty data,
@@ -658,8 +1104,27 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
             GUI.color = previousColor;
         }
 
-        if (GUILayout.Button("Удалить из базы"))
-            RemoveAsset(sectionKey, data, selected);
+        UnityEngine.Object[] selection = GetSelection(sectionKey)
+            .Where(asset => asset != null)
+            .ToArray();
+
+        // Кнопка работает с выделением целиком, но одиночный выбор в него попадает
+        // не всегда - например, когда карточку подставил ResolveSelectedAsset.
+        UnityEngine.Object[] targets = selection.Length > 0 ? selection : new[] { selected };
+
+        if (selection.Length > 1)
+        {
+            EditorGUILayout.LabelField(
+                $"Выделено карточек: {selection.Length}",
+                EditorStyles.miniBoldLabel);
+        }
+
+        string label = targets.Length > 1
+            ? $"Удалить из базы ({targets.Length})"
+            : "Удалить из базы";
+
+        if (GUILayout.Button(label))
+            RemoveAssets(sectionKey, data, targets);
 
         EditorGUILayout.Space(4f);
         Vector2 detailsScroll = GetScrollPosition(detailsScrollPositions, sectionKey);
@@ -715,25 +1180,57 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         GUIUtility.ExitGUI();
     }
 
-    private void RemoveAsset(
+    /// <summary>
+    /// Убирает выбранные элементы из каталога.
+    /// </summary>
+    /// <remarks>
+    /// Обход с конца: удаление сдвигает индексы, и при проходе вперёд часть элементов
+    /// проскочила бы мимо.
+    /// </remarks>
+    /// <param name="alwaysConfirm">
+    /// Спрашивать подтверждение даже об одной карточке. Нужно при удалении клавишей:
+    /// её можно задеть случайно, в отличие от кнопки, до которой надо дотянуться.
+    /// </param>
+    private void RemoveAssets(
         string sectionKey,
         SerializedProperty data,
-        UnityEngine.Object asset)
+        IReadOnlyCollection<UnityEngine.Object> assets,
+        bool alwaysConfirm = false)
     {
-        for (int index = 0; index < data.arraySize; index++)
+        var targets = new HashSet<UnityEngine.Object>(assets.Where(asset => asset != null));
+
+        if (targets.Count == 0)
+            return;
+
+        if ((alwaysConfirm || targets.Count > 1) && !ConfirmRemoval(targets))
+            return;
+
+        Undo.RecordObject(database, "Remove database assets");
+
+        bool removed = false;
+
+        for (int index = data.arraySize - 1; index >= 0; index--)
         {
-            if (data.GetArrayElementAtIndex(index).objectReferenceValue != asset)
+            UnityEngine.Object value = data.GetArrayElementAtIndex(index).objectReferenceValue;
+
+            if (value == null || !targets.Contains(value))
                 continue;
 
-            Undo.RecordObject(database, "Remove database asset");
             DeleteArrayElement(data, index);
-            serializedDatabase.ApplyModifiedProperties();
-            EditorUtility.SetDirty(database);
-            selectedAssets.Remove(sectionKey);
-            DestroySelectedAssetEditor(sectionKey);
-            GUIUtility.ExitGUI();
-            return;
+            removed = true;
         }
+
+        if (!removed)
+            return;
+
+        serializedDatabase.ApplyModifiedProperties();
+        EditorUtility.SetDirty(database);
+
+        GetSelection(sectionKey).Clear();
+        selectionAnchors.Remove(sectionKey);
+        selectedAssets.Remove(sectionKey);
+        DestroySelectedAssetEditor(sectionKey);
+        GUIUtility.ExitGUI();
     }
 
     private UnityEngine.Object ResolveSelectedAsset(string sectionKey, SerializedProperty data)
@@ -974,6 +1471,8 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         serializedDatabase.ApplyModifiedProperties();
         EditorUtility.SetDirty(database);
         selectedAssets.Clear();
+        selections.Clear();
+        selectionAnchors.Clear();
         DestroyAllSelectedAssetEditors();
         GUIUtility.ExitGUI();
     }
