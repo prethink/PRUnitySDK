@@ -37,6 +37,8 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private readonly List<FlagProviderRow> flagProviders = new();
     private readonly List<InitializationRow> initializationEntries = new();
     private readonly List<MonoWindowRow> monoWindows = new();
+    private readonly List<BackgroundTaskRow> backgroundTasks = new();
+    private readonly List<StatRuleRow> statRules = new();
     private readonly List<TimeScaleRow> timeScaleRows = new();
     private readonly Queue<EventBusRow> eventHistory = new();
     private readonly List<EventBusRow> eventRows = new();
@@ -47,6 +49,17 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 
     private Vector2 scroll;
     private string search = string.Empty;
+
+    /// <summary>
+    /// Характеристика, выбранная для проверки правил на вкладке Rules.
+    /// </summary>
+    private int ruleTestStatIndex;
+
+    /// <summary>
+    /// Значение, которое прогоняется через правила выбранной характеристики.
+    /// </summary>
+    private float ruleTestValue = 1f;
+
     private string snapshotError;
     private bool autoRefresh = true;
     private double refreshInterval = 1d;
@@ -152,6 +165,8 @@ public partial class PRDebugEditor : ExtendedEditorWindow
             ($"Problems ({problems.Count})", DrawProblems),
             ($"Initialization ({initializationEntries.Count})", DrawInitialization),
             ($"Windows ({monoWindows.Count})", DrawMonoWindows),
+            ($"Tasks ({backgroundTasks.Count})", DrawBackgroundTasks),
+            ($"Rules ({statRules.Count})", DrawGameRules),
             ($"Events ({eventRows.Count})", DrawEvents),
             ($"Players ({players.Count})", DrawPlayers),
             ($"Entities ({entityInstances.Count})", DrawEntities),
@@ -159,7 +174,10 @@ public partial class PRDebugEditor : ExtendedEditorWindow
             ($"Flags ({flagResolvers.Count})", DrawFlags)
         };
 
-        DrawTabsHeader(compact, tabs);
+        // Вкладок больше десятка: ряд кнопок при такой ширине либо переносится на
+        // несколько строк, либо сжимается до нечитаемого размера, поэтому раздел
+        // всегда выбирается списком.
+        DrawTabsDropdown(tabs);
 
         bool tableView = SelectedTabIndex != 0;
         scroll = EditorGUILayout.BeginScrollView(scroll, tableView, true);

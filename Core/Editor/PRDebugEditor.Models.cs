@@ -129,6 +129,64 @@ public partial class PRDebugEditor
         public bool Current;
     }
 
+    private sealed class StatRuleRow
+    {
+        public Enumeration Stat;
+        public string StatName;
+        public Type RuleType;
+        public int Priority;
+
+        /// <summary>
+        /// Порядковый номер правила внутри характеристики - порядок применения.
+        /// </summary>
+        public int Order;
+
+        /// <summary>
+        /// Собственные параметры правила, например <c>MinValue=0.2</c>.
+        /// </summary>
+        public string Parameters;
+    }
+
+    private sealed class BackgroundTaskRow
+    {
+        public IBackgroundTask Task;
+
+        /// <summary>
+        /// Компонент сцены, если задача живёт на объекте, иначе <c>null</c>.
+        /// </summary>
+        public Component Component;
+
+        public Type Type;
+        public string Key;
+        public string Name;
+        public BackgroundTaskStatus Status;
+        public float RepeatSeconds;
+        public bool UseGameTime;
+
+        /// <summary>
+        /// Сколько секунд осталось до следующего запуска.
+        /// Отрицательное значение означает, что задача уже просрочена.
+        /// </summary>
+        public float SecondsToNextRun;
+
+        /// <summary>
+        /// Сколько секунд прошло с последнего запуска либо -1, если запусков не было.
+        /// </summary>
+        public float SecondsSinceLastRun;
+
+        public int ExecutedCount;
+        public int SkippedCount;
+        public int ErrorCount;
+        public int ConsecutiveErrors;
+        public double LastRunDurationMs;
+        public string LastError;
+
+        /// <summary>
+        /// Текущее значение для задач-наблюдателей либо <c>null</c> для обычных задач.
+        /// </summary>
+        public string WatchedValue;
+    }
+
     private readonly struct EventBusRow
     {
         public readonly long Sequence;

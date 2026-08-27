@@ -293,11 +293,17 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     public void SaveProjectData()
     {
+        if (!CanStartSave())
+            return;
+
         ExecuteImmediateSave(() => gameDataStorage.UpdateProjectData(projectData, true));
     }
 
     public void SaveGameSettingsData()
     {
+        if (!CanStartSave())
+            return;
+
         ExecuteImmediateSave(() => gameDataStorage.UpdateGameSettings(gameSettings, true));
     }
 

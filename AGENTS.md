@@ -45,7 +45,8 @@
 - MonoWindow — partial `PRWindowsContainer`, factory, prefab и ключ окна;
 - каталог definitions — partial `PRSDKDatabase`;
 - конфигурация — partial `PRSDKSettings`;
-- сохраняемые данные — partial ProjectData с существующими стадиями `Cloning` и `Initializing`.
+- сохраняемые данные — partial ProjectData с существующими стадиями `Cloning` и `Initializing`;
+- периодическая работа вне сцены — наследник `BackgroundTask` с `[AutoBackgroundTask]` и ключ partial-частью `BackgroundTaskKeyEnumerationProvider`.
 
 ### Сервис через partial PRUnitySDK
 

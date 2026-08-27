@@ -368,6 +368,272 @@ public partial class PRDebugEditor
             MessageType.None);
     }
 
+    private void DrawGameRules()
+    {
+        DrawSectionHeader($"Stat rules ({statRules.Count})");
+
+        if (!GameRules.IsInitialized)
+        {
+            EditorGUILayout.HelpBox("GameRules are not initialized yet.", MessageType.Info);
+            return;
+        }
+
+        DrawRuleTester();
+
+        DrawFixedRow(true, ("Stat", 190), ("#", 30), ("Rule", 190), ("Priority", 60),
+            ("Parameters", 240), ("Source", 60));
+
+        int count = 0;
+        string previousStat = null;
+
+        foreach (StatRuleRow row in statRules.ToArray())
+        {
+            if (!MatchesSearch(row.StatName, row.RuleType?.Name, row.Parameters))
+                continue;
+
+            count++;
+
+            // Имя характеристики повторяется в каждой строке, но у второго и следующих
+            // правил одного стата гасится: пустая ячейка читалась как «правило без стата».
+            bool sameStat = row.StatName == previousStat;
+            previousStat = row.StatName;
+
+            EditorGUILayout.BeginHorizontal();
+            DrawStatName(row.StatName, sameStat, 190);
+            Label(row.Order + 1, 30);
+            Label(row.RuleType?.Name ?? "<unknown>", 190);
+            Label(row.Priority, 60);
+            Label(row.Parameters, 240);
+            DrawScriptButton(row.RuleType, null);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawEmpty(count, "No stat rules match the current search.");
+        EditorGUILayout.HelpBox(
+            "Rules are applied in the listed order: lower Priority first, declaration order breaks ties.",
+            MessageType.None);
+    }
+
+    /// <summary>
+    /// Рисует имя характеристики: у продолжений группы - приглушённым стилем,
+    /// чтобы правила одного стата читались как блок, но строка не выглядела безымянной.
+    /// </summary>
+    private static void DrawStatName(string statName, bool isContinuation, float width)
+    {
+        if (!isContinuation)
+        {
+            Label(statName, width);
+            return;
+        }
+
+        EditorGUILayout.LabelField(statName, EditorStyles.centeredGreyMiniLabel,
+            GUILayout.Width(width));
+    }
+
+    /// <summary>
+    /// Прогоняет введённое значение через правила выбранной характеристики.
+    /// Отвечает на вопрос «почему значение обрезано», не требуя запуска геймплея.
+    /// </summary>
+    private void DrawRuleTester()
+    {
+        string[] stats = statRules
+            .Select(row => row.StatName)
+            .Distinct()
+            .ToArray();
+
+        if (stats.Length == 0)
+            return;
+
+        ruleTestStatIndex = Mathf.Clamp(ruleTestStatIndex, 0, stats.Length - 1);
+
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        EditorGUILayout.LabelField("Apply rules to value", EditorStyles.miniBoldLabel);
+
+        EditorGUILayout.BeginHorizontal();
+        ruleTestStatIndex = EditorGUILayout.Popup(ruleTestStatIndex, stats, GUILayout.Width(190f));
+        ruleTestValue = EditorGUILayout.FloatField(ruleTestValue, GUILayout.Width(90f));
+
+        Enumeration stat = statRules.FirstOrDefault(row => row.StatName == stats[ruleTestStatIndex])?.Stat;
+        float result = stat == null
+            ? ruleTestValue
+            : SafeValue(() => GameRules.ApplyStatRules(stat, ruleTestValue), ruleTestValue);
+
+        bool changed = !Mathf.Approximately(result, ruleTestValue);
+
+        Color previous = GUI.contentColor;
+        GUI.contentColor = changed ? new Color(0.9f, 0.8f, 0.4f) : previous;
+        EditorGUILayout.LabelField($"→  {result}", GUILayout.Width(140f));
+        GUI.contentColor = previous;
+
+        if (changed)
+            EditorGUILayout.LabelField("value was clamped", EditorStyles.miniLabel);
+
+        EditorGUILayout.EndHorizontal();
+        EditorGUILayout.EndVertical();
+    }
+
+    private void DrawBackgroundTasks()
+    {
+        DrawSectionHeader($"Background tasks ({backgroundTasks.Count})");
+        DrawFixedRow(true, ("Key", 150), ("Type", 170), ("Status", 105), ("Every", 60),
+            ("Next", 60), ("Last", 60), ("Run", 45), ("Skip", 45), ("Err", 40),
+            ("ms", 50), ("Value", 110), ("Object", 60), ("Source", 60), ("Actions", 150));
+
+        int count = 0;
+        foreach (BackgroundTaskRow row in backgroundTasks.ToArray())
+        {
+            if (!MatchesSearch(row.Key, row.Name, row.Type?.FullName, row.Status, row.WatchedValue))
+                continue;
+
+            count++;
+            EditorGUILayout.BeginHorizontal();
+            Label(row.Key, 150);
+            Label(row.Type?.Name ?? "<unknown>", 170);
+            DrawTaskStatus(row, 105);
+            Label(FormatSeconds(row.RepeatSeconds), 60);
+            Label(FormatCountdown(row), 60);
+            Label(row.SecondsSinceLastRun < 0f ? "-" : FormatSeconds(row.SecondsSinceLastRun), 60);
+            Label(row.ExecutedCount, 45);
+            Label(row.SkippedCount, 45);
+            Label(row.ErrorCount, 40);
+            Label(row.LastRunDurationMs.ToString("F1"), 50);
+            Label(row.WatchedValue ?? "-", 110);
+            DrawObjectButton(row.Component == null ? null : row.Component.gameObject);
+            DrawScriptButton(row.Type, null);
+            DrawBackgroundTaskActions(row);
+            EditorGUILayout.EndHorizontal();
+
+            if (!string.IsNullOrEmpty(row.LastError))
+                EditorGUILayout.HelpBox($"{row.Key}: {row.LastError}", MessageType.Warning);
+        }
+
+        DrawEmpty(count, "No background tasks are registered.");
+        EditorGUILayout.HelpBox(
+            "Run now ignores CanExecute(). Tasks marked GameTime follow the logic pause, so their countdown freezes with the game.",
+            MessageType.None);
+    }
+
+    /// <summary>
+    /// Красит статус так, чтобы проблемные состояния были видны без чтения таблицы.
+    /// </summary>
+    private static void DrawTaskStatus(BackgroundTaskRow row, float width)
+    {
+        Color color = row.Status switch
+        {
+            BackgroundTaskStatus.Faulted => new Color(0.9f, 0.4f, 0.35f),
+            BackgroundTaskStatus.Completed => new Color(0.55f, 0.75f, 0.95f),
+            BackgroundTaskStatus.Paused => new Color(0.9f, 0.8f, 0.4f),
+            BackgroundTaskStatus.Skipped => new Color(0.75f, 0.75f, 0.75f),
+            _ => GUI.contentColor
+        };
+
+        Color previous = GUI.contentColor;
+        GUI.contentColor = color;
+
+        string suffix = row.ConsecutiveErrors > 0 && row.Status != BackgroundTaskStatus.Faulted
+            ? $" ({row.ConsecutiveErrors})"
+            : string.Empty;
+
+        Label($"{row.Status}{suffix}", width);
+        GUI.contentColor = previous;
+    }
+
+    private void DrawBackgroundTaskActions(BackgroundTaskRow row)
+    {
+        using (new EditorGUI.DisabledScope(row.Task == null))
+        {
+            if (GUILayout.Button("Run", GUILayout.Width(40f)))
+                EditorApplication.delayCall += () => ExecuteBackgroundTaskAction(row, TaskDebugAction.Run);
+
+            bool paused = row.Status == BackgroundTaskStatus.Paused;
+            using (new EditorGUI.DisabledScope(row.Status == BackgroundTaskStatus.Faulted ||
+                                               row.Status == BackgroundTaskStatus.Completed))
+            {
+                if (GUILayout.Button(paused ? "Resume" : "Pause", GUILayout.Width(60f)))
+                {
+                    TaskDebugAction action = paused ? TaskDebugAction.Resume : TaskDebugAction.Pause;
+                    EditorApplication.delayCall += () => ExecuteBackgroundTaskAction(row, action);
+                }
+            }
+
+            using (new EditorGUI.DisabledScope(row.Status != BackgroundTaskStatus.Faulted &&
+                                               row.Status != BackgroundTaskStatus.Completed))
+            {
+                if (GUILayout.Button("Reset", GUILayout.Width(45f)))
+                    EditorApplication.delayCall += () => ExecuteBackgroundTaskAction(row, TaskDebugAction.Reset);
+            }
+        }
+    }
+
+    private enum TaskDebugAction
+    {
+        Run,
+        Pause,
+        Resume,
+        Reset
+    }
+
+    private void ExecuteBackgroundTaskAction(BackgroundTaskRow row, TaskDebugAction action)
+    {
+        if (this == null || row?.Task == null)
+            return;
+
+        try
+        {
+            switch (action)
+            {
+                case TaskDebugAction.Run:
+                    PRUnitySDK.Trackers.BackgroundTasks.ForceExecute(row.Task.Key);
+                    break;
+                case TaskDebugAction.Pause:
+                    row.Task.Runtime.Pause();
+                    break;
+                case TaskDebugAction.Resume:
+                    row.Task.Runtime.Resume();
+                    break;
+                case TaskDebugAction.Reset:
+                    row.Task.Runtime.ResetFault();
+                    row.Task.Runtime.ResetRepeatCount();
+                    break;
+            }
+
+            RefreshSnapshot();
+            Repaint();
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"Background task action failed: {exception.GetType().Name}: {exception.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Форматирует обратный отсчёт: для остановленных задач его показывать незачем.
+    /// </summary>
+    private static string FormatCountdown(BackgroundTaskRow row)
+    {
+        if (row.Status == BackgroundTaskStatus.Faulted ||
+            row.Status == BackgroundTaskStatus.Completed ||
+            row.Status == BackgroundTaskStatus.Paused)
+        {
+            return "-";
+        }
+
+        return row.SecondsToNextRun <= 0f ? "now" : FormatSeconds(row.SecondsToNextRun);
+    }
+
+    private static string FormatSeconds(float seconds)
+    {
+        if (seconds <= 0f)
+            return "0s";
+
+        if (seconds < 60f)
+            return $"{seconds:F1}s";
+
+        return seconds < 3600f
+            ? $"{seconds / 60f:F1}m"
+            : $"{seconds / 3600f:F1}h";
+    }
+
     private void DrawMonoWindowAction(MonoWindowRow row)
     {
         using (new EditorGUI.DisabledScope(row.Window == null || row.Key == "<null>"))

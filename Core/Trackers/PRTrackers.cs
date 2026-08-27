@@ -6,9 +6,9 @@ using System.Collections.Generic;
 public partial class PRTrackers
 {
     /// <summary>
-    /// Глобальные наблюдаемые свойства.
+    /// Фоновые задачи, выполняемые по расписанию.
     /// </summary>
-    public WatcherTracker Watchers => WatcherService.Instance;
+    public BackgroundTaskTracker BackgroundTasks => BackgroundTaskService.Instance;
 
     /// <summary>
     /// Игроки текущей сессии.

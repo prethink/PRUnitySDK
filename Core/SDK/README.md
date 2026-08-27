@@ -36,9 +36,15 @@ PRUnitySDK.InitializeSDK();
 5. Регистрация фабрик.
 6. Выполнение static method hooks этапа `SDK`.
 7. Инициализация контейнеров менеджеров и окон.
-8. Установка `IsInitialized`.
-9. Публикация `ISDKEvents.OnInitialized()`.
-10. Перевод `ReadySignal` в готовое состояние.
+8. Регистрация фоновых задач, помеченных `[AutoBackgroundTask]`.
+9. Установка `IsInitialized`.
+10. Публикация `ISDKEvents.OnInitialized()`.
+11. Перевод `ReadySignal` в готовое состояние.
+
+Фоновые задачи регистрируются до `IsInitialized`, но выполняться начинают только после
+него: трекер сверяется с состоянием SDK на каждом проходе, поэтому первый запуск
+приходится на полностью готовый проект. См.
+[BackgroundTasks](../BackgroundTasks/README.md).
 
 ```csharp
 if (PRUnitySDK.IsInitialized)

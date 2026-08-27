@@ -19,9 +19,11 @@ SDK предоставляет общий жизненный цикл компо
 | `PauseManager` | Раздельное управление общей, логической, музыкальной и другими видами паузы |
 | `PRTime` / `PRTimeScale` | Игровое и реальное время с учётом логической паузы и пользовательских time scale |
 | `PRCoroutineBase` | Обёртки над Unity-корутинами с единым запуском и остановкой |
+| [`BackgroundTasks`](Core/BackgroundTasks/README.md) | Работа по расписанию вне сцены и наблюдение за значениями, которые сами о себе не сообщают |
 | `HookSystem` | Последовательная обработка изменяемых и отменяемых событий |
 | [`FlagsSystem`](Core/FlagsSystem/README.md) | Совместное управление состояниями объекта из нескольких источников |
-| Entity / Items / Wallet / Reward | Базовые модели сущностей, предметов, ресурсов и наград |
+| [`Entity`](Core/@Entity/README.md) / Items / [`Wallet`](Core/Wallet/README.md) / [`Reward`](Core/Reward/README.md) | Базовые модели сущностей, предметов, ресурсов и наград |
+| [`GameRules`](Core/GameRules/README.md) | Глобальные ограничения характеристик поверх персональных модификаторов |
 | State / Progression / Damage | Переиспользуемые игровые модули |
 | Quality / Localization / Logging | Качество предметов, переводы и структурированное логирование |
 
@@ -198,6 +200,8 @@ delay.Execute();
 | Согласовать решение, на которое влияют несколько компонентов | `FlagsSystem` | [FlagsSystem](Core/FlagsSystem/README.md) |
 | Собрать данные из всех модулей в один список | `InvokePartialAttribute` | [Attributes](Core/@Attributes/README.md) |
 | Подменить стандартную реализацию сервиса | `OverridePropertyAttribute` | [Attributes](Core/@Attributes/README.md) |
+| Выполнять работу по расписанию вне сцены | `BackgroundTask` | [BackgroundTasks](Core/BackgroundTasks/README.md) |
+| Узнать об изменении значения, которое само о себе не сообщает | `WatcherTask<T>` | [BackgroundTasks](Core/BackgroundTasks/README.md) |
 
 ### Как отличить друг от друга
 
@@ -248,6 +252,27 @@ IEnumerable<Modifier> modifiers = this.CollectPartialResult<Modifier>(context);
 private static void UsePlatformServerTime() => ServerTime = new PlatformServerTime();
 ```
 
+**`BackgroundTask` — «делай это раз в N секунд».** Работа, у которой нет владельца на
+сцене и которая должна пережить её смену: автосохранение, офлайн-доход, отложенная
+аналитика. Задача сама переживает паузу так, как ей нужно, и умеет пропускать запуск,
+пока условия не готовы.
+
+```csharp
+[AutoBackgroundTask]
+public class PlaytimeTrackerTask : BackgroundTask
+{
+    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.PlaytimeTracker;
+    public override float RepeatSeconds => 60f;
+
+    protected override void OnExecute() { }
+}
+```
+
+**`WatcherTask<T>` — «сообщи, когда значение изменится».** Отличие от `EventBus` в том,
+что источник ничего не отправляет: смену суток, состояние сети или изменённый на сервере
+баланс можно узнать только опросом. Наблюдатель опрашивает по расписанию и поднимает
+событие только в момент изменения.
+
 ### Частые ошибки выбора
 
 - **`EventBus` там, где нужен `HookSystem`.** Если обработчику надо повлиять на результат,
@@ -258,6 +283,12 @@ private static void UsePlatformServerTime() => ServerTime = new PlatformServerTi
   когда источников запрета становится двое: кто снял — тот и разрешил, хотя второй ещё против.
 - **`MethodHook` для реакции на игровое событие.** Хуки стадий вызываются там, где код явно
   их запускает; для игровых событий есть `EventBus`.
+- **Своя корутина вместо `BackgroundTask`.** Для периодической работы без владельца на сцене
+  корутина требует объекта-хозяина, теряется при смене сцены и не даёт ни счётчиков,
+  ни защиты от череды ошибок.
+- **Опрос в `Update` вместо `WatcherTask<T>`.** Проверять раз в кадр то, что меняется раз
+  в минуту, — лишняя работа; наблюдатель делает это по расписанию и сообщает только
+  об изменении.
 
 ### Расширение без вклинивания
 
@@ -268,6 +299,7 @@ private static void UsePlatformServerTime() => ServerTime = new PlatformServerTi
 | --- | --- |
 | Поле в сохранение | `partial class ProjectData` + `[MethodHook(Cloning)]` |
 | Новое окно | `partial class MonoWindowKeyEnumerationProvider` + `partial class PRWindowsContainer` |
+| Фоновая задача | наследник `BackgroundTask` + `[AutoBackgroundTask]` + ключ `partial`-частью `BackgroundTaskKeyEnumerationProvider` |
 | Путь к ресурсам модуля | `partial class ResourcePaths` |
 | Новый ключ, тип, слой | наследник `EnumerationProviderBase` или `partial`-часть существующего |
 
@@ -308,6 +340,7 @@ PRUnitySDK/
 - [PauseSystem](Core/PauseSystem/README.md) — раздельные причины паузы и мониторы аниматоров и физических тел
 - [PRTime](Core/PRTime/README.md) — источник времени: реальное, игровое и учёт паузы
 - [PRTimeScale](Core/PRTimeScale/README.md) — слои скорости времени, модификаторы с владельцами и драйверы для анимации и физики
+- [BackgroundTasks](Core/BackgroundTasks/README.md) — фоновые задачи по расписанию и наблюдение за значениями
 
 ### Менеджеры
 
@@ -322,16 +355,19 @@ PRUnitySDK/
 
 ### Модели, сервисы и утилиты
 
+- [Entity](Core/@Entity/README.md) — сущности игрового мира: идентификаторы, описание, реестр, время жизни и пул
 - [Фабрики MonoBehaviour](Core/Factories/README.md) — обычные prefab, singleton-компоненты, MonoWindow и Notifier
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия
 - [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
+- [Wallet](Core/Wallet/README.md) — баланс, начисление и списание валюты поверх `ResourceManager`
 - [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
 - [Utils](Core/Utils/README.md) — вспомогательные классы: время, отложенные вызовы, имена
 - [Proxies](Core/Proxies/README.md) — переадресация Unity-callback'ов с дочерних объектов родительским компонентам
-- [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`.
+- [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`
+- [GameRules](Core/GameRules/README.md) — глобальные границы характеристик, применяемые последними
 
 
 ### Модули и интеграции

@@ -89,25 +89,118 @@ public abstract class ExtendedEditorWindow : EditorWindow
 
     protected void DrawTabsHeader(bool compact, params (string name, Action draw)[] tabs)
     {
-        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-
         string[] names = tabs.Select(t => t.name).ToArray();
 
         if (compact)
         {
-            tabIndex = EditorGUILayout.Popup(tabIndex, names, EditorStyles.toolbarPopup);
+            DrawTabsPopup(names);
+            return;
         }
-        else
+
+        DrawWrappedTabs(names);
+    }
+
+    /// <summary>
+    /// Рисует выбор вкладки выпадающим списком независимо от ширины окна.
+    /// </summary>
+    /// <remarks>
+    /// Подходит окнам с большим числом вкладок: ряд кнопок при десятке разделов
+    /// либо переносится на несколько строк, либо сжимается до нечитаемого размера.
+    /// </remarks>
+    protected void DrawTabsDropdown(params (string name, Action draw)[] tabs)
+    {
+        DrawTabsPopup(tabs.Select(t => t.name).ToArray());
+    }
+
+    private void DrawTabsPopup(string[] names)
+    {
+        if (names.Length == 0)
+            return;
+
+        // Ширина по самой длинной подписи, но не во весь экран: список стоит слева,
+        // остальное место остаётся под элементы тулбара.
+        float width = 0f;
+        foreach (string name in names)
+            width = Mathf.Max(width, EditorStyles.toolbarPopup.CalcSize(new GUIContent(name)).x);
+
+        width = Mathf.Clamp(width + 18f, 140f, 320f);
+
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+        tabIndex = EditorGUILayout.Popup(tabIndex, names, EditorStyles.toolbarPopup,
+            GUILayout.Width(width));
+        GUILayout.FlexibleSpace();
+        EditorGUILayout.EndHorizontal();
+    }
+
+    /// <summary>
+    /// Рисует вкладки, перенося их на следующую строку, когда ряд не помещается по ширине.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GUILayout.Toolbar(int, string[], GUIStyle, GUILayoutOption[])"/> всегда
+    /// укладывается в один ряд и при нехватке места обрезает подписи, поэтому ряды
+    /// набираются вручную по фактической ширине каждой кнопки.
+    /// </remarks>
+    private void DrawWrappedTabs(string[] names)
+    {
+        if (names.Length == 0)
+            return;
+
+        GUIStyle style = EditorStyles.toolbarButton;
+
+        // Небольшой запас: полосы прокрутки и отступы окна.
+        float available = Mathf.Max(120f, EditorGUIUtility.currentViewWidth - 24f);
+
+        var widths = new float[names.Length];
+        for (int i = 0; i < names.Length; i++)
+            widths[i] = style.CalcSize(new GUIContent(names[i])).x;
+
+        int rowStart = 0;
+        while (rowStart < names.Length)
         {
-            tabIndex = GUILayout.Toolbar(
-                tabIndex,
-                names,
-                EditorStyles.toolbarButton
-            );
+            int rowLength = 0;
+            float rowWidth = 0f;
+
+            // В ряду всегда хотя бы одна вкладка, даже если она шире окна:
+            // иначе цикл не сдвинулся бы с места.
+            while (rowStart + rowLength < names.Length)
+            {
+                float next = widths[rowStart + rowLength];
+                if (rowLength > 0 && rowWidth + next > available)
+                    break;
+
+                rowWidth += next;
+                rowLength++;
+            }
+
+            DrawTabsRow(names, rowStart, rowLength, rowWidth, style);
+            rowStart += rowLength;
         }
+    }
+
+    /// <summary>
+    /// Рисует один ряд вкладок и переносит выбор в общий индекс.
+    /// </summary>
+    private void DrawTabsRow(string[] names, int start, int length, float width, GUIStyle style)
+    {
+        var row = new string[length];
+        Array.Copy(names, start, row, 0, length);
+
+        int localIndex = tabIndex - start;
+        bool selectionInRow = localIndex >= 0 && localIndex < length;
+
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+
+        int clicked = GUILayout.Toolbar(
+            selectionInRow ? localIndex : -1,
+            row,
+            style,
+            GUILayout.Width(width));
+
+        // Ряд без выделения возвращает -1 до тех пор, пока по нему не кликнули.
+        if (clicked >= 0 && clicked != localIndex)
+            tabIndex = start + clicked;
 
         GUILayout.FlexibleSpace();
-
         EditorGUILayout.EndHorizontal();
     }
 

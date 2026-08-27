@@ -72,6 +72,12 @@ public partial class PRUnitySDK
 
         Managers.Initialize();
         Windows.Initialize();
+
+        // Задачи регистрируются после менеджеров, но до IsInitialized: трекер не выполняет
+        // их, пока SDK не готов, поэтому первый запуск гарантированно придётся на
+        // полностью инициализированный проект.
+        Trackers.BackgroundTasks.RegisterAutoTasks();
+
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         readySignal.SetReady();

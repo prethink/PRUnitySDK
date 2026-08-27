@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using UnityEditor;
 using UnityEngine;
@@ -37,6 +39,8 @@ public partial class PRDebugEditor
             CapturePools();
             CaptureFlags();
             CaptureMonoWindows();
+            CaptureBackgroundTasks();
+            CaptureGameRules();
             CaptureProblems();
         }
         catch (Exception exception)
@@ -58,6 +62,8 @@ public partial class PRDebugEditor
         flagProviders.Clear();
         initializationEntries.Clear();
         monoWindows.Clear();
+        backgroundTasks.Clear();
+        statRules.Clear();
         timeScaleRows.Clear();
         eventRows.Clear();
         aggregatedEventRows.Clear();
@@ -166,6 +172,160 @@ public partial class PRDebugEditor
         }
 
         monoWindows.Sort((left, right) => string.CompareOrdinal(left.Key, right.Key));
+    }
+
+    private void CaptureBackgroundTasks()
+    {
+        BackgroundTaskTracker tracker = PRUnitySDK.Trackers.BackgroundTasks;
+
+        foreach (IBackgroundTask task in tracker.Elements)
+        {
+            if (task == null || task.IsNull())
+                continue;
+
+            BackgroundTaskRuntime runtime = task.Runtime;
+
+            // Задача может считать время по игровой шкале, поэтому «сейчас» берётся
+            // из той же шкалы, что использует трекер при планировании.
+            float now = SafeValue(() => runtime.CurrentTime, 0f);
+            float lastRun = SafeValue(() => runtime.LastRunRealTime, -1f);
+
+            backgroundTasks.Add(new BackgroundTaskRow
+            {
+                Task = task,
+                Component = task as Component,
+                Type = task.GetType(),
+                Key = SafeValue(() => task.Key?.Value, "<null>"),
+                Name = SafeValue(() => task.Name, "<null>"),
+                Status = SafeValue(() => runtime.Status, BackgroundTaskStatus.Pending),
+                RepeatSeconds = SafeValue(() => task.RepeatSeconds, 0f),
+                UseGameTime = SafeValue(() => task.UseGameTime, false),
+                SecondsToNextRun = SafeValue(() => runtime.NextRunTime - now, 0f),
+                SecondsSinceLastRun = lastRun < 0f
+                    ? -1f
+                    : SafeValue(() => PRTime.Instance.RealTime - lastRun, -1f),
+                ExecutedCount = SafeValue(() => runtime.ExecutedCount, 0),
+                SkippedCount = SafeValue(() => runtime.SkippedCount, 0),
+                ErrorCount = SafeValue(() => runtime.ErrorCount, 0),
+                ConsecutiveErrors = SafeValue(() => runtime.ConsecutiveErrors, 0),
+                LastRunDurationMs = SafeValue(() => runtime.LastRunDurationMs, 0d),
+                LastError = SafeValue(() => runtime.LastError == null
+                    ? null
+                    : $"{runtime.LastError.GetType().Name}: {runtime.LastError.Message}", null),
+                WatchedValue = ReadWatchedValue(task)
+            });
+        }
+
+        backgroundTasks.Sort((left, right) => string.CompareOrdinal(left.Key, right.Key));
+    }
+
+    private void CaptureGameRules()
+    {
+        foreach (Enumeration stat in GameRules.Stats.ToArray())
+        {
+            if (stat == null)
+                continue;
+
+            IReadOnlyList<StatRuleBase> rules = SafeValue(() => GameRules.GetRules(stat), null);
+            if (rules == null)
+                continue;
+
+            for (int index = 0; index < rules.Count; index++)
+            {
+                StatRuleBase rule = rules[index];
+                if (rule == null)
+                    continue;
+
+                statRules.Add(new StatRuleRow
+                {
+                    Stat = stat,
+                    StatName = SafeValue(() => stat.Value, "<null>"),
+                    RuleType = rule.GetType(),
+                    Priority = SafeValue(() => rule.Priority, 0),
+                    Order = index,
+                    Parameters = DescribeRule(rule)
+                });
+            }
+        }
+
+        statRules.Sort((left, right) =>
+        {
+            int stat = string.CompareOrdinal(left.StatName, right.StatName);
+            return stat != 0 ? stat : left.Order.CompareTo(right.Order);
+        });
+    }
+
+    /// <summary>
+    /// Собирает собственные параметры правила: свойства, объявленные в самом типе,
+    /// без унаследованных от <see cref="StatRuleBase"/>.
+    /// </summary>
+    /// <remarks>
+    /// Так новые типы правил попадают в окно без правок редактора: у `MinValueRule`
+    /// покажется `MinValue`, у своего правила - его собственные поля.
+    /// </remarks>
+    private static string DescribeRule(StatRuleBase rule)
+    {
+        return SafeValue(() =>
+        {
+            PropertyInfo[] properties = rule.GetType().GetProperties(
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            if (properties.Length == 0)
+                return "-";
+
+            var parts = new List<string>(properties.Length);
+            foreach (PropertyInfo property in properties)
+            {
+                if (property.GetIndexParameters().Length > 0)
+                    continue;
+
+                object value = property.GetValue(rule);
+                parts.Add($"{property.Name}={value}");
+            }
+
+            return parts.Count > 0 ? string.Join(", ", parts) : "-";
+        }, "<error>");
+    }
+
+    /// <summary>
+    /// Читает текущее значение задачи-наблюдателя.
+    /// Тип значения известен только в рантайме, поэтому состояние берётся рефлексией.
+    /// </summary>
+    /// <remarks>
+    /// Поиск идёт по интерфейсу <c>IWatcherTask&lt;&gt;</c>, а не по базовому классу:
+    /// наблюдателем может быть и обычная задача, и компонент сцены, а общий у них
+    /// только контракт.
+    /// </remarks>
+    private static string ReadWatchedValue(IBackgroundTask task)
+    {
+        Type watcherInterface = null;
+        foreach (Type contract in task.GetType().GetInterfaces())
+        {
+            if (contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IWatcherTask<>))
+            {
+                watcherInterface = contract;
+                break;
+            }
+        }
+
+        if (watcherInterface == null)
+            return null;
+
+        return SafeValue(() =>
+        {
+            object state = watcherInterface.GetProperty("Watcher")?.GetValue(task);
+            if (state == null)
+                return "<not read>";
+
+            Type stateType = state.GetType();
+
+            object hasValue = stateType.GetProperty("HasValue")?.GetValue(state);
+            if (hasValue is not true)
+                return "<not read>";
+
+            object value = stateType.GetProperty("CurrentValue")?.GetValue(state);
+            return value?.ToString() ?? "null";
+        }, "<error>");
     }
 
     private void OnEventBusRaised(Type eventType, int subscriberCount)
