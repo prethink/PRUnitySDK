@@ -1,4 +1,4 @@
-# Editor-окна PRUnitySDK
+﻿# Editor-окна PRUnitySDK
 
 Общие IMGUI helpers для собственных окон описаны отдельно в
 [ExtendedEditorWindow](ExtendedEditorWindow/README.md): toolbar и popup-меню, адаптивные
@@ -138,6 +138,12 @@ GameObject; у обычных задач она пустая. `Source` откр�
 scale, а `Apply` вызывает `SetGlobalTimeScaleTemporarily`. Повторное применение недоступно до
 автоматического восстановления. Debug-окно использует только публичные методы `PRTimeScale` и
 не изменяет `UnityEngine.Time.timeScale`.
+
+
+Отдельная секция `Language` на вкладке `Overview` показывает текущий языковой код и фактический
+тип зарегистрированного `ILanguageManager`. Выпадающий список позволяет переключать русский,
+английский и турецкий языки через активную реализацию менеджера, поэтому platform override
+(например, `YGLanguageManager`) не обходится.
 
 ## PRSDKDatabase и PRSDKSettings
 

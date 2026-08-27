@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -27,6 +27,8 @@ public partial class PRDebugEditor
             DrawToggleGrid(("Project", pause.Project), ("Logic", pause.Logic), ("Focus", pause.Focus),
                 ("Music", pause.Music), ("Tutorial", pause.Tutorial), ("Cutscene", pause.Cutscene));
 
+        DrawLanguage();
+
         DrawTimeScale();
 
         DrawSaveInfo();
@@ -37,6 +39,74 @@ public partial class PRDebugEditor
             ("In pool", entityInPool), ("Pools", pools.Count),
             ("Errors", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Error)),
             ("Warnings", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Warning)));
+    }
+
+    /// <summary>
+    /// Показывает активный runtime-язык и позволяет переключить его через текущую
+    /// реализацию <see cref="ILanguageManager"/>.
+    /// </summary>
+    private void DrawLanguage()
+    {
+        DrawSectionHeader("Language");
+
+        ILanguageManager languageManager = PRUnitySDK.LanguageManager;
+        if (!PRUnitySDK.IsInitialized || languageManager == null)
+        {
+            EditorGUILayout.HelpBox("LanguageManager is not initialized.", MessageType.Info);
+            return;
+        }
+
+        string currentCode = languageManager.GetCurrentLang();
+        LangType currentLanguage = LocalizationUtils.GetLanguageEnum(currentCode);
+
+        DrawKeyValue("Code", string.IsNullOrWhiteSpace(currentCode) ? "-" : currentCode);
+        DrawKeyValue("Manager", languageManager.GetType().Name);
+
+        EditorGUI.BeginChangeCheck();
+        LangType selectedLanguage = (LangType)EditorGUILayout.EnumPopup("Runtime language", currentLanguage);
+        if (EditorGUI.EndChangeCheck() && selectedLanguage != currentLanguage)
+            EditorApplication.delayCall += () => ApplyLanguage(selectedLanguage);
+    }
+
+    /// <summary>
+    /// Переключает язык через зарегистрированный SDK-менеджер, чтобы Debug-окно
+    /// не обходило платформенную реализацию локализации.
+    /// </summary>
+    private void ApplyLanguage(LangType language)
+    {
+        if (this == null)
+            return;
+
+        try
+        {
+            ILanguageManager languageManager = PRUnitySDK.LanguageManager;
+            if (languageManager == null)
+            {
+                snapshotError = "LanguageManager is not initialized.";
+                return;
+            }
+
+            string languageCode = LocalizationUtils.GetLanguageCode(language);
+            languageManager.SwitchLang(languageCode);
+
+            string appliedCode = languageManager.GetCurrentLang();
+            if (!string.Equals(appliedCode, languageCode, System.StringComparison.OrdinalIgnoreCase))
+            {
+                snapshotError =
+                    $"{languageManager.GetType().Name} rejected language '{languageCode}' (current: '{appliedCode}').";
+            }
+            else
+            {
+                snapshotError = null;
+            }
+
+            RefreshSnapshot();
+            Repaint();
+        }
+        catch (System.Exception exception)
+        {
+            snapshotError = $"Language change failed: {exception.GetType().Name}: {exception.Message}";
+        }
     }
 
     private void DrawTimeScale()
