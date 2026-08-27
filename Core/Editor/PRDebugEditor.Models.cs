@@ -75,6 +75,29 @@ public partial class PRDebugEditor
         public long OnScene;
         public long Hidden;
         public long InPool;
+
+        /// <summary>
+        /// Разбивка типа по видам предметов.
+        /// </summary>
+        /// <remarks>
+        /// Один тип сущности - это десятки разных предметов: все шапки приходят как
+        /// <c>Hat</c>, и по сводной строке не видно, каких именно семь штук на сцене.
+        /// Вид берётся из <c>Info</c>, то есть из определения предмета.
+        /// </remarks>
+        public readonly List<EntityKindRow> Kinds = new();
+    }
+
+    /// <summary>
+    /// Один вид предмета внутри типа сущности.
+    /// </summary>
+    private sealed class EntityKindRow
+    {
+        public Sprite Icon;
+        public string Name;
+        public string Quality;
+        public long Total;
+        public long OnScene;
+        public long InPool;
     }
 
     private sealed class EntityInstanceRow

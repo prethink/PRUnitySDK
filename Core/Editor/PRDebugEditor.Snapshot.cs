@@ -487,6 +487,52 @@ public partial class PRDebugEditor
         players.Sort((left, right) => left.PlayerId.CompareTo(right.PlayerId));
     }
 
+    /// <summary>
+    /// Разбивает тип сущности на виды предметов.
+    /// </summary>
+    /// <remarks>
+    /// Сводной строки мало: все шапки приходят как один тип <c>Hat</c>, и по ней не видно,
+    /// какие именно предметы на сцене. Вид определяется по <c>Info</c> - то есть по
+    /// определению, из которого сущность создана.
+    /// <para>
+    /// Считаются только живые экземпляры: сколько предметов каждого вида зарегистрировано,
+    /// трекер не знает - он ведёт счёт по типу.
+    /// </para>
+    /// </remarks>
+    private static void CaptureEntityKinds(EntityRow row, IReadOnlyList<IEntity> ofType)
+    {
+        var kinds = new Dictionary<string, EntityKindRow>(StringComparer.Ordinal);
+
+        foreach (var entity in ofType)
+        {
+            string name = SafeValue(() => entity.Info?.GetName(), null);
+            if (string.IsNullOrWhiteSpace(name))
+                name = "<no info>";
+
+            if (!kinds.TryGetValue(name, out EntityKindRow kind))
+            {
+                kind = new EntityKindRow
+                {
+                    Name = name,
+                    Icon = SafeValue(() => entity.Info?.GetIcon(), null),
+                    Quality = SafeValue(() => entity.Info?.GetQuality().ToString(), "-")
+                };
+                kinds.Add(name, kind);
+            }
+
+            kind.Total++;
+            if (entity.OnScene) kind.OnScene++;
+            if (entity.InPool) kind.InPool++;
+        }
+
+        row.Kinds.AddRange(kinds.Values);
+        row.Kinds.Sort((left, right) =>
+        {
+            int byCount = right.Total.CompareTo(left.Total);
+            return byCount != 0 ? byCount : string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
     private void CaptureEntities()
     {
         var tracker = PRUnitySDK.Trackers.Entities;
@@ -498,18 +544,22 @@ public partial class PRDebugEditor
         foreach (var item in tracker.RegisteredEntity)
         {
             long onScene = tracker.GetExactEntityOnSceneCount(item.Key);
-            var entity = trackedEntities.FirstOrDefault(value =>
-                value != null && !value.IsNull() && value.EntityType == item.Key);
+            var ofType = trackedEntities
+                .Where(value => value != null && !value.IsNull() && value.EntityType == item.Key)
+                .ToArray();
 
-            entities.Add(new EntityRow
+            var row = new EntityRow
             {
-                Icon = SafeValue(() => entity?.Info?.GetIcon(), null),
+                Icon = SafeValue(() => ofType.FirstOrDefault()?.Info?.GetIcon(), null),
                 Type = item.Key?.ToString() ?? "<null>",
                 Registered = item.Value,
                 OnScene = onScene,
                 Hidden = Math.Max(0, item.Value - onScene),
                 InPool = tracker.GetExactEntityInPoolCount(item.Key)
-            });
+            };
+
+            CaptureEntityKinds(row, ofType);
+            entities.Add(row);
         }
 
         entities.Sort((left, right) => right.Registered.CompareTo(left.Registered));

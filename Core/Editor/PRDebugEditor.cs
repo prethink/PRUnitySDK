@@ -51,6 +51,25 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private string search = string.Empty;
 
     /// <summary>
+    /// Прокрутка списка типов сущностей.
+    /// </summary>
+    /// <remarks>
+    /// Своя у каждого из двух списков вкладки Entities: тип выбирают в верхнем, а смотрят
+    /// на экземпляры в нижнем, и общая прокрутка увела бы один из них за край экрана.
+    /// </remarks>
+    private Vector2 entityTypeScroll;
+
+    /// <summary>
+    /// Прокрутка списка экземпляров сущностей.
+    /// </summary>
+    private Vector2 entityInstanceScroll;
+
+    /// <summary>
+    /// Типы сущностей, у которых раскрыта разбивка по видам предметов.
+    /// </summary>
+    private readonly HashSet<string> expandedEntityTypes = new();
+
+    /// <summary>
     /// Характеристика, выбранная для проверки правил на вкладке Rules.
     /// </summary>
     private int ruleTestStatIndex;
@@ -180,7 +199,13 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         DrawTabsDropdown(tabs);
 
         bool tableView = SelectedTabIndex != 0;
-        scroll = EditorGUILayout.BeginScrollView(scroll, tableView, true);
+
+        // Вкладка Entities делит высоту между двумя своими списками и прокручивает их
+        // сама: внешняя вертикальная прокрутка поверх этого дала бы две полосы подряд.
+        bool ownsVerticalScroll = SelectedTabIndex >= 0 && SelectedTabIndex < tabs.Length
+                                  && tabs[SelectedTabIndex].draw == DrawEntities;
+
+        scroll = EditorGUILayout.BeginScrollView(scroll, tableView, !ownsVerticalScroll);
         if (!compact)
         {
             EditorGUILayout.BeginHorizontal();

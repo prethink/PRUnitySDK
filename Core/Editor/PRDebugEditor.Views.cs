@@ -869,23 +869,113 @@ public partial class PRDebugEditor
 
     private void DrawEntities()
     {
+        // Оба списка длинные и нужны одновременно: тип выбирают в верхнем, а смотрят
+        // на экземпляры в нижнем. Общая прокрутка увела бы один из них за край экрана,
+        // поэтому у каждого своя, и высота делится поровну.
+        float half = ResolveEntitiesSectionHeight();
+
         DrawSectionHeader("Entities by type");
-        DrawFixedRow(true, ("Icon", 56), ("Type", 174), ("Registered", 90), ("On scene", 80),
-            ("Hidden", 70), ("In pool", 70));
+        entityTypeScroll = EditorGUILayout.BeginScrollView(entityTypeScroll, GUILayout.Height(half));
+        DrawEntityTypes();
+        EditorGUILayout.EndScrollView();
+
+        DrawSectionHeader($"Entity instances ({entityInstances.Count})");
+        entityInstanceScroll = EditorGUILayout.BeginScrollView(entityInstanceScroll, GUILayout.Height(half));
+        DrawEntityInstances();
+        EditorGUILayout.EndScrollView();
+    }
+
+    /// <summary>
+    /// Высота одного из двух списков сущностей.
+    /// </summary>
+    /// <remarks>
+    /// Считается от высоты окна, а не измеряется по факту: <c>GUILayoutUtility</c> в фазе
+    /// раскладки ещё не знает координат, и значение разошлось бы с фазой отрисовки.
+    /// </remarks>
+    private float ResolveEntitiesSectionHeight()
+    {
+        const float chromeHeight = 168f;
+        const float minSectionHeight = 120f;
+
+        return Mathf.Max(minSectionHeight, (position.height - chromeHeight) * 0.5f);
+    }
+
+    private void DrawEntityTypes()
+    {
+        DrawFixedRow(true, ("", 18), ("Icon", 46), ("Type / kind", 174), ("Registered", 90),
+            ("On scene", 80), ("Hidden", 70), ("In pool", 70), ("Quality", 70));
+
         int count = 0;
         foreach (var row in entities)
         {
-            if (!MatchesSearch(row.Type)) continue;
+            bool matchesType = MatchesSearch(row.Type);
+            bool matchesKind = row.Kinds.Any(kind => MatchesSearch(kind.Name));
+
+            if (!matchesType && !matchesKind)
+                continue;
+
             count++;
+            bool expanded = expandedEntityTypes.Contains(row.Type);
+
             EditorGUILayout.BeginHorizontal(GUILayout.Height(40f));
-            DrawIcon(row.Icon, 56f, 36f);
+
+            // Разворот только там, где есть что разворачивать: тип без живых экземпляров
+            // разбивки не даёт, и пустой треугольник рядом с ним только сбивает с толку.
+            using (new EditorGUI.DisabledScope(row.Kinds.Count == 0))
+            {
+                bool toggled = EditorGUILayout.Toggle(expanded, EditorStyles.foldout, GUILayout.Width(18f));
+                if (toggled != expanded && row.Kinds.Count > 0)
+                {
+                    if (toggled)
+                        expandedEntityTypes.Add(row.Type);
+                    else
+                        expandedEntityTypes.Remove(row.Type);
+                }
+            }
+
+            DrawIcon(row.Icon, 46f, 36f);
             Label(row.Type, 174); Label(row.Registered, 90); Label(row.OnScene, 80);
-            Label(row.Hidden, 70); Label(row.InPool, 70);
+            Label(row.Hidden, 70); Label(row.InPool, 70); Label("-", 70);
+            EditorGUILayout.EndHorizontal();
+
+            // Поиск по виду сам раскрывает тип: иначе найденное осталось бы спрятанным
+            // под свёрнутой строкой, и поиск выглядел бы сломанным.
+            if (expandedEntityTypes.Contains(row.Type) || (matchesKind && !matchesType))
+                DrawEntityKinds(row);
+        }
+
+        DrawEmpty(count, "No entity types match the current search.");
+    }
+
+    /// <summary>
+    /// Рисует разбивку типа по видам предметов.
+    /// </summary>
+    /// <remarks>
+    /// В колонке Registered у вида стоит число живых экземпляров: сколько предметов
+    /// каждого вида зарегистрировано, трекер не знает - он ведёт счёт по типу.
+    /// </remarks>
+    private void DrawEntityKinds(EntityRow row)
+    {
+        if (row.Kinds.Count == 0)
+            return;
+
+        foreach (var kind in row.Kinds)
+        {
+            EditorGUILayout.BeginHorizontal(GUILayout.Height(34f));
+            GUILayout.Space(18f);
+            DrawIcon(kind.Icon, 46f, 30f);
+            Label(kind.Name, 174);
+            Label(kind.Total, 90);
+            Label(kind.OnScene, 80);
+            Label(kind.Total - kind.OnScene, 70);
+            Label(kind.InPool, 70);
+            Label(kind.Quality, 70);
             EditorGUILayout.EndHorizontal();
         }
-        DrawEmpty(count, "No entity types match the current search.");
+    }
 
-        DrawSectionHeader($"Entity instances ({entityInstances.Count})");
+    private void DrawEntityInstances()
+    {
         DrawFixedRow(true, ("ID", 65), ("Type", 145), ("Name", 145), ("Lifetime", 75),
             ("Scene", 50), ("Pool", 60), ("Object", 60), ("Dispose", 60));
 
