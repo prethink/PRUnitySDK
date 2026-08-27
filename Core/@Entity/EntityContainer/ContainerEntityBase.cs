@@ -22,11 +22,21 @@ public abstract class ContainerEntityBase : RuntimeEntityBase
         rb ??= GetComponent<Rigidbody>();
     }
 
-    protected virtual void OnTriggerEnter(Collider other)
+    /// <summary>
+    /// Подбор при входе в триггер.
+    /// </summary>
+    /// <remarks>
+    /// Именно PR-хук, а не Unity-метод <c>OnTriggerEnter</c>: собственный Unity-callback
+    /// обходит проверку логической паузы, и контейнеры подбирались бы при открытом окне.
+    /// </remarks>
+    protected override void PROnTriggerEnter(Collider other)
     {
         TryHandleCollision(other.gameObject);
     }
 
+    /// <summary>
+    /// Подбор при столкновении.
+    /// </summary>
     protected override void PROnCollisionEnter(Collision collision)
     {
         TryHandleCollision(collision.gameObject);
