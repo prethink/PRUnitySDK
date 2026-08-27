@@ -611,8 +611,12 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
 
         Rect iconRect = new(cardRect.x + 8f, cardRect.y + 8f, cardRect.width - 16f, 88f);
         Sprite icon = asset is IIconProvider iconProvider ? iconProvider.Icon : null;
+        Color? tint = ResolveIconTint(asset);
+
         if (icon != null)
-            DrawSprite(iconRect, icon);
+            DrawSprite(iconRect, icon, OpaqueTint(tint));
+        else if (tint.HasValue)
+            DrawColorSwatch(iconRect, tint.Value);
         else
             GUI.Label(iconRect, asset == null ? "NULL" : "Нет иконки", EditorStyles.centeredGreyMiniLabel);
 
@@ -790,7 +794,60 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         return asset != null ? asset.name : "NULL";
     }
 
-    private static void DrawSprite(Rect rect, Sprite sprite)
+    /// <summary>
+    /// Возвращает цвет, в который нужно покрасить иконку, либо <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
+    /// Цвета тела и варианты одного эффекта делят иконку между собой, и без покраски
+    /// в сетке их не различить.
+    /// </remarks>
+    private static Color? ResolveIconTint(UnityEngine.Object asset)
+    {
+        return asset is IIconTintProvider provider && provider.TintIcon
+            ? provider.IconTint
+            : null;
+    }
+
+    /// <summary>
+    /// Убирает прозрачность из цвета покраски.
+    /// </summary>
+    /// <remarks>
+    /// Прозрачность у предмета означает вид в игре, а не в списке: цвет с нулевой альфой
+    /// сделал бы карточку пустой, и предмет пропал бы из сетки. Заливка альфу показывает,
+    /// а покраска картинки - нет.
+    /// </remarks>
+    private static Color OpaqueTint(Color? tint)
+    {
+        if (!tint.HasValue)
+            return Color.white;
+
+        Color color = tint.Value;
+        return new Color(color.r, color.g, color.b, 1f);
+    }
+
+    /// <summary>
+    /// Рисует заливку цветом вместо иконки.
+    /// </summary>
+    /// <remarks>
+    /// Запасной путь для предметов, у которых цвет и есть всё содержимое: заводить
+    /// картинку на каждый оттенок ради сетки бессмысленно.
+    /// </remarks>
+    private static void DrawColorSwatch(Rect rect, Color color)
+    {
+        float size = Mathf.Min(rect.width, rect.height) - 12f;
+        Rect swatch = new(
+            rect.x + (rect.width - size) * 0.5f,
+            rect.y + (rect.height - size) * 0.5f,
+            size,
+            size);
+
+        // Шахматка под заливкой: без неё прозрачный цвет не отличить от белого.
+        EditorGUI.DrawTextureTransparent(swatch, Texture2D.whiteTexture, ScaleMode.StretchToFill);
+        EditorGUI.DrawRect(swatch, color);
+        DrawBorder(swatch, Color.Lerp(color, Color.black, 0.35f), 1f);
+    }
+
+    private static void DrawSprite(Rect rect, Sprite sprite, Color tint)
     {
         if (sprite == null || sprite.texture == null)
             return;
@@ -818,7 +875,13 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
             rect.width = width;
         }
 
+        // Через GUI.color, а не через материал: DrawTextureWithTexCoords красить не умеет,
+        // а заводить ради этого материал в редакторе - лишняя сущность.
+        Color previous = GUI.color;
+        GUI.color = tint;
         GUI.DrawTextureWithTexCoords(rect, texture, coordinates, alphaBlend: true);
+        GUI.color = previous;
+
     }
 
     private static void DrawBorder(Rect rect, Color color, float thickness)
