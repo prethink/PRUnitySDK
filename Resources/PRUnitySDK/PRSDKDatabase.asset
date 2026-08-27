@@ -31,6 +31,8 @@ MonoBehaviour:
     qualityCases: []
   <EntityInfo>k__BackingField:
     data:
+    - {fileID: 11400000, guid: 6e81bd0a37f94a2cb5d0e19c7f4a3268, type: 2}
+    - {fileID: 11400000, guid: 7f92ce1b48a05b3dc6e1f2ad8a5b4379, type: 2}
     - {fileID: 11400000, guid: f6eac1adb08e5694d95af49f5bb515a7, type: 2}
     - {fileID: 11400000, guid: 334f124782a0f944084240c668f3666d, type: 2}
   <LocalizationDatabase>k__BackingField:
