@@ -11,6 +11,7 @@ Inspector. Большинство runtime-атрибутов обрабатыв�
 | Method hooks | `MethodHookAttribute`, `InvokePartialAttribute` | Вызов методов расширения в заданной стадии и порядке |
 | Override | `OverridePropertyAttribute`, `OverrideBootstrapAttribute` | Замена стандартной реализации сервиса или bootstrap-процесса |
 | Runtime control | `DisableMethodsAttribute` | Отключение отдельных callback'ов `PRMonoBehaviour` |
+| Автоматическая регистрация | `AutoBackgroundTaskAttribute` | Создание и регистрация [фоновой задачи](../BackgroundTasks/README.md) при старте SDK |
 | Inspector | `SpritePreviewAttribute`, `PrefabPreviewAttribute` | Preview сериализованных Unity-объектов |
 | Virtual metadata | `VirtualAttributeAttribute` | Описание виртуально добавляемого атрибута |
 
