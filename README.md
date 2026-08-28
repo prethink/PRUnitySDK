@@ -350,6 +350,8 @@ PRUnitySDK/
 - [ProjectPropertiesManager](Core/@Managers/ProjectPropertiesManager/README.md) — свойства `long`, `float`, `DateTime`, `string` и `bool`
 - [ResourceManager](Core/Items/Resources/README.md) — игровые ресурсы, баланс, списание и события изменений
 - [OpenedItemsManager](Core/@Managers/OpenedItemsManager/README.md) — открытые предметы и количество в `ProjectData`
+- [SelectedItemsManager](Core/@Managers/SelectedItemsManager/README.md) — что из имеющегося надето у каждого локального игрока
+- [ReservedItemsManager](Core/@Managers/ReservedItemsManager/README.md) — предметы, которые выдаются не покупкой: награды, подарки, кейсы
 - [PRManagerContainer](Core/@Managers/PRManagerContainer/README.md) — hook-порядок создания runtime-менеджеров
 - [SoundManager](Core/@Managers/SoundManager/README.md) — музыка, UI-звуки, позиционные эффекты и наборы `AudioSet`
 - [CursorManager](Core/@Managers/CursorManager/README.md) — запросы Show/Hide курсора с приоритетом последнего обращения

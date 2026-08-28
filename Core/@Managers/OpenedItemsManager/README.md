@@ -32,23 +32,23 @@ bool enough = PRUnitySDK.Managers.OpenedItems.HasCount(itemDefinition, 3);
 
 | Поле | Отвечает на вопрос | Пример |
 | --- | --- | --- |
-| `Category` | что это за предмет | `HatDefinition`, `BrainrotDefinition` |
-| `Created` | откуда он взялся | `ShopService`, `LootContainer` |
+| `Category` | что это за предмет | имя типа определения: `HatDefinition` |
+| `Created` | откуда он взялся | имя выдавшей системы: покупка, награда, находка |
 
 Одно другому не мешает: шапка остаётся шапкой, придя из награды.
 
 ```csharp
-// все открытые брейнроты, не смешивая с шапками
-IEnumerable<string> ids = PRUnitySDK.Managers.OpenedItems.GetOpenedIds(nameof(BrainrotDefinition));
+// все открытые предметы одного вида, не смешивая с другими
+IEnumerable<string> ids = PRUnitySDK.Managers.OpenedItems.GetOpenedIds(nameof(HatDefinition));
 
 // открыт ли конкретный, с проверкой вида
-bool unlocked = PRUnitySDK.Managers.OpenedItems.IsOpenedInCategory<BrainrotDefinition>(id);
+bool unlocked = PRUnitySDK.Managers.OpenedItems.IsOpenedInCategory<HatDefinition>(id);
 
 // открыт ли вообще, без указания вида
 bool owned = PRUnitySDK.Managers.OpenedItems.IsOpenedItem(id);
 
-// пришёл ли именно из магазина
-bool bought = PRUnitySDK.Managers.OpenedItems.IsOpenedItem(nameof(ShopService), itemDefinition.Id);
+// пришёл ли именно от этой системы
+bool granted = PRUnitySDK.Managers.OpenedItems.IsOpenedItem(source, itemDefinition.Id);
 ```
 
 Вид определяется по типу определения в момент открытия и записывается в сохранение.
@@ -67,7 +67,7 @@ bool bought = PRUnitySDK.Managers.OpenedItems.IsOpenedItem(nameof(ShopService), 
 
 ```csharp
 // брейнрот подобран впервые - покажем поздравление
-if (PRUnitySDK.Managers.OpenedItems.Open(typeof(BrainrotHolder), brainrotDefinition))
+if (PRUnitySDK.Managers.OpenedItems.Open(typeof(SomeUnlockService), itemDefinition))
     ShowUnlockPopup(brainrotDefinition);
 
 // три ключа в награду
@@ -76,7 +76,7 @@ PRUnitySDK.Managers.OpenedItems.Add(typeof(RewardSystem), keyDefinition, count: 
 
 `Open` возвращает «это впервые?» — по нему показывают поздравление или подсвечивают
 новинку. Для косметики он и нужен: `Add` при повторной покупке превратил бы один скин
-в «две штуки». Так работает `ShopService.GrantOwnership`.
+в «две штуки».
 
 Если стека с таким `Id` нет, менеджер создаёт его и добавляет в `ProjectData.OpenedItems`,
 затем увеличивает и текущее количество, и общее полученное. При `requiredSave: true`
@@ -99,10 +99,10 @@ bool spent = PRUnitySDK.Managers.OpenedItems.TryRemoveItem(keyDefinition, count:
 
 ## Кто пользуется
 
-- `RewardItemGrantHandler` — выдача `RewardItem`
-- `LootContainer` — предметы из контейнеров
-- `ShopService` — покупки; владение у магазина общее с наградами, своего списка он не ведёт
-- `BrainrotUnlockService` — открытые брейнроты под видом `BrainrotDefinition`
+Всё, что выдаёт игроку вещи: выдача наград в ядре и системы проектного слоя — покупки,
+подарки, находки на уровне. Владение у них общее: собственных списков «что у игрока есть»
+они не ведут, иначе на один вопрос было бы несколько ответов. Отличить источник можно
+по полю `Created`.
 
 ## Что хранится
 

@@ -49,6 +49,11 @@ public partial class PRManagerContainer
     public FlagsManager Flags;
 
     /// <summary>
+    /// Предметы, которые выдаются не покупкой.
+    /// </summary>
+    public ReservedItemsManager ReservedItems;
+
+    /// <summary>
     /// Контейнер для менеджеров.   
     /// </summary>
     public PRContainer ManagerContainer;
@@ -144,6 +149,20 @@ public partial class PRManagerContainer
         {
             SelectedItems = SelectedItemsManager.Instance;
             return SelectedItems;
+        });
+    }
+
+    /// <summary>
+    /// Создаётся раньше систем, которые выдают предметы: они регистрируются в нём сами.
+    /// </summary>
+    [MethodHook(MethodHookStage.PostOperation, 42)]
+    public void InitializeReservedItemsManager()
+    {
+        PRUnitySDK.InitializeManager(() =>
+        {
+            ReservedItems = ReservedItemsManager.Instance;
+            PRUnitySDK.RegisterService(ReservedItems);
+            return ReservedItems;
         });
     }
 

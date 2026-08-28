@@ -5,9 +5,9 @@
 `ResourcePath` указывается относительно любой папки `Resources`, без `Resources/` и расширения `.prefab`:
 
 ```text
-Assets/PRUnitySDKPrivate/Resources/PRUnitySDK/Prefabs/Advertising/AdMessage.prefab
+Assets/<любая папка>/Resources/PRUnitySDK/Prefabs/Windows/MonoWindows/SomeWindow.prefab
                                       ↓
-PRUnitySDK/Prefabs/Advertising/AdMessage
+PRUnitySDK/Prefabs/Windows/MonoWindows/SomeWindow
 ```
 
 Generic-тип фабрики всегда должен совпадать с компонентом на корневом объекте prefab.

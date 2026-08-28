@@ -9,6 +9,18 @@ Reward-модель отделяет описание награды от спо
 
 При программном или Editor-создании используйте `RewardItem.Initialize`, `RewardResource.Initialize` и `RewardAction.Initialize`. Генератору не нужно обращаться к внутренним именам сериализованных полей.
 
+## Что лежит внутри награды
+
+`RewardItemCollector` разбирает награду на предметы, спускаясь по вложенным контейнерам:
+
+```csharp
+IEnumerable<string> ids = RewardItemCollector.GetItemIds(reward);
+```
+
+Нужен тем, кто хочет знать состав, не выдавая награду: так системы сообщают
+`ReservedItemsManager`, что они раздают. Повторно встреченные награды пропускаются,
+поэтому кольцо ссылок между контейнерами разбор не зациклит.
+
 ## Получение сервиса
 
 `RewardGrantService` создаётся отдельным SDK-модулем на стадии `MethodHookStage.SDK`, регистрируется как `IRewardGrantService` и доступен через:
@@ -69,13 +81,13 @@ public sealed class PetRewardGrantHandler : IRewardGrantHandler
     public bool CanHandle(RewardGrantContext context)
     {
         return context?.Reward is RewardItemBase itemReward &&
-               itemReward.Item is PetDefinition;
+               itemReward.Item is SomeItemDefinition;
     }
 
     public bool TryGrant(RewardGrantContext context)
     {
         var reward = (RewardItemBase)context.Reward;
-        return PetUnlockService.TryUnlock((PetDefinition)reward.Item);
+        return SomeUnlockService.TryUnlock((SomeItemDefinition)reward.Item);
     }
 }
 ```
@@ -162,8 +174,8 @@ vipManager.AddTime(TimeSpan.FromDays(7));   // продлит активный V
 
 ### Почему отдельный набор данных
 
-Раньше момент окончания лежал в `ProjectProperties.DateTimeProperties` вместе с произвольными датами. Из этого следовало три ограничения: награды нельзя было перечислить, об истечении никто не узнавал, а ключ мог совпасть с чужим свойством — `BoosterManager` строит его конкатенацией (`"Coins" + "_booster"`), и любое одноимённое DateTime-свойство молча перезаписало бы бустер.
+Раньше момент окончания лежал в `ProjectProperties.DateTimeProperties` вместе с произвольными датами. Из этого следовало три ограничения: награды нельзя было перечислить, об истечении никто не узнавал, а ключ мог совпасть с чужим свойством: тот, кто строит ключ конкатенацией (`"Coins" + "_booster"`), рискует получить чужое одноимённое DateTime-свойство поверх своего.
 
 Формат сохранения при переходе изменился: награды, записанные старой версией, не читаются.
 
-Для наград с несколькими логическими ключами наследник может использовать защищённые перегрузки `IsActive(name, ...)` и `AddTime(name, ...)`, а `GetName(name)` — добавить стабильный prefix/postfix к ключу сохранения. Так `BoosterManager` хранит отдельный срок для каждого типа ресурса, не дублируя алгоритм работы со временем.
+Для наград с несколькими логическими ключами наследник может использовать защищённые перегрузки `IsActive(name, ...)` и `AddTime(name, ...)`, а `GetName(name)` — добавить стабильный prefix/postfix к ключу сохранения. Так награда хранит отдельный срок для каждого своего ключа — например, по типу ресурса, — не дублируя алгоритм работы со временем.

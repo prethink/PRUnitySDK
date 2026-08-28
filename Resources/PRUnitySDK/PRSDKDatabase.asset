@@ -85,7 +85,7 @@ MonoBehaviour:
       <TriggerKey>k__BackingField:
         value: Win
       <TargetCount>k__BackingField: 1
-      <Reward>k__BackingField: {fileID: 11400000, guid: d645c5a6eca0ccc43ae2b47d9447047d,
+      <Reward>k__BackingField: {fileID: 11400000, guid: dc5ea15e32e351643961b86614378a92,
         type: 2}
       <localization>k__BackingField:
         _serializedList:
@@ -108,16 +108,11 @@ MonoBehaviour:
         _serializedList: []
   <DailyGifts>k__BackingField:
     gifts:
-    - {fileID: 11400000, guid: 561a91004ae82bc4bb039e9789a02a28, type: 2}
-    - {fileID: 11400000, guid: 58c27060678547449bde373ffbbed8c7, type: 2}
-    - {fileID: 11400000, guid: 5ded0668c6cf34c4797337dd837367b2, type: 2}
-    - {fileID: 11400000, guid: 83d242f0d0864154298473098cb5a3ec, type: 2}
+    - {fileID: 11400000, guid: dc5ea15e32e351643961b86614378a92, type: 2}
+    - {fileID: 11400000, guid: 52fde98caf79937429b85aece99070da, type: 2}
+    - {fileID: 11400000, guid: c16f6fa2f8d9b7e4ca08000e594ba089, type: 2}
   <FreeGifts>k__BackingField:
-    gifts:
-    - Item: {fileID: 11400000, guid: 72dc57552d3a2004e9d3ad72cdbc6d41, type: 2}
-      Weight: 0
-    - Item: {fileID: 11400000, guid: 9fc6f63bae2b86b49aecb4f8a1538b85, type: 2}
-      Weight: 0
+    gifts: []
     cooldownMinutes: 60
   <Obby>k__BackingField:
     <Skins>k__BackingField:
@@ -689,6 +684,40 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 3be34f68e15db65652df5d7440d2b577, type: 2}
     - {fileID: 11400000, guid: 1a4a5b1646e40f12c2b2a2760a88b8a2, type: 2}
     - {fileID: 11400000, guid: 522131a55229f7819a297dc87243b6e7, type: 2}
+    - {fileID: 11400000, guid: a7a58b5415c6580443e44347654e316f, type: 2}
+    - {fileID: 11400000, guid: 589d21d4f3867b607594eb5fefda33f3, type: 2}
+    - {fileID: 11400000, guid: 9cdf7697c1efcfe4f4b2352b4ccf1b66, type: 2}
+    - {fileID: 11400000, guid: 53afa1b13692b4646c37ef07214a5213, type: 2}
+    - {fileID: 11400000, guid: 5fffefaa21bfe18f4486217847523c5b, type: 2}
+    - {fileID: 11400000, guid: 3e0d4445df0a76e6c776f03add74776a, type: 2}
+    - {fileID: 11400000, guid: 31d8e395105fd8c6c0c4e44acb374d83, type: 2}
+    - {fileID: 11400000, guid: 11d2e67abc8a48b26d877a19659a6662, type: 2}
+    - {fileID: 11400000, guid: d1541e04157f2313c5484ca9e34f19a5, type: 2}
+    - {fileID: 11400000, guid: cb468d2115eddd9cd92f3c06e42552d1, type: 2}
+    - {fileID: 11400000, guid: 59fdec728608c8c0998becbe2234d66b, type: 2}
+    - {fileID: 11400000, guid: 01b9c0d99adc219f9eb1286a55f75907, type: 2}
+    - {fileID: 11400000, guid: 45a4d2e5a9d2fdcfe95e894aab1dc734, type: 2}
+    - {fileID: 11400000, guid: 94cf4c55d2ba8e72bf83d18ddbf48a28, type: 2}
+    - {fileID: 11400000, guid: 4cb216f1329e8eda40dc0d6c281cd3ad, type: 2}
+    - {fileID: 11400000, guid: c19c4ae6bef8ae31ce37d924da15c75d, type: 2}
+    - {fileID: 11400000, guid: cf79d3e1bb34bb4186eac1d79ba58793, type: 2}
+    - {fileID: 11400000, guid: 62b74c0329646a692a4ebffa93728c4d, type: 2}
+    - {fileID: 11400000, guid: 0bedfdc77f8d372f8e839ff38c5af54c, type: 2}
+    - {fileID: 11400000, guid: e3b106c297897bb84af06e404df7f142, type: 2}
+    - {fileID: 11400000, guid: ba14670d0bfbfca204f714d02c8a6ad8, type: 2}
+    - {fileID: 11400000, guid: c2afe88d2d87f9ea7cfd7ce6a099b25a, type: 2}
+    - {fileID: 11400000, guid: 78ea2bfe65ffc09a40db541ba73a11f9, type: 2}
+    - {fileID: 11400000, guid: 877f3ef46aecfc8d4a1314519dc8d80f, type: 2}
+    - {fileID: 11400000, guid: df858c5f65c256288eb4eb0ac11adad6, type: 2}
+    - {fileID: 11400000, guid: 841c6c77b9971c51514f807cc7650d43, type: 2}
+    - {fileID: 11400000, guid: e6185bc7f9b291b32e49a8eb0db54ff5, type: 2}
+    - {fileID: 11400000, guid: 0fdd8d5aaa801aaa3305a10252c19b4e, type: 2}
+    - {fileID: 11400000, guid: f8ad63b946f737ec8b1969ca63c9afb6, type: 2}
+    - {fileID: 11400000, guid: 5033ee4a577be2e18135d9d94c1c67b8, type: 2}
+    - {fileID: 11400000, guid: 7d13cdf1ff0633c4d6033c61f2218531, type: 2}
+    - {fileID: 11400000, guid: eb2d13315c4a030cd77071333703d057, type: 2}
+    - {fileID: 11400000, guid: c5cba3975362c731e1972de71488a486, type: 2}
+    - {fileID: 11400000, guid: 47b9ea7a45aa52378fb7773618a2a12d, type: 2}
   <Weapons>k__BackingField:
     meleeWeapons: []
     rangedWeapons: []

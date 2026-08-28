@@ -167,7 +167,8 @@ EventBus.RaiseEvent<IMonoWindowEvents>(events =>
 - не сохраняйте ссылку на `MonoWindowArgsEmpty`: создавайте пустые параметры через трекер;
 - для закрытия при смене сцены используйте `HideForceAllWindows()`.
 
-## Готовые окна проекта
+## Готовые окна
 
-- [BrainrotInfoWindow](../../../../PRUnitySDKPrivate/Windows/MonoWindows/BrainrotInfo/README.md) — карточка
-  `BrainrotDefinition` из `PRSDKDatabase`.
+Ядро окон не содержит: каждое окно живёт в своём модуле проектного слоя и подключается
+partial-файлом `PRWindowsContainer`. Здесь описан только контракт `MonoWindowBase`,
+трекер окон и параметры показа.

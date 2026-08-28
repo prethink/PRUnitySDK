@@ -12,12 +12,17 @@
 | [SoundManager](SoundManager/README.md) | `PRUnitySDK.Managers.Sound` | музыка, UI-звуки, 2D/3D-эффекты и звуковые категории |
 | `AudioMixerManager` | `PRUnitySDK.Managers.AudioMixer` | пользовательский и системный mute; находится в модуле `SoundManager` |
 | [OpenedItemsManager](OpenedItemsManager/README.md) | `PRUnitySDK.Managers.OpenedItems` | что открыто и сколько его есть: `ProjectData.OpenedItems`, с делением по видам |
+| [SelectedItemsManager](SelectedItemsManager/README.md) | `PRUnitySDK.Managers.SelectedItems` | что из имеющегося надето у каждого локального игрока |
+| [ReservedItemsManager](ReservedItemsManager/README.md) | `PRUnitySDK.Managers.ReservedItems` | предметы, которые выдаются не покупкой: награды, подарки, кейсы |
 | [CursorManager](CursorManager/README.md) | `CursorManager.Instance` | конкурирующие запросы состояния системного курсора |
 | [PRManagerContainer](PRManagerContainer/README.md) | `PRUnitySDK.Managers` | создание, порядок и расширение набора менеджеров |
-| [BoosterManager](../../../PRUnitySDKPrivate/Modules/Boosters/README.md) | `PRUnitySDK.Managers.Booster` | private-модуль временных множителей ресурсов |
-| [VipManager](../../../PRUnitySDKPrivate/Modules/VIP/README.md) | `PRUnitySDK.Managers.Vip` | private-модуль временного VIP-статуса |
 
-Контейнер также публикует менеджеры из соседних подсистем: `ObjectPool` и `Flags`. Модули могут добавлять новые поля и инициализаторы через partial-файлы `PRManagerContainer`.
+Контейнер также публикует менеджеры из соседних подсистем: `ObjectPool` и `Flags`.
+
+Проектный слой добавляет к этому набору свои менеджеры — бустеры, VIP, рекламу, покупки —
+partial-файлами `PRManagerContainer` рядом со своим модулем. В таблице выше их нет
+намеренно: публичное ядро о них не знает и работает без них. Как подключить свой —
+ниже, в разделе «Добавление менеджера».
 
 ## Жизненный цикл и доступ
 

@@ -124,7 +124,7 @@ Helpers меняют только переданный `SerializedProperty`. В�
 
 - `PRDebugEditor` использует toolbar и раздельную отрисовку адаптивных вкладок;
 - `LocalizationWindow` использует готовый `Tabs(...)`;
-- private `AchievementDatabaseWindowEditor` использует `SplitRow` и property helpers.
+- окна проектного слоя используют `SplitRow` и property helpers.
 
 Новые универсальные Editor helpers можно добавлять в эту базу, если они не зависят от
 конкретного модуля или private SDK. Специализированное поведение лучше оставлять в самом окне.

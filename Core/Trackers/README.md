@@ -45,13 +45,13 @@ bool contains = tracker.Contains(element);
 PlayerTracker players = PRUnitySDK.Trackers.Players;
 
 int activePlayers = players.PlayersCount;
-PlayerLocal firstLocal = players.GetLocalPlayer(0);
+var firstLocal = players.GetLocalPlayer(0);
 ```
 
 Локальные игроки — слоты разделённого экрана, их идентификаторы и раскладки ввода —
-живут в partial-расширении приватного слоя (`PlayerTracker.Local.cs`) рядом с самим
-`PlayerLocal`. Публичная часть трекера о нём не знает и зовёт расширение через
-partial-хуки, поэтому без приватного слоя трекер по-прежнему собирается — просто
+живут в partial-расширении проектного слоя (`PlayerTracker.Local.cs`) — там же, где
+и сам класс локального игрока. Публичная часть трекера о нём не знает и зовёт расширение
+через partial-хуки, поэтому без проектного слоя трекер по-прежнему собирается — просто
 локальных слотов в нём нет.
 
 Для локальных игроков доступно не более `MaxLocalPlayer` слотов. Регистрация нового

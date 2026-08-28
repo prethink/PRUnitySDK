@@ -69,12 +69,12 @@ ValueChange<long> change = resources.SetValue("Coin", 100);
 
 ## ISaveable
 
-Часть состояния живёт не в `ProjectData`, а в самих объектах сцены: брейнрот, стоящий
-на холдере, и накопленные им деньги. Такой объект перекладывает своё состояние в данные
+Часть состояния живёт не в `ProjectData`, а в самих объектах сцены: что стоит на площадке
+и сколько она успела накопить. Такой объект перекладывает своё состояние в данные
 проекта по запросу.
 
 ```csharp
-public class BrainrotHolder : PRMonoBehaviour
+public class SomeSceneObject : PRMonoBehaviour
 {
     public override bool TrySaveData() { /* переложить состояние в ProjectData */ }
 }

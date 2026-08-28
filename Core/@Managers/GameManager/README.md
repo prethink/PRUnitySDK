@@ -36,12 +36,20 @@ PRUnitySDK.Managers.Game.ReadySignal.SubscribeOnReady(() =>
 - не запускает второе сохранение параллельно;
 - для обычного вызова учитывает `PRUnitySDK.Settings.GameStorage.SaveCooldownSeconds`;
 - `StartSaveTask(isUserExecuter: true)` обходит cooldown, но не защиту от параллельного сохранения;
-- сначала ожидает все `PRUnitySDK.Trackers.Saveables`;
+- сначала синхронно собирает состояние всех `PRUnitySDK.Trackers.Saveables`: сломавшийся
+  объект попадает в лог, но не отменяет сохранение остальных;
 - на главном потоке публикует `RaiseBeforeSaveEvent`, обновляет storage, вызывает `Save()` и затем `RaiseSaveEvent`.
 
 Метод имеет сигнатуру `async void`, поэтому вызывающий код не может дождаться его завершения или получить исключение как `Task`. Исключения внутри сохранения логируются через `Debug.LogException`.
 
-`SaveProjectData()` и `SaveGameSettingsData()` передают в storage только соответствующую модель с флагом немедленного обновления. Для согласованного сохранения обеих моделей и `ISaveable` используйте `StartSaveTask()`.
+`SaveProjectData(bool ignoreCooldown)` идёт полным путём — тем же `StartSaveTask()`, — потому
+что часть состояния живёт не в `ProjectData`, а в объектах сцены и попадает туда только
+через `ISaveable.TrySaveData()`. Запись без сбора кладёт на диск копию без них
+и вдобавок сдвигает cooldown, из-за чего автосохранение, которое собрало бы состояние,
+откладывается.
+
+`SaveGameSettingsData()` по-прежнему передаёт в storage только настройки: они ни от каких
+объектов сцены не зависят.
 
 Все три пути обновляют диагностику менеджера. `SaveState` принимает значения `NotStarted`, `Saving`, `Succeeded` и `Failed`; `HasLoadedSave` сообщает, был ли при запуске успешно загружен существующий save. Стандартные storage сохраняют дату создания в `PRSaveData.SaveDate`, а дату записи — в `UpdateDate`, поэтому `SaveCreationTimeUtc` и `LastSaveTimeUtc` восстанавливаются после перезапуска. Для custom storage метаданные доступны через необязательный `IGameDataStorageSaveInfo`.
 
@@ -58,7 +66,7 @@ Autosave включается настройкой `GameStorage.EnabledAutoSave`
 | `GetGameSettings()` | возвращает пользовательские настройки игры |
 | `GetStorageSettings()` | возвращает `PRUnitySDK.Settings.GameStorage` |
 | `StartSaveTask(bool)` | запускает полное асинхронное сохранение |
-| `SaveProjectData()` | передаёт текущий `ProjectData` в storage |
+| `SaveProjectData(bool)` | полное сохранение: сбор состояния сцены и запись, с возможностью обойти cooldown |
 | `SaveGameSettingsData()` | передаёт текущий `GameSettings` в storage |
 | `SaveState` | состояние save-операций текущей сессии |
 | `HasLoadedSave` | был ли существующий save успешно загружен в текущей сессии |
