@@ -110,3 +110,17 @@ bool spent = PRUnitySDK.Managers.OpenedItems.TryRemoveItem(keyDefinition, count:
 и раньше попадал только идентификатор, а при загрузке на месте предмета оказывалась
 пустая заглушка — строка честнее показывает, что там на самом деле. Определение по нему
 берут из каталога, когда оно нужно.
+
+Идентификатор — произвольная строка, а не обязательно GUID. Предметы каталогов получают
+сгенерированный GUID, но у ресурса это ключ его `Enumeration`:
+
+```csharp
+public class YandexCurrencyDefinition : ResourceItemDefinitionBase
+{
+    public override string Id => ResourceEnumerationProvider.Yan.Value;   // "Yan"
+}
+```
+
+Поэтому менеджер сравнивает идентификаторы как строки и нигде их не разбирает. Не
+добавляйте проверок вида `Guid.TryParse(id)`: они молча отсекут всё, кроме предметов
+каталогов.

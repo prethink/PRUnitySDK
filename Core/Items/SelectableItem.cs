@@ -13,7 +13,16 @@ public class SelectableItem : ISelectableItem
 
     public void GenerateIdIfNull() { }
 
-    public bool IsValid => Guid.TryParse(Id, out var _);
+    /// <summary>
+    /// У предмета есть идентификатор.
+    /// </summary>
+    /// <remarks>
+    /// Проверяется наличие строки, а не формат GUID: идентификатором бывает и ключ
+    /// перечисления — например, у валют. Прежняя проверка через <c>Guid.TryParse</c>
+    /// считала такие предметы невалидными.
+    /// </remarks>
+    public bool IsValid => !string.IsNullOrWhiteSpace(Id) && Id != Guid.Empty.ToString();
+
 
     public static ISelectableItem Create(string id)
     {

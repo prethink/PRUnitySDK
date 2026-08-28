@@ -47,6 +47,20 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
     /// сработал бы сразу во всех, где что-то выделено.
     /// </remarks>
     private string activeSectionKey;
+
+    /// <summary>
+    /// Дополнительные блоки модулей под инспектором выбранного ассета.
+    /// </summary>
+    /// <remarks>
+    /// Ищутся один раз: окно не знает про магазин и другие надстройки, а они показывают
+    /// свои настройки рядом с предметом — чтобы всё настраивалось в одном месте.
+    /// </remarks>
+    private IDatabaseAssetInspector[] assetInspectors;
+
+    /// <summary>
+    /// Метки модулей на карточках сетки.
+    /// </summary>
+    private IDatabaseCardBadge[] cardBadges;
     private readonly Dictionary<string, UnityEditor.Editor> selectedAssetEditors = new();
     [SerializeField] private PRSDKDatabase database;
     [SerializeField] private float gridSplit = 0.58f;
@@ -86,6 +100,11 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         public bool SortDescending;
         public int QualityFilter = -1;
         public bool InvalidOnly;
+
+        /// <summary>
+        /// Вид элемента, по которому отфильтрована сетка. Пусто — показывать все.
+        /// </summary>
+        public string CategoryFilter = string.Empty;
     }
 
     private readonly struct AssetCardEntry
@@ -636,7 +655,7 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                        GUILayout.Height(panelHeight)))
             {
                 DrawSingleAssetField(sectionKey, data, elementType);
-                DrawAssetGridToolbar(viewState, visibleEntries.Length, data.arraySize);
+                DrawAssetGridToolbar(viewState, visibleEntries.Length, data.arraySize, CollectCategories(data));
 
                 Vector2 gridScroll = GetScrollPosition(gridScrollPositions, sectionKey);
                 using (var gridScrollView = new EditorGUILayout.ScrollViewScope(
@@ -680,7 +699,8 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
     private static void DrawAssetGridToolbar(
         AssetGridViewState state,
         int visibleCount,
-        int totalCount)
+        int totalCount,
+        string[] categories)
     {
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
@@ -705,6 +725,8 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                 state.QualityFilter = DrawQualityFilter(state.QualityFilter);
             }
 
+            DrawCategoryFilter(state, categories);
+
             using (new EditorGUILayout.HorizontalScope())
             {
                 state.InvalidOnly = GUILayout.Toggle(
@@ -718,6 +740,84 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                     GUILayout.Width(48f));
             }
         }
+    }
+
+    /// <summary>
+    /// Вид элемента каталога.
+    /// </summary>
+    /// <remarks>
+    /// Пусто у элементов, которые о видах не заявляют: каталог однородных предметов
+    /// фильтровать незачем.
+    /// </remarks>
+    private static string GetAssetCategory(UnityEngine.Object asset)
+    {
+        return asset is IDatabaseCategoryProvider provider ? provider.DatabaseCategory ?? string.Empty : string.Empty;
+    }
+
+    /// <summary>
+    /// Виды, встречающиеся в каталоге.
+    /// </summary>
+    private static string[] CollectCategories(SerializedProperty data)
+    {
+        var categories = new SortedSet<string>(StringComparer.Ordinal);
+
+        for (int index = 0; index < data.arraySize; index++)
+        {
+            string category = GetAssetCategory(data.GetArrayElementAtIndex(index).objectReferenceValue);
+
+            if (!string.IsNullOrEmpty(category))
+                categories.Add(category);
+        }
+
+        return categories.ToArray();
+    }
+
+    /// <summary>
+    /// Рисует выбор вида.
+    /// </summary>
+    /// <remarks>
+    /// Появляется только там, где видов больше одного: в каталоге шапок фильтр
+    /// по «шапке» ничего не даёт.
+    /// </remarks>
+    private static void DrawCategoryFilter(AssetGridViewState state, string[] categories)
+    {
+        if (categories.Length < 2)
+        {
+            state.CategoryFilter = string.Empty;
+            return;
+        }
+
+        var labels = new string[categories.Length + 1];
+        labels[0] = "Все";
+
+        for (int index = 0; index < categories.Length; index++)
+            labels[index + 1] = Nicify(categories[index]);
+
+        int selected = System.Array.IndexOf(categories, state.CategoryFilter) + 1;
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            EditorGUILayout.LabelField("Вид", GUILayout.Width(76f));
+            selected = EditorGUILayout.Popup(Mathf.Clamp(selected, 0, categories.Length), labels);
+        }
+
+        state.CategoryFilter = selected <= 0 ? string.Empty : categories[selected - 1];
+    }
+
+    /// <summary>
+    /// Убирает у имени типа служебный суффикс.
+    /// </summary>
+    /// <remarks>
+    /// В списке читается «Hat», а не «HatDefinition»: слово повторяется у каждого вида
+    /// и ничего не различает.
+    /// </remarks>
+    private static string Nicify(string category)
+    {
+        const string suffix = "Definition";
+
+        return category.EndsWith(suffix, StringComparison.Ordinal) && category.Length > suffix.Length
+            ? category.Substring(0, category.Length - suffix.Length)
+            : category;
     }
 
     private static int DrawQualityFilter(int qualityFilter)
@@ -751,6 +851,12 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
             if (state.QualityFilter >= 0 &&
                 (asset is not IQualityProvider qualityProvider ||
                  (int)qualityProvider.Quality != state.QualityFilter))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(state.CategoryFilter) &&
+                GetAssetCategory(asset) != state.CategoryFilter)
             {
                 continue;
             }
@@ -911,8 +1017,10 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         else
             GUI.Label(iconRect, asset == null ? "NULL" : "Нет иконки", EditorStyles.centeredGreyMiniLabel);
 
-        Rect labelRect = new(cardRect.x + 6f, iconRect.yMax + 5f, cardRect.width - 12f, 34f);
+        Rect labelRect = new(cardRect.x + 6f, iconRect.yMax + 5f, cardRect.width - 12f, 30f);
         GUI.Label(labelRect, GetAssetName(asset), cardNameStyle);
+
+        DrawCardBadges(cardRect, asset);
 
         if (isInvalid)
         {
@@ -922,6 +1030,152 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                 badgeRect,
                 new GUIContent("!", "Есть проблемы валидации"),
                 invalidBadgeStyle);
+        }
+    }
+
+    /// <summary>
+    /// Находит блоки модулей.
+    /// </summary>
+    private IDatabaseAssetInspector[] GetAssetInspectors()
+    {
+        if (assetInspectors != null)
+            return assetInspectors;
+
+        assetInspectors = TypeCache.GetTypesDerivedFrom<IDatabaseAssetInspector>()
+            .Where(type => !type.IsAbstract && !type.IsInterface && type.GetConstructor(Type.EmptyTypes) != null)
+            .Select(type =>
+            {
+                try
+                {
+                    return (IDatabaseAssetInspector)Activator.CreateInstance(type);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError($"[PRSDKDatabase] Блок «{type.Name}» не создан: {exception.Message}");
+                    return null;
+                }
+            })
+            .Where(inspector => inspector != null)
+            .OrderBy(inspector => inspector.Order)
+            .ToArray();
+
+        return assetInspectors;
+    }
+
+    /// <summary>
+    /// Находит метки модулей.
+    /// </summary>
+    private IDatabaseCardBadge[] GetCardBadges()
+    {
+        if (cardBadges != null)
+            return cardBadges;
+
+        cardBadges = TypeCache.GetTypesDerivedFrom<IDatabaseCardBadge>()
+            .Where(type => !type.IsAbstract && !type.IsInterface && type.GetConstructor(Type.EmptyTypes) != null)
+            .Select(type =>
+            {
+                try
+                {
+                    return (IDatabaseCardBadge)Activator.CreateInstance(type);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError($"[PRSDKDatabase] Метка «{type.Name}» не создана: {exception.Message}");
+                    return null;
+                }
+            })
+            .Where(badge => badge != null)
+            .OrderBy(badge => badge.Order)
+            .ToArray();
+
+        return cardBadges;
+    }
+
+    /// <summary>
+    /// Рисует метки модулей в нижней полосе карточки.
+    /// </summary>
+    /// <remarks>
+    /// Метки идут слева направо и обрезаются по ширине карточки: лучше показать первую
+    /// целиком, чем две половинками.
+    /// </remarks>
+    private void DrawCardBadges(Rect cardRect, UnityEngine.Object asset)
+    {
+        if (asset == null)
+            return;
+
+        const float height = 18f;
+        const float padding = 5f;
+
+        float x = cardRect.x + padding;
+        float limit = cardRect.xMax - padding;
+        float y = cardRect.yMax - height - 3f;
+
+        foreach (IDatabaseCardBadge badge in GetCardBadges())
+        {
+            try
+            {
+                if (!badge.CanDraw(asset))
+                    continue;
+
+                float width = Mathf.Max(0f, badge.GetWidth(asset));
+
+                if (width <= 0f || x + width > limit)
+                    continue;
+
+                badge.Draw(new Rect(x, y, width, height), asset);
+                x += width + 3f;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"[PRSDKDatabase] Метка «{badge.GetType().Name}» не нарисована: {exception.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Рисует блоки модулей под инспектором ассета.
+    /// </summary>
+    /// <remarks>
+    /// Каждый блок изолирован: исключение в надстройке не должно ронять отрисовку окна
+    /// целиком.
+    /// </remarks>
+    private void DrawAssetInspectorExtensions(UnityEngine.Object asset)
+    {
+        if (asset == null)
+            return;
+
+        foreach (IDatabaseAssetInspector inspector in GetAssetInspectors())
+        {
+            bool draws;
+
+            try
+            {
+                draws = inspector.CanDraw(asset);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"[PRSDKDatabase] Блок «{inspector.GetType().Name}» опрошен с ошибкой: {exception.Message}");
+                continue;
+            }
+
+            if (!draws)
+                continue;
+
+            EditorGUILayout.Space(6f);
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                try
+                {
+                    inspector.Draw(asset);
+                }
+                catch (Exception exception)
+                {
+                    EditorGUILayout.HelpBox(
+                        $"Блок «{inspector.GetType().Name}» не нарисован: {exception.Message}",
+                        MessageType.Error);
+                }
+            }
         }
     }
 
@@ -1140,6 +1394,7 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
             try
             {
                 GetOrCreateAssetEditor(sectionKey, selected)?.OnInspectorGUI();
+                DrawAssetInspectorExtensions(selected);
             }
             finally
             {
