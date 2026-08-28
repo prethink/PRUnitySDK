@@ -291,17 +291,30 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     }
 
-    public void SaveProjectData()
+    /// <summary>
+    /// Сохраняет проектные данные.
+    /// </summary>
+    /// <remarks>
+    /// Кулдаун бережёт диск и облако от частых записей, но подходит не всему. Покупка
+    /// за ресурсы или отключение рекламы должны лечь на диск сразу: игрок уже заплатил,
+    /// и потерять это при закрытии вкладки нельзя.
+    /// </remarks>
+    /// <param name="ignoreCooldown">Сохранить не дожидаясь окончания кулдауна.</param>
+    public void SaveProjectData(bool ignoreCooldown = false)
     {
-        if (!CanStartSave())
+        if (!CanStartSave(ignoreCooldown))
             return;
 
         ExecuteImmediateSave(() => gameDataStorage.UpdateProjectData(projectData, true));
     }
 
-    public void SaveGameSettingsData()
+    /// <summary>
+    /// Сохраняет настройки игры.
+    /// </summary>
+    /// <param name="ignoreCooldown">Сохранить не дожидаясь окончания кулдауна.</param>
+    public void SaveGameSettingsData(bool ignoreCooldown = false)
     {
-        if (!CanStartSave())
+        if (!CanStartSave(ignoreCooldown))
             return;
 
         ExecuteImmediateSave(() => gameDataStorage.UpdateGameSettings(gameSettings, true));

@@ -30,7 +30,7 @@ public sealed class RewardItemGrantHandler : IRewardGrantHandler
         }
 
         string source = typeof(RewardGrantService).FullName;
-        return openedItems.AddOpenItem(
+        return openedItems.Add(
             source,
             reward.Item,
             (int)context.Multiplier,

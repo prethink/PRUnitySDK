@@ -325,7 +325,8 @@ PRUnitySDK/
 
 - [SDK](Core/SDK/README.md) — facade, инициализация и service resolver
 - [ResourcePaths](Core/ResourcePaths/README.md) — канонические пути к runtime-ресурсам и правила расширения
-- [Окна Database и Settings](Core/Editor/README.md) — секции, поиск, заполнение каталогов и валидация definitions
+- [Окна Database и Settings](Core/Editor/README.md) — секции, поиск, заполнение каталогов, валидация definitions
+  и [наборы состава базы](Core/Editor/DATABASE-PRESETS.md) для разных игр
 - [Attributes](Core/@Attributes/README.md) — method hooks, переопределение сервисов и расширение Inspector
 - [Actions](Core/@Actions/README.md) — переиспользуемые действия с единым контрактом проверки и выполнения
 - [EventBus](Core/@Events/EventBus/README.md) — типизированная шина уведомлений о произошедшем

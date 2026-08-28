@@ -18,7 +18,8 @@ public class WalletResources
         WalletService.Instance.Add(currency, amount, save);
     }
 
-    public bool Buy(ResourceItemDefinition resource, long amount)
+    /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
+    public bool Buy(ResourceItemDefinition resource, long amount, bool ignoreSaveCooldown = false)
     {
         if (!TryGetCurrency(resource, out Enumeration currency))
         {
@@ -26,7 +27,7 @@ public class WalletResources
             return false;
         }
 
-        return WalletService.Instance.Buy(currency, amount);
+        return WalletService.Instance.Buy(currency, amount, ignoreSaveCooldown);
     }
 
     public bool CanBuy(ResourceItemDefinition resource, long amount)

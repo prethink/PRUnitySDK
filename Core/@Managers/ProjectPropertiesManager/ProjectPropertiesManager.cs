@@ -29,9 +29,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// сразу вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
     /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
-    public void SetDateTime(string name, DateTime value, bool save = true, bool requiredNotify = true)
+    public void SetDateTime(string name, DateTime value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
-        SetValue(name, value, save, requiredNotify);
+        SetValue(name, value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -39,9 +39,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
     /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
-    public void SetLong(string name, long value, bool save = true, bool requiredNotify = true)
+    public void SetLong(string name, long value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
-        SetValue(name, value, save, requiredNotify);
+        SetValue(name, value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -49,10 +49,10 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// не было) и сохраняет результат через SetLong. Удобно для счётчиков
     /// (например, суммарное количество монет), где не нужно читать-менять-писать вручную.
     /// </summary>
-    public void AddLong(string name, long value, bool save = true, bool requiredNotify = true)
+    public void AddLong(string name, long value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         TryGetLong(name, out var currentValue);
-        SetLong(name, value + currentValue, save, requiredNotify);
+        SetLong(name, value + currentValue, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -60,9 +60,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
     /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
-    public void SetString(string name, string value, bool save = true, bool requiredNotify = true)
+    public void SetString(string name, string value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
-        SetValue(name, value, save, requiredNotify);
+        SetValue(name, value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -70,9 +70,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
     /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
-    public void SetFloat(string name, float value, bool save = true, bool requiredNotify = true)
+    public void SetFloat(string name, float value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
-        SetValue(name, value, save, requiredNotify);
+        SetValue(name, value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -80,10 +80,10 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// не было) и сохраняет результат через SetFloat. Аналог AddLong для float -
     /// например, накопление игрового времени или прогресса, измеряемого дробным числом.
     /// </summary>
-    public void AddFloat(string name, float value, bool save = true, bool requiredNotify = true)
+    public void AddFloat(string name, float value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         TryGetFloat(name, out var currentValue);
-        SetFloat(name, value + currentValue, save, requiredNotify);
+        SetFloat(name, value + currentValue, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -91,9 +91,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
     /// будет ли разослано уведомление об изменении (см. описание класса).
     /// </summary>
-    public void SetBool(string name, bool value, bool save = true, bool requiredNotify = true)
+    public void SetBool(string name, bool value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
-        SetValue(name, value, save, requiredNotify);
+        SetValue(name, value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -101,12 +101,12 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// Тип T задаётся ключом, поэтому не нужно вызывать конкретный SetLong/SetFloat/...
     /// вручную — попадёт в тот же словарь, что и остальные Set*/TryGet*-методы для этого T.
     /// </summary>
-    public void SetValue<T>(EnumerationType<T> enumerationType, T value, bool save = true, bool requiredNotify = true)
+    public void SetValue<T>(EnumerationType<T> enumerationType, T value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         if (enumerationType == null)
             throw new ArgumentNullException(nameof(enumerationType));
 
-        SetValue(enumerationType.Value, value, save, requiredNotify);
+        SetValue(enumerationType.Value, value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -115,15 +115,17 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// через GetProperties&lt;T&gt;() - добавление нового типа свойства требует
     /// правки только GetProperties&lt;T&gt;(), а не каждого Set/TryGet/Remove по отдельности.
     /// </summary>
-    public void SetValue<T>(string name, T value, bool save = true, bool requiredNotify = true)
+    public void SetValue<T>(string name, T value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         // ProjectDataMap сам сравнивает старое значение с новым и возвращает предыдущее:
         // менеджеру не нужно ни читать словарь до записи, ни держать собственную
         // логику сравнения - она общая с ResourceManager.
         var change = GetMap<T>().SetValue(name, value);
 
+        // Кулдаун пропускается по требованию вызывающего: обычная настройка подождёт
+        // общего расписания, а покупка за ресурсы должна лечь на диск сразу.
         if (save)
-            GameManager.Instance.SaveProjectData();
+            GameManager.Instance.SaveProjectData(ignoreSaveCooldown);
 
         // Уведомление идёт после сохранения, чтобы подписчик видел уже зафиксированное
         // состояние, и только при фактическом изменении: повторная установка того же
@@ -262,19 +264,19 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Перегрузка AddLong для типизированного ключа <see cref="EnumerationType{T}"/> с T = long.
     /// </summary>
-    public void AddLong(EnumerationType<long> enumerationType, long value, bool save = true, bool requiredNotify = true)
+    public void AddLong(EnumerationType<long> enumerationType, long value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         TryGetValue(enumerationType, out var currentValue);
-        SetValue(enumerationType, value + currentValue, save, requiredNotify);
+        SetValue(enumerationType, value + currentValue, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
     /// Перегрузка AddFloat для типизированного ключа <see cref="EnumerationType{T}"/> с T = float.
     /// </summary>
-    public void AddFloat(EnumerationType<float> enumerationType, float value, bool save = true, bool requiredNotify = true)
+    public void AddFloat(EnumerationType<float> enumerationType, float value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         TryGetValue(enumerationType, out var currentValue);
-        SetValue(enumerationType, value + currentValue, save, requiredNotify);
+        SetValue(enumerationType, value + currentValue, save, ignoreSaveCooldown, requiredNotify);
     }
 
     /// <summary>
@@ -306,7 +308,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// от предыдущей версии, save/notify вызываются только если что-то РЕАЛЬНО было
     /// удалено, а неизвестный type логируется вместо тихого игнорирования.
     /// </summary>
-    public void RemoveProperty(string propertyName, Type type, bool save = true, bool requiredNotify = true)
+    public void RemoveProperty(string propertyName, Type type, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         bool removed;
 
@@ -332,8 +334,10 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
         if (!removed)
             return; // свойства с таким именем и не было - не тратим save/notify впустую
 
+        // Кулдаун пропускается по требованию вызывающего: обычная настройка подождёт
+        // общего расписания, а покупка за ресурсы должна лечь на диск сразу.
         if (save)
-            GameManager.Instance.SaveProjectData();
+            GameManager.Instance.SaveProjectData(ignoreSaveCooldown);
 
         if (requiredNotify)
             ProjectPropertyEvents.RaiseRemoved(propertyName, type);
@@ -345,15 +349,17 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// без ветвления по typeof(T) и без отдельной проверки поддерживаемых типов
     /// (её уже делает GetProperties&lt;T&gt;(), бросая NotSupportedException).
     /// </summary>
-    public void RemoveProperty<T>(string propertyName, bool save = true, bool requiredNotify = true)
+    public void RemoveProperty<T>(string propertyName, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         var removed = GetMap<T>().TryRemoveValue(propertyName, out _);
 
         if (!removed)
             return;
 
+        // Кулдаун пропускается по требованию вызывающего: обычная настройка подождёт
+        // общего расписания, а покупка за ресурсы должна лечь на диск сразу.
         if (save)
-            GameManager.Instance.SaveProjectData();
+            GameManager.Instance.SaveProjectData(ignoreSaveCooldown);
 
         if (requiredNotify)
             ProjectPropertyEvents.RaiseRemoved(propertyName, typeof(T));
@@ -362,12 +368,12 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>
     /// Удаляет свойство по типизированному ключу <see cref="EnumerationType{T}"/>.
     /// </summary>
-    public void RemoveProperty<T>(EnumerationType<T> enumerationType, bool save = true, bool requiredNotify = true)
+    public void RemoveProperty<T>(EnumerationType<T> enumerationType, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
     {
         if (enumerationType == null)
             throw new ArgumentNullException(nameof(enumerationType));
 
-        RemoveProperty<T>(enumerationType.Value, save, requiredNotify);
+        RemoveProperty<T>(enumerationType.Value, save, ignoreSaveCooldown, requiredNotify);
     }
 
     #endregion

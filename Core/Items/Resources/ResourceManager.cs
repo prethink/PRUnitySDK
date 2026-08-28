@@ -86,7 +86,8 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// <param name="value">Значение.</param>
     /// <param name="requiredNotify">Признак того, что требуется оповестить об изменение ресурса.</param>
     /// <param name="requiredSaveNow">Признак того, что требуется сохранить данные после изменения ресурса.</param>
-    public void SetOrUpdateResource(Enumeration resourceType, long value, bool requiredNotify = false, bool requiredSaveNow = false)
+    /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
+    public void SetOrUpdateResource(Enumeration resourceType, long value, bool requiredNotify = false, bool requiredSaveNow = false, bool ignoreSaveCooldown = false)
     {
         if (!TryGetResourceName(resourceType, out var resourceName))
             return;
@@ -95,8 +96,11 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         if (!change.Changed)
             return;
 
+        // requiredSaveNow просит записать данные, но кулдаун при этом соблюдается:
+        // внутри него вызов просто ничего не сделает и изменение уйдёт со следующим
+        // сохранением. Обойти кулдаун можно только явно - ignoreSaveCooldown.
         if (requiredSaveNow)
-            GameManager.Instance.SaveProjectData();
+            GameManager.Instance.SaveProjectData(ignoreSaveCooldown);
 
         if (requiredNotify)
         {
@@ -115,12 +119,13 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         ResourceItemDefinition resource,
         long value,
         bool requiredNotify = false,
-        bool requiredSaveNow = false)
+        bool requiredSaveNow = false,
+        bool ignoreSaveCooldown = false)
     {
         if (!TryGetResourceType(resource, out var resourceType))
             return;
 
-        SetOrUpdateResource(resourceType, value, requiredNotify, requiredSaveNow);
+        SetOrUpdateResource(resourceType, value, requiredNotify, requiredSaveNow, ignoreSaveCooldown);
     }
 
     /// <summary>
@@ -130,11 +135,12 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// <param name="addValue">Добавляемое значение.</param>
     /// <param name="requiredNotify">Нужно ли публиковать событие изменения.</param>
     /// <param name="requiredSaveNow">Нужно ли сразу сохранять ProjectData.</param>
-    public void AddResourceValue(Enumeration resourceType, long addValue, bool requiredNotify = false, bool requiredSaveNow = false)
+    /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
+    public void AddResourceValue(Enumeration resourceType, long addValue, bool requiredNotify = false, bool requiredSaveNow = false, bool ignoreSaveCooldown = false)
     {
         long startValue = GetResource(resourceType);
         var targetValue = startValue + addValue;
-        SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSaveNow);
+        SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSaveNow, ignoreSaveCooldown);
     }
 
     /// <summary>
@@ -144,12 +150,13 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         ResourceItemDefinition resource,
         long addValue,
         bool requiredNotify = false,
-        bool requiredSaveNow = false)
+        bool requiredSaveNow = false,
+        bool ignoreSaveCooldown = false)
     {
         if (!TryGetResourceType(resource, out var resourceType))
             return;
 
-        AddResourceValue(resourceType, addValue, requiredNotify, requiredSaveNow);
+        AddResourceValue(resourceType, addValue, requiredNotify, requiredSaveNow, ignoreSaveCooldown);
     }
 
     /// <summary>
@@ -159,7 +166,8 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         Enumeration resourceType,
         long amount,
         bool requiredNotify = false,
-        bool requiredSaveNow = false)
+        bool requiredSaveNow = false,
+        bool ignoreSaveCooldown = false)
     {
         if (!TryGetResourceName(resourceType, out _))
             return false;
@@ -178,7 +186,8 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
             resourceType,
             currentValue - amount,
             requiredNotify,
-            requiredSaveNow);
+            requiredSaveNow,
+            ignoreSaveCooldown);
 
         return true;
     }
@@ -190,14 +199,16 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         ResourceItemDefinition resource,
         long amount,
         bool requiredNotify = false,
-        bool requiredSaveNow = false)
+        bool requiredSaveNow = false,
+        bool ignoreSaveCooldown = false)
     {
         return TryGetResourceType(resource, out var resourceType)
             && TrySpendResource(
                 resourceType,
                 amount,
                 requiredNotify,
-                requiredSaveNow);
+                requiredSaveNow,
+                ignoreSaveCooldown);
     }
 
     /// <summary>
@@ -205,29 +216,29 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// Для визуальной интерполяции UI предпочтительнее сразу записать итоговое
     /// значение и анимировать представление по ResourceValueChangeEventArgs.
     /// </summary>
-    public void UpdateResourceValueSmooth(Enumeration resourceType, long targetValue, float duration, bool requiredNotify = false, bool requiredSaveNow = false)
+    public void UpdateResourceValueSmooth(Enumeration resourceType, long targetValue, float duration, bool requiredNotify = false, bool requiredSaveNow = false, bool ignoreSaveCooldown = false)
     {
-        GameManager.Instance.StartCoroutine(SmoothUpdateCoroutine(resourceType, targetValue, duration, requiredNotify, requiredSaveNow));
+        GameManager.Instance.StartCoroutine(SmoothUpdateCoroutine(resourceType, targetValue, duration, requiredNotify, requiredSaveNow, ignoreSaveCooldown));
     }
 
     /// <summary>
     /// Постепенно прибавляет значение к фактическому ресурсу корутиной.
     /// Для визуальной интерполяции UI предпочтительнее анимировать представление.
     /// </summary>
-    public void AddResourceValueSmooth(Enumeration resourceType, long addValue, float duration, bool requiredNotify = false, bool requiredSaveNow = false)
+    public void AddResourceValueSmooth(Enumeration resourceType, long addValue, float duration, bool requiredNotify = false, bool requiredSaveNow = false, bool ignoreSaveCooldown = false)
     {
         long startValue = GetOrCreateResource(resourceType);
         var targetValue = startValue + addValue;
-        GameManager.Instance.StartCoroutine(SmoothUpdateCoroutine(resourceType, targetValue, duration, requiredNotify, requiredSaveNow));
+        GameManager.Instance.StartCoroutine(SmoothUpdateCoroutine(resourceType, targetValue, duration, requiredNotify, requiredSaveNow, ignoreSaveCooldown));
     }
 
-    private IEnumerator SmoothUpdateCoroutine(Enumeration resourceType, long targetValue, float duration, bool requiredNotify, bool requiredSaveNow)
+    private IEnumerator SmoothUpdateCoroutine(Enumeration resourceType, long targetValue, float duration, bool requiredNotify, bool requiredSaveNow, bool ignoreSaveCooldown)
     {
         long startValue = GetOrCreateResource(resourceType);
 
         if (startValue == targetValue)
         {
-            SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSaveNow);
+            SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSaveNow, ignoreSaveCooldown);
             yield break;
         }
 
@@ -247,7 +258,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
 
             yield return null;
         }
-        SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSaveNow);
+        SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSaveNow, ignoreSaveCooldown);
     }
 
     /// <summary>

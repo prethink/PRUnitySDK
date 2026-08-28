@@ -7,14 +7,15 @@ public abstract class WalletBase
         return WalletService.Instance.GetBalance(Currency);
     }
 
-    public virtual void Add(long amount, bool save = true)
+    public virtual void Add(long amount, bool save = true, bool ignoreSaveCooldown = false)
     {
-        WalletService.Instance.Add(Currency, amount, save);
+        WalletService.Instance.Add(Currency, amount, save, ignoreSaveCooldown);
     }
 
-    public virtual bool Buy(long amount)
+    /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
+    public virtual bool Buy(long amount, bool ignoreSaveCooldown = false)
     {
-        var result = WalletService.Instance.Buy(Currency, amount);
+        var result = WalletService.Instance.Buy(Currency, amount, ignoreSaveCooldown);
         return result;
     }
 

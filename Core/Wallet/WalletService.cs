@@ -5,22 +5,39 @@ public class WalletService : SingletonProviderBase<WalletService>
         return GetManager().GetResource(currency);
     }
 
-    public void Add(Enumeration currency, long amount, bool save = true)
+    /// <summary>
+    /// Начисляет валюту.
+    /// </summary>
+    /// <param name="save">Запустить сохранение после начисления.</param>
+    /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
+    public void Add(Enumeration currency, long amount, bool save = true, bool ignoreSaveCooldown = false)
     {
         GetManager().AddResourceValue(
             currency,
             amount,
             requiredNotify: true,
-            requiredSaveNow: save);
+            requiredSaveNow: save,
+            ignoreSaveCooldown: ignoreSaveCooldown);
     }
 
-    public bool Buy(Enumeration currency, long amount)
+    /// <summary>
+    /// Списывает валюту, если её хватает.
+    /// </summary>
+    /// <remarks>
+    /// Решение об обходе кулдауна принимает вызывающий: только он знает, чем именно
+    /// расплачивается игрок. Разовая покупка предмета должна лечь на диск сразу, а трата
+    /// в цикле — например, ставка за каждый бросок — подождёт общего расписания, иначе
+    /// каждая мелочь дёргала бы запись.
+    /// </remarks>
+    /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
+    public bool Buy(Enumeration currency, long amount, bool ignoreSaveCooldown = false)
     {
         return GetManager().TrySpendResource(
             currency,
             amount,
             requiredNotify: true,
-            requiredSaveNow: true);
+            requiredSaveNow: true,
+            ignoreSaveCooldown: ignoreSaveCooldown);
     }
 
     public bool CanBuy(Enumeration currency, long amount)

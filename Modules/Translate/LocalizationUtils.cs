@@ -14,11 +14,11 @@ public static class LocalizationUtils
         switch (language)
         {
             case LangType.Russian:
-                return LangDropDown.RU;
+                return LangCode.RU;
             case LangType.English:
-                return LangDropDown.EN;
+                return LangCode.EN;
             case LangType.Turkey:
-                return LangDropDown.TR;
+                return LangCode.TR;
             default:
                 return PRUnitySDK.DefaultLanguage; // язык проекта по умолчанию
         }
@@ -34,11 +34,11 @@ public static class LocalizationUtils
     {
         switch (languageCode)
         {
-            case LangDropDown.RU:
+            case LangCode.RU:
                 return LangType.Russian;
-            case LangDropDown.EN:
+            case LangCode.EN:
                 return LangType.English;
-            case LangDropDown.TR:
+            case LangCode.TR:
                 return LangType.Turkey;
             default:
                 return LangType.English;
