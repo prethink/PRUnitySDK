@@ -16,7 +16,7 @@ public class WalletService : SingletonProviderBase<WalletService>
             currency,
             amount,
             requiredNotify: true,
-            requiredSaveNow: save,
+            requiredSave: save,
             ignoreSaveCooldown: ignoreSaveCooldown);
     }
 
@@ -36,7 +36,7 @@ public class WalletService : SingletonProviderBase<WalletService>
             currency,
             amount,
             requiredNotify: true,
-            requiredSaveNow: true,
+            requiredSave: true,
             ignoreSaveCooldown: ignoreSaveCooldown);
     }
 

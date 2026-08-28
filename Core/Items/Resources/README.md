@@ -21,13 +21,13 @@ resources.SetOrUpdateResource(
     ResourceEnumerationProvider.Coin,
     100,
     requiredNotify: true,
-    requiredSaveNow: true);
+    requiredSave: true);
 
 resources.AddResourceValue(
     ResourceEnumerationProvider.Coin,
     25,
     requiredNotify: true,
-    requiredSaveNow: false);
+    requiredSave: false);
 ```
 
 `GetResource` не изменяет `ProjectData`. `TryGetResource` позволяет отличить
@@ -51,13 +51,13 @@ resources.AddResourceValue(
     coins,
     25,
     requiredNotify: true,
-    requiredSaveNow: true);
+    requiredSave: true);
 
 bool purchased = resources.TrySpendResource(
     coins,
     amount: 10,
     requiredNotify: true,
-    requiredSaveNow: true);
+    requiredSave: true);
 ```
 
 Поддерживаются `TryGetResource`, `GetResource`, `GetOrCreateResource`,
@@ -68,7 +68,29 @@ warning; чтение возвращает fallback, а списание — `fa
 Для самостоятельной проверки definition доступен
 `ResourceItemDefinition.TryGetResourceType(out Enumeration)`.
 
+## Сохранение и кулдаун
+
+`requiredSave` просит записать данные, но кулдаун сохранения при этом соблюдается:
+вызов внутри него ничего не сделает, и изменение уйдёт со следующей записью. Набегающей
+мелочи это подходит — иначе каждая монета дёргала бы диск.
+
+Разовой оплате мало: между списанием и следующим разрешённым сохранением игрок может
+закрыть вкладку. Для таких случаев есть отдельный флаг:
+
+```csharp
+resourceManager.TrySpendResource(
+    currencyType,
+    price,
+    requiredNotify: true,
+    requiredSave: true,
+    ignoreSaveCooldown: true);
+```
+
+Флаг доходит до `GameManager.SaveProjectData(ignoreCooldown)`. Решение принимает
+вызывающий: только он знает, разовая это покупка или трата в цикле.
+
 ## Безопасное списание
+
 
 `TrySpendResource` проверяет неотрицательность суммы и достаточность ресурса, затем
 выполняет списание одной доменной операцией:
@@ -78,7 +100,7 @@ bool purchased = resources.TrySpendResource(
     ResourceEnumerationProvider.Coin,
     amount: 50,
     requiredNotify: true,
-    requiredSaveNow: true);
+    requiredSave: true);
 ```
 
 При неуспешной проверке данные, события и сохранение не изменяются.

@@ -11,7 +11,7 @@
 | [ResourceManager](../Items/Resources/README.md) | `PRUnitySDK.Managers.Resource` | числовые игровые ресурсы, изменение баланса и безопасное списание |
 | [SoundManager](SoundManager/README.md) | `PRUnitySDK.Managers.Sound` | музыка, UI-звуки, 2D/3D-эффекты и звуковые категории |
 | `AudioMixerManager` | `PRUnitySDK.Managers.AudioMixer` | пользовательский и системный mute; находится в модуле `SoundManager` |
-| [OpenedItemsManager](OpenedItemsManager/README.md) | `PRUnitySDK.Managers.OpenedItems` | учёт открытых предметов в `ProjectData.OpenedItems` |
+| [OpenedItemsManager](OpenedItemsManager/README.md) | `PRUnitySDK.Managers.OpenedItems` | что открыто и сколько его есть: `ProjectData.OpenedItems`, с делением по видам |
 | [CursorManager](CursorManager/README.md) | `CursorManager.Instance` | конкурирующие запросы состояния системного курсора |
 | [PRManagerContainer](PRManagerContainer/README.md) | `PRUnitySDK.Managers` | создание, порядок и расширение набора менеджеров |
 | [BoosterManager](../../../PRUnitySDKPrivate/Modules/Boosters/README.md) | `PRUnitySDK.Managers.Booster` | private-модуль временных множителей ресурсов |
