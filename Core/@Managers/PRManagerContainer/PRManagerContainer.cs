@@ -39,6 +39,11 @@ public partial class PRManagerContainer
     public OpenedItemsManager OpenedItems;
 
     /// <summary>
+    /// Что выбрано каждым локальным игроком.
+    /// </summary>
+    public SelectedItemsManager SelectedItems;
+
+    /// <summary>
     /// Менеджер флагов в игре.
     /// </summary>
     public FlagsManager Flags;
@@ -126,6 +131,19 @@ public partial class PRManagerContainer
         {
             OpenedItems = OpenedItemsManager.Instance;
             return OpenedItems;
+        });
+    }
+
+    /// <summary>
+    /// Создаётся после менеджера открытых предметов: выбор опирается на то, что уже есть.
+    /// </summary>
+    [MethodHook(MethodHookStage.PostOperation, 41)]
+    public void InitializeSelectedItemsManager()
+    {
+        PRUnitySDK.InitializeManager(() =>
+        {
+            SelectedItems = SelectedItemsManager.Instance;
+            return SelectedItems;
         });
     }
 

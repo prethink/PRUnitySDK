@@ -1306,7 +1306,12 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
     /// Обрабатывает клавиши в сетке каталога.
     /// </summary>
     /// <remarks>
-    /// Backspace наравне с Delete: на маке это одна и та же клавиша.
+    /// Только Delete. Backspace здесь не годится: окно ловит его раньше текстовых полей,
+    /// и правку значения в карточке пришлось бы вести без стирания символов.
+    /// <para>
+    /// Пока правят поле свойств, клавиша принадлежит полю: игрок стирает значение
+    /// Scale Factor, а не предмет из каталога.
+    /// </para>
     /// </remarks>
     private void HandleGridShortcuts(string sectionKey, SerializedProperty data)
     {
@@ -1315,7 +1320,10 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         if (current.type != EventType.KeyDown || activeSectionKey != sectionKey)
             return;
 
-        if (current.keyCode != KeyCode.Delete && current.keyCode != KeyCode.Backspace)
+        if (current.keyCode != KeyCode.Delete)
+            return;
+
+        if (EditorGUIUtility.editingTextField)
             return;
 
         UnityEngine.Object[] selected = GetSelection(sectionKey)
@@ -1522,12 +1530,19 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
 
     private void EnsureCardStyles()
     {
-        cardNameStyle ??= new GUIStyle(EditorStyles.miniLabel)
+        if (cardNameStyle == null)
         {
-            alignment = TextAnchor.MiddleCenter,
-            fontStyle = FontStyle.Bold,
-            wordWrap = true
-        };
+            cardNameStyle = new GUIStyle(EditorStyles.miniLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold,
+                wordWrap = true
+            };
+
+            // Цвет задаётся явно: подложка карточки всегда тёмная, а редакторский
+            // miniLabel в светлой теме почти чёрный — на ней имя не прочитать.
+            cardNameStyle.normal.textColor = new Color(0.93f, 0.95f, 0.99f, 1f);
+        }
         if (invalidBadgeStyle == null)
         {
             invalidBadgeStyle = new GUIStyle(EditorStyles.boldLabel)

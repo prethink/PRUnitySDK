@@ -235,8 +235,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         {
             isSaving = true;
 
-            var saveTasks = PRUnitySDK.Trackers.Saveables.Where(x => !x.IsNull()).Select(x => x.TrySaveData());
-            await Task.WhenAll(saveTasks);
+            CollectSaveableState();
 
             await SwitchToMainThread();
             GameplayEvents.RaiseBeforeSaveEvent();
@@ -258,10 +257,39 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         }
     }
 
+    /// <summary>
+    /// Собирает состояние объектов сцены в данные проекта.
+    /// </summary>
+    /// <remarks>
+    /// Часть данных живёт не в <c>projectData</c>, а в самих объектах: брейнрот на холдере
+    /// и накопленные им деньги. Без этого шага на диск ушла бы копия без них.
+    /// <para>
+    /// Сломавшийся объект не отменяет сохранение остальных: потерять состояние одного
+    /// холдера неприятно, потерять всё сразу — гораздо хуже.
+    /// </para>
+    /// </remarks>
+    private void CollectSaveableState()
+    {
+        foreach (ISaveable saveable in PRUnitySDK.Trackers.Saveables.Collect())
+        {
+            if (saveable.IsNull())
+                continue;
+
+            try
+            {
+                if (!saveable.TrySaveData())
+                    PRLog.WriteWarning(this, $"{saveable.GetType().Name} не отдал состояние — в сохранении останется прежнее.");
+            }
+            catch (Exception exception)
+            {
+                PRLog.WriteError(this, $"{saveable.GetType().Name} сорвал сбор состояния: {exception}");
+            }
+        }
+    }
+
     public Task SwitchToMainThread()
     {
         var tcs = new TaskCompletionSource<bool>();
-        Debug.Log(synchronizationContext);
         synchronizationContext.Post(_ =>
         {
             tcs.SetResult(true);
@@ -302,10 +330,12 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     /// <param name="ignoreCooldown">Сохранить не дожидаясь окончания кулдауна.</param>
     public void SaveProjectData(bool ignoreCooldown = false)
     {
-        if (!CanStartSave(ignoreCooldown))
-            return;
-
-        ExecuteImmediateSave(() => gameDataStorage.UpdateProjectData(projectData, true));
+        // Полным путём, вместе со сбором состояния сущностей. Часть данных живёт в сцене,
+        // а не в projectData: брейнрот на холдере и накопленные им деньги попадают туда
+        // только через TrySaveData. Запись без сбора кладёт на диск копию без них
+        // и вдобавок сдвигает кулдаун — автосохранение, которое собрало бы состояние,
+        // откладывается, и при следующем запуске холдеры оказываются пустыми.
+        StartSaveTask(ignoreCooldown);
     }
 
     /// <summary>

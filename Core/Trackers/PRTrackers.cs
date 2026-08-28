@@ -37,5 +37,5 @@ public partial class PRTrackers
     /// <summary>
     /// Объекты, участвующие в сохранении состояния.
     /// </summary>
-    public HashSet<ISaveable> Saveables = new HashSet<ISaveable>();
+    public readonly SaveableRegistry Saveables = new();
 }

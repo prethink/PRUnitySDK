@@ -3,25 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Хранит игроков сессии, назначает переиспользуемые Player ID и локальные слоты.
+/// Хранит игроков сессии и назначает переиспользуемые Player ID.
 /// </summary>
-public class PlayerTracker : EntityTrackerBase<IPlayer>
+/// <remarks>
+/// Локальные игроки — разделённый экран, слоты, клавиатурные раскладки — живут
+/// в расширении приватного слоя: там же лежит и сам <c>PlayerLocal</c>. Публичная часть
+/// обращается к ним только через partial-хуки, поэтому без приватного слоя трекер
+/// продолжает собираться.
+/// </remarks>
+public partial class PlayerTracker : EntityTrackerBase<IPlayer>
 {
-    /// <summary>
-    /// Зарезервированный Player ID первого локального игрока.
-    /// </summary>
-    public const long LocalPlayerOneId = 100_000;
-
-    /// <summary>
-    /// Зарезервированный Player ID второго локального игрока.
-    /// </summary>
-    public const long LocalPlayerTwoId = 200_000;
-
-    /// <summary>
-    /// Максимальное количество локальных игроков для текущего типа устройства.
-    /// </summary>
-    public int MaxLocalPlayer => PRUnitySDK.DeviceInfo.IsDesktop() ? 2 : 1;
-
     #region Поля и свойства
 
     /// <summary>
@@ -45,11 +36,6 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
     public int AICount => elements.Count(x => !x.IsNull() && x.PlayerType == PlayerType.AI);
 
     /// <summary>
-    /// Количество занятых локальных слотов.
-    /// </summary>
-    public int LocalPlayerCount => playerLocals.Count;
-
-    /// <summary>
     /// Наибольший Player ID, выделенный обычному игроку.
     /// </summary>
     private long playerIds;
@@ -63,11 +49,6 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
     /// Освобождённые Player ID, доступные для повторного использования.
     /// </summary>
     private readonly SortedSet<long> freePlayerIds = new();
-
-    /// <summary>
-    /// Локальные игроки, сопоставленные с индексами локальных слотов.
-    /// </summary>
-    private readonly Dictionary<int, PlayerLocal> playerLocals = new();
 
     #endregion
 
@@ -101,7 +82,7 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
             Unregister(player);
         }
 
-        playerLocals.Clear();
+        ClearLocalPlayers();
         ResetIds();
     }
 
@@ -123,20 +104,6 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
     public long GetPlayerEntityId()
     {
         return playerIds++;
-    }
-
-    public int GetPlayerLocalIndex(IPlayer player)
-    {
-        if (player is not PlayerLocal playerLocal)
-            throw new ArgumentException($"player is not PlayerLocal");
-
-        foreach (var kvp in playerLocals)
-        {
-            if (kvp.Value == playerLocal)
-                return kvp.Key;
-        }
-
-        throw new ArgumentException($"player is not registered as a local player");
     }
 
     /// <summary>
@@ -173,11 +140,11 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
         if (player == null || player.IsNull() || elements.Contains(player))
             return false;
 
-        if (player is PlayerLocal && playerLocals.Count >= MaxLocalPlayer)
-        {
-            PRLog.WriteWarning(this, $"Cannot add local player: all {MaxLocalPlayer} local slots are occupied.");
+        bool allowed = true;
+        CheckRegister(player, ref allowed);
+
+        if (!allowed)
             return false;
-        }
 
         var playerId = GetPlayerId();
 
@@ -192,66 +159,29 @@ public class PlayerTracker : EntityTrackerBase<IPlayer>
         return true;
     }
 
-    protected void RegisterLocalPlayer(IPlayer player)
-    {
-        if (player is not PlayerLocal localPlayer)
-            return;
+    /// <summary>
+    /// Проверяет, можно ли регистрировать игрока.
+    /// </summary>
+    /// <remarks>
+    /// Приватный слой отказывает локальному игроку, когда все слоты разделённого экрана
+    /// заняты. Без него ограничения нет — обычным игрокам оно и не нужно.
+    /// </remarks>
+    partial void CheckRegister(IPlayer player, ref bool allowed);
 
-        if (playerLocals.Count >= MaxLocalPlayer)
-            throw new InvalidOperationException($"Cannot add new local player. Max local players is {MaxLocalPlayer}");
+    /// <summary>
+    /// Заводит локальный слот для игрока.
+    /// </summary>
+    partial void RegisterLocalPlayer(IPlayer player);
 
-        int slotId = FindFreeSlotId();
-        localPlayer.SetLocalId(slotId == 0 ? LocalPlayerOneId : LocalPlayerTwoId);
-        playerLocals[slotId] = localPlayer;
-        PlayerEvents.RaiseOnLocalPlayerJoinGame(localPlayer, LocalPlayerCount);
-    }
+    /// <summary>
+    /// Освобождает локальный слот игрока.
+    /// </summary>
+    partial void UnregisterLocalPlayer(IPlayer player);
 
-    protected void UnregisterLocalPlayer(IPlayer player)
-    {
-        if (player is not PlayerLocal localPlayer)
-            return;
-
-        int? slotToRemove = null;
-
-        foreach (var kvp in playerLocals)
-        {
-            if (kvp.Value == localPlayer)
-            {
-                slotToRemove = kvp.Key;
-                break;
-            }
-        }
-
-        if (slotToRemove.HasValue)
-        {
-            playerLocals.Remove(slotToRemove.Value);
-            PlayerEvents.RaiseOnLocalPlayerLeftGame(localPlayer, LocalPlayerCount);
-        }
-    }
-
-    public PlayerLocal GetLocalPlayer(int id)
-    {
-        playerLocals.TryGetValue(id, out var localPlayer);
-        return localPlayer;
-    }
-
-    public List<PlayerLocal> GetLocalPlayers()
-    {
-        return playerLocals.OrderBy(x => x.Key).Select(x => x.Value).Where(x => x != null).ToList();
-    }
-
-    private int FindFreeSlotId()
-    {
-        for (int i = 0; i < MaxLocalPlayer; i++)
-        {
-            if (!playerLocals.ContainsKey(i))
-                return i;
-        }
-
-        // не должно случиться благодаря проверке Count >= MaxLocalPlayer выше,
-        // но пусть будет явная ошибка, а не тихий баг, если логика где-то разъедется
-        throw new InvalidOperationException("No free local player slot despite count check passing.");
-    }
+    /// <summary>
+    /// Сбрасывает таблицу локальных игроков.
+    /// </summary>
+    partial void ClearLocalPlayers();
 
     /// <summary>
     /// Удаляет игрока и освобождает его Player ID и локальный слот.

@@ -19,6 +19,15 @@ public partial class ProjectData : ICloneable
     public List<ItemStack> OpenedItems { get; set; } = new();
 
     /// <summary>
+    /// Что выбрано у каждого локального игрока.
+    /// </summary>
+    /// <remarks>
+    /// Список, а не один объект: локальных игроков может быть несколько, и надетое
+    /// у них своё, хотя предметы куплены общие.
+    /// </remarks>
+    public List<PlayerSelectedData> SelectedPlayerItems { get; set; } = new();
+
+    /// <summary>
     /// Идентификаторы открытых предметов.
     /// </summary>
     public Dictionary<string, long> Resources { get; set; } = new();
@@ -44,6 +53,7 @@ public partial class ProjectData : ICloneable
     {
         ProjectProperties = new();
         OpenedItems = new();
+        SelectedPlayerItems = new();
         Resources = new();
         TimeLimitedRewards = new();
 
@@ -67,6 +77,10 @@ public partial class ProjectData : ICloneable
         clone.ProjectProperties = (ProjectProperties)ProjectProperties.Clone();
         clone.Resources = new Dictionary<string, long>(Resources);
         clone.OpenedItems = OpenedItems.ToList();
+
+        // Глубокая копия: у каждого игрока свой словарь выбранного, и общий список
+        // ссылок означал бы, что правка в клоне меняет исходные данные.
+        clone.SelectedPlayerItems = PlayerSelectedData.GetDeepClonedList(SelectedPlayerItems);
         clone.TimeLimitedRewards = new Dictionary<string, DateTime>(TimeLimitedRewards);
 
         this.RunMethodHooks(MethodHookStage.Cloning, clone);
@@ -86,22 +100,42 @@ public partial class ProjectData : ICloneable
     #endregion
 }
 
+/// <summary>
+/// Что выбрано у одного локального игрока.
+/// </summary>
+/// <remarks>
+/// Отдельно от владения: <c>OpenedItems</c> отвечает, что у игрока есть, а это —
+/// что из этого надето. Данные на игрока, потому что за одной сохранёнкой могут сидеть
+/// двое: у каждого своя шапка, хотя куплена она один раз.
+/// </remarks>
 public class PlayerSelectedData : ICloneable
 {
+    /// <summary>
+    /// Локальный игрок: 0 — первый, 1 — второй.
+    /// </summary>
     public int PlayerId { get; set; }
 
-    public Dictionary<string, ISelectableItem> SelectedItems { get; set; } = new();
+    /// <summary>
+    /// Выбранный предмет по виду: вид — ключ, идентификатор предмета — значение.
+    /// </summary>
+    /// <remarks>
+    /// Идентификаторами, а не ссылками: в сохранение всё равно попадает только Id,
+    /// а предмет может быть убран из состава игры и вернуться обратно.
+    /// </remarks>
+    public Dictionary<string, string> SelectedItems { get; set; } = new();
 
-    [JsonConverter(typeof(HashSetConverter<ISelectableItem>))]
-    public HashSet<ISelectableItem> SelectedPets { get; set; } = new();
+    /// <summary>
+    /// Выбранные питомцы.
+    /// </summary>
+    public HashSet<string> SelectedPets { get; set; } = new();
 
     public object Clone()
     {
         var selectedData = new PlayerSelectedData()
         {
             PlayerId = PlayerId,
-            SelectedItems = new Dictionary<string, ISelectableItem>(SelectedItems),
-            SelectedPets = SelectedPets.ToHashSet()
+            SelectedItems = new Dictionary<string, string>(SelectedItems),
+            SelectedPets = new HashSet<string>(SelectedPets)
         };
 
         return selectedData;

@@ -71,6 +71,15 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     protected virtual void UnRegisterEventsOnDestroy()
     {
         EventBus.Unsubscribe(this);
+
+        // Последний снимок перед уходом со сцены. Состояние живёт в самом объекте:
+        // после снятия с учёта спрашивать будет некого, и в сохранении осталась бы
+        // запись с прошлого сбора.
+        // Только пока игра идёт, менеджер жив и данные прочитаны: на выходе объекты
+        // уничтожаются в неизвестном порядке, а до загрузки записывать поверх нечего.
+        if (Application.isPlaying && GameManager.HasInstance && GameManager.Instance.ReadySignal.IsReady)
+            TrySaveData();
+
         PRUnitySDK.Trackers.Saveables.Remove(this);
     }
 
@@ -365,9 +374,13 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     }
 
 
-    public virtual async Task<bool> TrySaveData()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Своего состояния у большинства объектов нет — им нечего отдавать.
+    /// </remarks>
+    public virtual bool TrySaveData()
     {
-        return await Task.FromResult<bool>(true);
+        return true;
     }
 
     #endregion

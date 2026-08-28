@@ -9,6 +9,16 @@ public abstract class MonoBehaviourSingletonBase<T> : MonoBehaviour
     protected static T instance;
 
     /// <summary>
+    /// Экземпляр уже существует.
+    /// </summary>
+    /// <remarks>
+    /// В отличие от <see cref="Instance"/> ничего не создаёт. Нужно тем, кто работает
+    /// на уничтожении объектов: обращение к <see cref="Instance"/> в этот момент подняло бы
+    /// менеджер заново, и после выхода из игры на сцене остался бы лишний объект.
+    /// </remarks>
+    public static bool HasInstance => instance != null;
+
+    /// <summary>
     /// Singleton instance.
     /// </summary>
     public static T Instance
