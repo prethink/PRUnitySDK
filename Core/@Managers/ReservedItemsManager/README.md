@@ -49,6 +49,18 @@ public sealed class SomeSystemReservedItems : IReservedItemsProvider
 предметов. Разовые случаи — вещь, лежащая на уровне, — резервируются вручную через
 `Reserve(itemId, source)`, а не списком из каталога.
 
+## Зависимости
+
+| От чего зависит | Зачем |
+| --- | --- |
+| `IReservedItemsProvider` | системы сообщают состав сами |
+| [Reward](../../Reward/README.md) | разбор наград на предметы через `RewardItemCollector` |
+| [PRManagerContainer](../PRManagerContainer/README.md) | создание менеджера и авторегистрация источников |
+
+Обратных зависимостей нет: менеджер не знает ни одной системы поимённо, а спрашивающий
+не знает, откуда взялся ответ.
+
+
 ## Как спрашивают
 
 ```csharp

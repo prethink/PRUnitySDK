@@ -132,6 +132,19 @@ IEnumerable<RewardDataBase> available = rewards.GetAvailableRewards(
 
 Правило владения передаётся снаружи, потому что разные проекты могут хранить открытые brainrots, pets и предметы кастомизации в разных разделах сохранения.
 
+## Зависимости
+
+| От чего зависит | Зачем |
+| --- | --- |
+| [Wallet](../Wallet/README.md) и `ResourceManager` | выдача ресурсов |
+| [OpenedItemsManager](../@Managers/OpenedItemsManager/README.md) | отметка о выданных предметах |
+| `@Actions` | награда-действие выполняет настроенный `ActionBase` |
+| [ProjectPropertiesManager](../@Managers/ProjectPropertiesManager/README.md) | сроки у наград с ограничением по времени |
+
+Кто зависит от него: достижения, подарки, кейсы и всё, что что-то выдаёт. Обработчик
+выдачи подключается со стороны — сама модель наград о них не знает.
+
+
 ## Ограниченные по времени награды
 
 `TimeLimitedRewardBase` — база для наград, действующих до определённого момента: VIP, бустеры ресурсов. Состояние хранит `TimeLimitedRewardService` в отдельном наборе данных `ProjectData.TimeLimitedRewards`, источник времени — `PRUnitySDK.ServerTime`.

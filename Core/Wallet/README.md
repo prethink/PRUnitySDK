@@ -116,3 +116,14 @@ wallet.Buy(currency, price, ignoreSaveCooldown: true);
 - [Items/Resources](../Items/Resources/README.md) — `ResourceManager`, хранилище и события
 - [Reward](../Reward/README.md) — выдача наград, использует `WalletResources`
 - [Purchase](../Purchase/README.md) — покупки
+
+## Зависимости
+
+| От чего зависит | Зачем |
+| --- | --- |
+| `ResourceManager` | хранение и изменение баланса |
+| [GameManager](../@Managers/GameManager/README.md) | запись на диск после покупки |
+| `EventBus` | события изменения баланса для интерфейса |
+
+Кошелёк не знает, за что списывают: правила покупки живут у того, кто её проводит.
+

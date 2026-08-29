@@ -419,6 +419,18 @@ tasks.GetByStatus(BackgroundTaskStatus.Skipped);        // что простаи
 учёт времени в игре (`BackgroundTask`) и отслеживание смены суток (`WatcherTask<int>`).
 Обе задачи выключены параметром `Enabled = false`, поэтому поведение проекта не меняют.
 
+## Зависимости
+
+| От чего зависит | Зачем |
+| --- | --- |
+| [PRTime](../PRTime/README.md) | расписание и подсчёт интервалов |
+| `PRMonoBehaviourHost` | тики без собственного объекта на сцене |
+| [ProjectPropertiesManager](../@Managers/ProjectPropertiesManager/README.md) | задачам-наблюдателям нужно помнить прошлое значение |
+
+Задачи ни от кого не требуют знания о себе: помеченные атрибутом создаются сами
+при инициализации SDK.
+
+
 ## Смотрите также
 
 - [PRMonoBehaviour](../PRMonoBehaviour/README.md) — `PRMonoBehaviourHost` и тиковый цикл
