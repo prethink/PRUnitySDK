@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
 
 /// <summary>
 /// Предметы, которые игрок получает не покупкой.
@@ -27,6 +30,98 @@ public class ReservedItemsManager : SingletonProviderBase<ReservedItemsManager>
     /// всех наград каждый раз обошёлся бы дороже самой отрисовки.
     /// </remarks>
     private Dictionary<string, string> cached;
+
+    /// <summary>
+    /// Ставит на учёт системы, помеченные <see cref="AutoReservedItemsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    /// Вызывается при инициализации SDK. Так модуль объявляет себя источником там, где
+    /// живёт, и не правит контейнер менеджеров ради одной строки регистрации.
+    /// </remarks>
+    public void RegisterAutoProviders()
+    {
+        foreach (Type type in FindAutoProviderTypes())
+        {
+            try
+            {
+                if (Activator.CreateInstance(type) is IReservedItemsProvider provider)
+                    Register(provider);
+            }
+            catch (Exception exception)
+            {
+                PRLog.WriteError(typeof(ReservedItemsManager), $"Не удалось создать {type.Name}: {exception}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Собирает помеченные типы, пригодные к созданию.
+    /// </summary>
+    /// <remarks>
+    /// Сканируется только сборка, в которой объявлен <see cref="IReservedItemsProvider"/>:
+    /// обход всех сборок домена стоил бы заметного времени на старте, а системы проекта
+    /// всё равно живут здесь.
+    /// </remarks>
+    private static List<Type> FindAutoProviderTypes()
+    {
+        Type[] assemblyTypes;
+
+        try
+        {
+            assemblyTypes = typeof(IReservedItemsProvider).Assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException exception)
+        {
+            PRLog.WriteError(typeof(ReservedItemsManager), $"Не удалось просмотреть сборку: {exception}");
+            assemblyTypes = exception.Types.Where(type => type != null).ToArray();
+        }
+
+        var found = new List<(Type Type, int Order)>();
+
+        foreach (Type type in assemblyTypes)
+        {
+            var attribute = type.GetCustomAttribute<AutoReservedItemsProviderAttribute>(inherit: false);
+
+            if (attribute == null || !attribute.Enabled)
+                continue;
+
+            if (!typeof(IReservedItemsProvider).IsAssignableFrom(type))
+            {
+                PRLog.WriteWarning(typeof(ReservedItemsManager),
+                    $"{type.Name} помечен как источник, но не реализует {nameof(IReservedItemsProvider)}.");
+                continue;
+            }
+
+            if (typeof(Component).IsAssignableFrom(type))
+            {
+                PRLog.WriteWarning(typeof(ReservedItemsManager),
+                    $"{type.Name} — компонент сцены: он появляется вместе с объектом и регистрируется сам.");
+                continue;
+            }
+
+            if (type.IsAbstract || type.ContainsGenericParameters)
+            {
+                PRLog.WriteWarning(typeof(ReservedItemsManager),
+                    $"{type.Name} нельзя создать автоматически: тип абстрактный или обобщённый.");
+                continue;
+            }
+
+            if (type.GetConstructor(Type.EmptyTypes) == null)
+            {
+                PRLog.WriteWarning(typeof(ReservedItemsManager),
+                    $"У {type.Name} нет публичного конструктора без параметров — регистрируйте вручную.");
+                continue;
+            }
+
+            found.Add((type, attribute.Order));
+        }
+
+        return found
+            .OrderBy(entry => entry.Order)
+            .ThenBy(entry => entry.Type.Name, StringComparer.Ordinal)
+            .Select(entry => entry.Type)
+            .ToList();
+    }
 
     /// <summary>
     /// Ставит систему на учёт.

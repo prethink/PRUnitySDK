@@ -13,6 +13,11 @@ using System;
 /// Атрибут не наследуется: производный класс не будет зарегистрирован автоматически,
 /// пока не пометит себя сам. Иначе базовая задача и её наследник попали бы в реестр оба.
 /// </para>
+/// <para>
+/// Задача создаётся рефлексией, и сборщик билда счёл бы её неиспользуемой. Помечать её
+/// <c>[Preserve]</c> вручную не нужно: перед сборкой список помеченных типов попадает
+/// в <c>link.xml</c> автоматически.
+/// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class AutoBackgroundTaskAttribute : Attribute

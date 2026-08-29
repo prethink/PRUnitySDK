@@ -161,6 +161,7 @@ public partial class PRManagerContainer
         PRUnitySDK.InitializeManager(() =>
         {
             ReservedItems = ReservedItemsManager.Instance;
+            ReservedItems.RegisterAutoProviders();
             PRUnitySDK.RegisterService(ReservedItems);
             return ReservedItems;
         });
