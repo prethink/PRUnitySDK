@@ -9,9 +9,8 @@ using UnityEngine;
 /// Окно проекта SDK: какой игрой мы сейчас занимаемся.
 /// </summary>
 /// <remarks>
-/// Проект — это база, настройки и префабы одной игры. Переключение меняет их все разом:
-/// раньше состав приходилось переносить наборами поверх общих ассетов, и перепутать игры
-/// было легко.
+/// Проект — это база и настройки одной игры. Переключение меняет их разом: раньше состав
+/// приходилось переносить наборами поверх общих ассетов, и перепутать игры было легко.
 /// <para>
 /// В сборку уходит только активный проект: сами ассеты лежат вне <c>Resources</c>,
 /// а ссылка на них одна — из указателя <see cref="PRSDKActiveProject"/>.
@@ -24,7 +23,7 @@ public sealed class PRSDKProjectWindow : EditorWindow
     /// </summary>
     public const string MenuPath = "PRUnitySDK/Windows/Project";
 
-    private const string DefaultFolder = "Assets/PRUnitySDK.Projects";
+    private const string DefaultFolder = "Assets/PRUnityData/Projects";
 
     private PRSDKProject[] projects = Array.Empty<PRSDKProject>();
     private UnityEditor.Editor activeEditor;
@@ -89,8 +88,8 @@ public sealed class PRSDKProjectWindow : EditorWindow
             if (active == null)
             {
                 EditorGUILayout.HelpBox(
-                    "Проект не выбран: база, настройки и префабы берутся из Resources, как раньше. " +
-                    "Так работает и проект, который на профили ещё не переходил.",
+                    "Проект не выбран: база и настройки берутся из Resources, как раньше. " +
+                    "Так работает игра, которая на проекты ещё не переходила.",
                     MessageType.Info);
                 return;
             }
@@ -155,6 +154,17 @@ public sealed class PRSDKProjectWindow : EditorWindow
                     if (GUILayout.Button("Сделать активным", GUILayout.Width(140f)))
                         Activate(project);
                 }
+
+                // Последний проект удалить нельзя: без него игра вернётся к загрузке
+                // из Resources, где данных уже нет — они переехали в папку проекта.
+                using (new EditorGUI.DisabledScope(projects.Length <= 1))
+                {
+                    if (GUILayout.Button("Удалить", GUILayout.Width(80f)))
+                    {
+                        Delete(project);
+                        GUIUtility.ExitGUI();
+                    }
+                }
             }
         }
     }
@@ -178,19 +188,139 @@ public sealed class PRSDKProjectWindow : EditorWindow
 
         ScriptableObjectSingleton<PRSDKDatabase>.ResetInstance();
         ScriptableObjectSingleton<PRSDKSettings>.ResetInstance();
-        ScriptableObjectSingleton<PrefabContainer>.ResetInstance();
 
         Debug.Log($"[PRUnitySDK] Активный проект: {project.Title}.");
         Reload();
     }
 
     /// <summary>
-    /// Создаёт ассет проекта.
+    /// Удаляет проект и, по выбору, его данные.
+    /// </summary>
+    /// <remarks>
+    /// Спрашивает всегда: удаление ассетов необратимо, а база игры — это недели работы.
+    /// Данные удаляются только свои: если на базу или настройки ссылается другой проект,
+    /// они остаются, иначе одна игра унесла бы за собой данные другой.
+    /// </remarks>
+    private void Delete(PRSDKProject project)
+    {
+        if (project == null || projects.Length <= 1)
+            return;
+
+        // Всё, что понадобится после удаления, снимается заранее: удалённый ассет —
+        // уничтоженный объект, и обращение к его имени бросает MissingReferenceException.
+        string title = project.Title;
+        string projectPath = AssetDatabase.GetAssetPath(project);
+        string databasePath = GetOwnAssetPath(project, project.Database);
+        string settingsPath = GetOwnAssetPath(project, project.Settings);
+
+        var details = new List<string> { $"Проект: {projectPath}" };
+
+        if (!string.IsNullOrEmpty(databasePath))
+            details.Add($"База: {databasePath}");
+
+        if (!string.IsNullOrEmpty(settingsPath))
+            details.Add($"Настройки: {settingsPath}");
+
+        int choice = EditorUtility.DisplayDialogComplex(
+            $"Удалить «{title}»?",
+            string.Join("\n", details) + "\n\nОтменить удаление нельзя.",
+            "Удалить с данными",
+            "Отмена",
+            "Только проект");
+
+        if (choice == 1)
+            return;
+
+        bool wasActive = IsActive(project);
+
+        if (choice == 0)
+        {
+            DeleteAsset(databasePath);
+            DeleteAsset(settingsPath);
+        }
+
+        AssetDatabase.DeleteAsset(projectPath);
+
+        if (choice == 0)
+            RemoveEmptyFolder(databasePath, settingsPath);
+
+        AssetDatabase.SaveAssets();
+
+        Reload();
+
+        // Активный проект нельзя оставить пустым: указатель повис бы, а данных
+        // в Resources больше нет.
+        if (wasActive && projects.Length > 0)
+            Activate(projects[0]);
+
+        Debug.Log($"[PRUnitySDK] Проект «{title}» удалён.");
+    }
+
+    /// <summary>
+    /// Убирает опустевшую папку данных проекта.
+    /// </summary>
+    /// <remarks>
+    /// Unity удаляет только ассеты, а папка остаётся: список папок с именами удалённых
+    /// игр выглядит так, будто они ещё существуют. Папка убирается лишь пустой — если
+    /// туда положили что-то своё, это не мусор.
+    /// </remarks>
+    private static void RemoveEmptyFolder(params string[] assetPaths)
+    {
+        foreach (string assetPath in assetPaths)
+        {
+            if (string.IsNullOrEmpty(assetPath))
+                continue;
+
+            string folder = Path.GetDirectoryName(assetPath);
+
+            if (string.IsNullOrEmpty(folder) || !AssetDatabase.IsValidFolder(folder))
+                continue;
+
+            bool isEmpty = AssetDatabase.FindAssets(string.Empty, new[] { folder }).Length == 0;
+
+            if (isEmpty)
+                AssetDatabase.DeleteAsset(folder);
+        }
+    }
+
+    /// <summary>
+    /// Путь ассета, если он принадлежит только этому проекту.
+    /// </summary>
+    private string GetOwnAssetPath(PRSDKProject owner, ScriptableObject asset)
+    {
+        if (asset == null)
+            return null;
+
+        bool sharedWithOthers = projects.Any(other =>
+            other != owner && (other.Database == asset || (ScriptableObject)other.Settings == asset));
+
+        return sharedWithOthers ? null : AssetDatabase.GetAssetPath(asset);
+    }
+
+    private bool IsActive(PRSDKProject project)
+    {
+        PRSDKActiveProject pointer = PRSDKActiveProject.Instance;
+        return pointer != null && pointer.Project == project;
+    }
+
+    private static void DeleteAsset(string path)
+    {
+        if (!string.IsNullOrEmpty(path))
+            AssetDatabase.DeleteAsset(path);
+    }
+
+    /// <summary>
+    /// Создаёт ассет проекта вместе с его данными.
     /// </summary>
     /// <param name="fromCurrent">
-    /// Заполнить тем, что игра использует сейчас. Так делается первый проект: состав уже
-    /// собран, и переносить его руками незачем.
+    /// Взять то, что игра использует сейчас, вместо создания пустых. Так делается первый
+    /// проект: состав уже собран, и переносить его руками незачем.
     /// </param>
+    /// <remarks>
+    /// Новый проект получает **свои** базу и настройки, а не ссылки на чужие: иначе две
+    /// игры правили бы одни и те же ассеты, и смысл разделения терялся бы на первом же
+    /// изменении.
+    /// </remarks>
     private void CreateProject(bool fromCurrent)
     {
         if (!Directory.Exists(DefaultFolder))
@@ -207,11 +337,21 @@ public sealed class PRSDKProjectWindow : EditorWindow
             return;
 
         var project = CreateInstance<PRSDKProject>();
+        AssetDatabase.CreateAsset(project, path);
+
+        string projectName = Path.GetFileNameWithoutExtension(path);
 
         if (fromCurrent)
-            project.SetContent(PRSDKDatabase.Instance, PRSDKSettings.Instance, PrefabContainer.Instance);
+        {
+            project.SetContent(PRSDKDatabase.Instance, PRSDKSettings.Instance);
+        }
+        else
+        {
+            project.SetContent(
+                PRSDKProjectBootstrap.Create<PRSDKDatabase>(projectName),
+                PRSDKProjectBootstrap.Create<PRSDKSettings>(projectName));
+        }
 
-        AssetDatabase.CreateAsset(project, path);
         AssetDatabase.SaveAssets();
 
         Reload();

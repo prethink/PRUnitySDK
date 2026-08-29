@@ -48,16 +48,26 @@ public static class PRSDKProjectBootstrap
         if (project != null && project.IsComplete)
             return;
 
+        // Первая настройка — когда активного проекта ещё нет. Только тогда можно взять
+        // данные, лежащие в проекте Unity сами по себе: это данные той же игры, просто
+        // созданные до появления проектов. У проекта, уже выбранного человеком, чужого
+        // брать нельзя — так одна игра начала бы собираться из данных другой.
+        bool isFirstSetup = project == null;
+
         project ??= FindProject() ?? CreateProject();
 
         if (project == null)
             return;
 
-        PRSDKDatabase database = project.Database ?? Find<PRSDKDatabase>() ?? Create<PRSDKDatabase>();
-        PRSDKSettings settings = project.Settings ?? Find<PRSDKSettings>() ?? Create<PRSDKSettings>();
-        PrefabContainer prefabs = project.Prefabs ?? Find<PrefabContainer>() ?? Create<PrefabContainer>();
+        PRSDKDatabase database = project.Database
+                                 ?? (isFirstSetup ? Find<PRSDKDatabase>() : null)
+                                 ?? Create<PRSDKDatabase>(project.name);
 
-        project.SetContent(database, settings, prefabs);
+        PRSDKSettings settings = project.Settings
+                                 ?? (isFirstSetup ? Find<PRSDKSettings>() : null)
+                                 ?? Create<PRSDKSettings>(project.name);
+
+        project.SetContent(database, settings);
 
         if (pointer.Project != project)
             pointer.SetProject(project);
@@ -66,7 +76,7 @@ public static class PRSDKProjectBootstrap
 
         Debug.Log(
             $"[PRUnitySDK] Проект «{project.Title}» подключён: " +
-            $"база {Describe(database)}, настройки {Describe(settings)}, префабы {Describe(prefabs)}.");
+            $"база {Describe(database)}, настройки {Describe(settings)}.");
     }
 
     /// <summary>
@@ -131,23 +141,39 @@ public static class PRSDKProjectBootstrap
     }
 
     /// <summary>
-    /// Создаёт недостающий ассет данных.
+    /// Создаёт недостающий ассет данных в папке своего проекта.
     /// </summary>
     /// <remarks>
     /// Вне <c>Resources</c>: до него дотягивается ссылка из проекта, а всё, что лежит
     /// в ресурсах, попадает в сборку независимо от того, нужно оно этой игре или нет.
+    /// Папка по имени проекта нужна, чтобы данные двух игр не смешались в одном списке
+    /// файлов.
     /// </remarks>
-    private static T Create<T>() where T : ScriptableObject
+    public static T Create<T>(string projectName) where T : ScriptableObject
     {
-        EnsureFolder(DataFolder);
+        string folder = GetProjectFolder(projectName);
+        EnsureFolder(folder);
 
         var asset = ScriptableObject.CreateInstance<T>();
-        string path = AssetDatabase.GenerateUniqueAssetPath($"{DataFolder}/{typeof(T).Name}.asset");
+        string path = AssetDatabase.GenerateUniqueAssetPath($"{folder}/{typeof(T).Name}.asset");
 
         AssetDatabase.CreateAsset(asset, path);
         Debug.Log($"[PRUnitySDK] Создан пустой {typeof(T).Name}: {path}");
 
         return asset;
+    }
+
+    /// <summary>
+    /// Папка данных проекта.
+    /// </summary>
+    public static string GetProjectFolder(string projectName)
+    {
+        string safe = string.IsNullOrWhiteSpace(projectName) ? "Project" : projectName.Trim();
+
+        foreach (char invalid in Path.GetInvalidFileNameChars())
+            safe = safe.Replace(invalid, '_');
+
+        return $"{DataFolder}/{safe}";
     }
 
     private static void EnsureFolder(string folder)

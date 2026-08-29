@@ -35,10 +35,6 @@ public class PRSDKProject : ScriptableObject
     [Tooltip("Настройки модулей SDK.")]
     private PRSDKSettings settings;
 
-    [SerializeField]
-    [Tooltip("Префабы ядра, модулей и окон.")]
-    private PrefabContainer prefabs;
-
     /// <summary>
     /// Название проекта; пусто — имя ассета.
     /// </summary>
@@ -60,18 +56,13 @@ public class PRSDKProject : ScriptableObject
     public PRSDKSettings Settings => settings;
 
     /// <summary>
-    /// Префабы проекта.
-    /// </summary>
-    public PrefabContainer Prefabs => prefabs;
-
-    /// <summary>
-    /// Все три части на месте.
+    /// Обе части на месте.
     /// </summary>
     /// <remarks>
     /// Неполный проект — не ошибка: недостающее берётся прежним путём, из ресурсов.
     /// Так проект можно собирать по частям, не ломая работающую игру.
     /// </remarks>
-    public bool IsComplete => database != null && settings != null && prefabs != null;
+    public bool IsComplete => database != null && settings != null;
 
     /// <summary>
     /// Ассет проекта нужного вида либо <see langword="null"/>.
@@ -84,9 +75,6 @@ public class PRSDKProject : ScriptableObject
         if (typeof(T) == typeof(PRSDKSettings))
             return settings as T;
 
-        if (typeof(T) == typeof(PrefabContainer))
-            return prefabs as T;
-
         return null;
     }
 
@@ -97,11 +85,10 @@ public class PRSDKProject : ScriptableObject
     /// <remarks>
     /// Только для редактора: в игре состав проекта не меняется.
     /// </remarks>
-    public void SetContent(PRSDKDatabase newDatabase, PRSDKSettings newSettings, PrefabContainer newPrefabs)
+    public void SetContent(PRSDKDatabase newDatabase, PRSDKSettings newSettings)
     {
         database = newDatabase;
         settings = newSettings;
-        prefabs = newPrefabs;
         UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif

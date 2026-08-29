@@ -189,7 +189,7 @@ public partial class PRWindowsContainer
 
 ## PRSDKSettings
 
-`PRSDKSettings` — partial `ScriptableObjectSingleton`. Доступ: `PRUnitySDK.Settings`. Asset: `Assets/PRUnitySDK/Resources/PRUnitySDK/PRSDKSettings.asset`.
+`PRSDKSettings` — partial `ScriptableObjectSingleton`. Доступ: `PRUnitySDK.Settings`. Asset берётся у активного `PRSDKProject` (`Assets/PRUnityData/<проект>/PRSDKSettings.asset`), при его отсутствии — из `Resources`.
 
 ```csharp
 using System;
@@ -222,7 +222,7 @@ public sealed class ExampleSettings
 
 ## PRSDKDatabase
 
-`PRSDKDatabase` — partial `ScriptableObjectSingleton`. Доступ: `PRUnitySDK.Database`. Asset: `Assets/PRUnitySDK/Resources/PRUnitySDK/PRSDKDatabase.asset`.
+`PRSDKDatabase` — partial `ScriptableObjectSingleton`. Доступ: `PRUnitySDK.Database`. Asset берётся у активного `PRSDKProject` (`Assets/PRUnityData/<проект>/PRSDKDatabase.asset`), при его отсутствии — из `Resources`. Данные игры не хранятся внутри SDK: их место — `Assets/PRUnityData`.
 
 Для каталога definitions используйте `Database<T>`:
 

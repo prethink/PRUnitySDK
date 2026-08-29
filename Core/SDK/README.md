@@ -98,12 +98,19 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 
 ## Настройки и база данных
 
-`PRSDKSettings` и `PRSDKDatabase` наследуются от `ScriptableObjectSingleton<T>`. Поиск
-выполняется через `Resources` и `PRUnitySDK.ResourcePaths.CorePath`.
+`PRSDKSettings` и `PRSDKDatabase` наследуются от `ScriptableObjectSingleton<T>`. Ассет
+ищется в два шага:
+
+1. у активного проекта (`PRSDKProject` через указатель `PRSDKActiveProject`);
+2. если проект не выбран или этой части в нём нет — в `Resources` по
+   `PRUnitySDK.ResourcePaths.CorePath`, как было раньше.
+
+Второй шаг оставлен намеренно: игра, не переходившая на проекты, продолжает работать
+без правок. Подробности о проектах — в [PRUnityData/README.md](../../../PRUnityData/README.md).
 
 Если asset отсутствует:
 
-- в Editor он создаётся автоматически в `Assets/PRUnitySDK/Resources/PRUnitySDK`;
+- в Editor он создаётся автоматически в `Assets/PRUnityData`;
 - в player build записывается ошибка и возвращается `null`.
 
 После автоматического создания вызывается `SetDefaultSettings()` и method hooks этапа
