@@ -29,11 +29,11 @@ public class GameEventEntity : IEntity
 
     public GameObject gameObject => GameEventsFactory.GetOrCreateGameObject(name);
 
-    public EntityInfoContainer Info { get; } = CreateGameEventInfo(); 
+    public EntityMetadataContainer Info { get; } = CreateGameEventInfo(); 
 
-    public static EntityInfoContainer CreateGameEventInfo()
+    public static EntityMetadataContainer CreateGameEventInfo()
     {
-        var entityInfo =  new EntityInfoImplementer(
+        var entityInfo =  new EntityMetadataImplementer(
             Guid.Empty, 
             nameof(GameEventEntity),
             PRUnitySDK.Database.Sprites.Entities.GameEventEntity, 
@@ -45,7 +45,7 @@ public class GameEventEntity : IEntity
                 { LangType.Turkey, "Oyun Etkinliği" }
             });
 
-        return new EntityInfoContainer(entityInfo);
+        return new EntityMetadataContainer(entityInfo);
     }
 
     public void DestroyEntity() { }

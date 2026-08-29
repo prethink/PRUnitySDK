@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EntityInfoImplementer : IEntityInfo
+public class EntityMetadataImplementer : IEntityMetadata
 {
     public Guid TypeGuid { get; private set; }
     public string Name { get; private set; }
@@ -16,7 +16,7 @@ public class EntityInfoImplementer : IEntityInfo
 
     public IEnumerable<StatModifier> StatModifiers { get; } = new List<StatModifier>();
 
-    public EntityInfoImplementer(
+    public EntityMetadataImplementer(
         Guid type,
         string name,
         Sprite icon,

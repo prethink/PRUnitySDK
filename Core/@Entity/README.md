@@ -13,7 +13,7 @@
 | Папка | Что внутри |
 | --- | --- |
 | `EntityBase/` | `EntityBase` и четыре готовых варианта под разные способы задать описание |
-| `EntityInfo/` | Имя, иконка, локализация, качество и механизм переопределения |
+| `EntityMetadata/` | Имя, иконка, локализация, качество и механизм переопределения |
 | `EntityManager/` | `EntityTracker` — глобальный реестр сущностей, выдача Id, статистика |
 | `EntityStats/` | Базовые характеристики (`EntityStatsBase`) и расчёт итоговых (`EntityStatsUtils`) |
 | `EntityContainer/` | Подбираемые контейнеры: ресурс, действие |
@@ -31,9 +31,9 @@ public class Portal : EntityBase
 
     public override string Name => "Portal";
 
-    protected override void InitializeEntityInfo()
+    protected override void InitializeEntityMetadata()
     {
-        Info = new EntityInfoContainer(definition);
+        Info = new EntityMetadataContainer(definition);
     }
 }
 ```
@@ -58,7 +58,7 @@ public class Portal : EntityBase
 | Класс | Откуда берётся описание | Когда использовать |
 | --- | --- | --- |
 | `CommonEntity` | Поля прямо на компоненте | Разовые объекты сцены, быстрый прототип |
-| `ScriptableEntity` | Ссылка на ассет `EntityInfoBase` | Объект, описание которого переиспользуется |
+| `ScriptableEntity` | Ссылка на ассет `EntityMetadataBase` | Объект, описание которого переиспользуется |
 | `EntityDefinition<T>` | Типизированный ассет-определение | Питомцы, шляпы — всё, у чего есть каталог |
 | `RuntimeEntityBase` | Поля компонента, объект создаётся в рантайме | Контейнеры, дропы, временные объекты |
 
@@ -87,7 +87,7 @@ public override void OnReadyScene()
 Подробности о том, в какой именно реестр попадает сущность и как ведут себя
 идентификаторы, — в разделе [Реестры](#реестры).
 
-## EntityInfo
+## EntityMetadata
 
 `Info` — контейнер, отвечающий на четыре вопроса: как называется, как выглядит, как
 переводится, какого качества. Он же поддерживает переопределение: базовое описание
@@ -104,12 +104,12 @@ QualityType q = entity.Info.GetQuality();
 Функции-override (`NameOverride`, `SpriteOverride`, …) позволяют подменить одно поле,
 не трогая остальные, — например, показать в UI кастомное имя питомца.
 
-`EntityUtils.GetEntityInfo()` собирает контейнер автоматически: базовым берёт саму сущность,
-а переопределением — `IEntityInfoProvider`, найденный на объекте. Если ни одного описания
+`EntityUtils.GetEntityMetadata()` собирает контейнер автоматически: базовым берёт саму сущность,
+а переопределением — `IEntityMetadataProvider`, найденный на объекте. Если ни одного описания
 нет, метод бросает `InvalidOperationException` — сущность без описания считается ошибкой.
 
-Готовая реализация переопределения — компонент `EntityInfoProvider`: повесьте его на объект
-сущности и укажите ассет `EntityInfoBase`. Так одному экземпляру можно дать собственное имя
+Готовая реализация переопределения — компонент `EntityMetadataProvider`: повесьте его на объект
+сущности и укажите ассет `EntityMetadataBase`. Так одному экземпляру можно дать собственное имя
 или иконку, не заводя отдельный тип сущности.
 
 ## Поиск сущности из компонента
@@ -335,9 +335,9 @@ PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
 
 ## Ограничения
 
-- **Переопределение описания задаётся только в инспекторе.** `EntityInfoProvider` хранит
-  ссылку на ассет, а `EntityInfoContainer` собирается один раз при инициализации сущности:
-  подменить описание в рантайме через `SetEntityInfo()` можно лишь до её регистрации.
+- **Переопределение описания задаётся только в инспекторе.** `EntityMetadataProvider` хранит
+  ссылку на ассет, а `EntityMetadataContainer` собирается один раз при инициализации сущности:
+  подменить описание в рантайме через `SetEntityMetadata()` можно лишь до её регистрации.
 - **`EntityManager` — пустой класс.** Наследник `SingletonProviderBase`, не содержит ничего
   и никем не используется; фактический реестр — `EntityTracker`, доступный через
   `EntityService.Instance` и `PRUnitySDK.Trackers.Entities`.

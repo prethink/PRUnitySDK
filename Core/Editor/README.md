@@ -180,7 +180,7 @@ partial, поэтому при подключении нового модуля 
 
 Публичный SDK использует только стандартный Unity Editor API и не зависит от инспекторов или атрибутов private SDK.
 
-Окна открываются через меню `PRUnitySDK/Windows/Database` и `PRUnitySDK/Windows/Settings`. Кнопка `Asset` выбирает
+Окна открываются через меню `PRUnitySDK/Windows/*`. Кнопка `Asset` выбирает
 редактируемый asset в обычном Unity Inspector.
 
 ## PRSDKDatabase
@@ -252,9 +252,10 @@ public sealed class ExampleDatabase : Database<ExampleDefinition>
 
 | Окно | Меню | Что показывает |
 | --- | --- | --- |
-| База | `PRUnitySDK/Windows/Database` | всё остальное; помеченные разделы — строкой со ссылкой |
+| Общее | `PRUnitySDK/Windows/Common` | действия, спрайты, звуки |
+| Описания сущностей | `PRUnitySDK/Windows/Entity metadata` | имена, иконки, качество и переводы |
 | Предметы | `PRUnitySDK/Windows/Items` | каталоги вещей, наборы, брейнроты, питомцы |
-| Награды | `PRUnitySDK/Windows/Rewards` | награды, ресурсы, действия и кейсы |
+| Награды | `PRUnitySDK/Windows/Rewards` | контейнеры подарков и кейсов, все награды проекта, генератор |
 | Витрина | `PRUnitySDK/Windows/Shop` | товары, цены и условия покупки |
 | Переводы | `PRUnitySDK/Windows/Localization` | списки по языкам и таблица проекта |
 | Достижения | `PRUnitySDK/Windows/Achievements` | условия, прогресс и награды |

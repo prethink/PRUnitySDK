@@ -131,7 +131,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     {
         base.InitializationComponents();
 
-        InitializeEntityInfo();
+        InitializeEntityMetadata();
         InitializeEntity();
 
         rigidBodyPauseMonitor = GetComponent<RigidBodyPauseMonitor>();
@@ -216,9 +216,9 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region IGameSessionListener
 
-    public EntityInfoContainer Info { get; protected set; }
+    public EntityMetadataContainer Info { get; protected set; }
 
-    protected abstract void InitializeEntityInfo();
+    protected abstract void InitializeEntityMetadata();
 
     public virtual Enumeration GetTimeScaleLayer()
     {

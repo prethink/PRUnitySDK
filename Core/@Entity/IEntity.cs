@@ -14,7 +14,7 @@ public partial interface IEntity : ITimeScaleLayer, IComponent
     /// <summary>
     /// Информация об сущности
     /// </summary>
-    public EntityInfoContainer Info { get; }
+    public EntityMetadataContainer Info { get; }
 
     /// <summary>
     /// Тип сущности.

@@ -79,9 +79,9 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
 
     public event Action<PlayerBase> OnPlayerDestroy;
 
-    protected override void InitializeEntityInfo()
+    protected override void InitializeEntityMetadata()
     {
-        Info = new EntityInfoContainer(PRUnitySDK.Database.EntityInfo.Data.Single(x => x.Name == "Player"));
+        Info = new EntityMetadataContainer(PRUnitySDK.Database.EntityMetadata.Data.Single(x => x.Name == "Player"));
     }
 
     #endregion

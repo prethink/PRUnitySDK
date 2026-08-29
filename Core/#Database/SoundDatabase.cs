@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
+[DatabaseExternalEditor(
+    "PRUnitySDK/Windows/Common",
+    WindowName = "Общее",
+    Description = "Действия, спрайты и звуки правятся там.")]
 public class SoundDatabase 
 {
     public static SoundDatabase Instance => PRUnitySDK.Database.Sounds;

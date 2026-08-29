@@ -3,13 +3,13 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CommonEntity : EntityBase, IEntityInfo
+public class CommonEntity : EntityBase, IEntityMetadata
 {
     public override Enumeration EntityType => Enumeration.GetOrCreate(EntityTypeValue);
 
     public override string Name => EntityName;
 
-    [field: SerializeField, Header("EntityInfo")] public string EntityName { get; protected set; }
+    [field: SerializeField, Header("EntityMetadata")] public string EntityName { get; protected set; }
     [field: SerializeField] public string EntityTypeValue { get; protected set; }
 
     [field: SerializeField] public Sprite Icon { get; protected set; }
@@ -20,11 +20,11 @@ public class CommonEntity : EntityBase, IEntityInfo
     [field: SerializeField, SerializedDictionary("Lang", "Value")] public SerializedDictionary<LangType, string> localization { get; private set; }
     [field: SerializeField] public QualityType Quality { get; protected set; }
 
-    protected IEntityInfo baseEntityInfo;
-    protected IEntityInfo overrideEntityInfo;
+    protected IEntityMetadata baseEntityMetadata;
+    protected IEntityMetadata overrideEntityMetadata;
 
-    protected override void InitializeEntityInfo()
+    protected override void InitializeEntityMetadata()
     {
-        Info = EntityUtils.GetEntityInfo(ref baseEntityInfo, ref overrideEntityInfo, this);
+        Info = EntityUtils.GetEntityMetadata(ref baseEntityMetadata, ref overrideEntityMetadata, this);
     }
 }

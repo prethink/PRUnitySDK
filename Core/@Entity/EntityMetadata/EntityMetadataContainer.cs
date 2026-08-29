@@ -1,10 +1,10 @@
 using System;
 using UnityEngine;
 
-public class EntityInfoContainer
+public class EntityMetadataContainer
 {
-    public IEntityInfo Base { get; }
-    public IEntityInfo Override { get; }
+    public IEntityMetadata Base { get; }
+    public IEntityMetadata Override { get; }
 
     public Func<Sprite> SpriteOverride { get; private set; }
     public Func<string> NameOverride { get; private set; }
@@ -12,7 +12,7 @@ public class EntityInfoContainer
 
     public Func<QualityType> QualityOverride { get; private set; }
 
-    public EntityInfoContainer(IEntityInfo baseInfo, IEntityInfo overrideInfo = null)
+    public EntityMetadataContainer(IEntityMetadata baseInfo, IEntityMetadata overrideInfo = null)
     {
         Base = baseInfo;
         Override = overrideInfo;

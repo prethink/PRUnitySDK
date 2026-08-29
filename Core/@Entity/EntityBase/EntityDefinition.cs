@@ -1,13 +1,13 @@
 using UnityEngine;
 
 public abstract class EntityDefinition<TDefinition> : EntityBase 
-    where TDefinition : IEntityInfo
+    where TDefinition : IEntityMetadata
 {
     [field: SerializeField, Header("Definition")] public TDefinition Definition { get; private set; }
     public override string Name => Definition?.Name ?? "NotInitialized";
 
-    protected override void InitializeEntityInfo()
+    protected override void InitializeEntityMetadata()
     {
-        Info = new EntityInfoContainer(Definition);
+        Info = new EntityMetadataContainer(Definition);
     }
 }

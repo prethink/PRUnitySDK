@@ -2,27 +2,27 @@ using System;
 
 public static class EntityUtils
 {
-    public static EntityInfoContainer GetEntityInfo(ref IEntityInfo baseEntityInfo, ref IEntityInfo overrideEntityInfo, IEntityInfo entity)
+    public static EntityMetadataContainer GetEntityMetadata(ref IEntityMetadata baseEntityMetadata, ref IEntityMetadata overrideEntityMetadata, IEntityMetadata entity)
     {
-        baseEntityInfo = entity;
-        overrideEntityInfo = entity.GetComponent<IEntityInfoProvider>()?.EntityInfo;
+        baseEntityMetadata = entity;
+        overrideEntityMetadata = entity.GetComponent<IEntityMetadataProvider>()?.EntityMetadata;
 
-        EntityInfoContainer currentInfo; 
+        EntityMetadataContainer currentInfo; 
 
-        if (baseEntityInfo != null && overrideEntityInfo != null)
+        if (baseEntityMetadata != null && overrideEntityMetadata != null)
         {
-            currentInfo = new EntityInfoContainer(baseEntityInfo, overrideEntityInfo);
+            currentInfo = new EntityMetadataContainer(baseEntityMetadata, overrideEntityMetadata);
         }
-        else if (baseEntityInfo != null)
+        else if (baseEntityMetadata != null)
         {
-            currentInfo = new EntityInfoContainer(baseEntityInfo);
+            currentInfo = new EntityMetadataContainer(baseEntityMetadata);
         }
-        else if (overrideEntityInfo != null)
+        else if (overrideEntityMetadata != null)
         {
-            currentInfo = new EntityInfoContainer(overrideEntityInfo);
+            currentInfo = new EntityMetadataContainer(overrideEntityMetadata);
         }
         else
-            throw new InvalidOperationException("Not have entity info");
+            throw new InvalidOperationException("У сущности нет описания.");
 
         return currentInfo;
     }

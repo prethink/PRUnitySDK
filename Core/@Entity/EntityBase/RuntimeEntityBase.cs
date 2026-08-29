@@ -2,7 +2,7 @@ using AYellowpaper.SerializedCollections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class RuntimeEntityBase : EntityBase, IEntityInfo
+public abstract class RuntimeEntityBase : EntityBase, IEntityMetadata
 {
     [field: SerializeField] public Sprite Icon { get; protected set; }
 
@@ -12,11 +12,11 @@ public abstract class RuntimeEntityBase : EntityBase, IEntityInfo
     [field: SerializeField, SerializedDictionary("Lang", "Value")] public SerializedDictionary<LangType, string> localization { get; private set; }
     [field: SerializeField] public QualityType Quality { get; protected set; }
 
-    protected IEntityInfo baseEntityInfo;
-    protected IEntityInfo overrideEntityInfo;
+    protected IEntityMetadata baseEntityMetadata;
+    protected IEntityMetadata overrideEntityMetadata;
 
-    protected override void InitializeEntityInfo()
+    protected override void InitializeEntityMetadata()
     {
-        Info = EntityUtils.GetEntityInfo(ref baseEntityInfo, ref overrideEntityInfo, this);
+        Info = EntityUtils.GetEntityMetadata(ref baseEntityMetadata, ref overrideEntityMetadata, this);
     }
 }

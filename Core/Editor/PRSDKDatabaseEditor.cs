@@ -8,7 +8,7 @@ using UnityEngine;
 /// <summary>
 /// Отдельное окно <see cref="PRSDKDatabase"/> с управлением каталогами definitions.
 /// </summary>
-public class PRSDKDatabaseEditor : EditorWindow
+public abstract class PRSDKDatabaseEditor : EditorWindow
 {
     private const float CardHeight = 138f;
     private const float CardWidth = 112f;
@@ -122,15 +122,6 @@ public class PRSDKDatabaseEditor : EditorWindow
             DatabaseIndex = databaseIndex;
             IsInvalid = isInvalid;
         }
-    }
-
-    [MenuItem("PRUnitySDK/Windows/Database", false, 10)]
-    private static void OpenWindow()
-    {
-        PRSDKDatabaseEditor window = GetWindow<PRSDKDatabaseEditor>();
-        window.titleContent = new GUIContent("SDK Database");
-        window.minSize = new Vector2(620f, 450f);
-        window.Show();
     }
 
     private void OnEnable()

@@ -6,11 +6,11 @@ public class ScriptableEntity : EntityBase
 
     public override string Name => entityInfoData.Name;
 
-    [SerializeField, Header("EntityInfo")] protected EntityInfoBase entityInfoData;
+    [SerializeField, Header("EntityMetadata")] protected EntityMetadataBase entityInfoData;
     [SerializeField] protected string entityType;
 
-    protected override void InitializeEntityInfo()
+    protected override void InitializeEntityMetadata()
     {
-        Info = new EntityInfoContainer(entityInfoData);
+        Info = new EntityMetadataContainer(entityInfoData);
     }
 }
