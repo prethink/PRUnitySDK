@@ -62,10 +62,41 @@ public partial class PRDebugEditor
         DrawKeyValue("Code", string.IsNullOrWhiteSpace(currentCode) ? "-" : currentCode);
         DrawKeyValue("Manager", languageManager.GetType().Name);
 
-        EditorGUI.BeginChangeCheck();
-        LangType selectedLanguage = (LangType)EditorGUILayout.EnumPopup("Runtime language", currentLanguage);
-        if (EditorGUI.EndChangeCheck() && selectedLanguage != currentLanguage)
-            EditorApplication.delayCall += () => ApplyLanguage(selectedLanguage);
+        DrawLanguageButtons(currentLanguage);
+    }
+
+    /// <summary>
+    /// Рисует языки рядом кнопок с отметкой текущего.
+    /// </summary>
+    /// <remarks>
+    /// Языков всего три, и все они помещаются в строку. Выпадающий список ради такого
+    /// набора требовал двух нажатий и прятал сам факт выбора: по закрытому списку не
+    /// видно, что языков больше одного.
+    /// </remarks>
+    private void DrawLanguageButtons(LangType currentLanguage)
+    {
+        var languages = (LangType[])System.Enum.GetValues(typeof(LangType));
+
+        EditorGUILayout.LabelField("Runtime language", EditorStyles.miniLabel);
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            foreach (LangType language in languages)
+            {
+                bool active = language == currentLanguage;
+
+                // Текущий язык остаётся нажимаемым: менеджер мог отвергнуть переключение,
+                // и повтор — самый быстрый способ убедиться, что состояние настоящее.
+                GUIStyle style = active ? EditorStyles.toolbarButton : EditorStyles.miniButton;
+                string label = active ? $"● {language}" : language.ToString();
+
+                if (!GUILayout.Button(label, style, GUILayout.MinWidth(70f)))
+                    continue;
+
+                LangType picked = language;
+                EditorApplication.delayCall += () => ApplyLanguage(picked);
+            }
+        }
     }
 
     /// <summary>

@@ -80,3 +80,37 @@ private void OnDestroy()
 ```
 
 После `Dispose()` экземпляр не следует запускать повторно. `End()` завершает отсчёт немедленно, тогда как `Stop()` только приостанавливает его.
+
+## LayerMaskUtils
+
+Маска слоёв в коде выглядит обычным числом, и по вызову `Physics.OverlapSphere(point,
+radius, ~0)` не понять, намеренно там «все слои» или забытая заглушка. `LayerMaskUtils`
+даёт таким значениям имена и проверяет сборку маски.
+
+```csharp
+int mask = LayerMaskUtils.Create("Entity", "Player", "Enemy");
+mask = LayerMaskUtils.Remove(mask, gameObject.layer);   // не задевать самого себя
+
+if (LayerMaskUtils.Contains(mask, hit.collider))
+    Damage(hit.collider);
+```
+
+`Create` отличается от `LayerMask.GetMask` тем, что сообщает о слое, которого нет
+в проекте. Стандартный метод в таком случае молча возвращает ноль, и физика перестаёт
+находить что-либо вообще — без единой ошибки в консоли, поэтому искать причину
+приходится долго.
+
+| Метод | Что делает |
+| --- | --- |
+| `GetAnyLayer()` / `GetNoneLayer()` | все слои / ни одного |
+| `IsEmpty(mask)` | маска пуста — проверка по ней ничего не найдёт |
+| `ContainsLayer(mask, layer)` | слой входит в маску |
+| `Contains(mask, GameObject)` / `Contains(mask, Component)` | объект лежит на слое из маски |
+| `Create(params string[])` | собирает маску из имён с проверкой |
+| `Add(mask, layer)` / `Remove(mask, layer)` | добавить или убрать слой |
+| `Combine(params int[])` / `Exclude(mask, other)` | объединить маски или вычесть одну из другой |
+| `GetLayers(mask)` | слои маски по номерам |
+| `Describe(mask)` | имена слоёв через запятую — для логов и подписей |
+
+`Describe` для полной маски отвечает «все слои»: перечислять 32 номера, из которых
+большинство безымянные, бесполезно.
