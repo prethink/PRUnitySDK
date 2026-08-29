@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
+[DatabaseExternalEditor(
+    "PRUnitySDK/Tools/Localization",
+    WindowName = "Localization",
+    Description = "Переводы правятся там: списки по языкам, проверки и обмен таблицей.")]
 public class LocalizationDatabase 
 {
     public static LocalizationDatabase Instance => PRUnitySDK.Database.LocalizationDatabase;

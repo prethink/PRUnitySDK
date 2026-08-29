@@ -455,6 +455,51 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
 
     #endregion
 
+    /// <summary>
+    /// Рисует секцию, которой занимается отдельное окно.
+    /// </summary>
+    /// <remarks>
+    /// Содержимое не показывается: те же данные в двух редакторах — верный способ
+    /// получить разъехавшиеся правки. Остаётся строка с названием и кнопкой, чтобы
+    /// раздел не выглядел потерянным.
+    /// </remarks>
+    private bool TryDrawExternalSection(Type fieldType, string sectionName)
+    {
+        if (fieldType == null)
+            return false;
+
+        var external = Attribute.GetCustomAttribute(
+            fieldType,
+            typeof(DatabaseExternalEditorAttribute),
+            inherit: true) as DatabaseExternalEditorAttribute;
+
+        if (external == null)
+            return false;
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(sectionName, EditorStyles.boldLabel);
+
+                string window = string.IsNullOrEmpty(external.WindowName)
+                    ? "Открыть окно"
+                    : $"Открыть: {external.WindowName}";
+
+                if (GUILayout.Button(window, GUILayout.Width(220f)))
+                    EditorApplication.ExecuteMenuItem(external.MenuPath);
+            }
+
+            string description = string.IsNullOrEmpty(external.Description)
+                ? "Раздел правится отдельным окном."
+                : external.Description;
+
+            EditorGUILayout.LabelField(description, EditorStyles.miniLabel);
+        }
+
+        return true;
+    }
+
     private void DrawSection(SerializedProperty property, string sectionName)
     {
         Type fieldType = PRSDKInspectorUtility.GetFieldType(database.GetType(), property);
@@ -468,6 +513,9 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         Type fieldType,
         object sectionValue)
     {
+        if (TryDrawExternalSection(fieldType, sectionName))
+            return;
+
         Type elementType = PRSDKInspectorUtility.GetDatabaseElementType(fieldType);
         var options = fieldType != null
             ? Attribute.GetCustomAttribute(
