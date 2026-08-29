@@ -50,18 +50,32 @@ namespace AYellowpaper.SerializedCollections.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (!_arrayData.ContainsKey(property.propertyPath))
-                _arrayData.Add(property.propertyPath, new SerializedDictionaryInstanceDrawer(property, fieldInfo));
-
-            _arrayData[property.propertyPath].OnGUI(position, label);
+            GetInstanceDrawer(property).OnGUI(position, label);
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            if (!_arrayData.ContainsKey(property.propertyPath))
-                _arrayData.Add(property.propertyPath, new SerializedDictionaryInstanceDrawer(property, fieldInfo));
+            return GetInstanceDrawer(property).GetPropertyHeight(label);
+        }
 
-            return _arrayData[property.propertyPath].GetPropertyHeight(label);
+        /// <summary>
+        /// Правка PRUnitySDK: кеш проверяется на пригодность, а не только на наличие.
+        /// </summary>
+        /// <remarks>
+        /// Unity переиспользует PropertyDrawer между объектами, а кеш здесь сложен по пути
+        /// свойства. Стоит закрыть редактор одного объекта и открыть другой того же типа —
+        /// путь совпадает, и из кеша достаётся drawer, чей SerializedObject уже закрыт.
+        /// Дальше первое же обращение к свойству бросает «SerializedObject of
+        /// SerializedProperty has been Disposed».
+        /// </remarks>
+        private SerializedDictionaryInstanceDrawer GetInstanceDrawer(SerializedProperty property)
+        {
+            if (_arrayData.TryGetValue(property.propertyPath, out var cached) && cached.IsValidFor(property))
+                return cached;
+
+            var drawer = new SerializedDictionaryInstanceDrawer(property, fieldInfo);
+            _arrayData[property.propertyPath] = drawer;
+            return drawer;
         }
     }
 }

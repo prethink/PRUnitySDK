@@ -145,6 +145,47 @@ public class PRSDKDatabaseEditor : EditorWindow
         DestroyAllSelectedAssetEditors();
     }
 
+    /// <summary>
+    /// Вкладки окна помимо самой базы.
+    /// </summary>
+    /// <remarks>
+    /// Инструменты, которые работают с тем же содержимым: генератор наград создаёт то,
+    /// что потом лежит в каталоге. Держать их отдельными окнами значит заставлять
+    /// переключаться между ними ради одного действия.
+    /// </remarks>
+    protected virtual IReadOnlyList<(string Title, Action Draw)> GetExtraTabs()
+    {
+        return Array.Empty<(string, Action)>();
+    }
+
+    /// <summary>
+    /// Выбранная вкладка: ноль — сама база.
+    /// </summary>
+    private int selectedTab;
+
+    private bool DrawTabs()
+    {
+        IReadOnlyList<(string Title, Action Draw)> extra = GetExtraTabs();
+
+        if (extra.Count == 0)
+            return false;
+
+        var titles = new string[extra.Count + 1];
+        titles[0] = "База";
+
+        for (var index = 0; index < extra.Count; index++)
+            titles[index + 1] = extra[index].Title;
+
+        selectedTab = Mathf.Clamp(selectedTab, 0, titles.Length - 1);
+        selectedTab = GUILayout.Toolbar(selectedTab, titles, GUILayout.Height(24f));
+
+        if (selectedTab == 0)
+            return false;
+
+        extra[selectedTab - 1].Draw?.Invoke();
+        return true;
+    }
+
     private void OnGUI()
     {
         if (!EnsureDatabase())
@@ -155,6 +196,10 @@ public class PRSDKDatabaseEditor : EditorWindow
 
         serializedDatabase.UpdateIfRequiredOrScript();
         PRSDKInspectorUtility.DrawHeader("PRUnitySDK Database", database);
+
+        if (DrawTabs())
+            return;
+
         DrawToolbar();
         DrawPresetReport();
 
@@ -694,10 +739,15 @@ public class PRSDKDatabaseEditor : EditorWindow
         bool supportsAssetTools,
         DatabaseEditorOptionsAttribute options)
     {
+        // Сетка сама по себе не про предметы, а про то, что показывают картинкой:
+        // награду от награды отличают по иконке так же, как шапку от шапки. Признаком
+        // служит IIconProvider — заводить ради этого настройку в каждом каталоге значит
+        // повторять одно и то же решение.
         return supportsAssetTools &&
                (options.Presentation == DatabaseEditorPresentation.Grid ||
                 options.Presentation == DatabaseEditorPresentation.Auto &&
-                typeof(ItemDefinitionBase).IsAssignableFrom(elementType));
+                (typeof(ItemDefinitionBase).IsAssignableFrom(elementType) ||
+                 typeof(IIconProvider).IsAssignableFrom(elementType)));
     }
 
     private void DrawDatabaseTools(

@@ -23,12 +23,6 @@ MonoBehaviour:
     backgroundMusic: []
     ui: []
     common: []
-  <Rewards>k__BackingField:
-    actions: []
-    resources: []
-    items: []
-    cases: []
-    qualityCases: []
   <EntityInfo>k__BackingField:
     data:
     - {fileID: 11400000, guid: 6e81bd0a37f94a2cb5d0e19c7f4a3268, type: 2}
@@ -110,6 +104,11 @@ MonoBehaviour:
       <Reward>k__BackingField: {fileID: 0}
       <localization>k__BackingField:
         _serializedList: []
+  <Cases>k__BackingField:
+    data: []
+  <QualityCases>k__BackingField:
+    data:
+    - {fileID: 11400000, guid: cf53dd35d0d1ce34e8ae850fff4185fc, type: 2}
   <DailyGifts>k__BackingField:
     gifts:
     - {fileID: 11400000, guid: dc5ea15e32e351643961b86614378a92, type: 2}
@@ -117,13 +116,12 @@ MonoBehaviour:
     - {fileID: 11400000, guid: c16f6fa2f8d9b7e4ca08000e594ba089, type: 2}
   <FreeGifts>k__BackingField:
     gifts:
-    - Item: {fileID: 11400000, guid: 561a91004ae82bc4bb039e9789a02a28, type: 2}
-      Weight: 0
-    - Item: {fileID: 11400000, guid: 6f5eb2aa961357e4d9000d04a4fbd122, type: 2}
-      Weight: 0
-    - Item: {fileID: 11400000, guid: 3ddb173859637774ca917441a59cadc5, type: 2}
-      Weight: 0
+    - {fileID: 11400000, guid: 561a91004ae82bc4bb039e9789a02a28, type: 2}
+    - {fileID: 11400000, guid: 6f5eb2aa961357e4d9000d04a4fbd122, type: 2}
+    - {fileID: 11400000, guid: 3ddb173859637774ca917441a59cadc5, type: 2}
     cooldownMinutes: 60
+  <WheelOfFortune>k__BackingField:
+    rewards: []
   <Obby>k__BackingField:
     <Skins>k__BackingField:
       data:

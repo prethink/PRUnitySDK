@@ -110,6 +110,30 @@ namespace AYellowpaper.SerializedCollections.Editor
             }
         }
 
+        /// <summary>
+        /// Правка PRUnitySDK: экземпляр всё ещё описывает это свойство.
+        /// </summary>
+        /// <remarks>
+        /// Сравнивается сам SerializedObject: у нового редактора он другой, даже если путь
+        /// свойства совпадает. Обращение к закрытому объекту бросает исключение — это тоже
+        /// ответ «непригоден», поэтому проверка обёрнута.
+        /// </remarks>
+        internal bool IsValidFor(SerializedProperty property)
+        {
+            if (ListProperty == null || property == null)
+                return false;
+
+            try
+            {
+                return ReferenceEquals(ListProperty.serializedObject, property.serializedObject)
+                       && ListProperty.serializedObject.targetObject != null;
+            }
+            catch (System.Exception)
+            {
+                return false;
+            }
+        }
+
         public float GetPropertyHeight(GUIContent label)
         {
             if (!ListProperty.isExpanded)
