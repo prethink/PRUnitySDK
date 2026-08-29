@@ -5,11 +5,16 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-public class LocalizationWindow : ExtendedEditorWindow
+public partial class LocalizationWindow : ExtendedEditorWindow
 {
     private static readonly Regex PlaceholderRegex = new(
         @"(?<!\{)\{(\d+)(?:[^}]*)\}(?!\})",
         RegexOptions.Compiled);
+
+    /// <summary>
+    /// Длина, после которой перевод перестаёт помещаться в одну строку.
+    /// </summary>
+    private const int SingleLineLength = 90;
 
     private SerializedObject serializedDatabase;
     private SerializedProperty defaultLanguageProperty;
@@ -29,6 +34,12 @@ public class LocalizationWindow : ExtendedEditorWindow
     private void OnEnable()
     {
         Initialize();
+        InitializeTable();
+    }
+
+    private void OnDisable()
+    {
+        SaveTableSettings();
     }
 
     private void Initialize()
@@ -56,21 +67,56 @@ public class LocalizationWindow : ExtendedEditorWindow
 
     private void OnGUI()
     {
+        DrawSearch();
+
+        // Вкладка проекта работает и без базы: переводы предметов и подписи на префабах
+        // лежат в своих ассетах, и отсутствие базы им не мешает.
+        Tabs(
+            ("Common", () => DrawDatabaseTab(commonProperty, projectProperty, ref commonScroll, "Common")),
+            ("Project", () => DrawDatabaseTab(projectProperty, commonProperty, ref projectScroll, "Project")),
+            ("Проект", DrawTableTab));
+    }
+
+    /// <summary>
+    /// Рисует вкладку общего списка.
+    /// </summary>
+    private void DrawDatabaseTab(
+        SerializedProperty list,
+        SerializedProperty other,
+        ref Vector2 scroll,
+        string listName)
+    {
         if (database == null || serializedDatabase == null ||
             commonProperty == null || projectProperty == null)
         {
             EditorGUILayout.HelpBox("Localization database was not found.", MessageType.Error);
+
             if (GUILayout.Button("Retry"))
                 Initialize();
+
             return;
         }
 
         serializedDatabase.Update();
         DrawToolbar();
-        Tabs(
-            ("Common", () => DrawList(commonProperty, projectProperty, ref commonScroll, "Common")),
-            ("Project", () => DrawList(projectProperty, commonProperty, ref projectScroll, "Project")));
+        DrawList(list, other, ref scroll, listName);
         serializedDatabase.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// Поле поиска, общее для всех вкладок.
+    /// </summary>
+    private void DrawSearch()
+    {
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+        GUILayout.FlexibleSpace();
+        search = GUILayout.TextField(search, EditorStyles.toolbarSearchField, GUILayout.MinWidth(180f));
+
+        if (!string.IsNullOrEmpty(search) &&
+            GUILayout.Button("×", EditorStyles.toolbarButton, GUILayout.Width(22f)))
+            search = string.Empty;
+
+        EditorGUILayout.EndHorizontal();
     }
 
     private void DrawToolbar()
@@ -93,10 +139,6 @@ public class LocalizationWindow : ExtendedEditorWindow
         }
 
         GUILayout.FlexibleSpace();
-        search = GUILayout.TextField(search, EditorStyles.toolbarSearchField, GUILayout.MinWidth(180f));
-        if (!string.IsNullOrEmpty(search) &&
-            GUILayout.Button("×", EditorStyles.toolbarButton, GUILayout.Width(22f)))
-            search = string.Empty;
         EditorGUILayout.EndHorizontal();
     }
 
@@ -188,7 +230,7 @@ public class LocalizationWindow : ExtendedEditorWindow
         DrawTranslations(dictionary);
         DrawValidation(key.stringValue, dictionary, keyCounts, otherKeys, listName);
         EditorGUILayout.EndVertical();
-        EditorGUILayout.Space(3f);
+        EditorGUILayout.Space(1f);
     }
 
     private void DrawTranslations(SerializedProperty dictionary)
@@ -203,25 +245,51 @@ public class LocalizationWindow : ExtendedEditorWindow
         {
             SerializedProperty pair = FindPair(dictionary, language);
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(ObjectNames.NicifyVariableName(language.ToString()), GUILayout.Width(85f));
+            EditorGUILayout.LabelField(
+                ObjectNames.NicifyVariableName(language.ToString()),
+                EditorStyles.miniLabel,
+                GUILayout.Width(64f));
 
             if (pair == null)
             {
                 EditorGUILayout.LabelField("Missing", EditorStyles.miniLabel);
-                if (GUILayout.Button("Add", GUILayout.Width(45f)))
+                if (GUILayout.Button("Add", EditorStyles.miniButton, GUILayout.Width(45f)))
                     AddLanguage(dictionary, language);
             }
             else
             {
-                SerializedProperty value = pair.FindPropertyRelative("Value");
-                value.stringValue = EditorGUILayout.TextArea(
-                    value.stringValue,
-                    GUILayout.MinHeight(34f),
-                    GUILayout.ExpandWidth(true));
+                DrawTranslationValue(pair.FindPropertyRelative("Value"));
             }
 
             EditorGUILayout.EndHorizontal();
         }
+    }
+
+    /// <summary>
+    /// Поле перевода высотой по содержимому.
+    /// </summary>
+    /// <remarks>
+    /// Подписей интерфейса подавляющее большинство, и все они в одну строку: постоянная
+    /// многострочная область отнимала бы у списка вдвое больше места, чем показывает.
+    /// Поле растёт, только когда в тексте действительно есть что показывать — перенос
+    /// строки или длинное описание.
+    /// </remarks>
+    private static void DrawTranslationValue(SerializedProperty value)
+    {
+        string text = value.stringValue ?? string.Empty;
+        int breaks = text.Count(symbol => symbol == '\n');
+
+        if (breaks == 0 && text.Length <= SingleLineLength)
+        {
+            value.stringValue = EditorGUILayout.TextField(text);
+            return;
+        }
+
+        int lines = Mathf.Clamp(breaks + 1 + text.Length / SingleLineLength, 2, 6);
+
+        value.stringValue = EditorGUILayout.TextArea(
+            text,
+            GUILayout.Height(lines * EditorGUIUtility.singleLineHeight));
     }
 
     private void DrawValidation(
@@ -595,6 +663,9 @@ public class LocalizationWindow : ExtendedEditorWindow
         return string.IsNullOrEmpty(signature) ? "none" : $"{{{signature}}}";
     }
 
+    /// <summary>
+    /// Значение содержит искомое, без учёта регистра.
+    /// </summary>
     private static bool Contains(string value, string query)
     {
         return !string.IsNullOrWhiteSpace(value) &&

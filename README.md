@@ -366,6 +366,7 @@ PRUnitySDK/
 - [Wallet](Core/Wallet/README.md) — баланс, начисление и списание валюты поверх `ResourceManager`
 - [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
+- [Локализация](Modules/Translate/README.md) — переводы в базе, ассетах и на префабах, сбор и обмен через CSV
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
 - [Utils](Core/Utils/README.md) — вспомогательные классы: время, отложенные вызовы, имена
 - [Proxies](Core/Proxies/README.md) — переадресация Unity-callback'ов с дочерних объектов родительским компонентам
