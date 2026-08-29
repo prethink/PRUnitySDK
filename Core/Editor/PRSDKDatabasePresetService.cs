@@ -33,7 +33,14 @@ public static class PRSDKDatabasePresetService
     /// </summary>
     /// <param name="database">База, состав которой нужно сохранить.</param>
     /// <param name="presetName">Имя набора.</param>
-    public static PRSDKDatabasePreset Capture(PRSDKDatabase database, string presetName)
+    /// <param name="scope">
+    /// Отбор каталогов: набор описывает то, что показывает окно, а не всю базу.
+    /// Пусто — берётся всё, как было до разделения базы на окна.
+    /// </param>
+    public static PRSDKDatabasePreset Capture(
+        PRSDKDatabase database,
+        string presetName,
+        Func<SerializedProperty, bool> scope = null)
     {
         var preset = new PRSDKDatabasePreset
         {
@@ -46,6 +53,9 @@ public static class PRSDKDatabasePresetService
 
         foreach (SerializedProperty catalog in EnumerateCatalogs(serialized))
         {
+            if (scope != null && !scope(catalog))
+                continue;
+
             var section = new PRSDKDatabasePresetSection
             {
                 path = catalog.propertyPath,
@@ -144,12 +154,21 @@ public static class PRSDKDatabasePresetService
     /// <remarks>
     /// Ничего не меняет: отчёт нужен, чтобы решение принимал человек.
     /// </remarks>
-    public static PRSDKDatabasePresetReport Analyze(PRSDKDatabasePreset preset, PRSDKDatabase database)
+    /// <param name="scope">
+    /// Отбор каталогов окна. Разделы набора вне этого отбора не применяются: окно правит
+    /// только то, что показывает, иначе из каталога предметов можно молча переписать
+    /// награды и звуки.
+    /// </param>
+    public static PRSDKDatabasePresetReport Analyze(
+        PRSDKDatabasePreset preset,
+        PRSDKDatabase database,
+        Func<SerializedProperty, bool> scope = null)
     {
         var report = new PRSDKDatabasePresetReport(preset);
         var serialized = new SerializedObject(database);
 
         Dictionary<string, SerializedProperty> catalogs = EnumerateCatalogs(serialized)
+            .Where(property => scope == null || scope(property))
             .ToDictionary(property => property.propertyPath, property => property);
 
         var touched = new HashSet<string>(StringComparer.Ordinal);
@@ -158,10 +177,12 @@ public static class PRSDKDatabasePresetService
         {
             if (!catalogs.TryGetValue(section.path, out SerializedProperty catalog))
             {
+                // Каталог либо исчез из базы, либо принадлежит другому окну. Второе —
+                // обычное дело: набор мог быть снят там, где видно больше.
                 report.AddIssue(
-                    PRSDKDatabasePresetSeverity.Error,
+                    PRSDKDatabasePresetSeverity.Info,
                     section.label,
-                    $"Каталога «{section.label}» больше нет в базе — раздел пропущен.");
+                    $"«{section.label}» не относится к этому окну — раздел пропущен.");
                 continue;
             }
 

@@ -289,20 +289,41 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         serializedDatabase.ApplyModifiedProperties();
 
         string folder = PRSDKDatabasePresetService.DefaultFolder;
+        // Имя окна в имени файла: наборы теперь частичные, и «database-preset» у пяти
+        // окон превратился бы в пять одинаковых файлов с разным содержимым.
+        string defaultName = $"{GetWindowKey()}-preset";
+
         string path = EditorUtility.SaveFilePanel(
-            "Сохранить набор базы", folder, "database-preset", "json");
+            "Сохранить набор", folder, defaultName, "json");
 
         if (string.IsNullOrEmpty(path))
             return;
 
         PRSDKDatabasePreset preset = PRSDKDatabasePresetService.Capture(
-            database, Path.GetFileNameWithoutExtension(path));
+            database, Path.GetFileNameWithoutExtension(path), IsCatalogInWindow);
 
         PRSDKDatabasePresetService.Save(preset, path);
 
         int items = preset.sections.Sum(section => section.items.Count);
         ShowNotification(new GUIContent($"Сохранено: {items} шт."));
-        Debug.Log($"[PRSDKDatabase] Набор «{preset.name}» сохранён: {path}");
+
+        // Набор описывает только разделы этого окна: применять его будут там же,
+        // а разделы, которых окно не показывает, оно и не вправе менять.
+        Debug.Log(
+            $"[PRSDKDatabase] Набор «{preset.name}» сохранён: {path}. " +
+            $"Разделов: {preset.sections.Count} — из окна «{titleContent.text}».");
+    }
+
+    /// <summary>
+    /// Короткое имя окна для имени файла набора.
+    /// </summary>
+    private string GetWindowKey()
+    {
+        if (string.IsNullOrEmpty(OwnedEditorMenuPath))
+            return "database";
+
+        string tail = OwnedEditorMenuPath.Substring(OwnedEditorMenuPath.LastIndexOf('/') + 1);
+        return tail.Replace(' ', '-').ToLowerInvariant();
     }
 
     /// <summary>
@@ -324,8 +345,36 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             return;
         }
 
-        pendingPreset = PRSDKDatabasePresetService.Analyze(preset, database);
+        pendingPreset = PRSDKDatabasePresetService.Analyze(preset, database, IsCatalogInWindow);
         presetReportScroll = Vector2.zero;
+    }
+
+    /// <summary>
+    /// Каталог принадлежит этому окну.
+    /// </summary>
+    /// <remarks>
+    /// Наборы работают в границах окна: сохраняется и применяется только то, что окно
+    /// показывает. Иначе из каталога предметов можно молча переписать награды и звуки —
+    /// увидеть это в отчёте нельзя, потому что таких разделов в окне попросту нет.
+    /// <para>
+    /// Путь каталога уходит вглубь («<c>&lt;Obby&gt;k__BackingField.&lt;Skins&gt;…</c>»),
+    /// а решает корневой раздел базы: атрибут окна стоит на нём.
+    /// </para>
+    /// </remarks>
+    private bool IsCatalogInWindow(SerializedProperty catalog)
+    {
+        if (catalog == null)
+            return false;
+
+        int dot = catalog.propertyPath.IndexOf('.');
+        string root = dot < 0 ? catalog.propertyPath : catalog.propertyPath.Substring(0, dot);
+
+        SerializedProperty property = serializedDatabase.FindProperty(root);
+
+        if (property == null)
+            return false;
+
+        return IsSectionVisible(PRSDKInspectorUtility.GetFieldType(database.GetType(), property));
     }
 
     /// <summary>
@@ -345,6 +394,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             EditorGUILayout.LabelField(
                 $"Сохранён: {pendingPreset.Preset.savedAt}   •   проект: {pendingPreset.Preset.project}",
                 EditorStyles.miniLabel);
+
 
             DrawPresetMode();
 
