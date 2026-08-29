@@ -82,7 +82,7 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 `InitializeModuleSDK`, `InitializeManager`, `InitializeType`, инициализация core-singleton
 и generic `RegisterFactory` добавляют записи автоматически. Caller возвращает созданный
 экземпляр, поэтому категория и фактическая реализация не указываются вручную. Данные отображаются на вкладке
-`Initialization` окна `PRUnitySDK/Tools/Debug Window` в Play Mode.
+`Initialization` окна `PRUnitySDK/Windows/Debug Window` в Play Mode.
 
 `MonoWindowFactoryBase` и `NotifierFactoryBase` автоматически измеряют только первое
 фактическое создание singleton-экземпляра; возврат уже созданного объекта повторную запись

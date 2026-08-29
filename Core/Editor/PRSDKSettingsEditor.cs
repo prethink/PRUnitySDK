@@ -12,7 +12,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     private SerializedObject serializedSettings;
     private Vector2 scrollPosition;
 
-    [MenuItem("PRUnitySDK/Windows/Settings", false, 11)]
+    [MenuItem("PRUnitySDK/Windows/Settings", false, 30)]
     private static void OpenWindow()
     {
         PRSDKSettingsEditor window = GetWindow<PRSDKSettingsEditor>();

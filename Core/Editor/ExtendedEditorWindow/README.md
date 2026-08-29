@@ -16,7 +16,7 @@ using UnityEngine;
 
 public sealed class ExampleEditorWindow : ExtendedEditorWindow
 {
-    [MenuItem("PRUnitySDK/Tools/Example")]
+    [MenuItem("PRUnitySDK/Windows/Example")]
     private static void Open()
     {
         GetWindow<ExampleEditorWindow>("Example");

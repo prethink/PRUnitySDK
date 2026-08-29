@@ -35,7 +35,7 @@ public sealed class DatabaseExternalEditorAttribute : Attribute
     /// <summary>
     /// Конструктор.
     /// </summary>
-    /// <param name="menuPath">Путь пункта меню, например <c>PRUnitySDK/Tools/Localization</c>.</param>
+    /// <param name="menuPath">Путь пункта меню, например <c>PRUnitySDK/Windows/Localization</c>.</param>
     public DatabaseExternalEditorAttribute(string menuPath)
     {
         MenuPath = menuPath;

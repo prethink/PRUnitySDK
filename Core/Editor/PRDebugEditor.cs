@@ -122,7 +122,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private volatile bool eventHistoryDirty;
     private long eventSequence;
 
-    [MenuItem("PRUnitySDK/Tools/Debug Window")]
+    [MenuItem("PRUnitySDK/Windows/Debug Window", false, 31)]
     public static void ShowWindow()
     {
         var window = GetWindow<PRDebugEditor>("PRUnitySDK Debug");

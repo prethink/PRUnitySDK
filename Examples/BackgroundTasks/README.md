@@ -19,7 +19,7 @@
 PRUnitySDK.Trackers.BackgroundTasks.Register(new PlaytimeTrackerTask());
 ```
 
-После включения задачи видны во вкладке `Tasks` окна `PRUnitySDK/Tools/Debug Window`:
+После включения задачи видны во вкладке `Tasks` окна `PRUnitySDK/Windows/Debug Window`:
 там же можно запустить их вне расписания и посмотреть счётчики.
 
 ## PlaytimeTrackerTask

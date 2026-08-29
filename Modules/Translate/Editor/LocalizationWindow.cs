@@ -27,7 +27,7 @@ public partial class LocalizationWindow : ExtendedEditorWindow
     private string search = string.Empty;
     private LangType[] languages = Array.Empty<LangType>();
 
-    [MenuItem("PRUnitySDK/Tools/Localization")]
+    [MenuItem("PRUnitySDK/Windows/Localization", false, 15)]
     public static void Open()
     {
         GetWindow<LocalizationWindow>("Localization");

@@ -6,7 +6,7 @@
 
 ## PRUnitySDK Debug
 
-Окно `PRUnitySDK/Tools/Debug Window` показывает runtime-диагностику в Play Mode. Вкладка
+Окно `PRUnitySDK/Windows/Debug Window` показывает runtime-диагностику в Play Mode. Вкладка
 `Initialization` содержит успешно инициализированные модули, managers, core-singleton,
 зарегистрированные factories, MonoWindows, notifiers и остальные типы в порядке запуска.
 Каждая категория отображается собственной таблицей с количеством элементов и суммарным
@@ -256,8 +256,8 @@ public sealed class ExampleDatabase : Database<ExampleDefinition>
 | Предметы | `PRUnitySDK/Windows/Items` | каталоги вещей, наборы, брейнроты, питомцы |
 | Награды | `PRUnitySDK/Windows/Rewards` | награды, ресурсы, действия и кейсы |
 | Витрина | `PRUnitySDK/Windows/Shop` | товары, цены и условия покупки |
-| Переводы | `PRUnitySDK/Tools/Localization` | списки по языкам и таблица проекта |
-| Достижения | `PRUnitySDK/Tools/Achievements` | условия, прогресс и награды |
+| Переводы | `PRUnitySDK/Windows/Localization` | списки по языкам и таблица проекта |
+| Достижения | `PRUnitySDK/Windows/Achievements` | условия, прогресс и награды |
 
 Специализированные окна — наследники `PRSDKDatabaseEditor` с одним переопределением:
 `OwnedEditorMenuPath` возвращает их путь меню. Разметка, сетка, поиск, проверки, наборы
@@ -278,7 +278,7 @@ public sealed class PRSDKItemsWindow : PRSDKDatabaseEditor
 
 ```csharp
 [DatabaseExternalEditor(
-    "PRUnitySDK/Tools/Localization",
+    "PRUnitySDK/Windows/Localization",
     WindowName = "Localization",
     Description = "Переводы правятся там: списки по языкам, проверки и обмен таблицей.")]
 public class LocalizationDatabase

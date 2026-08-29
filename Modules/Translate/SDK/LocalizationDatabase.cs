@@ -4,7 +4,7 @@ using UnityEngine;
 
 [Serializable]
 [DatabaseExternalEditor(
-    "PRUnitySDK/Tools/Localization",
+    "PRUnitySDK/Windows/Localization",
     WindowName = "Localization",
     Description = "Переводы правятся там: списки по языкам, проверки и обмен таблицей.")]
 public class LocalizationDatabase 
