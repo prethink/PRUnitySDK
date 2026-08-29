@@ -434,7 +434,8 @@ public partial class PRDebugEditor
 
         DrawEmpty(count, "No MonoWindows match the current search.");
         EditorGUILayout.HelpBox(
-            "Open uses MonoWindowArgsEmpty. Windows that require typed args should be opened through their normal game flow.",
+            $"Open uses MonoWindowArgsEmpty with Executor = {DescribeExecutor(executor)}, chosen in the toolbar. " +
+            "Windows that require typed args should be opened through their normal game flow.",
             MessageType.None);
     }
 
@@ -726,7 +727,9 @@ public partial class PRDebugEditor
             if (row.Window.IsVisible)
                 row.Window.Hide(isForceClose: true);
             else
-                PRUnitySDK.Trackers.MonoWindows.TryShowWindow(row.Window.Key, new MonoWindowArgsEmpty());
+                PRUnitySDK.Trackers.MonoWindows.TryShowWindow(
+                    row.Window.Key,
+                    new MonoWindowArgsEmpty { Executor = executor });
 
             RefreshSnapshot();
             Repaint();
@@ -849,7 +852,7 @@ public partial class PRDebugEditor
     {
         DrawSectionHeader("Players");
         DrawFixedRow(true, ("Player ID", 70), ("Entity ID", 70), ("Type", 65), ("Name", 140),
-            ("Team", 90), ("Ready", 55), ("Points", 65), ("K/D", 55), ("Object", 60));
+            ("Team", 90), ("Ready", 55), ("Points", 65), ("K/D", 55), ("Object", 60), ("Executor", 65));
 
         int count = 0;
         foreach (var row in players)
@@ -862,9 +865,24 @@ public partial class PRDebugEditor
             Label(row.PlayerId, 70); Label(row.EntityId, 70); Label(row.Type, 65); Label(row.Name, 140);
             Label(row.Team, 90); Label(row.Ready?.ToString() ?? "-", 55); Label(row.Points, 65);
             Label($"{row.Kills}/{row.Deaths}", 55); DrawObjectButton(row.GameObject);
+            DrawExecutorButton(row.PlayerId);
             EditorGUILayout.EndHorizontal();
         }
         DrawEmpty(count, "No players match the current search.");
+    }
+
+    /// <summary>
+    /// Делает игрока исполнителем действий окна.
+    /// </summary>
+    private void DrawExecutorButton(long playerId)
+    {
+        bool selected = executor == playerId;
+
+        using (new EditorGUI.DisabledScope(selected))
+        {
+            if (GUILayout.Button(selected ? "Current" : "Use", GUILayout.Width(65f)))
+                SelectExecutor(playerId);
+        }
     }
 
     private void DrawEntities()

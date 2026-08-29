@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -7,6 +8,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 {
     private const string AutoRefreshKey = "PRDebugEditor.AutoRefresh";
     private const string RefreshIntervalKey = "PRDebugEditor.RefreshInterval";
+    private const string ExecutorKey = "PRDebugEditor.Executor";
     private const float CompactLayoutWidth = 620f;
     private const float WideContentMinWidth = 700f;
     private const float CompactContentMinWidth = 260f;
@@ -80,6 +82,17 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private float ruleTestValue = 1f;
 
     private string snapshotError;
+    /// <summary>
+    /// Игрок, от чьего имени окно выполняет действия.
+    /// </summary>
+    /// <remarks>
+    /// Окна получают исполнителя в <see cref="MonoWindowArgs.Executor"/> и по нему находят
+    /// своего игрока — кастомизация так понимает, кому надевать вещь. Открытие из отладки
+    /// исполнителя не проставляло, и в сплит-скрине всё доставалось первому игроку.
+    /// Ноль означает «как решит само окно»: с единственным игроком оно и так не ошибётся.
+    /// </remarks>
+    private long executor;
+
     private bool autoRefresh = true;
     private double refreshInterval = 1d;
     private double nextRefresh;
@@ -120,6 +133,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     {
         autoRefresh = SessionState.GetBool(AutoRefreshKey, true);
         refreshInterval = SessionState.GetFloat(RefreshIntervalKey, 1f);
+        executor = long.TryParse(SessionState.GetString(ExecutorKey, "0"), out long saved) ? saved : 0L;
         DiscoverHealthChecks();
         EventBus.OnEventRaised += OnEventBusRaised;
         EditorApplication.update += AutoRefresh;
@@ -135,6 +149,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         SessionState.SetBool(AutoRefreshKey, autoRefresh);
         SessionState.SetFloat(RefreshIntervalKey, (float)refreshInterval);
+        SessionState.SetString(ExecutorKey, executor.ToString());
     }
 
     private void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -256,6 +271,9 @@ public partial class PRDebugEditor : ExtendedEditorWindow
             if (!string.IsNullOrEmpty(search) && GUILayout.Button("×", EditorStyles.toolbarButton, GUILayout.Width(22f)))
                 search = string.Empty;
 
+            GUILayout.Space(8f);
+            DrawExecutorSelector(190f);
+
             GUILayout.FlexibleSpace();
             string mode = EditorApplication.isPlaying
                 ? (EditorApplication.isPaused ? "PLAY • PAUSED" : "PLAY")
@@ -290,6 +308,68 @@ public partial class PRDebugEditor : ExtendedEditorWindow
                 GUILayout.MinWidth(80f));
             if (!string.IsNullOrEmpty(search) && GUILayout.Button("×", EditorStyles.toolbarButton, GUILayout.Width(22f)))
                 search = string.Empty;
+
+            DrawExecutorSelector(130f);
         });
+    }
+
+    /// <summary>
+    /// Рисует выбор игрока, от чьего имени выполняются действия окна.
+    /// </summary>
+    /// <remarks>
+    /// Выбор общий для всего окна, а не для отдельной кнопки: на сплит-скрине отладку
+    /// ведут по игрокам — сначала настраивают одного, потом другого, — и переставлять
+    /// исполнителя у каждого действия отдельно значило бы делать это по десять раз.
+    /// </remarks>
+    private void DrawExecutorSelector(float width)
+    {
+        var content = new GUIContent(
+            $"Executor: {DescribeExecutor(executor)}",
+            "Player id passed to windows as MonoWindowArgs.Executor.");
+
+        if (!GUILayout.Button(content, EditorStyles.toolbarDropDown, GUILayout.Width(width)))
+            return;
+
+        var menu = new GenericMenu();
+        menu.AddItem(new GUIContent("Auto (window decides)"), executor == 0L, () => SelectExecutor(0L));
+
+        if (players.Count == 0)
+            menu.AddDisabledItem(new GUIContent("No players in the snapshot"));
+
+        foreach (PlayerRow row in players)
+        {
+            long id = row.PlayerId;
+            menu.AddItem(new GUIContent(DescribeExecutor(id)), executor == id, () => SelectExecutor(id));
+        }
+
+        menu.ShowAsContext();
+    }
+
+    private void SelectExecutor(long playerId)
+    {
+        executor = playerId;
+        SessionState.SetString(ExecutorKey, executor.ToString());
+        Repaint();
+    }
+
+    /// <summary>
+    /// Подпись исполнителя для меню и кнопки.
+    /// </summary>
+    /// <remarks>
+    /// Выбранный игрок мог исчезнуть между снимками — вышел из игры, пересоздалась сцена.
+    /// Идентификатор в таком случае остаётся: сбрасывать выбор молча хуже, чем показать,
+    /// что его больше некому исполнить.
+    /// </remarks>
+    private string DescribeExecutor(long playerId)
+    {
+        if (playerId == 0L)
+            return "Auto";
+
+        PlayerRow row = players.FirstOrDefault(player => player.PlayerId == playerId);
+
+        if (row == null)
+            return $"#{playerId} (missing)";
+
+        return string.IsNullOrEmpty(row.Name) ? $"#{playerId}" : $"#{playerId} {row.Name}";
     }
 }

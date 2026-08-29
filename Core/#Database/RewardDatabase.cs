@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
+[DatabaseExternalEditor(
+    "PRUnitySDK/Windows/Rewards",
+    WindowName = "Награды",
+    Description = "Награды, ресурсы, действия и кейсы правятся там.")]
 public partial class RewardDatabase 
 {
     public static RewardDatabase Instance => PRUnitySDK.Database.Rewards;

@@ -8,7 +8,7 @@ using UnityEngine;
 /// <summary>
 /// Отдельное окно <see cref="PRSDKDatabase"/> с управлением каталогами definitions.
 /// </summary>
-public sealed class PRSDKDatabaseEditor : EditorWindow
+public class PRSDKDatabaseEditor : EditorWindow
 {
     private const float CardHeight = 138f;
     private const float CardWidth = 112f;
@@ -158,22 +158,42 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
         DrawToolbar();
         DrawPresetReport();
 
-        IReadOnlyList<SerializedProperty> properties =
-            PRSDKInspectorUtility.GetRootProperties(serializedDatabase);
-        int visibleSectionCount = 0;
+        List<SerializedProperty> matched = PRSDKInspectorUtility
+            .GetRootProperties(serializedDatabase)
+            .Where(property =>
+                IsSectionVisible(PRSDKInspectorUtility.GetFieldType(database.GetType(), property))
+                && PRSDKInspectorUtility.MatchesSearch(
+                    PRSDKInspectorUtility.GetSectionName(property),
+                    search))
+            .ToList();
+
+        var visible = new List<SerializedProperty>();
+        var links = new List<(DatabaseExternalEditorAttribute Editor, string Section)>();
+
+        foreach (SerializedProperty property in matched)
+        {
+            Type fieldType = PRSDKInspectorUtility.GetFieldType(database.GetType(), property);
+            DatabaseExternalEditorAttribute external = GetExternalEditor(fieldType);
+
+            // В своём окне раздел рисуется целиком, в общем — уходит в строку ссылок.
+            if (external != null && string.IsNullOrEmpty(OwnedEditorMenuPath))
+                links.Add((external, PRSDKInspectorUtility.GetSectionName(property)));
+            else
+                visible.Add(property);
+        }
+
+        // Единственный раздел разворачивается сам: сворачивать в окне нечего, а лишний
+        // клик при каждом открытии раздражает.
+        bool alwaysExpanded = visible.Count == 1;
+
         using (var scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
         {
-            foreach (SerializedProperty property in properties)
-            {
-                string sectionName = PRSDKInspectorUtility.GetSectionName(property);
-                if (!PRSDKInspectorUtility.MatchesSearch(sectionName, search))
-                    continue;
+            foreach (SerializedProperty property in visible)
+                DrawSection(property, PRSDKInspectorUtility.GetSectionName(property), alwaysExpanded);
 
-                visibleSectionCount++;
-                DrawSection(property, sectionName);
-            }
+            DrawExternalLinks(links);
 
-            if (visibleSectionCount == 0)
+            if (visible.Count == 0 && links.Count == 0)
                 EditorGUILayout.HelpBox("Секции с таким названием не найдены.", MessageType.Info);
 
             scrollPosition = scrollView.scrollPosition;
@@ -456,66 +476,97 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
     #endregion
 
     /// <summary>
-    /// Рисует секцию, которой занимается отдельное окно.
+    /// Рисует разделы, которыми занимаются другие окна.
     /// </summary>
     /// <remarks>
     /// Содержимое не показывается: те же данные в двух редакторах — верный способ
-    /// получить разъехавшиеся правки. Остаётся строка с названием и кнопкой, чтобы
-    /// раздел не выглядел потерянным.
+    /// получить разъехавшиеся правки. Разделы одного окна собираются в строку с общей
+    /// кнопкой: пять одинаковых кнопок подряд не сообщают больше, чем одна.
     /// </remarks>
-    private bool TryDrawExternalSection(Type fieldType, string sectionName)
+    private void DrawExternalLinks(
+        IReadOnlyList<(DatabaseExternalEditorAttribute Editor, string Section)> links)
     {
-        if (fieldType == null)
-            return false;
+        if (links.Count == 0)
+            return;
 
-        var external = Attribute.GetCustomAttribute(
-            fieldType,
-            typeof(DatabaseExternalEditorAttribute),
-            inherit: true) as DatabaseExternalEditorAttribute;
+        EditorGUILayout.Space(4f);
+        EditorGUILayout.LabelField("Правится в других окнах", EditorStyles.miniBoldLabel);
 
-        if (external == null)
-            return false;
+        IEnumerable<IGrouping<string, (DatabaseExternalEditorAttribute Editor, string Section)>> groups =
+            links.GroupBy(link => link.Editor.MenuPath);
 
-        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        foreach (var group in groups)
         {
-            using (new EditorGUILayout.HorizontalScope())
+            DatabaseExternalEditorAttribute editor = group.First().Editor;
+            string sections = string.Join(", ", group.Select(link => link.Section));
+
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.LabelField(sectionName, EditorStyles.boldLabel);
+                string window = string.IsNullOrEmpty(editor.WindowName)
+                    ? "Открыть"
+                    : editor.WindowName;
 
-                string window = string.IsNullOrEmpty(external.WindowName)
-                    ? "Открыть окно"
-                    : $"Открыть: {external.WindowName}";
+                EditorGUILayout.LabelField(
+                    new GUIContent($"{window}: {sections}", editor.Description),
+                    EditorStyles.label);
 
-                if (GUILayout.Button(window, GUILayout.Width(220f)))
-                    EditorApplication.ExecuteMenuItem(external.MenuPath);
+                if (GUILayout.Button("Открыть", GUILayout.Width(90f)))
+                    EditorApplication.ExecuteMenuItem(editor.MenuPath);
             }
-
-            string description = string.IsNullOrEmpty(external.Description)
-                ? "Раздел правится отдельным окном."
-                : external.Description;
-
-            EditorGUILayout.LabelField(description, EditorStyles.miniLabel);
         }
-
-        return true;
     }
 
-    private void DrawSection(SerializedProperty property, string sectionName)
+    /// <summary>
+    /// Пункт меню окна, которому принадлежат помеченные секции.
+    /// </summary>
+    /// <remarks>
+    /// Пусто — это общее окно базы: разделы со своим редактором оно показывает строкой
+    /// со ссылкой. У специализированного окна здесь его собственный путь меню, и «свои»
+    /// разделы оно рисует полностью, а чужие не показывает вовсе.
+    /// </remarks>
+    protected virtual string OwnedEditorMenuPath => null;
+
+    /// <summary>
+    /// Показывать ли секцию в этом окне.
+    /// </summary>
+    private bool IsSectionVisible(Type fieldType)
+    {
+        DatabaseExternalEditorAttribute external = GetExternalEditor(fieldType);
+
+        // Общее окно показывает всё: чужие разделы — строкой со ссылкой.
+        if (string.IsNullOrEmpty(OwnedEditorMenuPath))
+            return true;
+
+        return external != null && external.MenuPath == OwnedEditorMenuPath;
+    }
+
+    /// <summary>
+    /// Атрибут внешнего редактора у типа секции.
+    /// </summary>
+    private static DatabaseExternalEditorAttribute GetExternalEditor(Type fieldType)
+    {
+        return fieldType == null
+            ? null
+            : Attribute.GetCustomAttribute(
+                fieldType,
+                typeof(DatabaseExternalEditorAttribute),
+                inherit: true) as DatabaseExternalEditorAttribute;
+    }
+
+    private void DrawSection(SerializedProperty property, string sectionName, bool alwaysExpanded = false)
     {
         Type fieldType = PRSDKInspectorUtility.GetFieldType(database.GetType(), property);
         object sectionValue = PRSDKInspectorUtility.GetFieldValue(database, property);
-        DrawSection(property, sectionName, fieldType, sectionValue);
+        DrawSection(property, sectionName, fieldType, sectionValue, alwaysExpanded);
     }
 
     private void DrawSection(
         SerializedProperty property,
         string sectionName,
         Type fieldType,
-        object sectionValue)
+        object sectionValue,
+        bool alwaysExpanded = false)
     {
-        if (TryDrawExternalSection(fieldType, sectionName))
-            return;
-
         Type elementType = PRSDKInspectorUtility.GetDatabaseElementType(fieldType);
         var options = fieldType != null
             ? Attribute.GetCustomAttribute(
@@ -535,9 +586,23 @@ public sealed class PRSDKDatabaseEditor : EditorWindow
                 PRSDKInspectorUtility.GetFieldType(fieldType, child)) != null);
         string count = data is { isArray: true } ? $"  ({data.arraySize})" : string.Empty;
 
+        // Единственный раздел-контейнер свой заголовок не рисует: в окне наград «Rewards»
+        // ничего не различает — внутри и так одни награды, а рамка с подписью только
+        // отнимает место у списков.
+        if (alwaysExpanded && hasNestedDatabases)
+        {
+            DrawNestedSections(childProperties, fieldType, sectionValue);
+            return;
+        }
+
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
-            if (useGrid || hasNestedDatabases)
+            if (alwaysExpanded && (useGrid || hasNestedDatabases))
+            {
+                property.isExpanded = true;
+                EditorGUILayout.LabelField(sectionName + count, EditorStyles.boldLabel);
+            }
+            else if (useGrid || hasNestedDatabases)
             {
                 property.isExpanded = EditorGUILayout.Foldout(
                     property.isExpanded,
