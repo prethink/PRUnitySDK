@@ -94,6 +94,7 @@ public static class LocalizationTableWriter
                 }
 
                 changed |= ApplyValues(list, entry, report);
+                changed |= ApplyGroup(serialized, entry);
             }
 
             if (!changed)
@@ -105,6 +106,53 @@ public static class LocalizationTableWriter
 
         AssetDatabase.SaveAssets();
         return report;
+    }
+
+    /// <summary>
+    /// Возвращает группу записи.
+    /// </summary>
+    /// <remarks>
+    /// Пишется там, где поле есть, — у записей общего списка и подписей на префабах.
+    /// У предметов словарь лежит без обёртки: колонка для них пустая, и записывать нечего.
+    /// </remarks>
+    private static bool ApplyGroup(SerializedObject serialized, LocalizationTableEntry entry)
+    {
+        if (string.IsNullOrEmpty(entry.Group))
+            return false;
+
+        string path = GetOwnerPath(entry.PropertyPath);
+
+        if (path == null)
+            return false;
+
+        string backing = $"<{nameof(LocalizationControl.Group)}>k__BackingField";
+        SerializedProperty group = serialized.FindProperty($"{path}.{backing}")
+                                   ?? serialized.FindProperty($"{path}.{nameof(LocalizationControl.Group)}");
+
+        if (group == null || group.propertyType != SerializedPropertyType.String)
+            return false;
+
+        if (group.stringValue == entry.Group)
+            return false;
+
+        group.stringValue = entry.Group;
+        return true;
+    }
+
+    /// <summary>
+    /// Путь к записи, которой принадлежит словарь.
+    /// </summary>
+    private static string GetOwnerPath(string propertyPath)
+    {
+        int cut = propertyPath.LastIndexOf("._serializedList", StringComparison.Ordinal);
+
+        if (cut < 0)
+            return null;
+
+        string ownerPath = propertyPath.Substring(0, cut);
+        int parentCut = ownerPath.LastIndexOf('.');
+
+        return parentCut < 0 ? null : ownerPath.Substring(0, parentCut);
     }
 
     /// <summary>

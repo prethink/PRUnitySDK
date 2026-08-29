@@ -16,6 +16,8 @@ public partial class LocalizationWindow : ExtendedEditorWindow
     /// </summary>
     private const int SingleLineLength = 90;
 
+    private readonly HashSet<string> collapsedGroups = new();
+
     private SerializedObject serializedDatabase;
     private SerializedProperty defaultLanguageProperty;
     private SerializedProperty commonProperty;
@@ -131,6 +133,9 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         if (GUILayout.Button("Fix Languages", EditorStyles.toolbarButton, GUILayout.Width(90f)))
             AddMissingLanguagesToAll();
 
+        if (GUILayout.Button("Группы из ключей", EditorStyles.toolbarButton, GUILayout.Width(120f)))
+            FillGroupsFromKeys();
+
         if (GUILayout.Button("Save", EditorStyles.toolbarButton, GUILayout.Width(48f)))
         {
             serializedDatabase.ApplyModifiedProperties();
@@ -173,14 +178,7 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         EditorGUILayout.EndHorizontal();
 
         scroll = EditorGUILayout.BeginScrollView(scroll, GUILayout.ExpandHeight(true));
-        for (int index = 0; index < list.arraySize; index++)
-        {
-            SerializedProperty element = list.GetArrayElementAtIndex(index);
-            if (!MatchesSearch(element))
-                continue;
-
-            DrawEntry(list, index, element, keyCounts, otherKeys, listName);
-        }
+        DrawGroups(list, otherList, keyCounts, otherKeys, listName);
 
         if (visibleCount == 0)
             EditorGUILayout.HelpBox(
@@ -192,8 +190,101 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         EditorGUILayout.EndScrollView();
     }
 
+    /// <summary>
+    /// Рисует записи, разложенные по группам.
+    /// </summary>
+    /// <remarks>
+    /// Порядок в самом списке не меняется: группировка — способ смотреть, а не хранить.
+    /// Иначе перестановка записей ради вида плодила бы правки в ассете базы на ровном месте.
+    /// </remarks>
+    private void DrawGroups(
+        SerializedProperty list,
+        SerializedProperty otherList,
+        IReadOnlyDictionary<string, int> keyCounts,
+        ISet<string> otherKeys,
+        string listName)
+    {
+        var groups = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+
+        for (int index = 0; index < list.arraySize; index++)
+        {
+            SerializedProperty element = list.GetArrayElementAtIndex(index);
+
+            if (!MatchesSearch(element))
+                continue;
+
+            string group = GetGroupName(element);
+
+            if (!groups.TryGetValue(group, out List<int> indices))
+            {
+                indices = new List<int>();
+                groups[group] = indices;
+            }
+
+            indices.Add(index);
+        }
+
+        // Без группы — в конце: это ещё не разобранные подписи, и держать их первыми
+        // значило бы прятать за ними разобранное.
+        IEnumerable<KeyValuePair<string, List<int>>> ordered = groups
+            .OrderBy(pair => string.IsNullOrEmpty(pair.Key) ? 1 : 0)
+            .ThenBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (KeyValuePair<string, List<int>> pair in ordered)
+        {
+            string title = string.IsNullOrEmpty(pair.Key) ? "Без группы" : pair.Key;
+            string stateKey = $"{listName}:{pair.Key}";
+            bool expanded = !collapsedGroups.Contains(stateKey);
+
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            bool toggled = EditorGUILayout.Foldout(expanded, $"{title}  ({pair.Value.Count})", true);
+            EditorGUILayout.EndHorizontal();
+
+            if (toggled != expanded)
+            {
+                if (toggled)
+                    collapsedGroups.Remove(stateKey);
+                else
+                    collapsedGroups.Add(stateKey);
+            }
+
+            if (!toggled)
+                continue;
+
+            foreach (int index in pair.Value)
+            {
+                SerializedProperty element = list.GetArrayElementAtIndex(index);
+                DrawEntry(list, otherList, index, element, keyCounts, otherKeys, listName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Группа записи: заданная руками либо выведенная из ключа.
+    /// </summary>
+    /// <remarks>
+    /// Ключи вроде <c>quality_rare</c> уже несут группу в имени, и требовать ещё
+    /// и заполненное поле было бы лишней работой ради того же результата.
+    /// </remarks>
+    private static string GetGroupName(SerializedProperty element)
+    {
+        SerializedProperty group = GetGroupProperty(element);
+
+        if (group != null && !string.IsNullOrWhiteSpace(group.stringValue))
+            return group.stringValue.Trim();
+
+        SerializedProperty key = GetKeyProperty(element);
+        return LocalizationControl.GetGroupFromKey(key?.stringValue);
+    }
+
+    private static SerializedProperty GetGroupProperty(SerializedProperty element)
+    {
+        return element?.FindPropertyRelative(nameof(LocalizationControl.Group).GetBackingField());
+    }
+
     private void DrawEntry(
         SerializedProperty list,
+        SerializedProperty other,
         int index,
         SerializedProperty element,
         IReadOnlyDictionary<string, int> keyCounts,
@@ -211,6 +302,11 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         if (GUILayout.Button("Duplicate", GUILayout.Width(72f)))
             DuplicateEntry(list, index);
 
+        string targetName = listName == "Common" ? "Project" : "Common";
+
+        if (GUILayout.Button($"→ {targetName}", GUILayout.Width(76f)))
+            MoveEntry(list, other, index, listName, targetName);
+
         if (GUILayout.Button("Delete", GUILayout.Width(54f)) &&
             EditorUtility.DisplayDialog(
                 "Delete Localization Key",
@@ -226,6 +322,20 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         }
 
         EditorGUILayout.EndHorizontal();
+
+        SerializedProperty group = GetGroupProperty(element);
+
+        if (group != null)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Группа", EditorStyles.miniLabel, GUILayout.Width(64f));
+            group.stringValue = EditorGUILayout.TextField(group.stringValue);
+
+            if (GUILayout.Button("Из ключа", EditorStyles.miniButton, GUILayout.Width(70f)))
+                group.stringValue = LocalizationControl.GetGroupFromKey(key.stringValue);
+
+            EditorGUILayout.EndHorizontal();
+        }
 
         DrawTranslations(dictionary);
         DrawValidation(key.stringValue, dictionary, keyCounts, otherKeys, listName);
@@ -375,6 +485,140 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         }
     }
 
+    /// <summary>
+    /// Переносит запись в соседний список.
+    /// </summary>
+    /// <remarks>
+    /// Общие подписи со временем оказываются игровыми и наоборот — руками это значит
+    /// «скопировать, не забыть удалить, не ошибиться в языке».
+    /// <para>
+    /// Дубль не создаётся: если ключ уже есть на той стороне, окно спрашивает, чем он
+    /// станет — переносимая запись заменит его или останется на месте. Иначе один ключ
+    /// в двух списках дал бы два разных перевода, а игрок увидел бы тот, что победит
+    /// по порядку поиска.
+    /// </para>
+    /// </remarks>
+    private void MoveEntry(
+        SerializedProperty list,
+        SerializedProperty target,
+        int index,
+        string listName,
+        string targetName)
+    {
+        SerializedProperty element = list.GetArrayElementAtIndex(index);
+        SerializedProperty key = GetKeyProperty(element);
+        string keyValue = key != null ? key.stringValue?.Trim() : string.Empty;
+
+        if (string.IsNullOrEmpty(keyValue))
+        {
+            EditorUtility.DisplayDialog(
+                "Перенос записи",
+                "У записи нет ключа: переносить нечего.",
+                "Понятно");
+            return;
+        }
+
+        Dictionary<LangType, string> values = ReadValues(element);
+        int existing = FindEntryIndex(target, keyValue);
+
+        if (existing >= 0)
+        {
+            bool replace = EditorUtility.DisplayDialog(
+                "Ключ уже есть",
+                $"В {targetName} уже есть «{keyValue}». Заменить его значениями из {listName}?",
+                "Заменить",
+                "Отмена");
+
+            if (!replace)
+                return;
+        }
+
+        Undo.RecordObject(database, "Move Localization Key");
+
+        if (existing >= 0)
+        {
+            WriteValues(target.GetArrayElementAtIndex(existing), keyValue, values);
+        }
+        else
+        {
+            int targetIndex = target.arraySize;
+            target.arraySize++;
+            WriteValues(target.GetArrayElementAtIndex(targetIndex), keyValue, values);
+        }
+
+        list.DeleteArrayElementAtIndex(index);
+        serializedDatabase.ApplyModifiedProperties();
+        EditorUtility.SetDirty(database);
+        GUIUtility.ExitGUI();
+    }
+
+    /// <summary>
+    /// Читает переводы записи.
+    /// </summary>
+    private Dictionary<LangType, string> ReadValues(SerializedProperty element)
+    {
+        var values = new Dictionary<LangType, string>();
+        SerializedProperty dictionary = GetDictionaryList(element);
+
+        if (dictionary == null)
+            return values;
+
+        foreach (LangType language in languages)
+        {
+            SerializedProperty pair = FindPair(dictionary, language);
+            SerializedProperty value = pair?.FindPropertyRelative("Value");
+
+            if (value != null)
+                values[language] = value.stringValue;
+        }
+
+        return values;
+    }
+
+    /// <summary>
+    /// Записывает ключ и переводы в элемент списка.
+    /// </summary>
+    private void WriteValues(SerializedProperty element, string key, Dictionary<LangType, string> values)
+    {
+        SerializedProperty keyProperty = GetKeyProperty(element);
+
+        if (keyProperty != null)
+            keyProperty.stringValue = key;
+
+        SerializedProperty dictionary = GetDictionaryList(element);
+
+        if (dictionary == null)
+            return;
+
+        dictionary.ClearArray();
+
+        foreach (LangType language in languages)
+        {
+            AddLanguage(dictionary, language);
+            SerializedProperty pair = FindPair(dictionary, language);
+            SerializedProperty value = pair?.FindPropertyRelative("Value");
+
+            if (value != null)
+                value.stringValue = values.TryGetValue(language, out string text) ? text : string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Ищет запись с таким ключом.
+    /// </summary>
+    private static int FindEntryIndex(SerializedProperty list, string key)
+    {
+        for (int index = 0; index < list.arraySize; index++)
+        {
+            SerializedProperty entryKey = GetKeyProperty(list.GetArrayElementAtIndex(index));
+
+            if (entryKey != null && string.Equals(entryKey.stringValue?.Trim(), key, StringComparison.Ordinal))
+                return index;
+        }
+
+        return -1;
+    }
+
     private void AddEntry(SerializedProperty list)
     {
         Undo.RecordObject(database, "Add Localization Key");
@@ -424,6 +668,63 @@ public partial class LocalizationWindow : ExtendedEditorWindow
         serializedDatabase.ApplyModifiedProperties();
         EditorUtility.SetDirty(database);
         GUIUtility.ExitGUI();
+    }
+
+    /// <summary>
+    /// Проставляет группы по префиксам ключей.
+    /// </summary>
+    /// <remarks>
+    /// Ключи давно пишутся с префиксом — <c>quality_rare</c>, <c>shop_buy</c>, — так что
+    /// разложить накопившееся можно без переименований. Заполненные вручную группы
+    /// не трогаются: ручная правка точнее догадки по имени.
+    /// </remarks>
+    private void FillGroupsFromKeys()
+    {
+        Undo.RecordObject(database, "Fill Localization Groups");
+        serializedDatabase.Update();
+
+        int filled = FillGroups(commonProperty) + FillGroups(projectProperty);
+
+        serializedDatabase.ApplyModifiedProperties();
+        EditorUtility.SetDirty(database);
+
+        EditorUtility.DisplayDialog(
+            "Группы",
+            filled > 0
+                ? $"Проставлено групп: {filled}."
+                : "Нечего проставлять: у ключей без группы нет префикса.",
+            "Готово");
+    }
+
+    /// <summary>
+    /// Заполняет пустые группы в одном списке.
+    /// </summary>
+    private static int FillGroups(SerializedProperty list)
+    {
+        if (list == null)
+            return 0;
+
+        int filled = 0;
+
+        for (int index = 0; index < list.arraySize; index++)
+        {
+            SerializedProperty element = list.GetArrayElementAtIndex(index);
+            SerializedProperty group = GetGroupProperty(element);
+
+            if (group == null || !string.IsNullOrWhiteSpace(group.stringValue))
+                continue;
+
+            SerializedProperty key = GetKeyProperty(element);
+            string suggested = LocalizationControl.GetGroupFromKey(key?.stringValue);
+
+            if (string.IsNullOrEmpty(suggested))
+                continue;
+
+            group.stringValue = suggested;
+            filled++;
+        }
+
+        return filled;
     }
 
     private void AddMissingLanguagesToAll()

@@ -33,6 +33,16 @@ public sealed class LocalizationTableEntry
     public string Key { get; set; } = string.Empty;
 
     /// <summary>
+    /// Группа записи, если она у неё есть.
+    /// </summary>
+    /// <remarks>
+    /// Группу хранит <see cref="LocalizationControl"/> — значит она есть и у записей
+    /// общего списка, и у подписей на префабах. У предметов словарь лежит без обёртки,
+    /// и группа там пустая: такой перевод принадлежит объекту, его видно по владельцу.
+    /// </remarks>
+    public string Group { get; set; } = string.Empty;
+
+    /// <summary>
     /// Откуда строка: база, ассет или префаб.
     /// </summary>
     public LocalizationTableSource Source { get; set; }

@@ -192,10 +192,19 @@ public static class LocalizationTableCollector
     /// </summary>
     private static LocalizationTableEntry ReadEntry(SerializedProperty list)
     {
+        string entryKey = FindNeighbourValue(list, nameof(LocalizationControl.LocalizationKey));
+        string entryGroup = FindNeighbourValue(list, nameof(LocalizationControl.Group));
+
         var entry = new LocalizationTableEntry
         {
             PropertyPath = list.propertyPath,
-            Key = FindKey(list)
+            Key = entryKey,
+
+            // Пустая группа выводится из ключа — так же, как в списках окна: подписи
+            // с общим префиксом и в таблице должны оказаться рядом.
+            Group = string.IsNullOrEmpty(entryGroup)
+                ? LocalizationControl.GetGroupFromKey(entryKey)
+                : entryGroup
         };
 
         string[] languages = Enum.GetNames(typeof(LangType));
@@ -220,19 +229,18 @@ public static class LocalizationTableCollector
     }
 
     /// <summary>
-    /// Ищет ключ перевода рядом со словарём.
+    /// Читает соседнее с словарём строковое свойство: ключ или группу.
     /// </summary>
     /// <remarks>
-    /// У записей общего списка он сериализован соседним полем. У предметов ключ
-    /// вычисляется из имени и в данных не хранится — тогда колонка остаётся пустой,
-    /// а строку опознаёт адрес.
+    /// У записей общего списка они сериализованы рядом со словарём. У предметов словарь
+    /// лежит без обёртки — тогда значение пустое, а строку опознаёт адрес.
     /// </remarks>
-    private static string FindKey(SerializedProperty list)
+    private static string FindNeighbourValue(SerializedProperty list, string propertyName)
     {
         SerializedObject serialized = list.serializedObject;
         string path = list.propertyPath;
 
-        // Поднимаемся от словаря к владельцу и смотрим, нет ли у него ключа.
+        // Поднимаемся от словаря к владельцу и смотрим, нет ли у него такого поля.
         int cut = path.LastIndexOf($".{SerializedListName}", StringComparison.Ordinal);
 
         if (cut < 0)
@@ -240,30 +248,28 @@ public static class LocalizationTableCollector
 
         string ownerPath = path.Substring(0, cut);
         int parentCut = ownerPath.LastIndexOf('.');
+        string owner = parentCut < 0 ? string.Empty : ownerPath.Substring(0, parentCut);
 
-        if (parentCut < 0)
-            return TryReadKey(serialized, string.Empty);
-
-        return TryReadKey(serialized, ownerPath.Substring(0, parentCut));
+        return ReadString(serialized, owner, propertyName);
     }
 
     /// <summary>
-    /// Читает свойство ключа у владельца словаря.
+    /// Читает строковое свойство у владельца словаря.
     /// </summary>
-    private static string TryReadKey(SerializedObject serialized, string ownerPath)
+    private static string ReadString(SerializedObject serialized, string ownerPath, string propertyName)
     {
-        string backing = $"<{nameof(LocalizationControl.LocalizationKey)}>k__BackingField";
+        string backing = $"<{propertyName}>k__BackingField";
 
         string[] candidates = string.IsNullOrEmpty(ownerPath)
-            ? new[] { backing, nameof(LocalizationControl.LocalizationKey) }
-            : new[] { $"{ownerPath}.{backing}", $"{ownerPath}.{nameof(LocalizationControl.LocalizationKey)}" };
+            ? new[] { backing, propertyName }
+            : new[] { $"{ownerPath}.{backing}", $"{ownerPath}.{propertyName}" };
 
         foreach (string candidate in candidates)
         {
-            SerializedProperty key = serialized.FindProperty(candidate);
+            SerializedProperty property = serialized.FindProperty(candidate);
 
-            if (key != null && key.propertyType == SerializedPropertyType.String)
-                return key.stringValue;
+            if (property != null && property.propertyType == SerializedPropertyType.String)
+                return property.stringValue;
         }
 
         return string.Empty;

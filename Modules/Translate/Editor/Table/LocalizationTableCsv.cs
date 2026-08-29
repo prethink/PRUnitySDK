@@ -18,6 +18,7 @@ public static class LocalizationTableCsv
     private const char Separator = ';';
     private const string AddressColumn = "Address";
     private const string KeyColumn = "Key";
+    private const string GroupColumn = "Group";
     private const string SourceColumn = "Source";
     private const string OwnerColumn = "Owner";
 
@@ -31,7 +32,7 @@ public static class LocalizationTableCsv
 
         builder.Append(string.Join(Separator.ToString(), new[]
         {
-            AddressColumn, KeyColumn, SourceColumn, OwnerColumn
+            AddressColumn, KeyColumn, GroupColumn, SourceColumn, OwnerColumn
         }.Concat(languages.Select(language => language.ToString())).Select(Escape)));
         builder.Append('\n');
 
@@ -41,6 +42,7 @@ public static class LocalizationTableCsv
             {
                 entry.Address,
                 entry.Key,
+                entry.Group,
                 entry.Source.ToString(),
                 entry.Owner
             };
@@ -74,6 +76,7 @@ public static class LocalizationTableCsv
         List<string> header = rows[0];
         int addressIndex = header.IndexOf(AddressColumn);
         int keyIndex = header.IndexOf(KeyColumn);
+        int groupIndex = header.IndexOf(GroupColumn);
 
         if (addressIndex < 0)
             throw new InvalidDataException($"В файле нет колонки «{AddressColumn}».");
@@ -100,7 +103,8 @@ public static class LocalizationTableCsv
                 AssetPath = address.Length > 0 ? address[0] : string.Empty,
                 ObjectPath = address.Length > 1 ? address[1] : string.Empty,
                 PropertyPath = address.Length > 2 ? address[2] : string.Empty,
-                Key = keyIndex >= 0 && cells.Count > keyIndex ? cells[keyIndex] : string.Empty
+                Key = keyIndex >= 0 && cells.Count > keyIndex ? cells[keyIndex] : string.Empty,
+                Group = groupIndex >= 0 && cells.Count > groupIndex ? cells[groupIndex] : string.Empty
             };
 
             foreach (KeyValuePair<int, LangType> column in languageColumns)

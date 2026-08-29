@@ -136,6 +136,9 @@ public partial class LocalizationWindow
             if (!string.IsNullOrEmpty(entry.Key))
                 EditorGUILayout.LabelField("Ключ", entry.Key);
 
+            if (!string.IsNullOrEmpty(entry.Group))
+                EditorGUILayout.LabelField("Группа", entry.Group);
+
             foreach (LangType language in languages)
             {
                 entry.Values.TryGetValue(language, out string value);
@@ -167,6 +170,7 @@ public partial class LocalizationWindow
 
             return Contains(entry.Owner, search)
                    || Contains(entry.Key, search)
+                   || Contains(entry.Group, search)
                    || Contains(entry.AssetPath, search)
                    || entry.Values.Values.Any(value => Contains(value, search));
         });
