@@ -17,5 +17,5 @@ public class GizmoCubeArgs : GizmoArgsBase
         Size = size;
     }
 
-    public override Enumeration GizmoType => GizmoEnumerationProvider.Cube;
+    public override Enumeration GizmoType => GizmoEnumerations.Cube;
 }

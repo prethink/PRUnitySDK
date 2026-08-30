@@ -15,7 +15,7 @@ public abstract class BackgroundTask : IBackgroundTask
     /// и для поиска в реестре.
     /// </summary>
     /// <remarks>
-    /// Ключи объявляются в <see cref="BackgroundTaskKeyEnumerationProvider"/> - своей
+    /// Ключи объявляются в <see cref="BackgroundTaskKeyEnumerations"/> - своей
     /// `partial`-частью рядом с модулем задачи.
     /// </remarks>
     public abstract Enumeration Key { get; }

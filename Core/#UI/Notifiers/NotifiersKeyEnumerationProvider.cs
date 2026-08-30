@@ -1,4 +1,4 @@
-public partial class NotifiersKeyEnumerationProvider : EnumerationProviderBase
+public partial class NotifiersKeyEnumerations : EnumerationProviderBase
 {
     public override bool IncludeInherited => true;
 }

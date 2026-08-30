@@ -63,7 +63,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
             return DefaultTimeScale;
 
         if (layer == null || !layers.ContainsKey(layer))
-            return GetLayerValue(PRTimeScaleEnumerationProvider.Global);
+            return GetLayerValue(PRTimeScaleEnumerations.Global);
 
         return GetLayerValue(layer);
     }
@@ -76,7 +76,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         if (!isInitialize)
             return DefaultTimeScale;
 
-        return GetLayerValue(PRTimeScaleEnumerationProvider.Global);
+        return GetLayerValue(PRTimeScaleEnumerations.Global);
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         if (!isInitialize)
             return DefaultTimeScale;
 
-        var globalLayer = PRTimeScaleEnumerationProvider.Global;
+        var globalLayer = PRTimeScaleEnumerations.Global;
         var global = GetLayerValue(globalLayer);
 
         // Global is the root scale, not a child layer. Combining it with itself
@@ -147,7 +147,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// </summary>
     public void SetGlobalTimeScale(float value)
     {
-        SetTimeScale(PRTimeScaleEnumerationProvider.Global, value);
+        SetTimeScale(PRTimeScaleEnumerations.Global, value);
     }
 
     /// <summary>
@@ -210,7 +210,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// </summary>
     public TimeScaleModifierHandle AddGlobalModifier(float value, object owner = null, float duration = 0f)
     {
-        return AddModifier(PRTimeScaleEnumerationProvider.Global, value, owner, duration);
+        return AddModifier(PRTimeScaleEnumerations.Global, value, owner, duration);
     }
 
     /// <summary>
@@ -266,7 +266,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// </summary>
     public void SetGlobalTimeScaleTemporarily(float value, float callBackTime)
     {
-        SetTimeScaleTemporarily(PRTimeScaleEnumerationProvider.Global, value, callBackTime);
+        SetTimeScaleTemporarily(PRTimeScaleEnumerations.Global, value, callBackTime);
     }
 
     /// <summary>
@@ -305,7 +305,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public void SingletonInitialize()
     {
-        var options = new PRTimeScaleEnumerationProvider().GetOptions();
+        var options = new PRTimeScaleEnumerations().GetOptions();
         foreach (var item in options)
             layers[item] = DefaultTimeScale;
 

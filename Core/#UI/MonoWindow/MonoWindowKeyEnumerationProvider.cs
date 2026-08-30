@@ -1,4 +1,4 @@
-public partial class MonoWindowKeyEnumerationProvider : EnumerationProviderBase
+public partial class MonoWindowKeyEnumerations : EnumerationProviderBase
 {
 
     public override bool IncludeInherited => true;

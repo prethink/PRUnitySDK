@@ -2,7 +2,7 @@
 
 public class GizmoMeshArgs : GizmoArgsBase
 {
-    public override Enumeration GizmoType => GizmoEnumerationProvider.Mesh;
+    public override Enumeration GizmoType => GizmoEnumerations.Mesh;
 
     public Mesh Mesh { get; }
     public Vector3 Position { get; }

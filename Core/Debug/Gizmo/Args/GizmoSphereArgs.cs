@@ -17,5 +17,5 @@ public class GizmoSphereArgs : GizmoArgsBase
         Radius = radius;
     }
 
-    public override Enumeration GizmoType => GizmoEnumerationProvider.Sphere;
+    public override Enumeration GizmoType => GizmoEnumerations.Sphere;
 }

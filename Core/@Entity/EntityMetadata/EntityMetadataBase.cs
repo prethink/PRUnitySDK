@@ -17,7 +17,7 @@ public abstract class EntityMetadataBase : ScriptableObject, IEntityMetadata
     /// </para>
     /// </remarks>
     [field: SerializeField, Header("Вид")]
-    public EnumerationReference<EntityTypeEnumerationProvider> EntityType { get; protected set; }
+    public EnumerationReference<EntityTypeEnumerations> EntityType { get; protected set; }
 
     [field: SerializeField, Header("Описание")] public string Name { get; protected set; }
 

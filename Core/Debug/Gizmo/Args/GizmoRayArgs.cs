@@ -6,7 +6,7 @@ public class GizmoRayArgs : GizmoArgsBase
     public Vector3 From { get; }
     public Vector3 To { get; }
 
-    public override Enumeration GizmoType => GizmoEnumerationProvider.Ray;
+    public override Enumeration GizmoType => GizmoEnumerations.Ray;
 
     public GizmoRayArgs(Vector3 from, Vector3 to) : base(Color.white)
     {

@@ -1,4 +1,4 @@
-public class GameSettingsEnumerationProvider : EnumerationProviderBase
+public class GameSettingsEnumerations : EnumerationProviderBase
 {
     public static readonly EnumerationType<float> Sensitivity           = new EnumerationType<float>(nameof(Sensitivity));
     public static readonly EnumerationType<bool> InvertHorizontal       = new EnumerationType<bool>(nameof(InvertHorizontal));

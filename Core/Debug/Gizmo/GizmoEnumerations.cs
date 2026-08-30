@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class GizmoEnumerationProvider : EnumerationProviderBase
+public class GizmoEnumerations : EnumerationProviderBase
 {
     public override bool IncludeInherited => true;
 

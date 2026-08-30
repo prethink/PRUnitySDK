@@ -25,7 +25,7 @@ public class PlaytimeTrackerTask : BackgroundTask
     public const string PlaytimeMinutesProperty = nameof(PlaytimeMinutesProperty);
 
     /// <inheritdoc />
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.PlaytimeTracker;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.PlaytimeTracker;
 
     /// <inheritdoc />
     public override string Name => "Учёт времени в игре";

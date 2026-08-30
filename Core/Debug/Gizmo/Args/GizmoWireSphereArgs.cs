@@ -10,5 +10,5 @@ public class GizmoWireSphereArgs : GizmoSphereArgs
     {
     }
 
-    public override Enumeration GizmoType => GizmoEnumerationProvider.WireSphere;
+    public override Enumeration GizmoType => GizmoEnumerations.WireSphere;
 }

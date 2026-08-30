@@ -426,17 +426,17 @@ public partial class PRDebugEditor
         timeScaleSubscriberCount = EventBus.GetSubscriberCount<IOnPRTimeScaleChange>();
         hasActiveTemporaryTimeScales = timeScale.HasActiveTemporaryTimeScales;
         globalTemporaryTimeScaleActive = timeScale.IsTimeScaleTemporaryActive(
-            PRTimeScaleEnumerationProvider.Global);
+            PRTimeScaleEnumerations.Global);
 
-        foreach (Enumeration layer in new PRTimeScaleEnumerationProvider().GetOptions()
+        foreach (Enumeration layer in new PRTimeScaleEnumerations().GetOptions()
                      .Where(value => value != null)
                      .GroupBy(value => value.Value, StringComparer.Ordinal)
                      .Select(group => group.First())
-                     .OrderBy(value => value == PRTimeScaleEnumerationProvider.Global ? 0 : 1)
+                     .OrderBy(value => value == PRTimeScaleEnumerations.Global ? 0 : 1)
                      .ThenBy(value => value.Value, StringComparer.Ordinal))
         {
             float value = timeScale.GetTimeScale(layer);
-            float resolvedValue = layer == PRTimeScaleEnumerationProvider.Global
+            float resolvedValue = layer == PRTimeScaleEnumerations.Global
                 ? timeScale.Resolve()
                 : timeScale.Resolve(layer);
 

@@ -17,7 +17,7 @@ public class GameEventEntity : IEntity
 
     public string Name => name;
 
-    public Enumeration EntityType => EntityTypeEnumerationProvider.GameEvent;
+    public Enumeration EntityType => EntityTypeEnumerations.GameEvent;
 
     public bool OnScene => true;
 
@@ -71,7 +71,7 @@ public class GameEventEntity : IEntity
 
     public Enumeration GetTimeScaleLayer()
     {
-        return PRTimeScaleEnumerationProvider.Global;
+        return PRTimeScaleEnumerations.Global;
     }
 
 

@@ -41,10 +41,7 @@ public abstract partial class EntityBase<TMetadata> : EntityBase
     /// трекер, и пустой ключ уронил бы его на регистрации.
     /// </para>
     /// </remarks>
-    public override Enumeration EntityType =>
-        Metadata != null && Metadata.EntityType != null
-            ? Metadata.EntityType.ToEnumeration() ?? EntityTypeEnumerationProvider.Unknown
-            : EntityTypeEnumerationProvider.Unknown;
+    public override Enumeration EntityType => Metadata?.EntityType?.ToEnumeration() ?? EntityTypeEnumerations.Unknown;
 
     /// <inheritdoc />
     /// <remarks>
@@ -273,7 +270,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public virtual Enumeration GetTimeScaleLayer()
     {
-        return PRTimeScaleEnumerationProvider.Global;
+        return PRTimeScaleEnumerations.Global;
     }
 
     #endregion

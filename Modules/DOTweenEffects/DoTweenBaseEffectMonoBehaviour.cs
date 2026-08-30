@@ -168,7 +168,7 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     /// </summary>
     public virtual Enumeration GetTimeScaleLayer()
     {
-        return PRTimeScaleEnumerationProvider.Global;
+        return PRTimeScaleEnumerations.Global;
     }
 
     /// <summary>
@@ -177,7 +177,7 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     public void OnPRTimeScaleChange(Enumeration layer, float value)
     {
         var effectLayer = GetTimeScaleLayer();
-        if (tween != null && (layer == PRTimeScaleEnumerationProvider.Global || layer == effectLayer))
+        if (tween != null && (layer == PRTimeScaleEnumerations.Global || layer == effectLayer))
             tween.timeScale = PRTimeScale.Instance.Resolve(effectLayer);
     }
 

@@ -1,4 +1,4 @@
-public partial class PRTimeScaleEnumerationProvider : EnumerationProviderBase
+public partial class PRTimeScaleEnumerations : EnumerationProviderBase
 {
     public override bool IncludeInherited => true;
 

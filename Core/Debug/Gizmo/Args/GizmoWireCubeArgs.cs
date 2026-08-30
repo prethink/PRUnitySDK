@@ -10,5 +10,5 @@ public class GizmoWireCubeArgs : GizmoCubeArgs
     {
     }
 
-    public override Enumeration GizmoType => GizmoEnumerationProvider.WireCube;
+    public override Enumeration GizmoType => GizmoEnumerations.WireCube;
 }

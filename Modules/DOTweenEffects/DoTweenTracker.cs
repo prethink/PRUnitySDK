@@ -37,7 +37,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
             throw new ArgumentNullException(nameof(tween));
 
         if (layer == null)
-            layer = PRTimeScaleEnumerationProvider.Global;
+            layer = PRTimeScaleEnumerations.Global;
 
         Guid guid = Guid.NewGuid();
 
@@ -82,7 +82,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
             throw new ArgumentNullException(nameof(tween));
 
         if (layer == null)
-            layer = PRTimeScaleEnumerationProvider.Global;
+            layer = PRTimeScaleEnumerations.Global;
 
         if (tweens.TryGetValue(guid, out var existing))
         {
@@ -192,7 +192,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
             if (!tweens.TryGetValue(guid, out var dto))
                 continue;
 
-            if (layer != PRTimeScaleEnumerationProvider.Global && dto.Layer != layer)
+            if (layer != PRTimeScaleEnumerations.Global && dto.Layer != layer)
                 continue;
 
             if (dto.Tween == null || !dto.Tween.active)

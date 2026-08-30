@@ -1,4 +1,4 @@
-public partial class EntityTypeEnumerationProvider : EnumerationProviderBase
+public partial class EntityTypeEnumerations : EnumerationProviderBase
 {
     public static Enumeration Unknown       = new Enumeration(nameof(Unknown));
     public static Enumeration Player        = new Enumeration(nameof(Player));

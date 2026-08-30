@@ -210,7 +210,7 @@ public partial class PRDebugEditor
         if (!PRUnitySDK.IsInitialized)
             return;
 
-        var provider = new PRTimeScaleEnumerationProvider();
+        var provider = new PRTimeScaleEnumerations();
         var hasAny = false;
 
         foreach (Enumeration layer in provider.GetOptions())
@@ -327,7 +327,7 @@ public partial class PRDebugEditor
         try
         {
             value = Mathf.Max(0f, value);
-            if (layer == PRTimeScaleEnumerationProvider.Global)
+            if (layer == PRTimeScaleEnumerations.Global)
                 PRTimeScale.Instance.SetGlobalTimeScale(value);
             else
                 PRTimeScale.Instance.SetTimeScale(layer, value);

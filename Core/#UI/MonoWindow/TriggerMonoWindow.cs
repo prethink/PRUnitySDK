@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class TriggerMonoWindow : PRMonoBehaviour
 {
-    [SerializeField] private EnumerationReference<MonoWindowKeyEnumerationProvider> windowKey;
+    [SerializeField] private EnumerationReference<MonoWindowKeyEnumerations> windowKey;
 
     protected override void PROnTriggerEnter(Collider other)
     {

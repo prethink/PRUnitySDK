@@ -26,7 +26,7 @@ using System;
 public class NewDayWatcherTask : WatcherTask<int>
 {
     /// <inheritdoc />
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.NewDay;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.NewDay;
 
     /// <inheritdoc />
     public override string Name => "Смена суток";

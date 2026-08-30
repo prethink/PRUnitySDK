@@ -2,7 +2,7 @@ using System;
 
 public class ActionContainer : ContainerEntityBase<IconActionBase>
 {
-    public override Enumeration EntityType => ContainerTypeEnumerationProvider.ActionContainer;
+    public override Enumeration EntityType => ContainerTypeEnumerations.ActionContainer;
 
     public override string Name => Description.GetLocalization();
 

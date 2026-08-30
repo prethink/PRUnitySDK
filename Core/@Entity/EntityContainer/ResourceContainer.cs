@@ -7,7 +7,7 @@ public class ResourceContainer : ContainerEntityBase<ResourceItemDefinition>
 
     #region Базовый класс
 
-    public override Enumeration EntityType => ContainerTypeEnumerationProvider.ResourceContainer;
+    public override Enumeration EntityType => ContainerTypeEnumerations.ResourceContainer;
 
     public override string Name => containerItem.Name;
 

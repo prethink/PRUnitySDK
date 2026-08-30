@@ -1,4 +1,4 @@
-public partial class ContainerTypeEnumerationProvider : EnumerationProviderBase
+public partial class ContainerTypeEnumerations : EnumerationProviderBase
 {
     public static readonly Enumeration ResourceContainer        = new Enumeration(nameof(ResourceContainer));
     public static readonly Enumeration ActionContainer          = new Enumeration(nameof(ActionContainer));

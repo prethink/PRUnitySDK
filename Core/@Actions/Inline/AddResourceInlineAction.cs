@@ -13,7 +13,7 @@ public class AddResourceInlineAction : InlineActionBase
 {
     [SerializeField]
     [Tooltip("Тип начисляемого ресурса.")]
-    private EnumerationReference<ResourceEnumerationProvider> resource;
+    private EnumerationReference<ResourceEnumerations> resource;
 
     [SerializeField, Min(0)]
     [Tooltip("Сколько начислить.")]

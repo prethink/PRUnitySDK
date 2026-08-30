@@ -27,13 +27,13 @@ public class GizmoDrawer : MonoBehaviour
     // не нужно пересоздавать его на каждый GizmoDrawer.
     private static readonly Dictionary<Enumeration, Action<GizmoArgsBase>> drawActions = new Dictionary<Enumeration, Action<GizmoArgsBase>>()
     {
-        { GizmoEnumerationProvider.Line,       (args) => DrawLine(args as GizmoLineArgs) },
-        { GizmoEnumerationProvider.Ray,        (args) => DrawRay(args as GizmoRayArgs) },
-        { GizmoEnumerationProvider.Mesh,       (args) => DrawMesh(args as GizmoMeshArgs) },
-        { GizmoEnumerationProvider.Sphere,     (args) => DrawSphere(args as GizmoSphereArgs) },
-        { GizmoEnumerationProvider.WireSphere, (args) => DrawWireSphere(args as GizmoWireSphereArgs) },
-        { GizmoEnumerationProvider.Cube,       (args) => DrawCube(args as GizmoCubeArgs) },
-        { GizmoEnumerationProvider.WireCube,   (args) => DrawWireCube(args as GizmoWireCubeArgs) },
+        { GizmoEnumerations.Line,       (args) => DrawLine(args as GizmoLineArgs) },
+        { GizmoEnumerations.Ray,        (args) => DrawRay(args as GizmoRayArgs) },
+        { GizmoEnumerations.Mesh,       (args) => DrawMesh(args as GizmoMeshArgs) },
+        { GizmoEnumerations.Sphere,     (args) => DrawSphere(args as GizmoSphereArgs) },
+        { GizmoEnumerations.WireSphere, (args) => DrawWireSphere(args as GizmoWireSphereArgs) },
+        { GizmoEnumerations.Cube,       (args) => DrawCube(args as GizmoCubeArgs) },
+        { GizmoEnumerations.WireCube,   (args) => DrawWireCube(args as GizmoWireCubeArgs) },
     };
 
     public void AddGizmoArgs(GizmoArgsBase args)

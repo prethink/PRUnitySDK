@@ -18,5 +18,5 @@ public class GizmoLineArgs : GizmoArgsBase
         To = to;
     }
 
-    public override Enumeration GizmoType => GizmoEnumerationProvider.Line;
+    public override Enumeration GizmoType => GizmoEnumerations.Line;
 }
