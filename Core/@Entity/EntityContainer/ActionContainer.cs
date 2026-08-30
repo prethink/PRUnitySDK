@@ -4,7 +4,7 @@ public class ActionContainer : ContainerEntityBase<IconActionBase>
 {
     public override Enumeration EntityType => ContainerTypeEnumerationProvider.ActionContainer;
 
-    public override string Name => Info.GetLocalization();
+    public override string Name => Description.GetLocalization();
 
     public override string GetPoolKey()
     {

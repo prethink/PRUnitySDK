@@ -154,7 +154,7 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
         RegisterLocalPlayer(player);
         player.JoinGame();
 
-        PRLog.WriteDebug(this, $"Игрок {player.Info?.GetName() ?? "<unnamed>"} - EntityID:{player.Id}, PlayerID:{playerId} зарегистрирован.");
+        PRLog.WriteDebug(this, $"Игрок {player.Description?.GetName() ?? "<unnamed>"} - EntityID:{player.Id}, PlayerID:{playerId} зарегистрирован.");
 
         return true;
     }
@@ -194,7 +194,7 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
         ReleasePlayerId(player.PlayerId);
         UnregisterLocalPlayer(player);
         PRLog.WriteDebug(this,
-            $"Игрок {player.Info?.GetName() ?? "<unnamed>"} - ID:{player.Id} удален из сессии.");
+            $"Игрок {player.Description?.GetName() ?? "<unnamed>"} - ID:{player.Id} удален из сессии.");
 
         return true;
     }

@@ -4,7 +4,22 @@ using UnityEngine;
 
 public abstract class EntityMetadataBase : ScriptableObject, IEntityMetadata
 {
-    [field: SerializeField] public string Name { get; protected set; }
+    /// <summary>
+    /// Вид сущности, который описывает ассет.
+    /// </summary>
+    /// <remarks>
+    /// Лежит здесь, а не в коде сущности, чтобы <see cref="Entity"/> можно было повесить
+    /// на префаб без написания класса: тип - последнее, что оставалось объявлять кодом.
+    /// <para>
+    /// У сущностей с определением вид по-прежнему объявляется в классе: там ассет описывает
+    /// позицию, а не вид, и запись вида в него означала бы одно и то же слово в сотне
+    /// ассетов - с сотней возможностей ошибиться.
+    /// </para>
+    /// </remarks>
+    [field: SerializeField, Header("Вид")]
+    public EnumerationReference<EntityTypeEnumerationProvider> EntityType { get; protected set; }
+
+    [field: SerializeField, Header("Описание")] public string Name { get; protected set; }
 
     [field:SerializeField] public Sprite Icon { get; protected set; }
     [field: SerializeField] public QualityType Quality { get; protected set; }

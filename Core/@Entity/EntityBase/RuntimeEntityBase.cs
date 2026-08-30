@@ -17,6 +17,6 @@ public abstract class RuntimeEntityBase : EntityBase, IEntityMetadata
 
     protected override void InitializeEntityMetadata()
     {
-        Info = EntityUtils.GetEntityMetadata(ref baseEntityMetadata, ref overrideEntityMetadata, this);
+        Description = EntityUtils.GetEntityMetadata(ref baseEntityMetadata, ref overrideEntityMetadata, this);
     }
 }

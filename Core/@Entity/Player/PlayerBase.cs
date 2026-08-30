@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
 /// Базовая сущность игрока.
 /// </summary>
-public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
+public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySignalProvider
 {
     #region Поля и свойства
 
@@ -78,11 +77,6 @@ public abstract class PlayerBase : EntityBase, IPlayer, IReadySignalProvider
     }
 
     public event Action<PlayerBase> OnPlayerDestroy;
-
-    protected override void InitializeEntityMetadata()
-    {
-        Info = new EntityMetadataContainer(PRUnitySDK.Database.EntityMetadata.Data.Single(x => x.Name == "Player"));
-    }
 
     #endregion
 

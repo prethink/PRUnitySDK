@@ -29,9 +29,9 @@ public class GameEventEntity : IEntity
 
     public GameObject gameObject => GameEventsFactory.GetOrCreateGameObject(name);
 
-    public EntityMetadataContainer Info { get; } = CreateGameEventInfo(); 
+    public EntityDescription Description { get; } = CreateGameEventInfo(); 
 
-    public static EntityMetadataContainer CreateGameEventInfo()
+    public static EntityDescription CreateGameEventInfo()
     {
         var entityInfo =  new EntityMetadataImplementer(
             Guid.Empty, 
@@ -45,7 +45,7 @@ public class GameEventEntity : IEntity
                 { LangType.Turkey, "Oyun Etkinliği" }
             });
 
-        return new EntityMetadataContainer(entityInfo);
+        return new EntityDescription(entityInfo);
     }
 
     public void DestroyEntity() { }

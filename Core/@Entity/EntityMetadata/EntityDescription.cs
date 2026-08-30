@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class EntityMetadataContainer
+public class EntityDescription
 {
     public IEntityMetadata Base { get; }
     public IEntityMetadata Override { get; }
@@ -12,7 +12,7 @@ public class EntityMetadataContainer
 
     public Func<QualityType> QualityOverride { get; private set; }
 
-    public EntityMetadataContainer(IEntityMetadata baseInfo, IEntityMetadata overrideInfo = null)
+    public EntityDescription(IEntityMetadata baseInfo, IEntityMetadata overrideInfo = null)
     {
         Base = baseInfo;
         Override = overrideInfo;
@@ -66,4 +66,11 @@ public class EntityMetadataContainer
     public void SetLocalizationOverride(Func<string> func) => LocalizationOverride = func;
     public void SetSpriteOverride(Func<Sprite> func) => SpriteOverride = func;
     public void SetQualityOverride(Func<QualityType> func) => QualityOverride = func;
+
+    public IEntityMetadata GetMetadata()
+    {
+        return Override != null 
+            ? Override 
+            : Base;
+    }
 }

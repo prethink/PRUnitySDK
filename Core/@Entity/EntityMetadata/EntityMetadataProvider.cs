@@ -23,7 +23,7 @@ public class EntityMetadataProvider : PRMonoBehaviour, IEntityMetadataProvider
     /// Заменяет описание в рантайме.
     /// </summary>
     /// <remarks>
-    /// Контейнер <see cref="EntityMetadataContainer"/> собирается один раз при инициализации
+    /// Контейнер <see cref="EntityDescription"/> собирается один раз при инициализации
     /// сущности, поэтому вызывать метод нужно до её регистрации - позже сущность
     /// придётся переинициализировать.
     /// </remarks>

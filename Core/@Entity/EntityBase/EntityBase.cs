@@ -2,6 +2,64 @@
 using UnityEngine;
 
 /// <summary>
+/// Сущность с описанием своего типа.
+/// </summary>
+/// <remarks>
+/// Тип-параметр задаёт две вещи сразу: чем описывается сущность и куда положить ссылку.
+/// Наследник получает типизированный доступ к своим полям описания, а инспектор знает,
+/// ассет какого типа предлагать создать.
+/// <para>
+/// Ограничение по <see cref="EntityMetadataBase"/>, а не по <c>IEntityMetadata</c>:
+/// интерфейсное поле Unity не сериализует, и ссылку негде было бы хранить.
+/// </para>
+/// </remarks>
+/// <typeparam name="TMetadata">Тип описания.</typeparam>
+public abstract partial class EntityBase<TMetadata> : EntityBase
+    where TMetadata : EntityMetadataBase
+{
+    /// <summary>
+    /// Описание сущности.
+    /// </summary>
+    [field: SerializeField, Header("Описание")]
+    public TMetadata Metadata { get; protected set; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Имя берётся из описания, поэтому наследнику остаётся объявить только тип сущности.
+    /// Заглушка вместо пустой строки нужна, чтобы отсутствие описания было видно
+    /// в отладчике, а не выглядело как безымянный объект.
+    /// </remarks>
+    public override string Name => Metadata != null ? Metadata.GetTranslate() : "NotInitialized";
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Вид берётся из описания, поэтому наследнику объявлять нечего - а <see cref="Entity"/>
+    /// и вовсе обходится без наследника. Переопределить всё равно можно: сущностям
+    /// с определением описание достаётся от позиции, и вид они задают сами.
+    /// <para>
+    /// Незаполненное описание даёт <c>Unknown</c>, а не <c>null</c>: по виду ведёт учёт
+    /// трекер, и пустой ключ уронил бы его на регистрации.
+    /// </para>
+    /// </remarks>
+    public override Enumeration EntityType =>
+        Metadata != null && Metadata.EntityType != null
+            ? Metadata.EntityType.ToEnumeration() ?? EntityTypeEnumerationProvider.Unknown
+            : EntityTypeEnumerationProvider.Unknown;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Поверх описания ложится <see cref="IEntityMetadataProvider"/> с того же объекта,
+    /// если он есть: так отдельный экземпляр получает своё имя или иконку, не заводя
+    /// собственного ассета.
+    /// </remarks>
+    protected override void InitializeEntityMetadata()
+    {
+        Description = new EntityDescription(Metadata, this.GetComponent<IEntityMetadataProvider>()?.EntityMetadata);
+    }
+}
+
+
+/// <summary>
 /// Базовый класс сущности.
 /// </summary>
 public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
@@ -46,10 +104,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public virtual GameObject EntityGameObject => entityGameObject != null ? entityGameObject : gameObject;
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
-
-    protected RigidBodyPauseMonitor rigidBodyPauseMonitor;
-
-    protected AnimatorPauseMonitor animatorPauseMonitor;
 
     public virtual void GenerateId(Func<long> register)
     {
@@ -133,9 +187,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
         InitializeEntityMetadata();
         InitializeEntity();
-
-        rigidBodyPauseMonitor = GetComponent<RigidBodyPauseMonitor>();
-        animatorPauseMonitor = GetComponent<AnimatorPauseMonitor>();
     }
 
     #endregion
@@ -216,7 +267,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region IGameSessionListener
 
-    public EntityMetadataContainer Info { get; protected set; }
+    public EntityDescription Description { get; protected set; }
 
     protected abstract void InitializeEntityMetadata();
 

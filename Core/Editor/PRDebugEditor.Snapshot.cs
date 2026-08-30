@@ -475,7 +475,7 @@ public partial class PRDebugEditor
                 PlayerId = player.PlayerId,
                 EntityId = player.Id,
                 Type = player.PlayerType.ToString(),
-                Name = SafeValue(() => player.Info?.GetName(), "-"),
+                Name = SafeValue(() => player.Description?.GetName(), "-"),
                 Team = SafeValue(() => player.PlayerTeam?.Name, "-"),
                 Ready = player is IReadySignalProvider ready ? ready.ReadySignal?.IsReady : null,
                 Points = player.Points,
@@ -505,7 +505,7 @@ public partial class PRDebugEditor
 
         foreach (var entity in ofType)
         {
-            string name = SafeValue(() => entity.Info?.GetName(), null);
+            string name = SafeValue(() => entity.Description?.GetName(), null);
             if (string.IsNullOrWhiteSpace(name))
                 name = "<no info>";
 
@@ -514,8 +514,8 @@ public partial class PRDebugEditor
                 kind = new EntityKindRow
                 {
                     Name = name,
-                    Icon = SafeValue(() => entity.Info?.GetIcon(), null),
-                    Quality = SafeValue(() => entity.Info?.GetQuality().ToString(), "-")
+                    Icon = SafeValue(() => entity.Description?.GetIcon(), null),
+                    Quality = SafeValue(() => entity.Description?.GetQuality().ToString(), "-")
                 };
                 kinds.Add(name, kind);
             }
@@ -550,7 +550,7 @@ public partial class PRDebugEditor
 
             var row = new EntityRow
             {
-                Icon = SafeValue(() => ofType.FirstOrDefault()?.Info?.GetIcon(), null),
+                Icon = SafeValue(() => ofType.FirstOrDefault()?.Description?.GetIcon(), null),
                 Type = item.Key?.ToString() ?? "<null>",
                 Registered = item.Value,
                 OnScene = onScene,
@@ -583,7 +583,7 @@ public partial class PRDebugEditor
                 GameObject = entity.gameObject,
                 Id = entity.Id,
                 Type = entity.EntityType?.ToString() ?? "<null>",
-                Name = SafeValue(() => entity.Info?.GetName(), "-"),
+                Name = SafeValue(() => entity.Description?.GetName(), "-"),
                 LifeTime = entity.LifeTime.ToString(),
                 PoolStatus = poolStatus,
                 OnScene = entity.OnScene,
