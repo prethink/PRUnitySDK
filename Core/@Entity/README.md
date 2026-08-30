@@ -56,7 +56,7 @@ public class Player : EntityBase<PlayerMetadata>
 | Идентификатор | `Id` выдаётся при регистрации в трекере, из `Start()` |
 | Регистрация | Автоматически в `Start()`, снятие — при уничтожении |
 | Вид | `EntityType` из описания; сущности с определением задают его в коде |
-| Описание | `MetadataContainer` — имя, иконка, локализация и качество |
+| Описание | `Description` — имя, иконка, локализация и качество |
 | Уничтожение | `DestroyEntity()` с учётом пула и настройки `EntityDisposeAction` |
 | Пул | Реализация `IPoolable` через `PoolBehaviour` |
 | Пауза и время | Наследуется от `PRMonoBehaviour`; слой времени — `GetTimeScaleLayer()` |
@@ -75,6 +75,7 @@ public class Player : EntityBase<PlayerMetadata>
 и сущности проектного слоя построены именно так, а их определения дополнительно поставляют
 модификаторы характеристик. Вид такие сущности объявляют в коде: их ассет описывает
 позицию каталога, а не вид, и вид пришлось бы повторять в каждом из сотен определений.
+
 ## Идентификатор
 
 `Id` выдаётся при регистрации в реестре, а регистрация происходит в **`Start()`**.
@@ -102,14 +103,14 @@ public override void OnReadyScene()
 как переводится и какого качества. Вид (`EntityType`) лежит в самом ассете — благодаря
 этому `Entity` и не требует кода.
 
-`MetadataContainer` — собранное описание живой сущности. Он же поддерживает переопределение:
+`Description` — собранное описание живой сущности. Он же поддерживает переопределение:
 базовое описание берётся из ассета или определения, а поверх может лечь второе.
 
 ```csharp
-string title  = entity.MetadataContainer.GetName();
-Sprite icon   = entity.MetadataContainer.GetIcon();
-string text   = entity.MetadataContainer.GetLocalization();
-QualityType q = entity.MetadataContainer.GetQuality();
+string title  = entity.Description.GetName();
+Sprite icon   = entity.Description.GetIcon();
+string text   = entity.Description.GetLocalization();
+QualityType q = entity.Description.GetQuality();
 ```
 
 Порядок разрешения для каждого поля: функция-override → `Override`-описание → `Base`-описание.
@@ -123,6 +124,22 @@ QualityType q = entity.MetadataContainer.GetQuality();
 Готовая реализация переопределения — компонент `EntityMetadataProvider`: повесьте его на объект
 сущности и укажите ассет `EntityMetadataBase`. Так одному экземпляру можно дать собственное имя
 или иконку, не заводя отдельный тип сущности.
+
+### В инспекторе
+
+Под обычными полями сущности идёт раздел **«Описание»**: он показывает, откуда описание
+берётся, и разворачивает его прямо здесь — искать ассет по проекту не нужно. У каждого
+блока подписана область действия: правка общего описания меняет его всем сущностям сразу,
+а `EntityMetadataProvider` — только этому экземпляру. Если поле под описание есть, а ссылка
+пустая, рядом появляется кнопка «Создать описание».
+
+Рисование живёт в `EntityDescriptionSection`, а сам `[CustomEditor]` объявляет проект:
+два редактора на один тип Unity разрешает молча и произвольно, поэтому владелец должен
+быть один. В этом проекте им служит `PREntityInspector` — он наследует `NaughtyInspector`,
+иначе атрибуты вроде `Button` на сущностях перестали бы работать.
+
+Собрать описания всего проекта, проверить их и увидеть, кто ими пользуется, можно в окне
+`PRUnitySDK/Windows/Entity metadata` — см. [Editor](../../Editor/README.md).
 
 ## Поиск сущности из компонента
 
@@ -348,7 +365,7 @@ PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
 ## Ограничения
 
 - **Переопределение описания задаётся только в инспекторе.** `EntityMetadataProvider` хранит
-  ссылку на ассет, а `EntityMetadataContainer` собирается один раз при инициализации сущности:
+  ссылку на ассет, а `EntityDescription` собирается один раз при инициализации сущности:
   подменить описание в рантайме через `SetEntityMetadata()` можно лишь до её регистрации.
 - **Сущность без описания попадает в вид `Unknown`.** `EntityBase<TMetadata>` берёт вид
   из ассета, и незаполненная ссылка даёт не ошибку, а `EntityTypeEnumerationProvider.Unknown`:

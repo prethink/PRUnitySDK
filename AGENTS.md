@@ -330,6 +330,13 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `ReflectionPreserveGenerator` собирает `link.xml` для типов, создаваемых рефлексией:
   помечать их `[Preserve]` вручную не нужно.
 - Окно `Tools/Localization` собирает переводы по всему проекту и обменивается CSV.
+- Сущность описывается ассетом: `Entity` вешается на префаб без кода, вид (`EntityType`),
+  имя и переводы берутся из `EntityMetadataBase`. `CommonEntity` и `ScriptableEntity`
+  удалены — их роль закрыл `EntityBase<TMetadata>`.
+- Каталога описаний в `PRSDKDatabase` больше нет: окно `PRUnitySDK/Windows/Entity metadata`
+  ищет ассеты по проекту. Ручной список расходился с проектом молча.
+- `EntityMetadataContainer` переименован в `EntityDescription`, свойство сущности —
+  `Description`.
 
 Журнал работ проектного слоя — `PRUnitySDKPrivate/WORKLOG.md`.
 
