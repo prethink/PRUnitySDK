@@ -78,7 +78,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     /// <summary>
     /// Действие при уничтожение.
     /// </summary>
-    [SerializeField] protected EntityDisposeAction EntityDisposeAction;
+    [SerializeField] protected EnumerationReference<EntityDisposeEnumerations> EntityDisposeAction;
 
     /// <summary>
     /// Время жизни сущности.
@@ -125,38 +125,25 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
             return;
         }
 
-        if (EntityDisposeAction == EntityDisposeAction.Destroy)
+        if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.Destroy)
         {
             OnDestroyPool(true);
             Destroy(this.gameObject);
             return;
         }
-        else if (EntityDisposeAction == EntityDisposeAction.HideInPool && !InPool && PoolBehaviour.IsInitialize)
+        else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.HideInPool && !InPool && PoolBehaviour.IsInitialize)
         {
             OnDestroyPool();
             return;
         }
-        else if(EntityDisposeAction == EntityDisposeAction.HideInPool && InPool || !InPool && !PoolBehaviour.IsInitialize)
+        else if(EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.HideInPool && InPool || !InPool && !PoolBehaviour.IsInitialize)
         {
-            PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} использует настройку {nameof(EntityDisposeAction.HideInPool)}, но при этом создается не через pool system. Объект полностью уничтожен.");
+            PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} использует настройку {nameof(EntityDisposeEnumerations.HideInPool)}, но при этом создается не через pool system. Объект полностью уничтожен.");
             Destroy(this.gameObject);
             return;
         }
 
         throw new NotImplementedException();
-    }
-
-    public virtual DamageData GetDamageData()
-    {
-        return CreateBaseDamageData();
-    }
-
-    public virtual DamageData CreateBaseDamageData()
-    {
-        return new DamageData()
-        {
-            Damage = 1
-        };
     }
 
     protected virtual void RegisterEntity()
@@ -274,11 +261,4 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     }
 
     #endregion
-}
-
-
-public enum EntityDisposeAction
-{
-    HideInPool,
-    Destroy,
 }

@@ -78,7 +78,7 @@ public static class ReflectionExtension
         {
             var attribute = method.GetCustomAttribute<MethodHookAttribute>();
 
-            if (attribute == null || !attribute.MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase))
+            if (attribute == null || !attribute.MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase) || !attribute.IsEnabled)
                 continue;
 
             hooks.Add((method, attribute.Order));

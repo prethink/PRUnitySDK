@@ -10,12 +10,15 @@ public class MethodHookAttribute : Attribute
     public int Order { get; }
     public string MethodHookStage { get; }
 
-    public MethodHookAttribute(MethodHookStage hookStage, int order = 0) 
-        : this(hookStage.ToString(), order) { }
+    public bool IsEnabled { get; } = true;
 
-    public MethodHookAttribute(string hookStage, int order = 0)
+    public MethodHookAttribute(MethodHookStage hookStage, int order = 0, bool isEnabled = true) 
+        : this(hookStage.ToString(), order, isEnabled) { }
+
+    public MethodHookAttribute(string hookStage, int order = 0, bool isEnabled = true)
     {
         this.MethodHookStage = hookStage;
         this.Order = order;
+        this.IsEnabled = isEnabled;
     }
 }

@@ -1,18 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class EntityDisposeEnumerations : MonoBehaviour
+public class EntityDisposeEnumerations : EnumerationProviderBase
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    public static readonly Enumeration Destroy      = new Enumeration(nameof(Destroy));
+    public static readonly Enumeration HideInPool   = new Enumeration(nameof(HideInPool));
+    public override bool IncludeInherited => true;
 }
