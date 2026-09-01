@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ResourceContainer : ContainerEntityBase<ResourceItemDefinition>
 {
@@ -23,8 +22,7 @@ public class ResourceContainer : ContainerEntityBase<ResourceItemDefinition>
             isTaken = pickup.Pickup(containerItem, resourceCount);
             if(isTaken)
             {
-                //TODO:
-                //PRUnitySDK.Managers.Sound.PlayClipAtPoint(containerItem.GetResourceSound, transform.position);
+                PRUnitySDK.Managers.Sound.PlayClipAtPoint(containerItem.ResourceSound, transform.position);
                 DestroyEntity();
             }
 

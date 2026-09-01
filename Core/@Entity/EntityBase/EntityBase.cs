@@ -251,7 +251,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     #region IGameSessionListener
 
-    public EntityDescription Description { get; protected set; }
+    [field: SerializeField] public EntityDescription Description { get; protected set; }
 
     protected abstract void InitializeEntityMetadata();
 

@@ -10,13 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 458d204aaf02aba4d866ede060b4a7d7, type: 3}
-  m_Name: '@EntityInfoBase'
+  m_Name: PlayerMetadata
   m_EditorClassIdentifier: 
-  <Name>k__BackingField: Entity
-  <Icon>k__BackingField: {fileID: 21300000, guid: eb97cc8fe0512ec41b2af6a7d6636ece,
+  <EntityType>k__BackingField:
+    value: Player
+  <Name>k__BackingField: Player
+  <Icon>k__BackingField: {fileID: 21300000, guid: 92a289210e06ef1438a1139726bdb214,
     type: 3}
   localizations:
     values:
-    - "\u0421\u0443\u0449\u043D\u043E\u0441\u0442\u044C"
-    - Entity
-    - "Varl\u0131k"
+    - "\u0418\u0433\u0440\u043E\u043A"
+    - Player
+    - Oyuncu
