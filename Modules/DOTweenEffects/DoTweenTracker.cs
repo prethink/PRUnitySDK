@@ -59,7 +59,8 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
         var dto = new TweenTimeScaleDTO(tween, layer);
         if (reactionOnPause && PRUnitySDK.PauseManager.IsLogicPaused)
         {
-            dto.WasPlayingBeforePause = tween.IsPlaying();
+            // Твин зарегистрирован во время паузы: он должен пойти, когда её снимут.
+            dto.WasPlayingBeforePause = true;
             tween.Pause();
         }
 
@@ -106,7 +107,8 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
         var dto = new TweenTimeScaleDTO(tween, layer);
         if (reactionOnPause && PRUnitySDK.PauseManager.IsLogicPaused)
         {
-            dto.WasPlayingBeforePause = tween.IsPlaying();
+            // Твин зарегистрирован во время паузы: он должен пойти, когда её снимут.
+            dto.WasPlayingBeforePause = true;
             tween.Pause();
         }
 
@@ -164,7 +166,15 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
 
             if (PRUnitySDK.PauseManager.IsLogicPaused)
             {
-                dto.WasPlayingBeforePause = dto.Tween.IsPlaying();
+                // Запоминаем состояние только на переходе в паузу. Событие паузы может
+                // прийти повторно — например, когда поверх одного окна открылось второе.
+                // Раньше второй вызов перезаписывал флаг значением уже приостановленного
+                // твина, то есть false, и после снятия паузы такой твин не запускался
+                // никогда: анимация замирала навсегда вместе со всем, что её ждало.
+                if (!dto.Tween.IsPlaying())
+                    continue;
+
+                dto.WasPlayingBeforePause = true;
                 dto.Tween.Pause();
             }
             else if (dto.WasPlayingBeforePause)

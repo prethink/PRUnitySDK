@@ -8,8 +8,16 @@
 /// </remarks>
 public abstract class KeyboardInputSourceBase : PlayerInputSourceBase
 {
+    /// <inheritdoc />
+    /// <remarks>
+    /// Сведения об устройстве проверяются на <c>null</c>: источник живёт на сцене
+    /// и продолжает обновляться в кадрах, когда SDK ещё не поднялся или уже свернулся —
+    /// при выходе из Play Mode это давало <c>NullReferenceException</c> каждый кадр.
+    /// </remarks>
     protected override bool CanInput()
     {
-        return PRUnitySDK.DeviceInfo.IsDesktop() && base.CanInput();
+        DeviceInfoBase deviceInfo = PRUnitySDK.DeviceInfo;
+
+        return deviceInfo != null && deviceInfo.IsDesktop() && base.CanInput();
     }
 }
