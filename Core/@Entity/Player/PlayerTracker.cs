@@ -152,12 +152,34 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
         player.GeneratePlayerId(() => playerId);
         elements.Add(player);
         RegisterLocalPlayer(player);
-        player.JoinGame();
+        this.RunMethodHooks(PlayerJoinedStage, player);
 
         PRLog.WriteDebug(this, $"Игрок {player.Description?.GetName() ?? "<unnamed>"} - EntityID:{player.Id}, PlayerID:{playerId} зарегистрирован.");
 
         return true;
     }
+
+    /// <summary>
+    /// Стадия хука «игрок вошёл в сессию».
+    /// </summary>
+    /// <remarks>
+    /// Вход и выход игрока — событие сессии, поэтому точка принадлежит трекеру, а не
+    /// самому игроку: трекер знает, когда регистрация действительно состоялась.
+    /// Шина событий игрока проектная и живёт вне ядра; подписчиков может быть сколько
+    /// угодно, каждый объявляет свой метод
+    /// <c>[MethodHook(PlayerJoinedStage)] void Имя(IPlayer player)</c>,
+    /// порядок задаёт <c>Order</c>. Без единого хука трекер продолжает работать.
+    /// </remarks>
+    public const string PlayerJoinedStage = "PlayerTrackerPlayerJoined";
+
+    /// <summary>
+    /// Стадия хука «игрок вышел из сессии».
+    /// </summary>
+    /// <remarks>
+    /// Сигнатура хука — <c>void Имя(IPlayer player)</c>. Вызывается после того, как
+    /// игрок убран из реестра и его Player ID освобождён.
+    /// </remarks>
+    public const string PlayerLeftStage = "PlayerTrackerPlayerLeft";
 
     /// <summary>
     /// Проверяет, можно ли регистрировать игрока.
@@ -193,6 +215,7 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
 
         ReleasePlayerId(player.PlayerId);
         UnregisterLocalPlayer(player);
+        this.RunMethodHooks(PlayerLeftStage, player);
         PRLog.WriteDebug(this,
             $"Игрок {player.Description?.GetName() ?? "<unnamed>"} - ID:{player.Id} удален из сессии.");
 

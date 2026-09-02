@@ -6,17 +6,18 @@ using UnityEngine;
 /// Управляет стеком камер и отслеживает игровые камеры.
 /// Потокобезопасен для базовых операций.
 /// </summary>
-public class CameraTracker : SingletonProviderBase<CameraTracker>
+/// <remarks>
+/// Реестр камер игроков — проектная часть: конкретный тип камеры игрока живёт
+/// в приватном слое. Публичная часть переключает их только через partial-хук
+/// <see cref="SetPlayerCamerasActive"/>, поэтому без приватного слоя трекер
+/// продолжает собираться и управлять стеком контроллеров.
+/// </remarks>
+public partial class CameraTracker : SingletonProviderBase<CameraTracker>
 {
     /// <summary>
     /// LIFO-стек временно активных контроллеров камер.
     /// </summary>
     private readonly Stack<CameraControllerBase> _cameraStack = new();
-
-    /// <summary>
-    /// Зарегистрированные камеры игроков.
-    /// </summary>
-    private readonly HashSet<PlayerCamera> _playerCameras = new();
 
     /// <summary>
     /// Объект синхронизации доступа к коллекциям и текущему состоянию камер.
@@ -57,21 +58,6 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     /// Указывает, активна ли основная камера сцены.
     /// </summary>
     public bool IsMainCameraActive => _isMainCameraActive;
-
-    /// <summary>
-    /// Возвращает снимок зарегистрированных живых камер игроков.
-    /// </summary>
-    public IEnumerable<PlayerCamera> PlayerCameras
-    {
-        get
-        {
-            lock (_lock)
-            {
-                _playerCameras.RemoveWhere(camera => camera == null);
-                return _playerCameras.ToList();
-            }
-        }
-    }
 
     /// <summary>
     /// Добавляет камеру в стек, если она не уже на вершине.
@@ -200,14 +186,7 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     {
         lock (_lock)
         {
-            _playerCameras.RemoveWhere(camera => camera == null);
-            foreach (var camera in _playerCameras)
-            {
-                if (camera.CurrentCamera != null)
-                {
-                    camera.CurrentCamera.gameObject.SetActive(false);
-                }
-            }
+            this.RunMethodHooks(PlayerCamerasActiveStage, false);
             _isMainCameraActive = true;
         }
     }
@@ -219,48 +198,22 @@ public class CameraTracker : SingletonProviderBase<CameraTracker>
     {
         lock (_lock)
         {
-            _playerCameras.RemoveWhere(camera => camera == null);
-            foreach (var camera in _playerCameras)
-            {
-                if (camera.CurrentCamera != null)
-                {
-                    camera.CurrentCamera.gameObject.SetActive(true);
-                }
-            }
+            this.RunMethodHooks(PlayerCamerasActiveStage, true);
             _isMainCameraActive = false;
         }
     }
 
     /// <summary>
-    /// Добавляет игровую камеру, если она ещё не зарегистрирована.
+    /// Стадия хука «переключить камеры игроков».
     /// </summary>
-    public void AddPlayerCamera(PlayerCamera camera)
-    {
-        if (camera == null)
-        {
-            Debug.LogWarning("Попытка добавить null PlayerCamera");
-            return;
-        }
-
-        lock (_lock)
-        {
-            _playerCameras.Add(camera);
-        }
-    }
-
-    /// <summary>
-    /// Удаляет игровую камеру из реестра.
-    /// </summary>
-    public void RemovePlayerCamera(PlayerCamera camera)
-    {
-        if (object.ReferenceEquals(camera, null))
-            return;
-
-        lock (_lock)
-        {
-            _playerCameras.Remove(camera);
-        }
-    }
+    /// <remarks>
+    /// Реестров камер может быть несколько: каждый объявляет свой метод
+    /// <c>[MethodHook(PlayerCamerasActiveStage)] void Имя(bool isActive)</c>,
+    /// порядок задаёт <c>Order</c>. Хуки выполняются уже под <c>_lock</c> трекера,
+    /// поэтому брать его повторно не нужно. Без единого хука переключать нечего,
+    /// и трекер работает только со стеком контроллеров.
+    /// </remarks>
+    public const string PlayerCamerasActiveStage = "PlayerCamerasActive";
 
     internal void SetMainCamera(Camera camera)
     {

@@ -19,9 +19,6 @@ public partial class PRWindowsContainer
     /// </summary>
     public PRContainer Notifiers;
 
-    public RewardNotifier RewardNotifier;
-    public ToastMessageNotifier ToastMessageNotifier;
-
     public void Initialize()
     {
         this.RunMethodHooks(MethodHookStage.PreOperation);
@@ -50,9 +47,6 @@ public partial class PRWindowsContainer
 
         var graphicRaycaster = SharedCanvas.AddComponent<GraphicRaycaster>();
 
-        var settingsWindows = new SettingsMonoWindowFactory().CreateMonoWindow();
-        var test = new DashboardMessagesFactory().Create(SharedCanvas.transform);
-
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Windows complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();
     }
@@ -61,9 +55,6 @@ public partial class PRWindowsContainer
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         Notifiers = MonoBehaviourUtils.CreateContainer("Notifiers");
-
-        RewardNotifier = new RewardNotifierFactory().Create();
-        ToastMessageNotifier = new ToastMessageNotifierFactory().Create();
 
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Notifiers complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();

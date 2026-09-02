@@ -56,6 +56,26 @@ Deny > Allow > Unspecified
 - если `Deny` нет, но есть `Allow`, итогом будет `Allow`;
 - если влияний нет, resolver возвращает `Unspecified`.
 
+```mermaid
+flowchart TD
+    S1["Оглушение<br/>Deny(CanMove)"] --> R
+    S2["Катсцена<br/>Deny(CanMove)"] --> R
+    S3["Бустер<br/>Allow(CanMove)"] --> R
+    S4["Другие компоненты<br/>не голосовали"] -.-> R
+
+    R{"FlagResolver<br/>есть живой Deny?"}
+    R -->|да| Deny["Deny — запрет побеждает,<br/>сколько бы ни было Allow"]
+    R -->|"нет, но есть Allow"| Allow["Allow"]
+    R -->|"влияний нет"| Uns["Unspecified"]
+
+    Deny --> Get["Get(флаг, defaultValue)<br/>подставит default только на Unspecified"]
+    Allow --> Get
+    Uns --> Get
+```
+
+Ключевое следствие: снявший своё влияние источник не «разрешает» действие за других —
+он убирает только свой голос. Пока жив хотя бы один `Deny`, итог остаётся запретом.
+
 Значение по умолчанию применяется только методом `Get`:
 
 ```csharp

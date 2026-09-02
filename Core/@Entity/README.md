@@ -15,7 +15,7 @@
 | `EntityBase/` | `EntityBase` и три варианта под разные способы задать описание |
 | `EntityMetadata/` | Вид, имя, иконка, локализация, качество и механизм переопределения |
 | `EntityManager/` | `EntityTracker` — глобальный реестр сущностей, выдача Id, статистика |
-| `EntityStats/` | Базовые характеристики (`EntityStatsBase`) и расчёт итоговых (`EntityStatsUtils`) |
+| [`EntityStats/`](EntityStats/README.md) | Базовые характеристики, персональные модификаторы и расчёт итоговых |
 | `EntityContainer/` | Подбираемые контейнеры: ресурс, действие |
 | `Player/` | `IPlayer`, `PlayerBase`, `PlayerTracker`, команды |
 | `Initialize/` | `ReadySignal` — сигнал готовности с подпиской «поздних» слушателей |
@@ -297,12 +297,20 @@ public class PlayerStats : EntityStatsBase<PlayerStatsEnumeration> { }
 EntityStatsBase → персональные модификаторы → GameRules → результат
 ```
 
-```csharp
-float speed = EntityStatsUtils.GetStat(
-    PlayerStatsEnumeration.WalkSpeed, Core.Stats, statCollector);
+Персональные модификаторы описывает `StatModifier`, а собирает их с дочерних объектов
+сущности `StatModifierCollector` — компонент, который вешается рядом с `EntityLinkBase`
+и обновляется при смене экипировки. Передать модификаторы можно им либо делегатом
+`Func<Enumeration, float, float>` — тогда стат считается без компонента на сцене,
+например в редакторе или в тестах.
 
+```csharp
+// Обычный путь: модификаторы даёт сборщик на префабе
 int jumps = EntityStatsUtils.GetStatInt(
     PlayerStatsEnumeration.JumpCount, Core.Stats, statCollector, 1);
+
+// Без сборщика: модификатор — это преобразование «ключ и базовое значение → итог»
+float speed = EntityStatsUtils.GetStat(
+    PlayerStatsEnumeration.WalkSpeed, Core.Stats, (stat, value) => value * 1.2f);
 ```
 
 `GetStatLong()` дополнительно защищает от выхода за границы типа и от `NaN`.
@@ -310,6 +318,9 @@ int jumps = EntityStatsUtils.GetStatInt(
 
 Важно: `GetStatInt` округляет к ближайшему целому. Для дробных величин (время, доли
 секунды, множители) используйте `GetStat` — иначе значение вроде `0.15` превратится в `0`.
+
+Устройство модификаторов, сборщик и известные ограничения —
+в [EntityStats](EntityStats/README.md).
 
 ## Игроки
 
@@ -392,9 +403,6 @@ PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
 - **`IEntity.gameObject` объявлен со строчной буквы** — намеренно, чтобы совпадать с
   Unity-свойством и не конфликтовать при реализации в `MonoBehaviour`. Для не-Unity
   реализаций (`GameEventEntity`) объект создаётся фабрикой по требованию.
-- **`EntityStatsUtils` зависит от `StatModifierCollector`** — типа, который живёт вне ядра,
-  в проектном слое. Зависимость направлена не туда, куда следует; развязывается
-  интерфейсом вроде `IStatModifierSource`.
 
 ## Смотрите также
 

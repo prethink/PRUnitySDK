@@ -69,34 +69,6 @@ public abstract class BotAlertEventArgsBase : BotEventArgsBase
     }
 }
 
-public class BotSetPathEventArgs : BotEventArgsBase
-{
-    public WaypointController Route { get; private set; }
-
-    public float RandomRangeMaxValue { get; private set; }
-
-    public bool HasWaitingStart => RandomRangeMaxValue > 0;
-
-    public BotSetPathEventArgs(WaypointController route)
-    {
-        All = true;
-        this.Route = route;
-    }
-
-    public BotSetPathEventArgs(WaypointController route, float randomRangeMax)
-    {
-        All = true;
-        this.Route = route;
-        this.RandomRangeMaxValue = randomRangeMax;
-    }
-
-    public BotSetPathEventArgs(WaypointController route, long botId)
-    {
-        BotId = botId;
-        this.Route = route;
-    }
-}
-
 public class BotSetTargetEventArgs : BotEventArgsBase
 {
     public Transform Target { get; private set; }

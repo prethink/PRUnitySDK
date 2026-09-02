@@ -8,6 +8,22 @@
 Pre-hooks → Original action → Post-hooks
 ```
 
+```mermaid
+flowchart TD
+    Pub["Publish(context, originalAction)"] --> Pre["Pre-hooks<br/>по возрастанию Order"]
+    Pre --> Stop{"StopPropagation?"}
+    Stop -->|да| Check
+    Stop -->|нет| Next{"остались pre-hooks?"}
+    Next -->|да| Pre
+    Next -->|нет| Check{"ShouldCallOriginal?"}
+
+    Check -->|"Supercede был"| Skip["оригинальное действие пропущено<br/>используется результат контекста"]
+    Check -->|"иначе"| Orig["Original action"]
+
+    Skip --> Post["Post-hooks<br/>видят итоговый Result"]
+    Orig --> Post
+```
+
 Если pre-hook устанавливает `Supercede`, оригинальное действие пропускается, но остальные pre- и post-hooks продолжают выполняться. Для явной остановки цепочки используется `StopPropagation()`.
 
 ## Результаты

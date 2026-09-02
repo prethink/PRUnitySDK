@@ -144,9 +144,11 @@ EventBus.RaiseEvent<IMonoWindowEvents>(events =>
 Для обычного игрового кода предпочтителен прямой вызов трекера, поскольку он позволяет проверить результат
 `TryShowWindow()`. EventBus удобен для слабосвязанных систем, которым результат открытия не нужен.
 
-`TriggerMonoWindow` автоматически записывает `PlayerId` вошедшего локального игрока в `Executor`. Поиск игрока
-выполняется через `Collider.TryGetLocalPlayer()` и `PlayerLink`, поэтому используется общий для проекта способ
-разрешения обычных, дочерних hitbox и ragdoll-collider.
+`TriggerMonoWindow` автоматически записывает `PlayerId` вошедшего игрока в `Executor`. По умолчанию игрок ищется
+через `GetComponentInParent<PlayerBase>()`. Кто именно имеет право открыть окно — правило проектное: hook'и стадии
+`TriggerMonoWindow.ExecutorStage` с сигнатурой `(Collider other, ref long executor, ref bool hasExecutor)` могут
+назначить своего исполнителя или запретить открытие. В этом проекте такой hook оставляет только локального игрока
+и ищет его общим для проекта способом — по обычным, дочерним hitbox и ragdoll-коллайдерам.
 
 ## Пауза и курсор
 

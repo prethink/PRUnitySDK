@@ -86,6 +86,65 @@ public void CloneInventory(ProjectData clone)
 Аргументы поддерживает только instance runner (`RunMethodHooks`); `RunStaticMethodHooks`
 вызывает статические hook'и без аргументов.
 
+### Изменяемые аргументы
+
+Hook может не только получить контекст, но и вернуть решение: параметр `ref` пишется
+обратно в переданный массив аргументов. Это способ дать стадии результат, когда
+hook'ов может быть несколько и заранее неизвестно, сколько их.
+
+```csharp
+var hookArgs = new object[] { other, 0L, false };
+this.RunMethodHooks(ExecutorStage, hookArgs);
+
+if (hookArgs[2] is bool found && found)
+    Show((long)hookArgs[1]);
+```
+
+```csharp
+[MethodHook(ExecutorStage)]
+protected void ResolveExecutor(Collider other, ref long executor, ref bool hasExecutor)
+{
+    hasExecutor = other.TryGetLocalPlayer(out PlayerLocal player);
+
+    if (hasExecutor)
+        executor = player.PlayerId;
+}
+```
+
+Массив нужно создать заранее и читать значения из него же: `params` создаст свой массив,
+и записи в нём вызывающий код не увидит. Hook'и одной стадии выполняются по возрастанию
+`Order` и видят результат предыдущего, поэтому итог определяет последний записавший —
+если решений может быть несколько, договаривайтесь о правиле явно: например, «выставляю
+`true`, только когда разбираю своё событие, чужое не трогаю».
+
+### Видимость hook-методов
+
+Hook ищется через `GetMethods(BindingFlags.Instance | NonPublic | Public)` по
+**фактическому типу объекта**. Reflection не возвращает `private` методы базового класса,
+поэтому hook на базовом классе, экземпляры которого — наследники, обязан быть
+`protected` или выше:
+
+```csharp
+public abstract partial class CameraControllerBase
+{
+    // private здесь молча не вызовется: экземпляр — наследник, а не сам базовый класс
+    [MethodHook(SomeStage)]
+    protected void OnSomeStage() { }
+}
+```
+
+`private` безопасен только там, где тип объекта совпадает с типом, объявившим hook:
+`PRWindowsContainer`, `PRManagerContainer`, `ProjectData`, `PlayerTracker`, `CameraTracker`.
+Ошибка не диагностируется ничем — стадия просто отработает вхолостую.
+
+### Несколько реализаций одной точки расширения
+
+`partial void` для этого не подходит: у partial-метода может быть **ровно одна**
+реализация на весь partial-класс, вторая даёт ошибку компиляции `CS0757`. Если точку
+расширения могут занять несколько независимых частей — используйте `MethodHook`
+(вызываются все, по возрастанию `Order`) или `InvokePartial`, когда нужно собрать
+результаты.
+
 ### Кеширование
 
 `ReflectionExtension` кеширует результат сканирования типа по паре (тип, стадия), поэтому

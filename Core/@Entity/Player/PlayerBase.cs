@@ -70,9 +70,9 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
     public override void DestroyEntity(EntityDestroyOptions options)
     {
         OnPlayerDestroy?.Invoke(this);
-        if (options.FullDestroy)
-            RemovePlayer();
 
+        // О выходе из сессии сообщает трекер при снятии регистрации:
+        // уничтожение объекта до неё всё равно доходит через UnregisterEntity().
         Destroy(RootEntityObject);
     }
 
@@ -158,24 +158,6 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
         Points = Math.Max(0, Points - valueContainer.Value);
         OnPointRemove?.Invoke(valueContainer.Value);
         OnPointsChanged?.Invoke(Points);
-    }
-
-    public void JoinGame()
-    {
-        //if (PlayerType == PlayerType.Human)
-        //    HumanId = PRUnitySDK.Trackers.Players.GetNextId();
-
-        //debugPlayerId = HumanId;
-
-        PlayerEvents.RaiseOnJoinGame(this);
-    }
-
-    public void RemovePlayer()
-    {
-        //if (PlayerType == PlayerType.Human)
-        //    PRUnitySDK.Trackers.Players.RemoveId(HumanId);
-
-        PlayerEvents.RaiseOnLeftGame(this);
     }
 
     #endregion

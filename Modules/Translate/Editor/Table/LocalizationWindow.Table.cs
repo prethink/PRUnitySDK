@@ -17,14 +17,29 @@ public partial class LocalizationWindow
     private const string TableFoldersKey = "PRUnitySDK.LocalizationTable.Folders";
     private const string TablePrefabsKey = "PRUnitySDK.LocalizationTable.Prefabs";
 
-    private static readonly string[] DefaultTableFolders =
+    private const string SdkTableFolder = "Assets/PRUnitySDK";
+
+    /// <summary>
+    /// Собирает папки, по которым окно ищет переводы при первом открытии.
+    /// </summary>
+    /// <remarks>
+    /// Свои папки добавляет проект: методы без параметров, помеченные
+    /// <c>[InvokePartial]</c> и возвращающие <c>string</c>, <c>string[]</c> или
+    /// <c>IEnumerable&lt;string&gt;</c>. Их может быть сколько угодно, порядок задаёт
+    /// <c>Order</c>. SDK не знает, где лежит игра, и не ссылается на неё путём.
+    /// </remarks>
+    private string GetDefaultTableFolders()
     {
-        "Assets/PRUnitySDK",
-        "Assets/PRUnitySDKPrivate"
-    };
+        var folders = new List<string> { SdkTableFolder };
+
+        folders.AddRange(this.CollectPartialResult<string>()
+            .Where(folder => !string.IsNullOrWhiteSpace(folder)));
+
+        return string.Join(";", folders.Distinct());
+    }
 
     private List<LocalizationTableEntry> tableEntries = new();
-    private string tableFolders = string.Join(";", DefaultTableFolders);
+    private string tableFolders = SdkTableFolder;
     private bool tableIncludePrefabs = true;
     private LocalizationTableSource? tableSourceFilter;
     private bool tableOnlyIncomplete;
@@ -36,7 +51,7 @@ public partial class LocalizationWindow
     /// </summary>
     private void InitializeTable()
     {
-        tableFolders = EditorPrefs.GetString(TableFoldersKey, string.Join(";", DefaultTableFolders));
+        tableFolders = EditorPrefs.GetString(TableFoldersKey, GetDefaultTableFolders());
         tableIncludePrefabs = EditorPrefs.GetBool(TablePrefabsKey, true);
     }
 

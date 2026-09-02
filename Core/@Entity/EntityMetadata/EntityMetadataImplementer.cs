@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Описание сущности, собранное в рантайме.
+/// </summary>
 public class EntityMetadataImplementer : IEntityMetadata
 {
     public Guid TypeGuid { get; private set; }
@@ -14,6 +17,9 @@ public class EntityMetadataImplementer : IEntityMetadata
 
     public IReadOnlyDictionary<LangType, string> LocalizationValues { get; }
 
+    /// <summary>
+    /// Модификаторы характеристик, которые описание добавляет сущности.
+    /// </summary>
     public IEnumerable<StatModifier> StatModifiers { get; } = new List<StatModifier>();
 
     public EntityMetadataImplementer(

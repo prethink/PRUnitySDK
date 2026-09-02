@@ -41,6 +41,27 @@ PRUnitySDK.InitializeSDK();
 10. Публикация `ISDKEvents.OnInitialized()`.
 11. Перевод `ReadySignal` в готовое состояние.
 
+```mermaid
+flowchart TD
+    Boot["Bootstrap<br/>сцена запуска"] --> Guard{"IsStartInitialize<br/>уже шла?"}
+    Guard -->|да| Skip["выход: повторный запуск запрещён"]
+    Guard -->|нет| Rules["GameRules"]
+
+    Rules --> Json["JSON-конвертеры"]
+    Json --> Host["PRMonoBehaviourHost<br/>PRTimeScale"]
+    Host --> Factories["Регистрация фабрик"]
+    Factories --> Hooks["Static method hooks<br/>стадии SDK"]
+    Hooks --> Containers["PRManagerContainer<br/>PRWindowsContainer"]
+    Containers --> Tasks["Фоновые задачи<br/>с AutoBackgroundTask"]
+    Tasks --> Flag["IsInitialized = true"]
+    Flag --> Event["ISDKEvents.OnInitialized"]
+    Event --> Ready["ReadySignal готов"]
+```
+
+Модули игры вклиниваются на шаге `SDK`: собственный сервис регистрируется
+partial-частью `PRUnitySDK` с `[MethodHook(MethodHookStage.SDK)]` и попадает в очередь
+по своему `Order` — до контейнеров менеджеров и окон, которые идут следующим шагом.
+
 Фоновые задачи регистрируются до `IsInitialized`, но выполняться начинают только после
 него: трекер сверяется с состоянием SDK на каждом проходе, поэтому первый запуск
 приходится на полностью готовый проект. См.

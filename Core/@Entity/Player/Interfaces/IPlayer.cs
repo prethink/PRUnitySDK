@@ -74,11 +74,6 @@ public partial interface IPlayer : IEntity
     /// </summary>
     public bool AddPlayerItem(IPlayerItem item);
 
-    /// <summary>
-    /// Игрок присоединился к игре.
-    /// </summary>
-    public void JoinGame();
-
     ///// <summary>
     ///// Инициализация игрока.
     ///// </summary>

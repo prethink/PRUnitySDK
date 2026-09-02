@@ -15,7 +15,7 @@
 После этого `EntityStatsUtils` применяет глобальные `GameRules`:
 
 ```text
-EntityStatsBase → StatModifierCollector → GameRules → итоговое значение
+EntityStatsBase → персональные модификаторы → GameRules → итоговое значение
 ```
 
 Таким образом, глобальные минимальные и максимальные ограничения накладываются поверх экипировки, эффектов и бонусов игрока.
@@ -26,7 +26,7 @@ EntityStatsBase → StatModifierCollector → GameRules → итоговое з�
 - `IntPropertyContainer` — количество прыжков и другие небольшие целые значения.
 - `LongPropertyContainer` — большие целочисленные характеристики.
 
-Для характеристик игрока основная цепочка сейчас использует `FloatPropertyContainer`, потому что `EntityStatsBase`, `StatModifier` и `GameRules` хранят значения в `float`. `EntityStatsUtils.GetStatInt()` округляет итог только после применения всех модификаторов и правил.
+Для характеристик игрока основная цепочка сейчас использует `FloatPropertyContainer`, потому что `EntityStatsBase`, модификаторы и `GameRules` хранят значения в `float`. `EntityStatsUtils.GetStatInt()` округляет итог только после применения всех модификаторов и правил.
 
 ## Типы модификаторов
 
@@ -127,7 +127,7 @@ int jumpCount = properties.GetWithRules(
 
 ## Интеграция с игроком
 
-Для обычных характеристик игрока вручную создавать контейнер не требуется. `StatModifierCollector` находится на `PlayerController.prefab`, собирает модификаторы дочерних объектов и используется через `EntityStatsUtils`:
+Для обычных характеристик игрока вручную создавать контейнер не требуется. `StatModifierCollector` вешается на префаб персонажа рядом с `EntityLinkBase`, собирает модификаторы дочерних объектов в свой `FloatPropertyContainer` и используется через `EntityStatsUtils`:
 
 ```csharp
 float speed = EntityStatsUtils.GetStat(

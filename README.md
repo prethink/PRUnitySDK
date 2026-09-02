@@ -40,6 +40,117 @@
 | State / Progression / Damage | Переиспользуемые игровые модули |
 | Quality / Localization / Logging | Качество предметов, переводы и структурированное логирование |
 
+## Карта фреймворка
+
+Как части связаны между собой. Стрелка — «зависит от».
+
+```mermaid
+graph TD
+    Boot["Bootstrap<br/>единственная точка входа"]
+    Facade["PRUnitySDK<br/>facade, ServiceResolver"]
+    Hooks["HookSystem<br/>MethodHook и стадии"]
+
+    Boot --> Facade
+    Facade --> Hooks
+
+    subgraph BASE["Базис"]
+        Models["Models<br/>Enumeration, ProjectData"]
+        Utils["#Utils, #Extensions, Debug"]
+        Attrs["@Attributes"]
+    end
+
+    subgraph LIFE["Жизненный цикл и время"]
+        Mono["PRMonoBehaviour"]
+        Pause["PauseSystem"]
+        Time["PRTime, PRTimeScale"]
+        Coro["Coroutines, Yields"]
+        Bg["BackgroundTasks"]
+    end
+
+    subgraph DATA["Данные"]
+        Storage["GameDataStorage"]
+        Db["#Database<br/>PRSDKDatabase, PRSDKSettings"]
+        Paths["ResourcePaths"]
+    end
+
+    subgraph WORLD["Модель мира"]
+        Entity["@Entity<br/>EntityBase, Metadata,<br/>Stats, Player"]
+        Items["Items"]
+        Wallet["Wallet"]
+        Reward["Reward"]
+        Rules["GameRules"]
+        Props["PropertyContainer"]
+        Flags["FlagsSystem"]
+    end
+
+    subgraph RUNTIME["Рантайм-инфраструктура"]
+        Managers["@Managers<br/>PRManagerContainer"]
+        Trackers["Trackers<br/>Entities, Players, Cameras, Windows"]
+        Factories["Factories, ObjectPool"]
+        Bus["@Events<br/>EventBus"]
+        Bots["Bots"]
+        Input["Input<br/>InputTranslator, PlayerInputState"]
+    end
+
+    subgraph UIL["Интерфейс"]
+        Wnd["#UI<br/>MonoWindow, Notifiers,<br/>PRWindowsContainer"]
+    end
+
+    subgraph MODS["Модули"]
+        Damage["@DamageSystem"]
+        HitBox["HitBox"]
+        Cam["Camera"]
+        Tr["Translate"]
+        XP["@ProgressionModule"]
+        Tween["DOTweenEffects"]
+    end
+
+    Editor["Core/Editor<br/>окна Database и PRUnitySDKDebug"]
+
+    Mono --> Pause
+    Mono --> Time
+    Mono --> Bus
+    Bg --> Mono
+
+    Entity --> Models
+    Entity --> Mono
+    Entity --> Factories
+    Entity --> Rules
+    Entity --> Input
+    Items --> Models
+    Items --> Tr
+    Props --> Models
+    Flags --> Models
+    Rules --> Models
+    Reward --> Items
+    Wallet --> Models
+
+    Managers --> Storage
+    Managers --> Items
+    Trackers --> Entity
+    Trackers --> Wnd
+    Bus --> Items
+    Bots --> Bus
+
+    Wnd --> Mono
+    Wnd --> Pause
+    Cam --> Trackers
+    Damage --> Entity
+    Damage --> Hooks
+    Damage --> Items
+    HitBox --> Damage
+    Tween --> Time
+    XP --> Entity
+
+    Editor --> Entity
+    Editor --> Db
+    Editor --> Wnd
+    Editor --> Bg
+```
+
+Игра к фреймворку не подмешивается: зависимость всегда направлена от игры к нему.
+Как именно к нему подключаться — в разделе [«Какой механизм расширения выбрать»](#какой-механизм-расширения-выбрать).
+
 ## Слои
 
 | Папка | Что в ней |
@@ -309,6 +420,9 @@ public class PlaytimeTrackerTask : BackgroundTask
   когда источников запрета становится двое: кто снял — тот и разрешил, хотя второй ещё против.
 - **`MethodHook` для реакции на игровое событие.** Хуки стадий вызываются там, где код явно
   их запускает; для игровых событий есть `EventBus`.
+- **`partial void` как точка расширения.** У partial-метода ровно одна реализация на класс:
+  вторая часть, которой понадобится та же точка, получит ошибку компиляции `CS0757`.
+  Если участников может быть несколько — это `MethodHook` или `InvokePartial`.
 - **Своя корутина вместо `BackgroundTask`.** Для периодической работы без владельца на сцене
   корутина требует объекта-хозяина, теряется при смене сцены и не даёт ни счётчиков,
   ни защиты от череды ошибок.
@@ -385,6 +499,8 @@ PRUnitySDK/
 ### Модели, сервисы и утилиты
 
 - [Entity](Core/@Entity/README.md) — сущности игрового мира: идентификаторы, описание, реестр, время жизни и пул
+- [EntityStats](Core/@Entity/EntityStats/README.md) — характеристики сущности: базовые значения, персональные модификаторы и расчёт итоговых
+- [Ввод](Core/Input/README.md) — состояние ввода игрока или бота и его маршрутизация по `InputGuid`
 - [Фабрики MonoBehaviour](Core/Factories/README.md) — обычные prefab, singleton-компоненты, MonoWindow и Notifier
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия

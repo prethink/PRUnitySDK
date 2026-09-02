@@ -89,8 +89,15 @@ long enemies = PRUnitySDK.Trackers.Entities.GetExactExistsEntityCount(enemyType)
 на вершину, `Peek()` возвращает текущий живой контроллер, `Pop()` извлекает его, а
 `RestorePreviousCamera()` восстанавливает предыдущую камеру.
 
-Уничтоженные Unity-объекты пропускаются и удаляются при обходе. `PlayerCameras`
-возвращает снимок набора, поэтому его можно безопасно перечислять вне трекера.
+Уничтоженные Unity-объекты пропускаются и удаляются при обходе.
+
+Реестр камер игроков — проектная часть трекера: конкретный тип камеры игрока живёт
+в слое игры и добавляет `PlayerCameras`, `AddPlayerCamera()` и `RemovePlayerCamera()`
+partial-частью. `HidePlayerCameras()` и `ShowPlayerCameras()` только запускают стадию
+`CameraTracker.PlayerCamerasActiveStage` с аргументом `bool`, поэтому реестров может
+быть несколько, а без единого hook'а трекер продолжает работать со стеком контроллеров.
+Hook'и выполняются уже под блокировкой трекера. `PlayerCameras` возвращает снимок
+набора, поэтому его можно безопасно перечислять вне трекера.
 
 ## MonoWindowsTracker и NotifierTracker
 
