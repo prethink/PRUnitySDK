@@ -510,6 +510,8 @@ PRUnitySDK/
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [Локализация](Modules/Translate/README.md) — переводы в базе, ассетах и на префабах, сбор и обмен через CSV
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
+- [Extensions](Core/%23Extensions/README.md) — extension-методы общего назначения для Unity и типов SDK
+- [Quality](Core/Quality/README.md) — качество предметов: уровни редкости и их отображение
 - [Utils](Core/Utils/README.md) — вспомогательные классы: время, отложенные вызовы, имена
 - [Proxies](Core/Proxies/README.md) — переадресация Unity-callback'ов с дочерних объектов родительским компонентам
 - [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`
@@ -519,6 +521,8 @@ PRUnitySDK/
 ### Модули и интеграции
 
 - [Modules](Modules/README.md) — опциональные игровые модули: `StateManager`, `XPManager`
+- [DamageSystem](Modules/@DamageSystem/README.md) — создание, модификация и применение урона через хуки
+- [HitBox](Modules/HitBox/README.md) — связь физических коллайдеров с `DamageSystem`
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
 - [YG2 Integration](YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
 - [Zenject Integration](Core.Zenject.Integration~/README.md) — отключена по умолчанию; папку включают удалением `~` из имени
