@@ -36,7 +36,6 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         if (!windowContainer.activeSelf)
             windowContainer.SetActive(true);
 
-        InitTranslate();
         windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
         PRUnitySDK.Trackers.MonoWindows.NotifyWindowShown(this);
 
@@ -80,8 +79,6 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
             ? container 
             : gameObject;
     }
-
-    public abstract void InitTranslate();
 
     protected virtual void ExitButtonAction()
     {

@@ -199,6 +199,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
             ($"Problems ({problems.Count})", DrawProblems),
             ($"Initialization ({initializationEntries.Count})", DrawInitialization),
             ($"Windows ({monoWindows.Count})", DrawMonoWindows),
+            ($"Object states ({objectStates.Count})", DrawObjectStates),
             ($"Tasks ({backgroundTasks.Count})", DrawBackgroundTasks),
             ($"Rules ({statRules.Count})", DrawGameRules),
             ($"Events ({eventRows.Count})", DrawEvents),

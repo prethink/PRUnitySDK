@@ -12,7 +12,7 @@ public class RigidbodyTimeScaleDriver : RigidbodyTimeScaleDriverBase
 {
     [Header("Слой")]
     [Tooltip("Слой масштаба времени. Пусто - тело живёт в глобальном темпе, и драйвер ничего не делает.")]
-    [SerializeField] private EnumerationReference<PRTimeScaleEnumerations> timeScaleLayer;
+    [SerializeField] private EnumerationReference<PRTimeScaleEnumerations> timeScaleLayer = new();
 
     /// <inheritdoc />
     protected override Enumeration GetTimeScaleLayer()

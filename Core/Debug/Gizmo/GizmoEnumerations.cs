@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class GizmoEnumerations : EnumerationProviderBase
 {
+    /// <inheritdoc />
+    public override Enumeration Default => FirstOption;
+
     public override bool IncludeInherited => true;
 
     public static readonly Enumeration Line = new Enumeration(nameof(Line));

@@ -11,5 +11,8 @@ public partial class EntityTypeEnumerations : EnumerationProviderBase
     public static Enumeration Gift          = new Enumeration(nameof(Gift));
     public static Enumeration Reward        = new Enumeration(nameof(Reward));
 
+    /// <inheritdoc />
+    public override Enumeration Default => FirstOption;
+
     public override bool IncludeInherited => true;
 }

@@ -32,23 +32,43 @@ public static class EnumerationExtensions
         }
 
         typeHierarchy.Reverse();
-        var result = new List<Enumeration>();
         const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-        foreach (var currentType in typeHierarchy)
-        {
-            var fields = currentType.GetFields(flags);
-            Array.Sort(fields, (left, right) => left.MetadataToken.CompareTo(right.MetadataToken));
+        // Собираем всё вместе и сортируем один раз: EnumerationOrder должен работать
+        // и между уровнями иерархии, иначе наследник не смог бы поставить своё значение
+        // впереди базовых.
+        var entries = new List<(Enumeration Value, int Order, int Depth, int Token)>();
 
-            foreach (var field in fields)
+        for (int depth = 0; depth < typeHierarchy.Count; depth++)
+        {
+            foreach (var field in typeHierarchy[depth].GetFields(flags))
             {
                 if (!typeof(Enumeration).IsAssignableFrom(field.FieldType))
                     continue;
 
-                if (field.GetValue(null) is Enumeration enumeration)
-                    result.Add(enumeration);
+                if (field.GetValue(null) is not Enumeration enumeration)
+                    continue;
+
+                var order = field.GetCustomAttribute<EnumerationOrderAttribute>()?.Order ?? 0;
+                entries.Add((enumeration, order, depth, field.MetadataToken));
             }
         }
+
+        // Без атрибута порядок прежний: сначала базовый набор, внутри типа — порядок
+        // объявления. MetadataToken растёт вместе с ним, а GetFields порядка не обещает.
+        entries.Sort((left, right) =>
+        {
+            int order = left.Order.CompareTo(right.Order);
+            if (order != 0)
+                return order;
+
+            int depth = left.Depth.CompareTo(right.Depth);
+            return depth != 0 ? depth : left.Token.CompareTo(right.Token);
+        });
+
+        var result = new List<Enumeration>(entries.Count);
+        foreach (var entry in entries)
+            result.Add(entry.Value);
 
         var values = result.ToArray();
         enumerationCache.Add(key, values);
@@ -66,14 +86,30 @@ public static class EnumerationExtensions
         if (!typeof(IEnumerationProvider).IsAssignableFrom(type))
             return type.GetEnumerations(includeInherited);
 
-        if (!providerCache.TryGetValue(type, out var provider))
-        {
-            provider = Activator.CreateInstance(type) as IEnumerationProvider
-                ?? throw new InvalidOperationException($"Cannot create enumeration provider '{type.FullName}'.");
-            providerCache.Add(type, provider);
-        }
+        return GetEnumerationProvider(type).GetOptions();
+    }
 
-        return provider.GetOptions();
+    /// <summary>
+    /// Экземпляр провайдера набора; создаётся один раз на тип.
+    /// </summary>
+    /// <remarks>
+    /// Общий вход для всех, кому нужен провайдер: и списку значений, и значению
+    /// по умолчанию, и дроверу в инспекторе. Без него каждый заводил бы свой кеш
+    /// и свой <c>Activator.CreateInstance</c>.
+    /// </remarks>
+    public static IEnumerationProvider GetEnumerationProvider(this Type type)
+    {
+        if (type == null)
+            throw new ArgumentNullException(nameof(type));
+
+        if (providerCache.TryGetValue(type, out var provider))
+            return provider;
+
+        provider = Activator.CreateInstance(type) as IEnumerationProvider
+            ?? throw new InvalidOperationException($"Cannot create enumeration provider '{type.FullName}'.");
+
+        providerCache.Add(type, provider);
+        return provider;
     }
 
     /// <summary>

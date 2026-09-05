@@ -64,7 +64,7 @@ public class StatModifier<TEnum> : StatModifier
     /// <summary>
     /// Характеристика, на которую действует модификатор.
     /// </summary>
-    [field: SerializeField] public EnumerationReference<TEnum> Property { get; protected set; }
+    [field: SerializeField] public EnumerationReference<TEnum> Property { get; protected set; } = new();
 
     /// <summary>
     /// Конструктор для сериализации: значения приходят из инспектора.

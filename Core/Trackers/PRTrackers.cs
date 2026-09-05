@@ -38,4 +38,9 @@ public partial class PRTrackers
     /// Объекты, участвующие в сохранении состояния.
     /// </summary>
     public readonly SaveableRegistry Saveables = new();
+
+    /// <summary>
+    /// Состояния объектов сцены: живые на уровне и сохранённые в проекте.
+    /// </summary>
+    public readonly ObjectStateTracker ObjectStates = new();
 }

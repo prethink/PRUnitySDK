@@ -7,6 +7,26 @@ public partial class PRDebugEditor
 {
     private static GUIStyle summaryMetricStyle;
 
+    private static GUIStyle tabDescriptionStyle;
+
+    /// <summary>
+    /// Короткое описание вкладки над её содержимым.
+    /// </summary>
+    /// <remarks>
+    /// Окно отладочное и вкладок в нём больше десятка. Без подписи назначение половины
+    /// приходится выяснять по составу таблицы, а часть цифр без объяснения читается
+    /// неверно — например счётчики, которые собираются только пока идёт игра.
+    /// </remarks>
+    private static void DrawTabDescription(string description)
+    {
+        tabDescriptionStyle ??= new GUIStyle(EditorStyles.wordWrappedMiniLabel)
+        {
+            padding = new RectOffset(2, 2, 2, 4)
+        };
+
+        EditorGUILayout.LabelField(description, tabDescriptionStyle);
+    }
+
     private static void DrawSectionHeader(string title)
     {
         EditorGUILayout.Space(6f);

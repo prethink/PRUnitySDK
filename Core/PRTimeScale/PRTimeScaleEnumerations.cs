@@ -1,5 +1,8 @@
 public partial class PRTimeScaleEnumerations : EnumerationProviderBase
 {
+    /// <inheritdoc />
+    public override Enumeration Default => FirstOption;
+
     public override bool IncludeInherited => true;
 
     public static readonly Enumeration Global   = new Enumeration(nameof(Global));

@@ -78,7 +78,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     /// <summary>
     /// Действие при уничтожение.
     /// </summary>
-    [SerializeField] protected EnumerationReference<EntityDisposeEnumerations> EntityDisposeAction;
+    [SerializeField] protected EnumerationReference<EntityDisposeEnumerations> EntityDisposeAction = new();
 
     /// <summary>
     /// Время жизни сущности.

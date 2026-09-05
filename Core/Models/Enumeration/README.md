@@ -44,6 +44,91 @@ Enumeration currency = currencyType.ToEnumeration();
 
 Если сохранённая строка больше не существует в provider, Inspector показывает `Missing: OldValue` и сохраняет её до явного выбора нового значения. Пустой provider отображается как обычное строковое поле и не вызывает ошибку Inspector.
 
+## Значение по умолчанию
+
+Незаполненная ссылка раньше отдавала `null`, хотя выпадающий список показывал первый
+пункт: в инспекторе значение выглядело выбранным, а в коде его не было — и расхождение
+никак себя не проявляло, пока что-нибудь не переставало считаться.
+
+Значение по умолчанию объявляет сам набор, и объявляет обязательно — свойство
+абстрактное, как и `IncludeInherited`. Чем заменить пустое значение, знает только набор,
+и общего правила тут нет: у одних это первый пункт, у других осмысленного умолчания
+не существует вовсе, и честный ответ — `null`.
+
+Обычный случай — первое объявленное значение, для него есть `FirstOption`:
+
+```csharp
+public partial class GizmoEnumerations : EnumerationProviderBase
+{
+    public override Enumeration Default => FirstOption;
+    public override bool IncludeInherited => true;
+}
+```
+
+Порядок значений задаётся атрибутом:
+
+```csharp
+public partial class LevelObjectGroups : ObjectStateGroupEnumerations
+{
+    [EnumerationOrder(-10)] public static readonly Enumeration Crystals = new(nameof(Crystals));
+    [EnumerationOrder(10)]  public static readonly Enumeration Doors = new(nameof(Doors));
+}
+```
+
+Чем меньше число, тем раньше значение в списке. Значения без атрибута считаются нулевыми
+и идут между отрицательными и положительными, сохраняя между собой порядок объявления —
+поэтому одно значение можно поднять наверх, не расставляя номера всем остальным.
+
+Атрибут работает и между уровнями иерархии: наследник может поставить своё значение
+впереди базовых.
+
+Без атрибута порядок прежний — как объявлено в коде: сначала базовый набор, внутри типа
+поля сортируются по `MetadataToken`, который растёт в порядке объявления. Само по себе
+это работает, но у `partial`-набора части лежат в разных файлах, и порядок между ними
+определяется тем, в каком порядке компилятор получил файлы, то есть их именами. Там,
+где порядок важен, его лучше задать атрибутом.
+
+Порядок влияет и на выпадающий список в инспекторе, и на `FirstOption`, а значит
+и на значение по умолчанию тех наборов, которые берут его оттуда.
+
+Когда умолчание не совпадает с первым пунктом, его называют явно:
+
+```csharp
+public partial class ObjectStateGroupEnumerations : EnumerationProviderBase
+{
+    public static readonly Enumeration Common = new(nameof(Common));
+
+    public override Enumeration Default => Common;
+    public override bool IncludeInherited => true;
+}
+```
+
+`EnumerationReference<T>.ToEnumeration()` при пустом значении возвращает `Default`,
+а инспектор показывает именно его, а не первый пункт списка.
+
+`Value` не бывает `null`: без выбранного значения отдаётся значение по умолчанию,
+а если набор его не объявил — пустая строка. Строку можно сравнивать и выводить,
+не проверяя каждый раз.
+
+Саму ссылку тоже стоит инициализировать в поле:
+
+```csharp
+[SerializeField] private EnumerationReference<ObjectStateGroupEnumerations> group = new();
+```
+
+Уже выбранное значение это не перезатрёт: инициализатор отрабатывает при создании
+объекта, а Unity накладывает сериализованные данные поверх. Смысл в другом — до первой
+сериализации, у объекта, созданного кодом, или сразу после `AddComponent`, поле бывает
+пустым, и обращение к нему давало бы `null` мимо значения по умолчанию.
+
+Там, где ссылка может не существовать вовсе, есть статические формы — они разбираются
+и с пустым значением, и с отсутствующей ссылкой:
+
+```csharp
+Enumeration group = EnumerationReference<ObjectStateGroupEnumerations>.ToEnumeration(field);
+string name = EnumerationReference<ObjectStateGroupEnumerations>.ToValue(field);
+```
+
 ## Получение значений
 
 ```csharp

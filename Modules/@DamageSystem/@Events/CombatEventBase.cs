@@ -16,7 +16,7 @@ public abstract class CombatEventBase : GameplayEventArgsBase
     /// <summary>
     /// Оружие атаки либо <c>null</c>, если урон нанесён без оружия.
     /// </summary>
-    public IWeapon? Weapon { get; protected set; }
+    public IWeapon Weapon { get; protected set; }
 
     /// <summary>
     /// Создаёт боевое событие с оружием.

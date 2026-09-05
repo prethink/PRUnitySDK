@@ -25,7 +25,7 @@ public partial class TriggerMonoWindow : PRMonoBehaviour
     /// </remarks>
     public const string ExecutorStage = "TriggerMonoWindowExecutor";
 
-    [SerializeField] private EnumerationReference<MonoWindowKeyEnumerations> windowKey;
+    [SerializeField] private EnumerationReference<MonoWindowKeyEnumerations> windowKey = new();
 
     protected override void PROnTriggerEnter(Collider other)
     {

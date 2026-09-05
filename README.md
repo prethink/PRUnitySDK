@@ -37,6 +37,7 @@
 | [`FlagsSystem`](Core/FlagsSystem/README.md) | Совместное управление состояниями объекта из нескольких источников |
 | [`Entity`](Core/@Entity/README.md) / Items / [`Wallet`](Core/Wallet/README.md) / [`Reward`](Core/Reward/README.md) | Базовые модели сущностей, предметов, ресурсов и наград |
 | [`GameRules`](Core/GameRules/README.md) | Глобальные ограничения характеристик поверх персональных модификаторов |
+| [`GameDataStorage`](Core/GameDataStorage/README.md) | Сохранение прогресса и [состояния объектов сцены](Core/GameDataStorage/ObjectState/README.md) между запусками |
 | State / Progression / Damage | Переиспользуемые игровые модули |
 | Quality / Localization / Logging | Качество предметов, переводы и структурированное логирование |
 
@@ -68,7 +69,7 @@ graph TD
     end
 
     subgraph DATA["Данные"]
-        Storage["GameDataStorage"]
+        Storage["GameDataStorage<br/>ProjectData, ObjectState"]
         Db["#Database<br/>PRSDKDatabase, PRSDKSettings"]
         Paths["ResourcePaths"]
     end
@@ -509,7 +510,9 @@ PRUnitySDK/
 - [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
 - [Локализация](Modules/Translate/README.md) — переводы в базе, ассетах и на префабах, сбор и обмен через CSV
+- [Utils](Core/%23Utils/README.md) — мелкие помощники: логирование, ресурсы, работа с материалами
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
+- [Состояние объекта сцены](Core/GameDataStorage/ObjectState/README.md) — `SaveableObjectState`: объект появляется таким, каким его оставили
 - [Extensions](Core/%23Extensions/README.md) — extension-методы общего назначения для Unity и типов SDK
 - [Quality](Core/Quality/README.md) — качество предметов: уровни редкости и их отображение
 - [Utils](Core/Utils/README.md) — вспомогательные классы: время, отложенные вызовы, имена

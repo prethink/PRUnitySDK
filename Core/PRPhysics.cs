@@ -38,13 +38,10 @@ public class PRPhysicsHost : PRMonoBehaviour
             float x = Mathf.Cos(angle);
             float z = Mathf.Sin(angle);
 
-            bool rayHit = false;
-
             var offset = new Vector3(x, 0, z) * radius;
             var rayOrigin = origin + offset;
             if (Raycast(rayOrigin, direction, out var hit))
             {
-                rayHit = true;
                 isHit = true;
                 hits.Add(hit);
                 Draw(rayOrigin, direction, hit.distance, true, Color.gray);
@@ -150,7 +147,7 @@ public class PRPhysicsHost : PRMonoBehaviour
     // === SPHERE CAST ===
     // =========================
 
-    public bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float distance, PRPhysicsOptions? options = null)
+    public bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float distance, PRPhysicsOptions options = null)
     {
         bool result = Physics.SphereCast(origin, radius, direction, out hit, distance);
         DrawSphereCast(origin, radius, direction, distance, result, options);
@@ -158,7 +155,7 @@ public class PRPhysicsHost : PRMonoBehaviour
         return result;
     }
 
-    public bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float distance, int layerMask, PRPhysicsOptions? options = null)
+    public bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float distance, int layerMask, PRPhysicsOptions options = null)
     {
         bool result = Physics.SphereCast(origin, radius, direction, out hit, distance, layerMask);
         DrawSphereCast(result ? hit.point : origin, radius, direction, distance, result, options);
@@ -166,14 +163,14 @@ public class PRPhysicsHost : PRMonoBehaviour
         return result;
     }
 
-    public bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float distance, int layerMask, QueryTriggerInteraction queryTriggerInteraction, PRPhysicsOptions? options = null)
+    public bool SphereCast(Vector3 origin, float radius, Vector3 direction, out RaycastHit hit, float distance, int layerMask, QueryTriggerInteraction queryTriggerInteraction, PRPhysicsOptions options = null)
     {
         bool result = Physics.SphereCast(origin, radius, direction, out hit, distance, layerMask, queryTriggerInteraction);
         DrawSphereCast(origin, radius, direction, distance, result, options);
         return result;
     }
 
-    private void DrawSphereCast(Vector3 origin, float radius, Vector3 direction, float distance, bool result, PRPhysicsOptions? options = null)
+    private void DrawSphereCast(Vector3 origin, float radius, Vector3 direction, float distance, bool result, PRPhysicsOptions options = null)
     {
         if (options != null && options.DebugEnabled)
         {

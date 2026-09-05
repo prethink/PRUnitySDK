@@ -17,6 +17,7 @@ public partial class PRDebugEditor
 
     private void DrawOverview()
     {
+        DrawTabDescription("Общее состояние SDK: инициализация, пауза, время, язык и сохранение. Сюда смотрят первым делом, когда непонятно, почему игра ведёт себя странно.");
         DrawSectionHeader("Runtime");
         DrawKeyValue("SDK initialized", PRUnitySDK.IsInitialized);
         DrawKeyValue("Editor paused", EditorApplication.isPaused);
@@ -388,6 +389,7 @@ public partial class PRDebugEditor
 
     private void DrawProblems()
     {
+        DrawTabDescription("Что проверки нашли не так: незаполненные ссылки, нарушенные ожидания, подозрительные настройки. Пусто — значит, известных проблем нет.");
         int errorCount = problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Error);
         int warningCount = problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Warning);
         int infoCount = problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Info);
@@ -426,6 +428,7 @@ public partial class PRDebugEditor
 
     private void DrawInitialization()
     {
+        DrawTabDescription("Порядок подъёма SDK по стадиям. Показывает, что уже поднялось, а что нет: почти все ошибки вида «менеджер недоступен» видны здесь.");
         DrawSectionHeader("PRUnitySDK initialization");
         DrawKeyValue("Tracked total", $"{initializationTotalMilliseconds:F2} ms");
 
@@ -440,6 +443,7 @@ public partial class PRDebugEditor
 
     private void DrawMonoWindows()
     {
+        DrawTabDescription("Зарегистрированные окна: какое видно, какое активно и какое сейчас наверху. Отсюда же окно можно открыть, не проходя игровой путь к нему.");
         DrawSectionHeader($"MonoWindows runtime ({monoWindows.Count})");
         DrawFixedRow(true, ("Implementation", 230), ("Key", 180), ("Visible", 55),
             ("Active", 50), ("Current", 55), ("Object", 60), ("Source", 60), ("Action", 65));
@@ -472,6 +476,7 @@ public partial class PRDebugEditor
 
     private void DrawGameRules()
     {
+        DrawTabDescription("Ограничения характеристик поверх персональных модификаторов. Видно итоговое правило и то, откуда оно пришло.");
         DrawSectionHeader($"Stat rules ({statRules.Count})");
 
         if (!GameRules.IsInitialized)
@@ -576,6 +581,7 @@ public partial class PRDebugEditor
 
     private void DrawBackgroundTasks()
     {
+        DrawTabDescription("Работа по расписанию вне сцены: что выполняется, когда сработает в следующий раз и не встало ли.");
         DrawSectionHeader($"Background tasks ({backgroundTasks.Count})");
         DrawFixedRow(true, ("Key", 150), ("Type", 170), ("Status", 105), ("Every", 60),
             ("Next", 60), ("Last", 60), ("Run", 45), ("Skip", 45), ("Err", 40),
@@ -773,6 +779,7 @@ public partial class PRDebugEditor
 
     private void DrawEvents()
     {
+        DrawTabDescription("Что проходит через EventBus. Частые покадровые события собраны отдельно, чтобы не вытесняли из истории всё остальное.");
         DrawSectionHeader($"EventBus monitor — {aggregatedEventRows.Count} aggregated, " +
                           $"latest {eventRows.Count}/{EventHistoryCapacity}");
         EditorGUILayout.BeginHorizontal();
@@ -881,6 +888,7 @@ public partial class PRDebugEditor
 
     private void DrawPlayers()
     {
+        DrawTabDescription("Игроки текущей сессии: живые и боты, их идентификаторы и состояние. Локальный игрок и управляемый им персонаж — разные объекты, здесь видно оба.");
         DrawSectionHeader("Players");
         DrawFixedRow(true, ("Player ID", 70), ("Entity ID", 70), ("Type", 65), ("Name", 140),
             ("Team", 90), ("Ready", 55), ("Points", 65), ("K/D", 55), ("Object", 60), ("Executor", 65));
@@ -918,6 +926,7 @@ public partial class PRDebugEditor
 
     private void DrawEntities()
     {
+        DrawTabDescription("Сущности: сколько их по типам, что на сцене, а что лежит в пуле.");
         // Оба списка длинные и нужны одновременно: тип выбирают в верхнем, а смотрят
         // на экземпляры в нижнем. Общая прокрутка увела бы один из них за край экрана,
         // поэтому у каждого своя, и высота делится поровну.
@@ -1081,6 +1090,7 @@ public partial class PRDebugEditor
 
     private void DrawPools()
     {
+        DrawTabDescription("Пулы объектов: сколько создано, сколько занято и сколько ждёт повторного использования. Растущее число созданных при стабильной нагрузке означает, что объекты в пул не возвращают.");
         DrawSectionHeader($"Object pools ({pools.Count})");
 
         using (new EditorGUI.DisabledScope(pools.Count == 0 || PRUnitySDK.Managers.ObjectPool == null))
@@ -1171,6 +1181,7 @@ public partial class PRDebugEditor
 
     private void DrawFlags()
     {
+        DrawTabDescription("Флаги, которыми состояние объекта задают из нескольких источников сразу. Видно итог и каждого, кто на него влияет.");
         DrawGlobalFlagControls();
         DrawSectionHeader("Flag resolvers");
         int count = 0;

@@ -26,7 +26,7 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
     [SerializeField] private Animator animator;
 
     [Tooltip("Слой масштаба времени. Пусто - используется глобальный масштаб.")]
-    [SerializeField] private EnumerationReference<PRTimeScaleEnumerations> timeScaleLayer;
+    [SerializeField] private EnumerationReference<PRTimeScaleEnumerations> timeScaleLayer = new();
 
     [Tooltip("Возвращать аниматору автоматическое обновление при выключении компонента. " +
         "Включайте для объектов из пула, чтобы аниматор не остался замороженным.")]

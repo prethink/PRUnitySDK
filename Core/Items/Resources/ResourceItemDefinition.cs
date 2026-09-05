@@ -3,7 +3,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Resource definition", menuName = "PRUnitySDK/Create/Definition/Resources")]
 public class ResourceItemDefinition : ResourceItemDefinitionBase
 {
-    [field: SerializeField] public EnumerationReference<ResourceEnumerations> CurrencyType { get; private set; }
+    [field: SerializeField] public EnumerationReference<ResourceEnumerations> CurrencyType { get; private set; } = new();
 
     public override string Id => CurrencyType.ToString();
 

@@ -11,6 +11,7 @@ using UnityEngine;
 public class EnumerationReferenceDrawer : PropertyDrawer
 {
     private static readonly Dictionary<Type, string[]> optionsCache = new();
+    private static readonly Dictionary<Type, string> defaultCache = new();
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
@@ -41,7 +42,11 @@ public class EnumerationReferenceDrawer : PropertyDrawer
         }
         else if (selectedIndex < 0)
         {
-            selectedIndex = 0;
+            // Значение не выбрано. Показываем то, что вернёт код, — значение
+            // по умолчанию набора. Иначе список показывал бы первый пункт, а из кода
+            // приходило бы другое, и расхождение было бы не видно.
+            int defaultIndex = Array.IndexOf(options, GetDefaultValue());
+            selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
         }
 
         EditorGUI.BeginProperty(position, label, property);
@@ -58,6 +63,29 @@ public class EnumerationReferenceDrawer : PropertyDrawer
         }
 
         EditorGUI.EndProperty();
+    }
+
+    /// <summary>
+    /// Значение по умолчанию у набора этой ссылки.
+    /// </summary>
+    private string GetDefaultValue()
+    {
+        Type referenceType = fieldInfo.FieldType;
+
+        if (!referenceType.IsGenericType)
+            return null;
+
+        Type providerType = referenceType.GetGenericArguments()[0];
+
+        if (defaultCache.TryGetValue(providerType, out string cached))
+            return cached;
+
+        string value = providerType.GetEnumerationProvider() is EnumerationProviderBase provider
+            ? provider.Default?.Value
+            : null;
+        defaultCache[providerType] = value;
+
+        return value;
     }
 
     private string[] GetOptions()
