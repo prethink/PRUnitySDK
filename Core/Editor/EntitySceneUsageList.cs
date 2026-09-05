@@ -198,7 +198,7 @@ public sealed class EntitySceneUsageList
     /// </summary>
     /// <remarks>
     /// Открытие заменяет то, с чем человек работает, поэтому сначала спрашивается
-    /// сохранение: несохранённые правки пропали бы молча.
+    /// сохранение: иначе несохранённые правки пропадут без предупреждения.
     /// </remarks>
     private static void OpenScene(string path)
     {

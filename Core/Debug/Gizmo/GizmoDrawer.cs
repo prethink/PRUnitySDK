@@ -5,16 +5,8 @@ using UnityEngine;
 
 public class GizmoDrawerHost : PRMonoBehaviourSingletonBase<GizmoDrawer>
 {
-    // ВНИМАНИЕ: не менял эту часть - без исходника PRMonoBehaviourSingletonBase<T>
-    // не могу подтвердить, что параметризация другим классом (GizmoDrawer, а не
-    // самим GizmoDrawerHost) действительно работает так, как задумано. Обычно
-    // синглтон-база параметризуется самим наследником (class Foo : Base<Foo>).
-    // Если AddGizmoArgs у вас вызывается как GizmoDrawerHost.Instance.AddGizmoArgs(...)
-    // и это компилируется и работает - оставляйте как есть. Если нет - вероятно,
-    // нужен один из вариантов:
-    //   public class GizmoDrawer : PRMonoBehaviourSingletonBase<GizmoDrawer> { ... }
-    // (и тогда GizmoDrawerHost не нужен вовсе), либо GizmoDrawerHost должен сам
-    // быть MonoBehaviour, хранящим статическую ссылку на GizmoDrawer.
+    // TODO: класс нигде не используется. GizmoDrawer берут через GetComponent
+    // (см. PRPhysics), а Instance у базы отдаёт GizmoDrawer, а не сам хост.
 }
 
 public class GizmoDrawer : MonoBehaviour
@@ -53,10 +45,8 @@ public class GizmoDrawer : MonoBehaviour
             if (args == null)
                 continue;
 
-            // Защита от KeyNotFoundException - OnDrawGizmos вызывается Unity очень
-            // часто (каждый repaint Scene view, не только раз в кадр в Play Mode),
-            // необработанное исключение здесь может засыпать консоль и в некоторых
-            // случаях обрывает отрисовку гизмо для ДРУГИХ объектов в этом же кадре.
+            // OnDrawGizmos вызывается на каждый repaint Scene view, поэтому исключение
+            // отсюда засыпает консоль и обрывает отрисовку гизмо других объектов.
             if (!drawActions.TryGetValue(args.GizmoType, out var draw))
             {
                 PRLog.WriteWarning(this, $"Нет обработчика отрисовки для GizmoType '{args.GizmoType}'.");
@@ -93,15 +83,8 @@ public class GizmoDrawer : MonoBehaviour
         if (args == null)
             return;
 
-        // ВАЖНО: Gizmos.DrawRay(Vector3 from, Vector3 direction) - второй параметр
-        // это ВЕКТОР НАПРАВЛЕНИЯ (длина = длина луча), а НЕ абсолютная конечная точка,
-        // в отличие от DrawLine(from, to). Раньше здесь передавался args.To напрямую
-        // как если бы это была точка назначения - луч рисовался в направлении от
-        // мировых координат (0,0,0) к To, а не от From к To, с неверной длиной.
-        //
-        // Если GizmoRayArgs.To у вас хранит АБСОЛЮТНУЮ точку - фикс ниже правильный.
-        // Если To уже хранит готовый вектор направления - верните `Gizmos.DrawRay(args.From, args.To)`
-        // как было, тогда бага не было и это ложное срабатывание с моей стороны.
+        // Второй параметр Gizmos.DrawRay — вектор направления, а не конечная точка,
+        // поэтому из абсолютного To вычитается From.
         if (args.Ray.direction == Vector3.zero)
             Gizmos.DrawRay(args.From, args.To - args.From);
         else

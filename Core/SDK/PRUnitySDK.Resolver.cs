@@ -1,12 +1,11 @@
-﻿using System;
+using System;
 
 public partial class PRUnitySDK
 {
     /// <summary>
-    /// 
+    /// Реестр сервисов SDK.
     /// </summary>
     private static IServiceResolver serviceResolver;
-
 
     /// <summary>
     /// Инициализация модуля.
@@ -25,37 +24,18 @@ public partial class PRUnitySDK
     }
 
     /// <summary>
-    /// 
+    /// Возвращает зарегистрированный сервис.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">Сервис не зарегистрирован.</exception>
     public static T ResolveService<T>() 
         where T : class
     {
-        //if(Settings.Project.ResolveStrategy == ResolveStrategy.PriorityResolver)
-        //{
-        //    if(TryResolve<T>(out var service))
-        //    {
-        //        return service;
-        //    }
-        //    else
-        //    {
-        //        throw new InvalidOperationException($"Service of type {typeof(T).FullName} is not registered in the resolver.");
-        //    }
-        //}
-        //else
-        //{
-        //    return serviceResolver.Resolve<T>();
-        //}
         return serviceResolver.Resolve<T>();
     }
 
     /// <summary>
-    /// 
+    /// Возвращает сервис, если он зарегистрирован.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="service"></param>
-    /// <returns></returns>
     public static bool TryResolve<T>(out T service) 
         where T : class
     {
@@ -63,10 +43,8 @@ public partial class PRUnitySDK
     }
 
     /// <summary>
-    /// 
+    /// Регистрирует сервис. Работает только со стандартным резолвером.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="service"></param>
     public static void RegisterService<T>(T service)
     {
         if (serviceResolver is not ServiceResolver defaultServiceResolver)

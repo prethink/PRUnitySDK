@@ -145,8 +145,8 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         bool isHidden = isHiddenInt == 1;
         PRLog.WriteDebug(this, $"WebGL Visibility Changed. Hidden: {isHidden}", new PRLogSettings() { LevelDebug = 5 });
 
-        // Скрытая страница - это и есть повод поставить паузу, поэтому isHidden передаётся
-        // как есть: SetFocusPaused принимает признак "нужна пауза", как и в OnApplicationFocus.
+        // Скрытая страница — повод поставить паузу, поэтому isHidden передаётся как есть:
+        // SetFocusPaused принимает признак «нужна пауза», как и в OnApplicationFocus.
         PRUnitySDK.PauseManager.SetFocusPaused(isHidden, this);
     }
 

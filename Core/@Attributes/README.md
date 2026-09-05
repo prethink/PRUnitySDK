@@ -127,7 +127,7 @@ Hook ищется через `GetMethods(BindingFlags.Instance | NonPublic | Pub
 ```csharp
 public abstract partial class CameraControllerBase
 {
-    // private здесь молча не вызовется: экземпляр — наследник, а не сам базовый класс
+    // private здесь не вызовется: экземпляр — наследник, а не сам базовый класс
     [MethodHook(SomeStage)]
     protected void OnSomeStage() { }
 }
@@ -325,8 +325,8 @@ OnPauseStateChanged
 Unity-метода, а не PR-хука: `"OnTriggerStay"`, не `"PROnTriggerStay"`.
 
 Физические callback'и объявлены в `PRMonoBehaviour` как `private`, поэтому `nameof`
-в наследнике для них недоступен (CS0122) — остаётся строковый литерал, а опечатка
-молча ничего не отключит. Для `OnPauseStateChanged` (он `public virtual`) `nameof`
+в наследнике для них недоступен (CS0122). Остаётся строковый литерал, и опечатка
+ничего не отключит. Для `OnPauseStateChanged` (он `public virtual`) `nameof`
 работает.
 
 ### Наследование заменяет список

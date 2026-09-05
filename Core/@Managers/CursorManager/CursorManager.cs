@@ -21,8 +21,8 @@ public class CursorManager : SingletonProviderBase<CursorManager>
     /// случай, когда в Editor отключён Domain Reload (Project Settings → Editor
     /// → Enter Play Mode Settings). Без этого сброса isLoadingState, activeRequests
     /// и defaultState пережили бы предыдущую Play-сессию как есть, и повторный
-    /// LoadCursorState во второй сессии молча ничего бы не сделал, потому что
-    /// isLoadingState остался бы true с прошлого раза.
+    /// LoadCursorState во второй сессии не сработал бы, потому что isLoadingState
+    /// остался бы true с прошлого раза.
     /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetOnLoad()

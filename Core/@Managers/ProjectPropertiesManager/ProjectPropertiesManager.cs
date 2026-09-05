@@ -2,24 +2,20 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Менеджер произвольных свойств проекта (long/float/DateTime/string/bool),
-/// хранимых по строковому имени в GameManager.GetProjectData().ProjectProperties.
-/// Каждый Set* сохраняет значение и по умолчанию сразу пишет данные на диск (save = true).
-/// <para>
-/// Ключ задаётся тремя способами: строкой, <see cref="Enumeration"/> (общий ключ) и
-/// <see cref="EnumerationType{T}"/> (ключ вместе с типом значения). У каждого Get*-метода
-/// есть необязательный параметр fallback - значение, которое вернётся, если свойство
-/// ещё ни разу не сохранялось; по умолчанию это default(T). Указывать fallback стоит
-/// там, где сохранённые 0/false/null нужно отличать от отсутствующего свойства.
-/// </para>
-/// <para>
-/// Параметр requiredNotify включает рассылку событий через <see cref="ProjectPropertyEvents"/>:
-/// типизированного (<see cref="ILongProjectPropertyChangedEvent"/> и аналоги - с предыдущим
-/// и новым значением) и общего (<see cref="IProjectPropertyChangedEvent"/> - только имя свойства).
-/// Уведомление отправляется только если значение действительно изменилось, и уже после
-/// сохранения. Удаление свойства рассылает <see cref="IProjectPropertyRemovedEvent"/>.
-/// </para>
+/// Свойства проекта (long/float/DateTime/string/bool) по строковому имени
+/// в <c>GameManager.GetProjectData().ProjectProperties</c>. Set* по умолчанию сразу
+/// пишет данные на диск.
 /// </summary>
+/// <remarks>
+/// Ключ задаётся строкой, <see cref="Enumeration"/> или <see cref="EnumerationType{T}"/>.
+/// Параметр fallback у Get* возвращается, если свойство ещё не сохранялось: указывайте
+/// его там, где сохранённые 0/false/null нужно отличать от отсутствующего свойства.
+/// <para>
+/// requiredNotify включает рассылку <see cref="ProjectPropertyEvents"/>. Событие уходит
+/// после сохранения и только при реальном изменении значения, удаление рассылает
+/// <see cref="IProjectPropertyRemovedEvent"/>.
+/// </para>
+/// </remarks>
 public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesManager>
 {
     #region Set
@@ -324,9 +320,8 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
             removed = boolMap.TryRemoveValue(propertyName, out _);
         else
         {
-            // Неизвестный тип - раньше метод просто ничего не делал и всё равно
-            // сохранял данные; теперь явно предупреждаем, чтобы ошибка в вызывающем
-            // коде (например, опечатка в typeof(...)) не терялась молча.
+            // Неизвестный тип: предупреждаем, чтобы опечатка в typeof(...) у вызывающего
+            // кода не прошла незамеченной.
             PRLog.WriteWarning(this, $"RemoveProperty: неподдерживаемый тип '{type}' для свойства '{propertyName}'.");
             return;
         }

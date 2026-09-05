@@ -35,8 +35,7 @@ public static class EnumerationExtensions
         typeHierarchy.Reverse();
         const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-        // Собираем всё вместе и сортируем один раз: EnumerationOrder должен работать
-        // и между уровнями иерархии, иначе наследник не смог бы поставить своё значение
+        // Сортируем всю иерархию разом: иначе наследник не поставит своё значение
         // впереди базовых.
         var entries = new List<(Enumeration Value, int Order, int Depth, int Token)>();
 
@@ -55,8 +54,8 @@ public static class EnumerationExtensions
             }
         }
 
-        // Без атрибута порядок прежний: сначала базовый набор, внутри типа — порядок
-        // объявления. MetadataToken растёт вместе с ним, а GetFields порядка не обещает.
+        // Без атрибута — порядок объявления: MetadataToken растёт вместе с ним,
+        // а GetFields порядка не обещает.
         entries.Sort((left, right) =>
         {
             int order = left.Order.CompareTo(right.Order);
@@ -91,20 +90,11 @@ public static class EnumerationExtensions
     }
 
     /// <summary>
-    /// Экземпляр провайдера набора; создаётся один раз на тип.
-    /// </summary>
-    /// <remarks>
-    /// Общий вход для всех, кому нужен провайдер: и списку значений, и значению
-    /// по умолчанию, и дроверу в инспекторе. Без него каждый заводил бы свой кеш
-    /// и свой <c>Activator.CreateInstance</c>.
-    /// </remarks>
-    /// <summary>
     /// Значение по умолчанию набора; считается один раз на тип.
     /// </summary>
     /// <remarks>
-    /// Кеш живёт здесь, рядом с остальными: он сбрасывается вместе с ними при запуске,
-    /// поэтому вход в Play Mode без перезагрузки домена не оставляет значение
-    /// от прошлой сессии.
+    /// Кеш общий с остальными и сбрасывается вместе с ними, поэтому Play Mode
+    /// без перезагрузки домена не оставляет значение от прошлой сессии.
     /// </remarks>
     public static Enumeration GetEnumerationDefault(this Type type)
     {
@@ -117,6 +107,9 @@ public static class EnumerationExtensions
         return value;
     }
 
+    /// <summary>
+    /// Экземпляр провайдера набора; создаётся один раз на тип.
+    /// </summary>
     public static IEnumerationProvider GetEnumerationProvider(this Type type)
     {
         if (type == null)

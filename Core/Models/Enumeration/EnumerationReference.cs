@@ -14,9 +14,8 @@ public class EnumerationReference<T> : EnumerationReference
 
     /// <inheritdoc />
     /// <remarks>
-    /// Незаполненная ссылка отдаёт значение по умолчанию своего набора, а не <c>null</c>.
-    /// Так поведение совпадает с тем, что видно в инспекторе: список и без выбора
-    /// показывает пункт, и логично, чтобы код получал именно его.
+    /// Незаполненная ссылка отдаёт значение по умолчанию набора, а не <c>null</c>:
+    /// в инспекторе пункт показан и без выбора, код должен получать его же.
     /// </remarks>
     public override Enumeration ToEnumeration()
     {
@@ -25,24 +24,20 @@ public class EnumerationReference<T> : EnumerationReference
 
     /// <inheritdoc />
     /// <remarks>
-    /// Никогда не <c>null</c>: без выбранного значения отдаётся значение по умолчанию
-    /// набора, а если его нет — пустая строка. Так строку можно сравнивать и выводить,
-    /// не проверяя её каждый раз.
+    /// Никогда не <c>null</c>: без выбора — значение по умолчанию, а без него — пустая строка.
     /// </remarks>
     public override string Value =>
         string.IsNullOrEmpty(base.Value) ? GetDefault()?.Value ?? string.Empty : base.Value;
 
     /// <summary>
-    /// Значение по умолчанию этого набора.
+    /// Значение по умолчанию этого набора; <c>null</c>, если набор его не объявил.
     /// </summary>
     /// <remarks>
-    /// <c>null</c>, если набор своего умолчания не объявил.
+    /// Кеш общий и лежит в <see cref="EnumerationExtensions"/>: статическое поле
+    /// обобщённого типа пережило бы вход в Play Mode без перезагрузки домена.
     /// </remarks>
     public static Enumeration GetDefault()
     {
-        // Кеш общий и лежит в EnumerationExtensions: там он сбрасывается при запуске
-        // вместе с остальными, а статическое поле у обобщённого типа пережило бы вход
-        // в Play Mode без перезагрузки домена.
         return typeof(T).GetEnumerationDefault();
     }
 
@@ -50,10 +45,8 @@ public class EnumerationReference<T> : EnumerationReference
     /// Значение ссылки, которой может не быть вовсе.
     /// </summary>
     /// <remarks>
-    /// Поле сериализуемого класса Unity заполняет сама, но до первой сериализации —
-    /// у объекта, созданного кодом, или сразу после <c>AddComponent</c> — оно
-    /// действительно бывает пустым. Эта форма закрывает и такой случай, поэтому
-    /// вызывающему не нужен ни <c>?.</c>, ни проверка на <c>null</c>.
+    /// У объекта, созданного кодом, и сразу после <c>AddComponent</c> поле бывает пустым,
+    /// поэтому вызывающему не нужны ни <c>?.</c>, ни проверка на <c>null</c>.
     /// </remarks>
     public static Enumeration ToEnumeration(EnumerationReference<T> reference)
     {
@@ -87,6 +80,13 @@ public class EnumerationReference<T> : EnumerationReference
     }
 }
 
+/// <summary>
+/// Базовая часть ссылки: хранит выбранную строку.
+/// </summary>
+/// <remarks>
+/// В полях используйте <see cref="EnumerationReference{T}"/>: здесь нет набора, а значит
+/// ни выпадающего списка, ни значения по умолчанию.
+/// </remarks>
 [Serializable]
 public class EnumerationReference
 {

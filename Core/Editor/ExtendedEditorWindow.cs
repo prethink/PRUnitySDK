@@ -37,6 +37,19 @@ public abstract class ExtendedEditorWindow : EditorWindow
         menuBuilder?.AddSeparator(path);
     }
 
+    /// <summary>
+    /// Рисует строку тулбара.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// CreateHorizontalToolBar(() => ToolbarMenu("File", () =>
+    /// {
+    ///     MenuItem("New", () => Debug.Log("New"));
+    ///     MenuSeparator();
+    ///     MenuItem("Exit", Close);
+    /// }));
+    /// </code>
+    /// </example>
     protected void CreateHorizontalToolBar(Action action)
     {
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
@@ -45,24 +58,6 @@ public abstract class ExtendedEditorWindow : EditorWindow
         EditorGUILayout.EndHorizontal();
     }
 
-    //CreateHorizontalToolBar(() =>
-    //    {
-    //    ToolbarMenu("File", () =>
-    //    {
-    //        MenuItem("New", () => Debug.Log("New"));
-    //        MenuItem("Save", () => { });
-    //        MenuSeparator();
-    //        MenuItem("Exit", Close);
-    //    });
-
-    //    ToolbarMenu("FileX", () =>
-    //    {
-    //        MenuItem("New", () => Debug.Log("New"));
-    //        MenuItem("Save", () => { });
-    //        MenuSeparator();
-    //        MenuItem("Exit", Close);
-    //    });
-    //});
 
     protected void DrawRowSpliter(int padding, Color color, int lineSize = 1)
     {

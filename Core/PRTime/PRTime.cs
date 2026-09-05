@@ -27,6 +27,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     /// </summary>
     public float RealDeltaTime { get; private set; }
 
+    /// <summary>
     /// Время прошедшее с последнего кадра, с учётом global layer time scale.
     /// </summary>
     public float GameDeltaTime { get; private set; }

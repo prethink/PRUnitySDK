@@ -119,10 +119,6 @@ public static class GameRules
     /// <summary>
     /// Возвращает правила указанной характеристики в порядке применения.
     /// </summary>
-    /// <remarks>
-    /// Нужно, чтобы можно было ответить на вопрос «почему значение обрезано»:
-    /// правила меняют число молча, и без такого списка причину видно только в коде.
-    /// </remarks>
     public static IReadOnlyList<StatRuleBase> GetRules(Enumeration stat)
     {
         if (stat == null || !statRules.TryGetValue(stat, out List<StatRuleBase> rules))

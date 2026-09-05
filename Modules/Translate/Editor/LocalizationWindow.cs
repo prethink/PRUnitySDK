@@ -224,8 +224,8 @@ public partial class LocalizationWindow : ExtendedEditorWindow
             indices.Add(index);
         }
 
-        // Без группы — в конце: это ещё не разобранные подписи, и держать их первыми
-        // значило бы прятать за ними разобранное.
+        // Без группы — в конце: это ещё не разобранные подписи, первыми они закрывали бы
+        // собой разобранные.
         IEnumerable<KeyValuePair<string, List<int>>> ordered = groups
             .OrderBy(pair => string.IsNullOrEmpty(pair.Key) ? 1 : 0)
             .ThenBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase);

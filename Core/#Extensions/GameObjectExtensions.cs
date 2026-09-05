@@ -9,16 +9,13 @@ public static class GameObjectExtensions
     /// </summary>
     public static T GetOrAddComponent<T>(this GameObject go) where T : Component
     {
-        //Attempt to find the component on the object
         T newComponent = go.GetComponent<T>();
 
-        //If it doesn't exist, create a new one
         if (newComponent == null)
         {
             newComponent = go.AddComponent<T>();
         }
 
-        //Return the component
         return newComponent;
     }
 
@@ -59,7 +56,6 @@ public static class GameObjectExtensions
         return new List<T>(gameObject.GetComponentsInChildren<T>(includeInactive));
     }
 
-
     /// <summary>
     /// Ищет компонент в потомках родителя; при отсутствии родителя использует сам объект.
     /// </summary>
@@ -99,20 +95,6 @@ public static class GameObjectExtensions
         }
     }
 
-
-    ///// <summary>
-    ///// </summary>
-    //public static bool TryGetComponentRecursive<T>(this GameObject obj, out T component)
-    //    where T : Component
-    //{
-    //    component = obj.GetComponent<T>();
-
-    //    if (component == null)
-    //        obj.TryFindComponentInObjectHierarchy(obj.transform, out component);
-
-    //    return component != null;
-    //}
-
     /// <summary>
     /// Возвращает компонент, найденный на объекте либо в иерархии от её корня.
     /// </summary>
@@ -132,19 +114,6 @@ public static class GameObjectExtensions
     {
         return obj.TryFindComponentInObjectChildren<T>(obj.transform.root, out component);
     }
-
-    ///// <summary>
-    ///// </summary>
-    //public static bool TryFindComponentInObjectHierarchy<T>(this GameObject obj, Transform root, out T component)
-    //    where T : Component
-    //{
-    //    component = obj.GetComponent<T>();
-
-    //    if (component == null)
-    //        component = root.GetComponentInChildren<T>();
-
-    //    return component != null;
-    //}
 
     /// <summary>
     /// Проверяет объект, затем ищет компонент среди потомков указанного корня.
@@ -167,38 +136,4 @@ public static class GameObjectExtensions
         return component != null;
     }
 
-
-    ///// <summary>
-    ///// </summary>
-    //public static void SetParentSystem(this GameObject obj)
-    //{
-    //    var systemTransform = InstanceUtils.GetOrCreateEmptySystemObject();
-    //    obj.transform.SetParent(systemTransform.transform);
-    //}
-
-    ///// <summary>
-    ///// </summary>
-    //public static bool TryFindComponentFromRoot<T>(this GameObject obj, out T component)
-    //    where T : Component
-    //{
-    //    component = obj.GetComponent<T>();
-
-    //    var root = obj.transform.root;
-    //    if (root != null && component == null)
-    //        component = root.GetComponentInChildren<T>();
-
-    //    return component != null;
-    //}
-
-    ///// <summary>
-    ///// </summary>
-    //public static bool TryFindComponentsInObjectHierarchy<T>(this GameObject obj, out List<T> components)
-    //    where T : Component
-    //{
-    //    components = new List<T>();
-    //    components.AddRange(obj.GetComponents<T>());
-    //    components.AddRange(obj.GetComponentsInParent<T>());
-    //    components.AddRange(obj.GetComponentsInChildren<T>());
-    //    return components.Count > 0;
-    //}
 }

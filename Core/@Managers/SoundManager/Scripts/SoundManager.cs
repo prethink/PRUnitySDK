@@ -233,10 +233,11 @@ public class SoundManager : MonoBehaviour
         return newSource;
     }
 
-    /// <summary>Долгоживущий (петлевой) эффект с собственным идентификатором -
-    /// например, гул двигателя, который нужно явно остановить через RemoveEffect.
-    /// Отдельный механизм от пула одноразовых - этому источнику нельзя внезапно
-    /// подменяться другим звуком, пока RemoveEffect не вызван явно.</summary>
+    /// <summary>
+    /// Долгоживущий петлевой эффект с идентификатором, например гул двигателя.
+    /// Останавливается только через <c>RemoveEffect</c>: подменить его другим звуком,
+    /// как в пуле одноразовых, нельзя.
+    /// </summary>
     public void PlayEffectWithLifetime(Guid guid, AudioClip sound)
     {
         if (sound == null || loopingEffectSources.ContainsKey(guid))

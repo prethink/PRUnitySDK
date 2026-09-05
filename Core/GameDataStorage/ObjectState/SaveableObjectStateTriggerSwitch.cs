@@ -83,8 +83,8 @@ public class SaveableObjectStateTriggerSwitch : SaveableObjectStateSwitchBase
     /// Этому вошедшему разрешено переключать.
     /// </summary>
     /// <remarks>
-    /// Отдельный метод, чтобы проект мог сузить правило — например до одного игрока
-    /// или до владельца площадки, — не переписывая обработку триггера.
+    /// Переопределите, чтобы сузить правило: например, до одного игрока или владельца
+    /// площадки.
     /// </remarks>
     protected virtual bool CanActivate(Collider other)
     {
@@ -100,8 +100,8 @@ public class SaveableObjectStateTriggerSwitch : SaveableObjectStateSwitchBase
     /// Предупреждает, если коллайдер не отмечен триггером.
     /// </summary>
     /// <remarks>
-    /// Без галки площадка молча превращается в препятствие: ошибок нет, объект
-    /// не появляется, а искать причину приходится в коде.
+    /// Без галки площадка становится препятствием: ошибок нет, объект не появляется,
+    /// а причину приходится искать в коде.
     /// </remarks>
     private void WarnIfNotTrigger()
     {

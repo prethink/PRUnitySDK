@@ -16,8 +16,7 @@ public class EnumerationReferenceDrawer : PropertyDrawer
     /// Тот же список, но с пометкой у значения по умолчанию.
     /// </summary>
     /// <remarks>
-    /// Отдельный массив, собранный один раз на тип: подписывать пункт на лету значило бы
-    /// копировать список на каждую перерисовку инспектора.
+    /// Считается один раз на тип: подпись на лету копировала бы список каждую отрисовку.
     /// </remarks>
     private static readonly Dictionary<Type, string[]> defaultMarkedCache = new();
 
@@ -53,14 +52,12 @@ public class EnumerationReferenceDrawer : PropertyDrawer
         }
         else if (selectedIndex < 0)
         {
-            // Значение не выбрано. Показываем то, что вернёт код, — значение
-            // по умолчанию набора. Иначе список показывал бы первый пункт, а из кода
-            // приходило бы другое, и расхождение было бы не видно.
+            // Значение не выбрано: показываем то, что вернёт код, — значение
+            // по умолчанию набора.
             int defaultIndex = Array.IndexOf(options, GetDefaultValue());
             selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
 
-            // И сразу говорим, что это подставилось само: иначе не отличить
-            // от осознанного выбора того же значения.
+            // Помечаем значение, которое подставилось само.
             displayOptions = GetDefaultMarkedOptions(options, selectedIndex);
             isDefault = true;
         }
@@ -93,8 +90,7 @@ public class EnumerationReferenceDrawer : PropertyDrawer
     /// Приглушённый тон для значения, которое подставилось само.
     /// </summary>
     /// <remarks>
-    /// Не красный и не жёлтый: это не ошибка и не предупреждение, а сообщение о том,
-    /// что поле не трогали. Кричать о нём в каждом инспекторе не нужно.
+    /// Не красный и не жёлтый: незаполненное поле — не ошибка и не предупреждение.
     /// </remarks>
     private static readonly Color DefaultTint = new Color(0.75f, 0.85f, 1f);
 
