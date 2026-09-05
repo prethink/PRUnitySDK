@@ -80,7 +80,11 @@ public class ColorizeModel : PRMonoBehaviour
             if (target == null)
                 continue;
 
-            for (int index = 0; index < target.sharedMaterials.Length; index++)
+            // Материалы берём один раз: свойство отдаёт новую копию массива
+            // на каждое обращение, а в условии цикла оно вычислялось бы каждый шаг.
+            int materialCount = target.sharedMaterials.Length;
+
+            for (int index = 0; index < materialCount; index++)
                 SetColor(target, index, value);
         }
     }

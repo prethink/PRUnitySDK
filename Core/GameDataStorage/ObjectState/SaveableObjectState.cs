@@ -148,10 +148,13 @@ public class SaveableObjectState : PRMonoBehaviour
 
     protected override void InitializationComponents()
     {
-        base.InitializationComponents();
-
+        // Ключ считаем до базового вызова: он поднимает RegisterEventsOnCreated,
+        // а тот ставит состояние на учёт в трекере — с пустым ключом оно не попало бы
+        // в поиск по ключу.
         resolvedId = ResolveId();
         RegisterId();
+
+        base.InitializationComponents();
 
         // Значения по умолчанию ставим сразу, не дожидаясь данных: иначе объект
         // успел бы мелькнуть в том виде, в каком лежит на сцене.
@@ -250,6 +253,10 @@ public class SaveableObjectState : PRMonoBehaviour
         // запуске окажется другим.
         if (Application.isPlaying)
             return;
+
+        // Правки в инспекторе во время игры должны быть видны: группа считается один раз
+        // и без сброса показывала бы прежнее значение до перезапуска сцены.
+        resolvedGroup = null;
 
         if (target == null)
             target = gameObject;
@@ -468,9 +475,13 @@ public class SaveableObjectState : PRMonoBehaviour
             return;
         }
 
-        // Отдельный TrySaveData не нужен: SaveProjectData сам обходит все объекты
-        // на учёте, включая этот, и спрашивать состояние дважды незачем.
-        if (save && GameManager.HasInstance)
+        // Снимок делаем сами и до запроса на запись: SaveProjectData уходит в StartSaveTask,
+        // а тот молча выходит по кулдауну, вообще не собирая состояние. Без своего вызова
+        // изменение не попало бы даже в данные в памяти и потерялось бы при закрытии игры.
+        if (!TrySaveData() || !save)
+            return;
+
+        if (GameManager.HasInstance)
             GameManager.Instance.SaveProjectData();
     }
 

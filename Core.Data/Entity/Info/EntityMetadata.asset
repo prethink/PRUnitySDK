@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 458d204aaf02aba4d866ede060b4a7d7, type: 3}
   m_Name: EntityMetadata
   m_EditorClassIdentifier: 
+  <EntityType>k__BackingField:
+    value: Common
   <Name>k__BackingField: Entity
   <Icon>k__BackingField: {fileID: 21300000, guid: eb97cc8fe0512ec41b2af6a7d6636ece,
     type: 3}
-  localizations:
-    values:
-    - "\u0421\u0443\u0449\u043D\u043E\u0441\u0442\u044C"
-    - Entity
-    - "Varl\u0131k"
+  <Quality>k__BackingField: 0
+  <localization>k__BackingField:
+    _serializedList: []

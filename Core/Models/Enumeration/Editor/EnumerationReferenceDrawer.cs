@@ -11,7 +11,17 @@ using UnityEngine;
 public class EnumerationReferenceDrawer : PropertyDrawer
 {
     private static readonly Dictionary<Type, string[]> optionsCache = new();
-    private static readonly Dictionary<Type, string> defaultCache = new();
+
+    /// <summary>
+    /// Тот же список, но с пометкой у значения по умолчанию.
+    /// </summary>
+    /// <remarks>
+    /// Отдельный массив, собранный один раз на тип: подписывать пункт на лету значило бы
+    /// копировать список на каждую перерисовку инспектора.
+    /// </remarks>
+    private static readonly Dictionary<Type, string[]> defaultMarkedCache = new();
+
+    private const string DefaultSuffix = " (по умолчанию)";
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
@@ -34,6 +44,7 @@ public class EnumerationReferenceDrawer : PropertyDrawer
         var hasMissingValue = !string.IsNullOrEmpty(currentValue) && currentIndex < 0;
         var displayOptions = options;
         var selectedIndex = currentIndex;
+        var isDefault = false;
 
         if (hasMissingValue)
         {
@@ -47,12 +58,25 @@ public class EnumerationReferenceDrawer : PropertyDrawer
             // приходило бы другое, и расхождение было бы не видно.
             int defaultIndex = Array.IndexOf(options, GetDefaultValue());
             selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
+
+            // И сразу говорим, что это подставилось само: иначе не отличить
+            // от осознанного выбора того же значения.
+            displayOptions = GetDefaultMarkedOptions(options, selectedIndex);
+            isDefault = true;
         }
 
         EditorGUI.BeginProperty(position, label, property);
         EditorGUI.BeginChangeCheck();
         EditorGUI.showMixedValue = valueProperty.hasMultipleDifferentValues;
+
+        Color previousColor = GUI.color;
+
+        if (isDefault)
+            GUI.color = DefaultTint;
+
         var newIndex = EditorGUI.Popup(position, label.text, selectedIndex, displayOptions);
+
+        GUI.color = previousColor;
         EditorGUI.showMixedValue = false;
 
         if (EditorGUI.EndChangeCheck())
@@ -66,39 +90,67 @@ public class EnumerationReferenceDrawer : PropertyDrawer
     }
 
     /// <summary>
+    /// Приглушённый тон для значения, которое подставилось само.
+    /// </summary>
+    /// <remarks>
+    /// Не красный и не жёлтый: это не ошибка и не предупреждение, а сообщение о том,
+    /// что поле не трогали. Кричать о нём в каждом инспекторе не нужно.
+    /// </remarks>
+    private static readonly Color DefaultTint = new Color(0.75f, 0.85f, 1f);
+
+    /// <summary>
+    /// Список с подписью у значения по умолчанию.
+    /// </summary>
+    private string[] GetDefaultMarkedOptions(string[] options, int defaultIndex)
+    {
+        Type providerType = GetProviderType();
+
+        if (providerType != null && defaultMarkedCache.TryGetValue(providerType, out string[] cached)
+            && cached.Length == options.Length)
+        {
+            return cached;
+        }
+
+        string[] marked = new string[options.Length];
+        Array.Copy(options, marked, options.Length);
+
+        if (defaultIndex >= 0 && defaultIndex < marked.Length)
+            marked[defaultIndex] += DefaultSuffix;
+
+        if (providerType != null)
+            defaultMarkedCache[providerType] = marked;
+
+        return marked;
+    }
+
+    /// <summary>
     /// Значение по умолчанию у набора этой ссылки.
     /// </summary>
     private string GetDefaultValue()
     {
+        return GetProviderType()?.GetEnumerationDefault()?.Value;
+    }
+
+    /// <summary>
+    /// Набор, к которому привязано это поле.
+    /// </summary>
+    private Type GetProviderType()
+    {
         Type referenceType = fieldInfo.FieldType;
 
-        if (!referenceType.IsGenericType)
-            return null;
-
-        Type providerType = referenceType.GetGenericArguments()[0];
-
-        if (defaultCache.TryGetValue(providerType, out string cached))
-            return cached;
-
-        string value = providerType.GetEnumerationProvider() is EnumerationProviderBase provider
-            ? provider.Default?.Value
-            : null;
-        defaultCache[providerType] = value;
-
-        return value;
+        return referenceType.IsGenericType ? referenceType.GetGenericArguments()[0] : null;
     }
 
     private string[] GetOptions()
     {
-        var referenceType = fieldInfo.FieldType;
-        if (!referenceType.IsGenericType)
+        var providerType = GetProviderType();
+        if (providerType == null)
             return Array.Empty<string>();
 
-        var providerType = referenceType.GetGenericArguments()[0];
         if (optionsCache.TryGetValue(providerType, out var cached))
             return cached;
 
-        var provider = Activator.CreateInstance(providerType) as IEnumerationProvider;
+        var provider = providerType.GetEnumerationProvider();
         var options = provider?.GetOptions()
             ?.Where(option => option != null)
             .Select(option => option.Value)

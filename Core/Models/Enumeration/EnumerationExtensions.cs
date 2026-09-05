@@ -10,6 +10,7 @@ public static class EnumerationExtensions
 {
     private static readonly Dictionary<(Type, bool), Enumeration[]> enumerationCache = new();
     private static readonly Dictionary<Type, IEnumerationProvider> providerCache = new();
+    private static readonly Dictionary<Type, Enumeration> defaultCache = new();
 
     /// <summary>
     /// Возвращает объявленные в типе публичные статические поля Enumeration.
@@ -97,6 +98,25 @@ public static class EnumerationExtensions
     /// по умолчанию, и дроверу в инспекторе. Без него каждый заводил бы свой кеш
     /// и свой <c>Activator.CreateInstance</c>.
     /// </remarks>
+    /// <summary>
+    /// Значение по умолчанию набора; считается один раз на тип.
+    /// </summary>
+    /// <remarks>
+    /// Кеш живёт здесь, рядом с остальными: он сбрасывается вместе с ними при запуске,
+    /// поэтому вход в Play Mode без перезагрузки домена не оставляет значение
+    /// от прошлой сессии.
+    /// </remarks>
+    public static Enumeration GetEnumerationDefault(this Type type)
+    {
+        if (defaultCache.TryGetValue(type, out Enumeration value))
+            return value;
+
+        value = type.GetEnumerationProvider() is EnumerationProviderBase provider ? provider.Default : null;
+        defaultCache.Add(type, value);
+
+        return value;
+    }
+
     public static IEnumerationProvider GetEnumerationProvider(this Type type)
     {
         if (type == null)
@@ -140,5 +160,6 @@ public static class EnumerationExtensions
     {
         enumerationCache.Clear();
         providerCache.Clear();
+        defaultCache.Clear();
     }
 }

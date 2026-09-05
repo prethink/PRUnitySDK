@@ -40,15 +40,11 @@ public class EnumerationReference<T> : EnumerationReference
     /// </remarks>
     public static Enumeration GetDefault()
     {
-        // Значение по умолчанию у набора одно на весь запуск, а спрашивают его при каждом
-        // обращении к незаполненной ссылке — считаем один раз. Без кеша каждый такой
-        // доступ создавал бы провайдер и заново обходил его поля рефлексией.
-        return defaultValue ??= typeof(T).GetEnumerationProvider() is EnumerationProviderBase provider
-            ? provider.Default
-            : null;
+        // Кеш общий и лежит в EnumerationExtensions: там он сбрасывается при запуске
+        // вместе с остальными, а статическое поле у обобщённого типа пережило бы вход
+        // в Play Mode без перезагрузки домена.
+        return typeof(T).GetEnumerationDefault();
     }
-
-    private static Enumeration defaultValue;
 
     /// <summary>
     /// Значение ссылки, которой может не быть вовсе.

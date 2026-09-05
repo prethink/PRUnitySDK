@@ -110,6 +110,19 @@ public class LocalizationObserver : PRMonoBehaviour
         Refresh();
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Снимаем подписку с сигнала: объект могли уничтожить до готовности SDK, и тогда
+    /// делегат держал бы уничтоженный компонент до конца сессии.
+    /// </remarks>
+    protected override void UnRegisterEventsOnDestroy()
+    {
+        if (isReadyRequested && PRUnitySDK.ReadySignal != null)
+            PRUnitySDK.ReadySignal.UnSubscribe(OnSDKReady);
+
+        base.UnRegisterEventsOnDestroy();
+    }
+
     protected override void OnDisable()
     {
         base.OnDisable();
