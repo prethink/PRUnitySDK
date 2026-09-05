@@ -119,16 +119,6 @@ public enum MethodHookStage
     Start,
 
     /// <summary>
-    /// В момент биндинга зависимостей Zenject (InstallBindings).
-    /// </summary>
-    InstallBindings,
-
-    /// <summary>
-    /// После того как Zenject завершил конструкторный Inject ([Inject]).
-    /// </summary>
-    ZenjectConstruct, // исправлено с "ZInjectConstruct"
-
-    /// <summary>
     /// После полной загрузки всех систем проекта, когда проект готов к работе.
     /// </summary>
     ReadyProject,

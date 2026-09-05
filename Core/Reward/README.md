@@ -119,7 +119,7 @@ public void OnRewardGranted(RewardGrantContext context)
 
 ## Фильтрация коллекций
 
-`RewardCollectionExtensions` заменяет старый Zenject-era `RewardUtils`:
+`RewardCollectionExtensions` заменяет прежний `RewardUtils`:
 
 ```csharp
 IEnumerable<RewardResource> resources = rewards.GetOnlyResources();

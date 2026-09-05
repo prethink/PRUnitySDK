@@ -173,8 +173,7 @@ graph TD
 
 Некоторые интеграции имеют дополнительные зависимости:
 
-- `YG2.Integration` требует YG2 Plugin и соответствующие модули YG2;
-- `Core.Zenject.Integration~` требует Zenject и по умолчанию исключён из компиляции Unity.
+- `YG2.Integration` требует YG2 Plugin и соответствующие модули YG2.
 
 ## Установка
 
@@ -456,8 +455,7 @@ PRUnitySDK/
 ├── Examples/                   # Примеры использования
 ├── Resources/                  # Runtime-ресурсы фреймворка (данные игры — в PRUnityData)
 ├── Utils/                      # Дополнительные утилиты
-├── YG2.Integration/            # Интеграция с YG2
-└── Core.Zenject.Integration~/  # Отключённая по умолчанию интеграция с Zenject
+└── YG2.Integration/            # Интеграция с YG2
 ```
 
 ## Дополнительная документация
@@ -528,7 +526,6 @@ PRUnitySDK/
 - [HitBox](Modules/HitBox/README.md) — связь физических коллайдеров с `DamageSystem`
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
 - [YG2 Integration](YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
-- [Zenject Integration](Core.Zenject.Integration~/README.md) — отключена по умолчанию; папку включают удалением `~` из имени
 
 ## Текущие ограничения
 

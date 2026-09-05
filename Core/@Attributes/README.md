@@ -162,7 +162,6 @@ public abstract partial class CameraControllerBase
 - инициализация: `PreInitialize`, `Initializing`, `PostInitialize`, `ReadyProject`;
 - SDK: `SDK`, `RegisterFactories`, `Converter`, `DefaultSettings`;
 - операции: `PreOperation`, `PostOperation`, `CreateCollections`, `Custom`;
-- интеграции: `InstallBindings`, `ZenjectConstruct`;
 - прочие стадии: `Construct`, `Awake`, `Start`, `Pause`.
 
 Наличие значения в enum не означает автоматический вызов. Стадия выполняется только там,
@@ -448,5 +447,4 @@ public class ItemDefinition
 - [PRMonoBehaviour](../PRMonoBehaviour/README.md)
 - [PauseSystem](../PauseSystem/README.md)
 - [YG2 Integration](../../YG2.Integration/README.md)
-- [Zenject Integration](../../Core.Zenject.Integration~/README.md)
 
