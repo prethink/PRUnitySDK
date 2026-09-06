@@ -4,6 +4,8 @@ using UnityEngine.UI;
 public abstract partial class MonoWindowBase : PRMonoBehaviour
 {
     private bool ownsLogicPause;
+    private bool ownsCursor;
+    private bool isShown;
 
     /// <summary>
     /// Уникальный ключ окна в <see cref="MonoWindowsTracker"/>.
@@ -25,7 +27,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     /// <summary>
     /// Показывает, активно ли сейчас содержимое окна.
     /// </summary>
-    public bool IsVisible => GetContainer().activeSelf;
+    public bool IsVisible => isActiveAndEnabled && GetContainer().activeInHierarchy;
 
     /// <summary>
     /// Отображает окно с указанными параметрами.
@@ -37,11 +39,8 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
             windowContainer.SetActive(true);
 
         windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
-        PRUnitySDK.Trackers.MonoWindows.NotifyWindowShown(this);
-
-        AcquireLogicPause();
-
-        CursorManager.Instance.Show(this);
+        isShown = true;
+        AcquireWindowState();
     }
 
     /// <summary>
@@ -54,8 +53,9 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     {
         GameObject windowContainer = GetContainer();
         bool wasVisible = windowContainer.activeSelf;
+        isShown = false;
 
-        if (!wasVisible && !ownsLogicPause)
+        if (!wasVisible && !ownsLogicPause && !ownsCursor)
             return;
 
         if (wasVisible && !isForceClose)
@@ -64,13 +64,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         if (wasVisible)
             windowContainer.SetActive(false);
 
-        ReleaseLogicPause();
-        PRUnitySDK.Trackers.MonoWindows.NotifyWindowHidden(this);
-
-        CursorManager.Instance.Release(this);
-
-        if (!PRUnitySDK.Trackers.MonoWindows.HasOpenWindows)
-            GameManager.Instance.LoadingUserCursorState();
+        ReleaseWindowState();
     }
 
     protected GameObject GetContainer()
@@ -89,11 +83,15 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     {
         exitButton?.onClick.AddListener(ExitButtonAction);
         base.OnEnable();
+
+        if (isShown)
+            AcquireWindowState();
     }
 
     protected override void OnDisable()
     {
         exitButton?.onClick.RemoveListener(ExitButtonAction);
+        ReleaseWindowState();
         base.OnDisable();
     }
 
@@ -105,7 +103,8 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     protected override void UnRegisterEventsOnDestroy()
     {
-        ReleaseLogicPause();
+        isShown = false;
+        ReleaseWindowState();
         PRUnitySDK.Trackers.MonoWindows.Unregister(this);
         base.UnRegisterEventsOnDestroy();
     }
@@ -125,6 +124,33 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         }
 
         AcquireLogicPause();
+    }
+
+    private void AcquireWindowState()
+    {
+        if (!IsVisible)
+            return;
+
+        PRUnitySDK.Trackers.MonoWindows.NotifyWindowShown(this);
+        AcquireLogicPause();
+        ownsCursor = true;
+        CursorManager.Instance.Show(this);
+    }
+
+    private void ReleaseWindowState()
+    {
+        ReleaseLogicPause();
+        PRUnitySDK.Trackers.MonoWindows.NotifyWindowHidden(this);
+
+        if (!ownsCursor)
+            return;
+
+        ownsCursor = false;
+        CursorManager.Instance.Release(this);
+
+        if (!PRUnitySDK.Trackers.MonoWindows.HasOpenWindows && GameManager.HasInstance
+            && GameManager.Instance.ReadySignal.IsReady)
+            GameManager.Instance.LoadingUserCursorState();
     }
 
     private void AcquireLogicPause()

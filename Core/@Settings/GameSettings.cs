@@ -86,6 +86,7 @@ public class GameSettings : ICloneable
             Sensitivity = Sensitivity,
             MusicVolume = MusicVolume,
             EffectVolume = EffectVolume,
+            UIVolume = UIVolume,
             MasterVolume = MasterVolume,
             InvertHorizontalInput = InvertHorizontalInput,
             InvertVerticalInput = InvertVerticalInput,
@@ -112,6 +113,7 @@ public class GameSettings : ICloneable
         MasterVolume = PRUnitySDK.Settings.Default.MasterVolume;
         OffSound = PRUnitySDK.Settings.Default.OffSound;
         OffMusic = PRUnitySDK.Settings.Default.OffMusic;
+        OffEffect = PRUnitySDK.Settings.Default.OffEffect;
         OverrideButtons = new Dictionary<string, string>();
         IsShowCursor = PRUnitySDK.Settings.Default.IsShowCursor;
     }

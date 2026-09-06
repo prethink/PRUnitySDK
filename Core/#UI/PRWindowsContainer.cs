@@ -1,5 +1,6 @@
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public partial class PRWindowsContainer 
@@ -47,8 +48,32 @@ public partial class PRWindowsContainer
 
         var graphicRaycaster = SharedCanvas.AddComponent<GraphicRaycaster>();
 
+        EnsureEventSystem();
+
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize Windows complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();
+    }
+
+    /// <summary>
+    /// Заводит систему UI-событий, если её нет ни в одной загруженной сцене.
+    /// </summary>
+    /// <remarks>
+    /// Canvas и GraphicRaycaster сами по себе бесполезны: без EventSystem UI не получает
+    /// ни одного указательного события, и окна выглядят рабочими, но не реагируют на клики.
+    /// Раз canvas окон создаёт SDK, он же отвечает и за EventSystem — иначе окна работают
+    /// только в тех сценах, где систему событий не забыли положить руками (в dev-сценах
+    /// её обычно нет).
+    /// </remarks>
+    private void EnsureEventSystem()
+    {
+        if (EventSystem.current != null || Object.FindObjectOfType<EventSystem>() != null)
+            return;
+
+        PRContainer eventSystem = MonoBehaviourUtils.CreateContainer("Windows.EventSystem");
+        eventSystem.AddComponent<EventSystem>();
+        eventSystem.AddComponent<StandaloneInputModule>();
+
+        PRLog.WriteDebug(typeof(PRUnitySDK), "EventSystem не найден в сцене - создан SDK.");
     }
 
     private void InitializeNotifiers()

@@ -258,7 +258,11 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
 
             yield return null;
         }
-        SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSave, ignoreSaveCooldown);
+        SetOrUpdateResource(resourceType, targetValue, requiredNotify, false);
+
+        // Последний кадр уже мог записать targetValue без сохранения.
+        if (requiredSave)
+            GameManager.Instance.SaveProjectData(ignoreSaveCooldown);
     }
 
     /// <summary>

@@ -16,6 +16,8 @@ public partial class PRUnitySDK
     /// </summary>
     public readonly static HashSet<Type> InitializedTypes = new();
 
+    private static readonly HashSet<Type> initializingTypes = new();
+
     /// <summary>
     /// Диагностические данные успешно завершённых элементов инициализации SDK в порядке их запуска.
     /// </summary>
@@ -167,19 +169,24 @@ public partial class PRUnitySDK
     private static void InitializeTrackedType<T>(Func<T> initializeAction, string name,
         PRInitializationCategory category)
     {
-        var result = InitializedTypes.Add(typeof(T));
-
-        if (!result)
+        if (InitializedTypes.Contains(typeof(T)) || !initializingTypes.Add(typeof(T)))
         {
-            PRLog.WriteWarning(typeof(PRUnitySDK), $"Type {typeof(T)} already initialized.");
-            initializeAction?.Invoke();
+            PRLog.WriteWarning(typeof(PRUnitySDK), $"Type {typeof(T)} is already initialized or initializing.");
             return;
         }
 
-        string displayName = string.IsNullOrEmpty(name) ? typeof(T).Name : name;
-        double durationMilliseconds = TrackInitialization<T>(displayName, category,
-            () => (object)(initializeAction == null ? default : initializeAction.Invoke()));
-        PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{displayName}</color> in {durationMilliseconds:F2} ms.");
+        try
+        {
+            string displayName = string.IsNullOrEmpty(name) ? typeof(T).Name : name;
+            double durationMilliseconds = TrackInitialization<T>(displayName, category,
+                () => (object)(initializeAction == null ? default : initializeAction.Invoke()));
+            InitializedTypes.Add(typeof(T));
+            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{displayName}</color> in {durationMilliseconds:F2} ms.");
+        }
+        finally
+        {
+            initializingTypes.Remove(typeof(T));
+        }
     }
 
     /// <summary>

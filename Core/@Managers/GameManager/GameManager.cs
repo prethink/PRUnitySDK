@@ -194,7 +194,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
         gameSettings.OffEffect = defaultSettings.OffEffect;
         gameSettings.OffSound = defaultSettings.OffSound;
-        gameSettings.UIVolume = defaultSettings.UIVolume;
+        gameSettings.OffMusic = defaultSettings.OffMusic;
 
         gameSettings.IsShowCursor = defaultSettings.IsShowCursor;
 

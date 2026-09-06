@@ -32,11 +32,6 @@ public sealed class InventoryWindow : MonoWindowBase
 {
     public override Enumeration Key => MonoWindowKeyEnumerationProvider.Inventory;
 
-    public override void InitTranslate()
-    {
-        // Обновление локализованных элементов конкретного окна.
-    }
-
     public override void Show(MonoWindowArgs args)
     {
         base.Show(args);
@@ -59,7 +54,7 @@ public sealed class InventoryWindow : MonoWindowBase
 - `Set Pause When Open` — необходимость поставить игровую логику на паузу.
 
 Обработчик кнопки добавляется системой без удаления обработчиков, назначенных другими компонентами или prefab.
-`InitTranslate()` вызывается при каждом открытии окна перед обновлением layout.
+Текст привязывается через `SetLocalization`; `LocalizationObserver` обновляет его при смене языка.
 
 ## Фабрика
 
@@ -174,3 +169,8 @@ EventBus.RaiseEvent<IMonoWindowEvents>(events =>
 Ядро окон не содержит: каждое окно живёт в своём модуле проектного слоя и подключается
 partial-файлом `PRWindowsContainer`. Здесь описан только контракт `MonoWindowBase`,
 трекер окон и параметры показа.
+
+Отключение компонента окна, его GameObject или родителя освобождает принадлежащие
+окну паузу и запрос курсора без сохранения. При повторном включении ранее показанное
+окно восстанавливает эти запросы, если его контейнер виден. Уничтожение также освобождает
+состояние. `IsVisible` учитывает активность всей иерархии и самого компонента.
