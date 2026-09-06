@@ -16,7 +16,10 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 
     public DamageData GetDamageData()
     {
-        var currentData = damageProvider.GetDamageData().Clone();
+        var currentData = damageProvider.GetDamageData()?.Clone();
+
+        if (currentData == null)
+            return null;
 
         if (currentData.IsAppliedModifier(this))
             return currentData;
@@ -37,9 +40,9 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 
     #region IDamageModifier
 
-    private static readonly Guid Identifier = new Guid("6c02086d-f022-49d3-9e84-9678e40e3e88");
+    private readonly Guid identifier;
 
-    public Guid ModifierIdentifier => Identifier;
+    public Guid ModifierIdentifier => identifier;
 
     public string ModifierName => nameof(MultiplyDamageDecorator);
 
@@ -47,9 +50,12 @@ public class MultiplyDamageDecorator : IDamageProvider, IDamageModifier
 
     #region Конструкторы
 
-    public MultiplyDamageDecorator(IDamageProvider damageProvider, float multiply, bool addCriticalFlag = true)
+    public MultiplyDamageDecorator(IDamageProvider damageProvider, float multiply, bool addCriticalFlag = true, Guid? modifierIdentifier = null)
     {
-        this.damageProvider = damageProvider;
+        this.damageProvider = damageProvider ?? throw new ArgumentNullException(nameof(damageProvider));
+        if (multiply < 0f || float.IsNaN(multiply) || float.IsInfinity(multiply))
+            throw new ArgumentOutOfRangeException(nameof(multiply));
+        identifier = modifierIdentifier ?? Guid.NewGuid();
         this.multiply = multiply;
         this.addCriticalFlag = addCriticalFlag;
     }

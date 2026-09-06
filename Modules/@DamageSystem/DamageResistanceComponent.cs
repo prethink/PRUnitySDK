@@ -80,10 +80,12 @@ public sealed class DamageResistanceComponent : PRMonoBehaviour, IHookListener<D
         // Сравнение идёт через ReferenceEquals: Victim объявлен как IEntity, и оператор !=
         // выбирается для интерфейса, минуя перегрузку UnityEngine.Object. Компилятор
         // предупреждал об этом (CS0252), а поведение зависело бы от статического типа.
-        if (!ReferenceEquals(eventArgs.Victim, entity) || eventArgs.DamageProvider == null)
+        if (eventArgs.Result == HookResult.Supercede || !ReferenceEquals(eventArgs.Victim, entity) || eventArgs.DamageProvider == null)
             return;
 
-        var data = eventArgs.DamageProvider.GetDamageData().Clone();
+        var data = eventArgs.DamageProvider.GetDamageData()?.Clone();
+        if (data == null)
+            return;
         if (data.RawDamage == 0f && data.Damage != 0f)
             data.RawDamage = data.Damage;
 

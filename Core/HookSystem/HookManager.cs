@@ -35,6 +35,16 @@ public class HookManager : SingletonProviderBase<HookManager>
     public TArgs Publish<TArgs>(TArgs hookArgs, Action<TArgs> originalAction)
         where TArgs : HookEventArgsBase
     {
+        return Publish(hookArgs, originalAction, null);
+    }
+
+    /// <summary>
+    /// Вызывает обработчик отмены вместо оригинального действия, если pre-хук установил Supercede.
+    /// Оба обработчика завершаются до post-хуков; поведение существующих перегрузок сохраняется.
+    /// </summary>
+    public TArgs Publish<TArgs>(TArgs hookArgs, Action<TArgs> originalAction, Action<TArgs> suppressedAction)
+        where TArgs : HookEventArgsBase
+    {
         if (hookArgs == null)
             throw new ArgumentNullException(nameof(hookArgs));
 
@@ -43,6 +53,8 @@ public class HookManager : SingletonProviderBase<HookManager>
 
         if (hookArgs.ShouldCallOriginal)
             originalAction?.Invoke(hookArgs);
+        else
+            suppressedAction?.Invoke(hookArgs);
 
         if (!hookArgs.IsPropagationStopped)
             InvokePostHooks(pipeline.PostHooks, hookArgs);

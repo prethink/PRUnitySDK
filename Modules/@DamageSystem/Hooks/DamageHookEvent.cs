@@ -6,6 +6,9 @@ public class DamageHookEvent : HookEventArgsBase
     public IEntity Victim { get; }
     public IWeapon Weapon { get; }
 
+    /// <summary>Зафиксированный результат, доступный post-хукам, в том числе при отклонении урона.</summary>
+    public DamageOutcome Outcome { get; internal set; }
+
     public DamageHookEvent(IEntity attacker, IWeapon weapon, IEntity victim, IDamageProvider damageProvider, DamageResult damageResult)
     {
         this.Attacker = attacker;

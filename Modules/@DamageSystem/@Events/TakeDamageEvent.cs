@@ -3,10 +3,16 @@
 /// </summary>
 public class TakeDamageEvent : CombatEventBase
 {
+    private DamageData damage;
+
     /// <summary>
     /// Снимок итоговых данных применённого урона.
     /// </summary>
-    public DamageData Damage { get; protected set; }
+    public DamageData Damage
+    {
+        get => damage?.Clone();
+        protected set => damage = value?.Clone();
+    }
 
     /// <summary>
     /// Подробный результат обработки; может отсутствовать у устаревших конструкторов.
@@ -21,7 +27,7 @@ public class TakeDamageEvent : CombatEventBase
     /// <summary>
     /// Количество фактически снятого здоровья.
     /// </summary>
-    public float AppliedDamage => Outcome?.AppliedDamage ?? Damage?.Damage ?? 0f;
+    public float AppliedDamage => Outcome?.AppliedDamage ?? damage?.Damage ?? 0f;
 
     /// <summary>
     /// Создаёт событие из данных урона с указанием оружия.
@@ -33,7 +39,7 @@ public class TakeDamageEvent : CombatEventBase
     public TakeDamageEvent(IEntity attacker, IEntity victim, DamageData damage, IWeapon weapon)
         : base(attacker, victim, weapon)
     {
-        Damage = damage?.Clone();
+        Damage = damage;
     }
 
     /// <summary>
@@ -45,7 +51,7 @@ public class TakeDamageEvent : CombatEventBase
     public TakeDamageEvent(IEntity attacker, IEntity victim, DamageData damage)
         : base(attacker, victim, null)
     {
-        Damage = damage?.Clone();
+        Damage = damage;
     }
 
     /// <summary>

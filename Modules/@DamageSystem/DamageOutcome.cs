@@ -5,6 +5,8 @@ using UnityEngine;
 /// </summary>
 public sealed class DamageOutcome
 {
+    private readonly DamageData damageData;
+
     /// <summary>
     /// Результат обработки попытки нанесения урона.
     /// </summary>
@@ -13,7 +15,7 @@ public sealed class DamageOutcome
     /// <summary>
     /// Снимок итоговых данных урона после всех модификаторов.
     /// </summary>
-    public DamageData DamageData { get; }
+    public DamageData DamageData => damageData?.Clone();
 
     /// <summary>
     /// Здоровье жертвы перед обработкой урона.
@@ -33,13 +35,13 @@ public sealed class DamageOutcome
     /// <summary>
     /// Количество урона, поглощённое сопротивлениями и защитными обработчиками.
     /// </summary>
-    public float AbsorbedDamage => DamageData?.AbsorbedDamage ?? 0f;
+    public float AbsorbedDamage => damageData?.AbsorbedDamage ?? 0f;
 
     /// <summary>
     /// Содержит ли итоговый тип урона флаг <see cref="DamageType.Critical"/>.
     /// </summary>
-    public bool WasCritical => DamageData != null &&
-                               (DamageData.DamageType & DamageType.Critical) != 0;
+    public bool WasCritical => damageData != null &&
+                               (damageData.DamageType & DamageType.Critical) != 0;
 
     /// <summary>
     /// Мировая точка попадания, если она была передана.
@@ -69,7 +71,7 @@ public sealed class DamageOutcome
         Collider hitCollider = null)
     {
         Result = result;
-        DamageData = damageData?.Clone();
+        this.damageData = damageData?.Clone();
         HealthBefore = healthBefore;
         HealthAfter = healthAfter;
         HitPoint = hitPoint;

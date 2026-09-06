@@ -116,62 +116,132 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         if (PRUnitySDK.PauseManager.IsLogicPaused)
             return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
-        var damageHook = HookManager.Instance.Publish(new DamageHookEvent(attacker, weapon, this.Entity, damageProvider, DamageResult.NotHandled));
-        if (!IsAlive() || damageHook.DamageResult == DamageResult.Miss)
+        var damageHook = new DamageHookEvent(attacker, weapon, Entity, damageProvider, DamageResult.NotHandled);
+        var killed = false;
+        void Reject(DamageHookEvent context, DamageResult result)
         {
-            InternalMissedDamage();
-            return FailAttempt(DamageResult.Miss, attacker, weapon, hitPoint, hitCollider);
+            if (result == DamageResult.Miss)
+                InternalMissedDamage();
+            else if (result == DamageResult.Blocked)
+                InternalBlockDamage();
+
+            context.DamageResult = result;
+            context.Outcome = new DamageOutcome(result, null, Health, Health, hitPoint, hitCollider);
+            LastDamageOutcome = context.Outcome;
         }
 
-        if (IsBlockDamage || !CanTakeDamage() || damageHook.DamageResult == DamageResult.Blocked)
+        try
         {
-            InternalBlockDamage();
-            return FailAttempt(DamageResult.Blocked, attacker, weapon, hitPoint, hitCollider);
+            HookManager.Instance.Publish(damageHook, context =>
+            {
+                if (!IsAlive() || context.DamageResult == DamageResult.Miss)
+                {
+                    Reject(context, DamageResult.Miss);
+                    return;
+                }
+
+                if (IsBlockDamage || !CanTakeDamage() || context.DamageResult == DamageResult.Blocked)
+                {
+                    Reject(context, DamageResult.Blocked);
+                    return;
+                }
+
+                var data = context.DamageProvider?.GetDamageData()?.Clone();
+                if (data == null || !IsFiniteNonNegative(data.Damage) ||
+                    !IsFiniteNonNegative(data.RawDamage) || !IsFiniteNonNegative(data.AbsorbedDamage))
+                {
+                    Reject(context, DamageResult.NotHandled);
+                    return;
+                }
+
+                if (data.RawDamage == 0f && data.Damage != 0f)
+                    data.RawDamage = data.Damage;
+
+                InternalTakeDamage();
+                var before = Health;
+                Health = Mathf.Clamp(before - data.Damage, 0f, MaxHealth);
+                var result = Health <= 0f ? DamageResult.Killed : DamageResult.Damaged;
+                context.DamageResult = result;
+                context.Outcome = new DamageOutcome(result, data, before, Health, hitPoint, hitCollider);
+                LastDamageOutcome = context.Outcome;
+
+                if (result == DamageResult.Killed)
+                {
+                    // Фиксируем смерть до уведомления подписчиков, сохраняя возможность переопределить IsKill.
+                    var previousDeferral = deferDeathNotifications;
+                    deferDeathNotifications = true;
+                    try { killed = IsKill(attacker); }
+                    finally { deferDeathNotifications = previousDeferral; }
+                }
+            }, context =>
+            {
+                // Сам по себе Supercede отменяет урон: здоровье не должно измениться.
+                var result = context.DamageResult == DamageResult.Miss
+                    ? DamageResult.Miss
+                    : context.DamageResult == DamageResult.Blocked
+                        ? DamageResult.Blocked
+                        : DamageResult.NotHandled;
+                Reject(context, result);
+            });
+        }
+        catch (Exception exception)
+        {
+            // Ошибка хука не должна отменять уведомления об уже применённом уроне.
+            Debug.LogException(exception, this);
         }
 
-        if (damageHook.DamageProvider == null)
+        var outcome = damageHook.Outcome;
+        if (outcome == null)
             return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
-        InternalTakeDamage();
-        var startHealth = Health;
-        var currentDamage = damageHook.DamageProvider.GetDamageData();
-        if (currentDamage == null)
-            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
-
-        if (currentDamage.RawDamage == 0f && currentDamage.Damage != 0f)
-            currentDamage.RawDamage = currentDamage.Damage;
-
-        var nextHealth = Mathf.Clamp(Health - currentDamage.Damage, 0, MaxHealth);
-        Health = nextHealth;
-        var result = nextHealth <= 0 ? DamageResult.Killed : DamageResult.Damaged;
-        var outcome = new DamageOutcome(
-            result,
-            currentDamage,
-            startHealth,
-            nextHealth,
-            hitPoint,
-            hitCollider);
-
-        OnHealthChange?.Invoke(new HealthChangedEventArgsBase(
-            startHealth,
-            nextHealth,
-            MaxHealth,
-            outcome));
-
-        if (nextHealth <= 0)
+        if (outcome.Result == DamageResult.Damaged || outcome.Result == DamageResult.Killed)
         {
-            IsKill(attacker);
+            NotifyListeners(OnHealthChange, listener => listener(new HealthChangedEventArgsBase(
+                outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
+
+            if (killed)
+                NotifyDeath(attacker);
+
+            CompleteDamageAttempt(outcome);
+            CombatEvents.RaiseOnTakeDamage(new TakeDamageEvent(attacker, Entity, outcome, weapon));
+            if (outcome.Result == DamageResult.Killed)
+                CombatEvents.RaiseOnKill(new EntityKillEventArgs(attacker, Entity, outcome, weapon));
         }
-
-        CompleteDamageAttempt(outcome);
-        CombatEvents.RaiseOnTakeDamage(new TakeDamageEvent(attacker, this.Entity, outcome, weapon));
-
-        if (result == DamageResult.Killed)
-            CombatEvents.RaiseOnKill(new EntityKillEventArgs(attacker, this.Entity, outcome, weapon));
+        else
+        {
+            CompleteDamageAttempt(outcome);
+        }
 
         RaiseDamageProcessed(attacker, weapon, outcome);
+        return outcome.Result;
+    }
 
-        return result;
+    private bool deferDeathNotifications;
+
+    private static bool IsFiniteNonNegative(float value)
+    {
+        return value >= 0f && !float.IsInfinity(value) && !float.IsNaN(value);
+    }
+
+    private void NotifyListeners<T>(T listeners, Action<T> invoke) where T : Delegate
+    {
+        if (listeners == null)
+            return;
+
+        foreach (T listener in listeners.GetInvocationList())
+        {
+            try { invoke(listener); }
+            catch (Exception exception) { Debug.LogException(exception, this); }
+        }
+    }
+
+    private void NotifyDeath(IEntity killer)
+    {
+        try { DeathHandle(); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+        try { ChangeVisibleEntity(); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+        OnEntityDeadInvoke(killer);
     }
 
     protected virtual void InternalTakeDamage()
@@ -196,7 +266,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     protected virtual void CompleteDamageAttempt(DamageOutcome outcome)
     {
         LastDamageOutcome = outcome;
-        OnDamageProcessed?.Invoke(LastDamageOutcome);
+        NotifyListeners(OnDamageProcessed, listener => listener(outcome));
     }
 
     private void RaiseDamageProcessed(IEntity attacker, IWeapon weapon, DamageOutcome outcome)
@@ -238,7 +308,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     {
         var result = ProcessDamage(attacker, weapon, damage, point, null);
         if (result != DamageResult.Miss)
-            OnHitVector?.Invoke(attacker, point, damage, result);
+            NotifyListeners(OnHitVector, listener => listener(attacker, point, damage, result));
 
         return result;
     }
@@ -247,7 +317,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     {
         var result = ProcessDamage(attacker, weapon, damage, null, collider);
         if (result != DamageResult.Miss)
-            OnHitCollider?.Invoke(attacker, collider, damage, result);
+            NotifyListeners(OnHitCollider, listener => listener(attacker, collider, damage, result));
 
         return result;
     }
@@ -268,7 +338,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// <exception cref="ArgumentException"></exception>
     public virtual void InitHealth()
     {
-        if (MaxHealth <= 0)
+        if (!IsFiniteNonNegative(MaxHealth) || MaxHealth <= 0)
             throw new ArgumentException("Максимальное здоровье должно быть больше 0!");
 
         Health = MaxHealth;
@@ -286,11 +356,10 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
             return false;
 
         isAlive = false;
-        DeathHandle();
         Health = 0;
         Killer = killer;
-        ChangeVisibleEntity();
-        OnEntityDeadInvoke(killer);
+        if (!deferDeathNotifications)
+            NotifyDeath(killer);
         return true;
     }
 
@@ -394,7 +463,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         Killer = null;
         Health = Mathf.Clamp(health, 1, MaxHealth);
         ChangeVisibleEntity();
-        OnRevive?.Invoke(reviver);
+        NotifyListeners(OnRevive, listener => listener(reviver));
     }
 
     /// <summary>
@@ -426,7 +495,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// <param name="attacker">Атакующий.</param>
     protected virtual void OnEntityDeadInvoke(IEntity attacker)
     {
-        OnEntityDead?.Invoke(attacker, this.Entity);
+        NotifyListeners(OnEntityDead, listener => listener(attacker, Entity));
     }
 
     /// <summary>
@@ -435,11 +504,14 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// <param name="position">Позиция.</param>
     protected virtual void OnSpawnInvoke(Vector3 position)
     {
-        OnSpawn?.Invoke(position);
+        NotifyListeners(OnSpawn, listener => listener(position));
     }
 
     public bool AddHealth(int health)
     {
+        if (health <= 0)
+            return false;
+
         if (!IsAlive())
             return false;
 
@@ -449,7 +521,8 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         var previousHealth = Health;
         var updateHealth = Math.Clamp(Health + health, Health, MaxHealth);
         Health = updateHealth;
-        OnHealthChange?.Invoke(new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth));
+        var change = new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth);
+        NotifyListeners(OnHealthChange, listener => listener(change));
         return true;
     }
 
@@ -469,7 +542,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 
     public virtual void InvokeOnScaleChanged()
     {
-        OnScaleChanged?.Invoke(transform);
+        NotifyListeners(OnScaleChanged, listener => listener(transform));
     }
 
     public void SetOverrideIsAlive(Func<bool> overrideFunc)
