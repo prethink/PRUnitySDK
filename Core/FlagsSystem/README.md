@@ -15,7 +15,6 @@ public sealed class PlayerFlags : FlagsProviderBase
 {
     public static readonly Enumeration CanMove = new(nameof(CanMove));
     public static readonly Enumeration CanJump = new(nameof(CanJump));
-    public static readonly Enumeration IsRagdoll = new(nameof(IsRagdoll));
 
     public override bool IncludeInherited => true;
 }
@@ -235,6 +234,50 @@ protected override void OnDisable()
 }
 ```
 
+### Флаги сцены в инспекторе
+
+`SceneFlags` — компонент для объекта на сцене. В инспекторе он держит список пар
+«флаг — решение», а свой resolver регистрирует в `FlagsManager` на время, пока объект
+включён:
+
+```text
+Флаг        Решение
+UseGravity  Deny
+CanJump     Allow
+```
+
+Решение выбирается из тех же трёх значений, что и в `FlagResolver`:
+
+- `Allow` — разрешающее влияние сцены;
+- `Deny` — запрещающее, оно перебивает `Allow` любого другого слоя;
+- `Unspecified` — строка есть, но сцена по этому флагу не голосует. Это значение стоит
+  у только что добавленной строки.
+
+Строк может быть сколько угодно, как и самих компонентов: у каждого свой resolver, и все
+они участвуют в общем `Resolve`. Один и тот же флаг в двух строках одного компонента
+оставит только последнюю: source у них общий.
+
+Компонент ждёт готовности SDK, поэтому его можно включать раньше, чем поднимутся менеджеры.
+При выключении объекта влияния снимаются, а resolver уходит из `FlagsManager` — сцена
+не оставляет флагов после себя.
+
+Для своего набора флагов нужен свой наследник: обобщённый компонент на объект не вешается.
+
+```csharp
+public class PlayerSceneFlags : SceneFlagsBase<PlayerFlags>
+{
+}
+```
+
+Влияния из кода добавляйте в `Resolver` со своим source — тогда `ApplyFlags()` их не тронет:
+
+```csharp
+sceneFlags.Resolver.Deny(GameFlagsEnumerations.UseGravity, this);
+```
+
+`ApplyFlags()` переносит список инспектора в resolver заново и снимает влияния компонента,
+которых в списке больше нет. В Play Mode он вызывается сам при правке в инспекторе.
+
 ### Тестирование global-флагов в PRUnitySDK Debug
 
 В Play Mode откройте вкладку `Flags` и блок `Global test flags`. В нём можно выбрать любой
@@ -257,6 +300,7 @@ protected override void OnDisable()
 
 - Используйте стабильный object как `source`, обычно `this` компонента.
 - Не используйте строки и новые временные objects как source: потом их сложно удалить.
+- Разрешения (`Can*`) и состояния (`Is*`) держите в разных провайдерах: у них разный default и разный смысл `Deny`.
 - Для возможностей с default `true` обычно нужен `Deny` (`CanMove`, `CanJump`).
 - Для состояний с default `false` обычно нужен `Allow` (`IsRagdoll`, `IsSwimming`).
 - Не используйте `HasAny() + Get()` для агрегации. Используйте `Resolve()`.
