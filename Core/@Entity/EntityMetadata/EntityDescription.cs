@@ -59,7 +59,7 @@ public class EntityDescription
         if (Override != null)
             return Override.Quality;
 
-        return Base.Quality;
+        return Base != null ? Base.Quality : QualityType.Common;
     }
 
     public void SetNameOverride(Func<string> func) => NameOverride = func;

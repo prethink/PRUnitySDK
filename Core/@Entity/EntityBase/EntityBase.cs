@@ -97,7 +97,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
     public abstract string Name { get; }
 
-    public virtual bool OnScene => this.EntityGameObject.activeSelf;
+    public virtual bool OnScene => this.EntityGameObject.activeInHierarchy;
 
     public virtual GameObject EntityGameObject => entityGameObject != null ? entityGameObject : gameObject;
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
@@ -121,6 +121,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
 
         if(options.FullDestroy)
         {
+            OnDestroyPool(true);
             Destroy(this.gameObject);
             return;
         }

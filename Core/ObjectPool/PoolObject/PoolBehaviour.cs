@@ -25,6 +25,9 @@ public class PoolBehaviour
 
     public virtual void OnDestroyPool(bool fullDestroy = false)
     {
+        if (poolObject == null)
+            return;
+
         if (!fullDestroy)
             InPool = true;
 

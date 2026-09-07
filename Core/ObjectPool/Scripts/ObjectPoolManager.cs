@@ -333,13 +333,13 @@ public class ObjectPoolManager : MonoBehaviour
         t.localRotation = rotation;
         t.localScale = scaler;
 
+        objectOnScene.Add(poolObject);
         poolObject.InstanceGameObject.SetActive(true);
         poolObject.InstanceGameObject.GetComponent<IPoolable>()?.InitializationPoolObject();
 
-        if (poolObject.Lifetime > TimeSpan.Zero)
+        if (objectOnScene.Contains(poolObject) && poolObject.Lifetime > TimeSpan.Zero)
             StartCoroutineTracking(poolObject.Guid, BackToQueue(poolObject));
 
-        objectOnScene.Add(poolObject);
         return poolObject;
     }
 
@@ -580,8 +580,8 @@ public class ObjectPoolManager : MonoBehaviour
     private IEnumerator BackToQueue(PoolObject poolObject)
     {
         yield return new WaitForSeconds((float)poolObject.Lifetime.TotalSeconds);
-        OnObjectDestroy(poolObject);
         runningCoroutines.Remove(poolObject.Guid);
+        OnObjectDestroy(poolObject);
     }
 
     /// <summary>
@@ -594,16 +594,32 @@ public class ObjectPoolManager : MonoBehaviour
         if (poolObject == null)
             return;
 
-        if (poolObject.InstanceGameObject != null)
-            poolObject.InstanceGameObject.SetActive(false);
+        StopRunningCoroutine(poolObject.Guid);
 
+        bool wasOnScene = objectOnScene.Remove(poolObject);
         var key = new PoolKey(poolObject.Type, poolObject.Category);
         if (pools.TryGetValue(key, out var entry))
         {
+            if (fullDestroy)
+            {
+                int count = entry.Queue.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    var queued = entry.Queue.Dequeue();
+                    if (!ReferenceEquals(queued, poolObject))
+                        entry.Queue.Enqueue(queued);
+                }
+            }
+            else if (!wasOnScene)
+            {
+                return;
+            }
+
+            if (poolObject.InstanceGameObject != null)
+                poolObject.InstanceGameObject.SetActive(false);
+
             if (!fullDestroy)
                 entry.Queue.Enqueue(poolObject);
-
-            objectOnScene.Remove(poolObject);
         }
         else
         {

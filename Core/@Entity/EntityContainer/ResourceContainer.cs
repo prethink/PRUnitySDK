@@ -12,7 +12,7 @@ public class ResourceContainer : ContainerEntityBase<ResourceItemDefinition>
 
     public override bool CanPickup(PlayerBase player)
     {
-        return (canPickup & PlayerBase.ConvertToFlag(player.PlayerType)) != 0;
+        return base.CanPickup(player) && containerItem != null;
     }
 
     protected override bool TryPickup(PlayerBase player)
