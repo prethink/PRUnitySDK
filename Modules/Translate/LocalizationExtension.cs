@@ -1,4 +1,3 @@
-using SABI;
 using TMPro;
 
 /// <summary>
@@ -86,10 +85,7 @@ public static class LocalizationExtension
         if (textMesh == null)
             return null;
 
-        LocalizationObserver languageComponent = textMesh.GetComponent<LocalizationObserver>();
-
-        if (languageComponent == null)
-            languageComponent = textMesh.AddComponent<LocalizationObserver>();
+        LocalizationObserver languageComponent = textMesh.gameObject.GetOrAddComponent<LocalizationObserver>();
 
         if (languageComponent.TextMeshProUGUI == null)
             languageComponent.TextMeshProUGUI = textMesh;

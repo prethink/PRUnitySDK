@@ -1,4 +1,4 @@
-public class GameFlagsEnumerations : EnumerationProviderBase
+public class GameFlagsEnumerations : FlagsProviderBase
 {
     public static Enumeration UseGravity = new Enumeration(nameof(UseGravity));
 
