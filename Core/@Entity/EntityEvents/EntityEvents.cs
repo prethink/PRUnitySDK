@@ -22,4 +22,9 @@ public static class EntityEvents
     /// Вызывает событие изменения экипировки сущности (оружие, броня, питомец и т.д.).
     /// </summary>
     public static void EquipmentChanged(IEntity entity) => EventBus.RaiseEvent<IEntityEquipmentChangedEvent>(invoke => invoke.OnEntityEquipmentChanged(new EntityEquipmentChangedEventArgs(entity)));
+
+    /// <summary>
+    /// Вызывает событие восстановления спрятанных сущностей.
+    /// </summary>
+    public static void RestoreHideEntities() => EventBus.RaiseEvent<IRestoreHideEntitiesEvent>(invoke => invoke.RestoreHideEvent(new RestoreHideEntitiesEventArgs()));
 }

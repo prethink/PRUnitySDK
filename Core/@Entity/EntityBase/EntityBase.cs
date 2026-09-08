@@ -59,7 +59,7 @@ public abstract partial class EntityBase<TMetadata> : EntityBase
 /// <summary>
 /// Базовый класс сущности.
 /// </summary>
-public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
+public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, IRestoreHideEntitiesEvent
 {
     #region Поля и свойства
 
@@ -130,6 +130,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
         {
             OnDestroyPool(true);
             Destroy(this.gameObject);
+            return;
+        }
+        else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.Hide && EntityGameObject.activeSelf)
+        {
+            EntityGameObject.SetActive(false);
             return;
         }
         else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.HideInPool && !InPool && PoolBehaviour.IsInitialize)
@@ -259,6 +264,15 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable
     public virtual Enumeration GetTimeScaleLayer()
     {
         return PRTimeScaleEnumerations.Global;
+    }
+
+    public void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
+    {
+        if (EntityDisposeAction.ToEnumeration() != EntityDisposeEnumerations.Hide || EntityGameObject.activeSelf)
+            return;
+
+        //Init
+        EntityGameObject.SetActive(true);
     }
 
     #endregion
