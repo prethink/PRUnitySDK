@@ -132,7 +132,9 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
             Destroy(this.gameObject);
             return;
         }
-        else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.Hide && EntityGameObject.activeSelf)
+        // Условия на activeSelf нет: у спрятанной сущности иначе не остаётся подходящей
+        // ветки, и она доходит до предупреждения про пул с полным уничтожением.
+        else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.Hide)
         {
             EntityGameObject.SetActive(false);
             return;
@@ -266,13 +268,21 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         return PRTimeScaleEnumerations.Global;
     }
 
-    public void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
+    /// <summary>
+    /// Возвращает на сцену сущность, спрятанную при уничтожении.
+    /// </summary>
+    /// <remarks>
+    /// Инициализация повторяется, как при выдаче из пула: для сущности это новое появление
+    /// на сцене, и состояние прошлой жизни на ней остаться не должно. Объект включается
+    /// до инициализации, иначе она не сможет запустить корутины и работать с компонентами.
+    /// </remarks>
+    public virtual void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
     {
         if (EntityDisposeAction.ToEnumeration() != EntityDisposeEnumerations.Hide || EntityGameObject.activeSelf)
             return;
 
-        //Init
         EntityGameObject.SetActive(true);
+        InitializeEntity();
     }
 
     #endregion
