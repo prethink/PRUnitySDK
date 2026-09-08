@@ -779,7 +779,8 @@ public partial class PRDebugEditor
 
     private void DrawEvents()
     {
-        DrawTabDescription("Что проходит через EventBus. Частые покадровые события собраны отдельно, чтобы не вытесняли из истории всё остальное.");
+        DrawTabDescription("Что проходит через EventBus. Частые покадровые события собраны отдельно, чтобы не вытесняли из истории всё остальное. Сверху — ручной вызов общих событий.");
+        DrawEventTriggers();
         DrawSectionHeader($"EventBus monitor — {aggregatedEventRows.Count} aggregated, " +
                           $"latest {eventRows.Count}/{EventHistoryCapacity}");
         EditorGUILayout.BeginHorizontal();
@@ -841,6 +842,31 @@ public partial class PRDebugEditor
         EditorGUILayout.HelpBox(
             "IOnUpdateEvent and IOnPRUpdateEvent are aggregated above and do not occupy the recent-events ring buffer. " +
             "The monitor records only while this Debug window is open. Payload is not captured.",
+            MessageType.None);
+    }
+
+    /// <summary>
+    /// Ручной вызов общих событий шины.
+    /// </summary>
+    private void DrawEventTriggers()
+    {
+        DrawSectionHeader("Raise events");
+        DrawFixedRow(true, ("Event", 200), ("Event interface", 260), ("Subscribers", 80));
+
+        EditorGUILayout.BeginHorizontal();
+
+        if (GUILayout.Button("Restore hidden entities", GUILayout.Width(200f)))
+        {
+            EntityEvents.RestoreHideEntities();
+            RefreshSnapshot();
+        }
+
+        Label(nameof(IRestoreHideEntitiesEvent), 260);
+        Label(EventBus.GetSubscriberCount<IRestoreHideEntitiesEvent>(), 80);
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.HelpBox(
+            "Brings back entities disposed with EntityDisposeAction = Hide and initializes them again.",
             MessageType.None);
     }
 
