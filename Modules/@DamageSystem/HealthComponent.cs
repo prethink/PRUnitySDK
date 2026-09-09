@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 [RequireComponent(typeof(EntityBase))]
 public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
@@ -64,12 +65,38 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     /// </summary>
     public event Action<IEntity, Vector3, IDamageProvider, DamageResult> OnHitVector;
 
+    /// <summary>
+    /// Inspector-события получают те же аргументы после соответствующих C#-событий.
+    /// </summary>
+    [field: SerializeField, Header("Unity Events")]
+    public UnityEvent<IEntity, IEntity> OnEntityDeadUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<IEntity> OnReviveUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<Vector3> OnSpawnUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<Transform> OnScaleChangedUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<HealthChangedEventArgsBase> OnHealthChangeUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<DamageOutcome> OnDamageProcessedUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<IEntity, Collider, IDamageProvider, DamageResult> OnHitColliderUnity { get; private set; } = new();
+
+    [field: SerializeField]
+    public UnityEvent<IEntity, Vector3, IDamageProvider, DamageResult> OnHitVectorUnity { get; private set; } = new();
+
     #endregion
 
     #region MonoBehavior
 
     [field: Header("Здоровье")]
-    [field: SerializeField] public bool HideOnDead { get; protected set; } = true;
 
     [field: SerializeField] public bool IsBlockDamage { get; protected set; }
 
@@ -198,6 +225,8 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         {
             NotifyListeners(OnHealthChange, listener => listener(new HealthChangedEventArgsBase(
                 outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
+            NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(new HealthChangedEventArgsBase(
+                outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
 
             if (killed)
                 NotifyDeath(attacker);
@@ -239,9 +268,14 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     {
         try { DeathHandle(); }
         catch (Exception exception) { Debug.LogException(exception, this); }
-        try { ChangeVisibleEntity(); }
-        catch (Exception exception) { Debug.LogException(exception, this); }
         OnEntityDeadInvoke(killer);
+    }
+
+    private void NotifyUnityEvent(Action invoke)
+    {
+        // Ошибка Inspector-обработчика не должна прерывать завершение обработки урона.
+        try { invoke(); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
     }
 
     protected virtual void InternalTakeDamage()
@@ -267,6 +301,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     {
         LastDamageOutcome = outcome;
         NotifyListeners(OnDamageProcessed, listener => listener(outcome));
+        NotifyUnityEvent(() => OnDamageProcessedUnity?.Invoke(outcome));
     }
 
     private void RaiseDamageProcessed(IEntity attacker, IWeapon weapon, DamageOutcome outcome)
@@ -308,7 +343,10 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     {
         var result = ProcessDamage(attacker, weapon, damage, point, null);
         if (result != DamageResult.Miss)
+        {
             NotifyListeners(OnHitVector, listener => listener(attacker, point, damage, result));
+            NotifyUnityEvent(() => OnHitVectorUnity?.Invoke(attacker, point, damage, result));
+        }
 
         return result;
     }
@@ -317,7 +355,10 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     {
         var result = ProcessDamage(attacker, weapon, damage, null, collider);
         if (result != DamageResult.Miss)
+        {
             NotifyListeners(OnHitCollider, listener => listener(attacker, collider, damage, result));
+            NotifyUnityEvent(() => OnHitColliderUnity?.Invoke(attacker, collider, damage, result));
+        }
 
         return result;
     }
@@ -462,8 +503,8 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         isAlive = true;
         Killer = null;
         Health = Mathf.Clamp(health, 1, MaxHealth);
-        ChangeVisibleEntity();
         NotifyListeners(OnRevive, listener => listener(reviver));
+        NotifyUnityEvent(() => OnReviveUnity?.Invoke(reviver));
     }
 
     /// <summary>
@@ -481,21 +522,13 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     }
 
     /// <summary>
-    /// Изменить видимость entity.
-    /// </summary>
-    protected virtual void ChangeVisibleEntity()
-    {
-        if (HideOnDead)
-            Entity.gameObject.SetActive(IsAlive());
-    }
-
-    /// <summary>
     /// Вызов события смерти сущности.
     /// </summary>
     /// <param name="attacker">Атакующий.</param>
     protected virtual void OnEntityDeadInvoke(IEntity attacker)
     {
         NotifyListeners(OnEntityDead, listener => listener(attacker, Entity));
+        NotifyUnityEvent(() => OnEntityDeadUnity?.Invoke(attacker, Entity));
     }
 
     /// <summary>
@@ -505,6 +538,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     protected virtual void OnSpawnInvoke(Vector3 position)
     {
         NotifyListeners(OnSpawn, listener => listener(position));
+        NotifyUnityEvent(() => OnSpawnUnity?.Invoke(position));
     }
 
     public bool AddHealth(int health)
@@ -523,6 +557,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         Health = updateHealth;
         var change = new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth);
         NotifyListeners(OnHealthChange, listener => listener(change));
+        NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(change));
         return true;
     }
 
@@ -543,6 +578,7 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     public virtual void InvokeOnScaleChanged()
     {
         NotifyListeners(OnScaleChanged, listener => listener(transform));
+        NotifyUnityEvent(() => OnScaleChangedUnity?.Invoke(transform));
     }
 
     public void SetOverrideIsAlive(Func<bool> overrideFunc)
@@ -555,6 +591,11 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
         return overrideIsAlive != null 
             ? overrideIsAlive() 
             : isAlive;
+    }
+
+    public virtual void SetMaxHealth(float maxHealth)
+    {
+        MaxHealth = maxHealth;
     }
 
     #endregion

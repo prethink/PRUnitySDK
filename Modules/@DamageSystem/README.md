@@ -200,6 +200,33 @@ Post-хук предназначен для наблюдения: изменен
 
 `DamageOutcome.DamageData` и `TakeDamageEvent.Damage` возвращают защитную копию. Изменение полученного объекта или `AppliedModifiers` не меняет результат для других подписчиков.
 
+## Unity Events в HealthComponent
+
+В Inspector доступен раздел `Unity Events`. Для каждого C#-события есть
+сериализованный аналог с суффиксом `Unity`, вызываемый сразу после него:
+
+| UnityEvent | Аргументы |
+| --- | --- |
+| `OnEntityDeadUnity` | убийца и погибшая сущность (`IEntity`, `IEntity`) |
+| `OnReviveUnity` | кто оживил (`IEntity`) |
+| `OnSpawnUnity` | позиция (`Vector3`) |
+| `OnScaleChangedUnity` | трансформ (`Transform`) |
+| `OnHealthChangeUnity` | `HealthChangedEventArgsBase` |
+| `OnDamageProcessedUnity` | `DamageOutcome` |
+| `OnHitColliderUnity` | атакующий, коллайдер, провайдер урона, результат |
+| `OnHitVectorUnity` | атакующий, точка попадания, провайдер урона, результат |
+
+Можно назначать обычные Inspector-действия без аргументов, например запуск звука
+или эффекта, либо методы с совпадающей динамической сигнатурой. Интерфейсные
+аргументы передаются во время вызова, а не задаются как ссылки в Inspector.
+Из кода используется `AddListener`/`RemoveListener`.
+
+Условия срабатывания совпадают с C#-событиями: лечение вызывает изменение здоровья,
+а результат `Miss` не вызывает события попадания. Исключение в UnityEvent логируется
+и не прерывает последующие этапы обработки урона и CombatEvents. Внутри одного
+UnityEvent исключение может прервать оставшиеся обработчики этого UnityEvent —
+это стандартное поведение Unity.
+
 ## Лечение и возрождение
 
 `AddHealth()` лечит только живую сущность и не превышает `MaxHealth`. При успешном лечении вызывается `OnHealthChange`.
