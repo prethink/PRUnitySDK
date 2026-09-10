@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [RequireComponent(typeof(EntityBase))]
-public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
+public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
 {
     #region Поля и свойства
 
@@ -105,10 +105,22 @@ public class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEntity
     [field: SerializeField] public float Health { get; protected set; }
 
 
+    /// <summary>
+    /// Стадия хука «здоровье получило стартовые значения».
+    /// </summary>
+    /// <remarks>
+    /// Сигнатура хука — <c>void Имя()</c>. К этому моменту <see cref="Health"/> уже
+    /// заполнено, поэтому отсюда сущность достраивают тем, что должно знать её здоровье:
+    /// полосой над головой и подобным. Подписчиков может быть сколько угодно, порядок
+    /// задаёт <c>Order</c>.
+    /// </remarks>
+    public const string HealthInitializedStage = "HealthComponentHealthInitialized";
+
     protected override void Start()
     {
         base.Start();
         InitHealth();
+        this.RunMethodHooks(HealthInitializedStage);
     }
 
     protected override void InitializationComponents()
