@@ -388,14 +388,23 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <summary>
     /// Инициализация жизней.
     /// </summary>
+    /// <remarks>
+    /// Подписчиков уведомляем: этим же методом сущность возвращают на сцену после смерти,
+    /// а подписки остались с прошлой жизни — без события полоса над головой покажет ноль.
+    /// </remarks>
     /// <exception cref="ArgumentException"></exception>
     public virtual void InitHealth()
     {
         if (!IsFiniteNonNegative(MaxHealth) || MaxHealth <= 0)
             throw new ArgumentException("Максимальное здоровье должно быть больше 0!");
 
+        var previousHealth = Health;
         Health = MaxHealth;
         isAlive = Health > 0;
+
+        var change = new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth);
+        NotifyListeners(OnHealthChange, listener => listener(change));
+        NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(change));
     }
 
     /// <summary>
