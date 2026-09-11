@@ -178,9 +178,17 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
 
     #region Методы
 
+    /// <summary>
+    /// Переносит игрока в точку.
+    /// </summary>
+    /// <remarks>
+    /// Через <see cref="EntityBase.SetPosition"/>: тело игрока — вложенный объект,
+    /// и постановка в точку корня промахивается на его смещение.
+    /// </remarks>
+    /// <param name="position">Куда перенести игрока.</param>
     public virtual void Teleport(Vector3 position)
     {
-        transform.position = position;
+        SetPosition(position);
     }
 
     public virtual void SetNick(string playerName)

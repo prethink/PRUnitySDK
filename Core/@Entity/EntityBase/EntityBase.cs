@@ -102,6 +102,50 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     public virtual GameObject EntityGameObject => entityGameObject != null ? entityGameObject : gameObject;
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
 
+    /// <summary>
+    /// Где сущность находится на самом деле.
+    /// </summary>
+    /// <remarks>
+    /// Позиция <see cref="EntityGameObject"/>, а не корня иерархии: сущностью бывает вложенный
+    /// объект со своим смещением, и корень стоит в стороне от того, что видит игрок.
+    /// Когда сущность и есть корень, разницы нет.
+    /// </remarks>
+    public Vector3 Position => EntityGameObject.transform.position;
+
+    /// <summary>
+    /// Куда сущность повёрнута на самом деле.
+    /// </summary>
+    public Quaternion Rotation => EntityGameObject.transform.rotation;
+
+    /// <summary>
+    /// Ставит сущность в точку.
+    /// </summary>
+    /// <remarks>
+    /// В точке оказывается <see cref="EntityGameObject"/>, а переносится вся иерархия целиком:
+    /// поставить в точку корень — значит промахнуться на величину смещения вложенного объекта,
+    /// а подвинуть только вложенный объект — оторвать его от собственной иерархии.
+    /// </remarks>
+    /// <param name="position">Куда поставить сущность.</param>
+    public virtual void SetPosition(Vector3 position)
+    {
+        RootEntityObject.transform.position += position - Position;
+    }
+
+    /// <summary>
+    /// Ставит сущность в точку и разворачивает.
+    /// </summary>
+    /// <param name="position">Куда поставить сущность.</param>
+    /// <param name="rotation">Каким поворотом поставить сущность.</param>
+    public virtual void SetPositionAndRotation(Vector3 position, Quaternion rotation)
+    {
+        var root = RootEntityObject.transform;
+
+        // Сначала поворот: он уводит вложенный объект по дуге вокруг корня, поэтому
+        // смещение до сущности считается уже после разворота.
+        root.rotation = rotation * Quaternion.Inverse(Quaternion.Inverse(root.rotation) * Rotation);
+        root.position += position - Position;
+    }
+
     public virtual void GenerateId(Func<long> register)
     {
         Id = register();

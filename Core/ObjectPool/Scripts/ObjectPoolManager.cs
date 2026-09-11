@@ -347,12 +347,32 @@ public class ObjectPoolManager : MonoBehaviour
         where T : EntityBase
         => ShowEntity(prefab, position, Quaternion.identity, null);
 
+    /// <summary>
+    /// Выдаёт сущность из пула в заданное место.
+    /// </summary>
+    /// <remarks>
+    /// Пул ставит в точку выданный объект, а сущностью может быть вложенный в него объект
+    /// со своим смещением. Поэтому после выдачи сущность досылается на место сама: просили
+    /// поставить в точку её, а не корень, в котором она лежит.
+    /// </remarks>
+    /// <param name="prefab">Префаб сущности.</param>
+    /// <param name="position">Куда поставить сущность.</param>
+    /// <param name="rotation">Каким поворотом поставить сущность.</param>
+    /// <param name="transform">Родитель либо <c>null</c>.</param>
+    /// <returns>Сущность из пула.</returns>
     public T ShowEntity<T>(T prefab, Vector3 position, Quaternion rotation, Transform transform)
         where T : EntityBase
     {
         RegisterPoolObject("Entity", prefab.GetPoolKey(), prefab.gameObject);
         var poolObject = ShowObject("Entity", prefab.GetPoolKey(), position, rotation, prefab.transform.localScale, transform);
-        return poolObject.InstanceGameObject.GetComponent<T>();
+        var entity = poolObject.InstanceGameObject.GetComponent<T>();
+        if (entity == null)
+            return null;
+
+        var placed = poolObject.InstanceGameObject.transform;
+        entity.SetPositionAndRotation(placed.position, placed.rotation);
+
+        return entity;
     }
 
     public T ShowEntity<T>(T prefab, Transform transform)

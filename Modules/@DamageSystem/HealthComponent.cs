@@ -442,9 +442,13 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <summary>
     /// Оживить entity.
     /// </summary>
+    /// <remarks>
+    /// Оживление на месте: место спрашиваем у сущности, а не у её корня — у вложенной
+    /// сущности это разные точки, и она переехала бы к корню.
+    /// </remarks>
     public virtual void Revive()
     {
-        Revive(GameEventEntityFactory.CreateEventGame(), MaxHealth, Entity.transform);
+        Revive(GameEventEntityFactory.CreateEventGame(), MaxHealth, Entity.Position, Entity.Rotation);
     }
 
     /// <summary>
@@ -472,7 +476,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <param name="health">Количество жизней при оживление.</param>
     public virtual void Revive(float health)
     {
-        Revive(GameEventEntityFactory.CreateEventGame(), health, Entity.transform);
+        Revive(GameEventEntityFactory.CreateEventGame(), health, Entity.Position, Entity.Rotation);
     }
 
     /// <summary>
@@ -518,8 +522,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         if (IsAlive())
             return;
 
-        Entity.transform.position = position;
-        Entity.transform.rotation = rotation;
+        Entity.SetPositionAndRotation(position, rotation);
 
         isAlive = true;
         Killer = null;
