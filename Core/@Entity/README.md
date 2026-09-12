@@ -137,6 +137,10 @@ QualityType q = entity.Description.GetQuality();
 | `EntityLocalizationOverride` | Подпись для игрока (`GetLocalization`) |
 
 Каждый реализует `IEntityDescriptionOverride` и в `Apply` записывает свою функцию-override.
+Локализация переопределяет **источник перевода**, а не готовую строку: подпись игроку отдают
+в `SetLocalization`, и `LocalizationObserver` перечитывает её по провайдеру при смене языка.
+Читать подпись для UI надо через `Description.GetLocalizationProvider()` — метаданные напрямую
+(`GetMetadata()`) переопределений экземпляра не знают.
 Значение читается в момент запроса, поэтому его можно менять и по ходу игры, а подпись
 переживает смену языка. `EntityLocalizationOverride` берёт источник первым заданным, как
 `LocalizationObserver`: ключ в базе локализации либо перевод прямо на объекте.

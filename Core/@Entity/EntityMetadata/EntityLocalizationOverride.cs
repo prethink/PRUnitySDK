@@ -30,16 +30,23 @@ public class EntityLocalizationOverride : MonoBehaviour, IEntityDescriptionOverr
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Переопределяется источник перевода, а не готовая строка: подпись отдают
+    /// в <c>SetLocalization</c>, и провайдер нужен целиком — по нему
+    /// <c>LocalizationObserver</c> перечитывает текст при смене языка.
+    /// </remarks>
     public void Apply(EntityDescription description)
     {
-        description?.SetLocalizationOverride(GetTranslate);
+        description?.SetLocalizationProviderOverride(GetProvider);
     }
 
-    private string GetTranslate()
+    private ILocalizationProvider GetProvider()
     {
-        if (!string.IsNullOrWhiteSpace(globalKey))
-            return L.Tr(globalKey);
+        if (string.IsNullOrWhiteSpace(globalKey))
+            return localization;
 
-        return PRLocalization.GetTranslate(localization);
+        // Словарь из базы, а не одна строка: провайдер должен уметь ответить на любом языке.
+        // Собираем при каждом обращении — в редакторе базу правят на ходу.
+        return new LocalizationProvider(globalKey, L.GetDictionary(globalKey));
     }
 }

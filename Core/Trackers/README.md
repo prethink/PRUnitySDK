@@ -16,6 +16,7 @@ PRUnitySDK.Trackers
 | `CameraTracker` | `CameraTracker` | Стек контроллеров и игровые камеры |
 | `MonoWindows` | `MonoWindowsTracker` | UI-окна с уникальными ключами |
 | `Notifiers` | `NotifierTracker` | UI-уведомители с уникальными ключами |
+| `Hud` | `HudTracker` | Постоянный интерфейс и его общая видимость |
 | `BackgroundTasks` | `BackgroundTaskTracker` | Фоновые задачи по расписанию |
 
 ## Общий контракт
@@ -115,6 +116,27 @@ if (PRUnitySDK.Trackers.Notifiers.TryGetNotifier(notifierKey, out DamageNotifier
 
 Методы поиска безопасно возвращают `false` или `null`, если объект не найден либо был
 уничтожен Unity.
+
+## HudTracker
+
+Постоянный интерфейс — полосы, панель быстрого доступа, полоса опыта — приходит из разных
+модулей и живёт на разных canvas: экранном и мировых над сущностями. Общего выключателя
+у них нет, поэтому состояние держит трекер, а элементы реализуют `IHudElement`.
+
+```csharp
+PRUnitySDK.Trackers.Hud.SetVisible(false);          // спрятать весь постоянный интерфейс
+bool visible = PRUnitySDK.Trackers.Hud.IsVisible;
+
+// То же самое рядом с окнами:
+PRUnitySDK.Windows.HideHud();
+```
+
+При регистрации элемент сразу приводится к текущему состоянию — созданный после скрытия
+на экран не выйдет, хотя событие и пропустил. Смена состояния дополнительно публикуется
+через `HudVisibilityEvents`: для тех, кто не элемент, — звука, аналитики, чужого кода.
+
+`GetElements<T>()` выдаёт зарегистрированные элементы нужного вида. Уничтоженные Unity
+объекты трекер выбрасывает сам.
 
 ## BackgroundTaskTracker
 
