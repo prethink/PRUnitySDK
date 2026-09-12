@@ -80,11 +80,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </summary>
     [SerializeField] protected EnumerationReference<EntityDisposeEnumerations> EntityDisposeAction = new();
 
-    /// <summary>
-    /// Время жизни сущности.
-    /// </summary>
-    [field:SerializeField] public EntityLifeTime LifeTime { get; protected set; }
-
     #endregion
 
     #region IEntity

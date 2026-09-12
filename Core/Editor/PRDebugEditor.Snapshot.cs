@@ -588,7 +588,6 @@ public partial class PRDebugEditor
                 Id = entity.Id,
                 Type = entity.EntityType?.ToString() ?? "<null>",
                 Name = SafeValue(() => entity.Description?.GetName(), "-"),
-                LifeTime = entity.LifeTime.ToString(),
                 PoolStatus = poolStatus,
                 OnScene = entity.OnScene,
                 InPool = entity.InPool

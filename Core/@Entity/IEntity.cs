@@ -22,11 +22,6 @@ public partial interface IEntity : ITimeScaleLayer, IComponent
     public Enumeration EntityType { get; }
 
     /// <summary>
-    /// Время жизни сущности.
-    /// </summary>
-    public EntityLifeTime LifeTime { get; }
-
-    /// <summary>
     /// Находится сущность на сцене.
     /// </summary>
     public bool OnScene { get; }
