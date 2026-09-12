@@ -193,6 +193,12 @@ scale, а `Apply` вызывает `SetGlobalTimeScaleTemporarily`. Повтор
 английский и турецкий языки через активную реализацию менеджера, поэтому platform override
 (например, `YGLanguageManager`) не обходится.
 
+Секция `Cursor` там же показывает `Cursor.visible`, режим блокировки и наличие запроса от окна,
+а кнопки `Show`, `Hide` и `Release` управляют курсором через `CursorManager` — как обычный
+источник запроса, а не правкой `Cursor.visible` напрямую. Прямая правка жила бы до ближайшего
+пересчёта: игра трогает курсор при каждом открытии окна и смене режима. Запрос снимается
+кнопкой `Release`, при закрытии окна и при перезагрузке скриптов.
+
 ## PRSDKDatabase и PRSDKSettings
 
 Assets `PRSDKDatabase` и `PRSDKSettings` редактируются в отдельных растягиваемых `EditorWindow`. Обычный Unity

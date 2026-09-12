@@ -39,6 +39,9 @@ public class PlayerInputState
     /// <summary>Векторные значения.</summary>
     private readonly Dictionary<Enumeration, Vector2> vectors = new();
 
+    /// <summary>Подписи того, чем вызывают действия: клавиша, кнопка на экране.</summary>
+    private readonly Dictionary<Enumeration, ILocalizationProvider> bindingLabels = new();
+
     /// <summary>
     /// Ключ отпущен.
     /// </summary>
@@ -118,6 +121,39 @@ public class PlayerInputState
     {
         releasedFrame[key] = true;
         held[key] = false;
+    }
+
+    /// <summary>
+    /// Чем это действие вызывают у своего владельца.
+    /// </summary>
+    /// <remarks>
+    /// Клавиша у каждого игрока своя — на разделённом экране первый жмёт одну, второй
+    /// другую, — а интерфейсу нужно подписать кнопку именно его клавишей. Подпись публикует
+    /// источник ввода: только он знает, что именно читает с устройства. У бота подписей нет,
+    /// и это правильный ответ: подписывать ему нечего.
+    /// <para>
+    /// Источник перевода, а не строка: на клавише русской раскладки написано не то же, что
+    /// на английской, и подпись должна меняться вместе с языком.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">Ключ ввода.</param>
+    /// <returns>Источник перевода подписи либо <c>null</c>.</returns>
+    public ILocalizationProvider GetBindingLabel(Enumeration key)
+    {
+        return key != null && bindingLabels.TryGetValue(key, out var label) ? label : null;
+    }
+
+    /// <summary>
+    /// Задаёт подпись того, чем вызывается действие.
+    /// </summary>
+    /// <param name="key">Ключ ввода.</param>
+    /// <param name="label">Источник перевода подписи.</param>
+    public void SetBindingLabel(Enumeration key, ILocalizationProvider label)
+    {
+        if (key == null)
+            return;
+
+        bindingLabels[key] = label;
     }
 
     /// <summary>

@@ -49,6 +49,11 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private readonly object eventHistoryLock = new();
     private readonly object debugFlagSource = new();
 
+    /// <summary>
+    /// Источник запроса курсора от окна отладки.
+    /// </summary>
+    private readonly object debugCursorSource = new();
+
     private Vector2 scroll;
     private string search = string.Empty;
 
@@ -144,6 +149,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private void OnDisable()
     {
         ClearDebugFlags(false);
+        ClearDebugCursor();
         EventBus.OnEventRaised -= OnEventBusRaised;
         EditorApplication.update -= AutoRefresh;
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;

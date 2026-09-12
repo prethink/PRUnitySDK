@@ -30,6 +30,8 @@ public partial class PRDebugEditor
 
         DrawLanguage();
 
+        DrawCursor();
+
         DrawTimeScale();
 
         DrawSaveInfo();
@@ -40,6 +42,80 @@ public partial class PRDebugEditor
             ("In pool", entityInPool), ("Pools", pools.Count),
             ("Errors", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Error)),
             ("Warnings", problems.Count(problem => problem.Severity == PRDebugProblemSeverity.Warning)));
+    }
+
+    /// <summary>
+    /// Показывает состояние курсора и позволяет включить или выключить его на время отладки.
+    /// </summary>
+    /// <remarks>
+    /// Через <see cref="CursorManager"/>, а не правкой <c>Cursor.visible</c> напрямую: игра
+    /// пересчитывает курсор при каждом открытии окна и смене режима, и прямая правка жила бы
+    /// до ближайшего такого пересчёта. Запрос от окна — обычный источник, он переживает
+    /// эти пересчёты и снимается по кнопке или при закрытии окна.
+    /// </remarks>
+    private void DrawCursor()
+    {
+        DrawSectionHeader("Cursor");
+
+        if (!Application.isPlaying || !PRUnitySDK.IsInitialized)
+        {
+            EditorGUILayout.HelpBox("Курсором управляет игра: доступно в Play Mode.", MessageType.Info);
+            return;
+        }
+
+        CursorManager cursor = CursorManager.Instance;
+
+        if (cursor == null)
+        {
+            EditorGUILayout.HelpBox("CursorManager is not initialized.", MessageType.Info);
+            return;
+        }
+
+        DrawKeyValue("Visible", Cursor.visible);
+        DrawKeyValue("Lock", Cursor.lockState.ToString());
+        DrawKeyValue("Debug request", cursor.HasRequest(debugCursorSource));
+
+        DrawCursorButtons(cursor);
+
+        EditorGUILayout.HelpBox(
+            "Запрос действует, пока его не снять кнопкой Release: при закрытии окна и перезагрузке скриптов он снимается сам.",
+            MessageType.None);
+    }
+
+    /// <summary>
+    /// Рисует управление курсором рядом кнопок.
+    /// </summary>
+    private void DrawCursorButtons(CursorManager cursor)
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("Show", EditorStyles.miniButtonLeft))
+                cursor.Show(debugCursorSource);
+
+            if (GUILayout.Button("Hide", EditorStyles.miniButtonMid))
+                cursor.Hide(debugCursorSource);
+
+            using (new EditorGUI.DisabledScope(!cursor.HasRequest(debugCursorSource)))
+            {
+                if (GUILayout.Button("Release", EditorStyles.miniButtonRight))
+                    cursor.Release(debugCursorSource);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Снимает запрос курсора, сделанный из окна.
+    /// </summary>
+    /// <remarks>
+    /// Иначе закрытое окно продолжало бы держать курсор показанным: менеджер про закрытие
+    /// не знает, а источник остаётся в списке активных.
+    /// </remarks>
+    private void ClearDebugCursor()
+    {
+        if (!Application.isPlaying || !PRUnitySDK.IsInitialized)
+            return;
+
+        CursorManager.Instance?.Release(debugCursorSource);
     }
 
     /// <summary>
