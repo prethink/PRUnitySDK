@@ -222,7 +222,29 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         base.InitializationComponents();
 
         InitializeEntityMetadata();
+        ApplyDescriptionOverrides();
         InitializeEntity();
+    }
+
+    /// <summary>
+    /// Отдаёт описание компонентам, которые переопределяют его части.
+    /// </summary>
+    /// <remarks>
+    /// Собирает их сущность, а не компоненты записываются сами: порядок <c>Awake</c> между
+    /// компонентами одного объекта не задан, и переопределение пришло бы раньше, чем
+    /// описание вообще создано.
+    /// <para>
+    /// Ищем только на своём объекте: у вложенных сущностей свои описания, и переопределение
+    /// из глубины иерархии досталось бы чужому.
+    /// </para>
+    /// </remarks>
+    protected virtual void ApplyDescriptionOverrides()
+    {
+        if (Description == null)
+            return;
+
+        foreach (IEntityDescriptionOverride descriptionOverride in GetComponents<IEntityDescriptionOverride>())
+            descriptionOverride.Apply(Description);
     }
 
     #endregion

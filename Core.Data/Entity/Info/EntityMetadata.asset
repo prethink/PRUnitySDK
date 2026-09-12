@@ -19,4 +19,10 @@ MonoBehaviour:
     type: 3}
   <Quality>k__BackingField: 0
   <localization>k__BackingField:
-    _serializedList: []
+    _serializedList:
+    - Key: 0
+      Value: "\u0421\u0443\u0449\u043D\u043E\u0441\u0442\u044C"
+    - Key: 1
+      Value: Entity
+    - Key: 2
+      Value: "Varl\u0131k"
