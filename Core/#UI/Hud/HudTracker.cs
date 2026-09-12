@@ -16,10 +16,19 @@ using UnityEngine;
 /// </remarks>
 public class HudTracker : TrackerBase<IHudElement>
 {
+    private readonly HashSet<object> hideSources = new();
+
+    private bool isVisibleSet = true;
+    private bool isVisibleApplied = true;
+
     /// <summary>
     /// Постоянный интерфейс показан.
     /// </summary>
-    public bool IsVisible { get; private set; } = true;
+    /// <remarks>
+    /// Итог двух вещей: заданного состояния и просьб спрятать. Пока хоть один источник
+    /// просит скрыть, интерфейса не видно.
+    /// </remarks>
+    public bool IsVisible => isVisibleSet && hideSources.Count == 0;
 
     /// <summary>
     /// Регистрирует элемент и сразу приводит его к текущему состоянию.
@@ -56,15 +65,87 @@ public class HudTracker : TrackerBase<IHudElement>
     }
 
     /// <summary>
-    /// Показывает либо прячет весь постоянный интерфейс.
+    /// Задаёт постоянное состояние интерфейса.
     /// </summary>
+    /// <remarks>
+    /// Для временного скрытия — <see cref="Hide"/> и <see cref="Release"/>: они возвращают
+    /// то состояние, что было до них, и не спорят друг с другом.
+    /// </remarks>
     /// <param name="isVisible">Показать интерфейс.</param>
     public void SetVisible(bool isVisible)
     {
-        if (IsVisible == isVisible)
+        isVisibleSet = isVisible;
+
+        Apply();
+    }
+
+    /// <summary>
+    /// Просит спрятать интерфейс на время.
+    /// </summary>
+    /// <remarks>
+    /// Источник — тот, кто прячет: катсцена, окно, ролик открытия кейса. Пока он не отпустил,
+    /// интерфейс скрыт, и второй источник поверх ничего не ломает. Возвращать прежнее
+    /// состояние вручную не нужно: его вернёт <see cref="Release"/>, когда отпустят все.
+    /// </remarks>
+    /// <param name="source">Кто просит скрыть.</param>
+    public void Hide(object source)
+    {
+        if (source == null || !hideSources.Add(source))
             return;
 
-        IsVisible = isVisible;
+        Apply();
+    }
+
+    /// <summary>
+    /// Отпускает просьбу источника скрыть интерфейс.
+    /// </summary>
+    /// <param name="source">Кто просил скрыть.</param>
+    public void Release(object source)
+    {
+        if (source == null || !hideSources.Remove(source))
+            return;
+
+        Apply();
+    }
+
+    /// <summary>
+    /// Источник просит скрыть интерфейс прямо сейчас.
+    /// </summary>
+    /// <param name="source">Кто просил скрыть.</param>
+    /// <returns>Просьба этого источника в силе.</returns>
+    public bool IsHiddenBy(object source) => source != null && hideSources.Contains(source);
+
+    /// <summary>
+    /// Снимает все просьбы скрыть интерфейс.
+    /// </summary>
+    /// <remarks>
+    /// На смену сцены и сброс сессии: источник, уничтоженный без отпускания, иначе держал бы
+    /// интерфейс скрытым. Обычный путь — <see cref="Release"/> в паре к <see cref="Hide"/>.
+    /// </remarks>
+    public void ReleaseAll()
+    {
+        if (hideSources.Count == 0)
+            return;
+
+        hideSources.Clear();
+
+        Apply();
+    }
+
+    /// <summary>
+    /// Приводит элементы к текущему состоянию.
+    /// </summary>
+    private void Apply()
+    {
+        // Источник могли уничтожить, не отпустив: иначе интерфейс остался бы скрытым навсегда.
+        hideSources.RemoveWhere(source => source is Object unityObject && unityObject == null);
+
+        bool isVisible = IsVisible;
+
+        if (isVisibleApplied == isVisible)
+            return;
+
+        isVisibleApplied = isVisible;
 
         RemoveDestroyedElements();
 

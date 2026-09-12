@@ -124,12 +124,23 @@ if (PRUnitySDK.Trackers.Notifiers.TryGetNotifier(notifierKey, out DamageNotifier
 у них нет, поэтому состояние держит трекер, а элементы реализуют `IHudElement`.
 
 ```csharp
-PRUnitySDK.Trackers.Hud.SetVisible(false);          // спрятать весь постоянный интерфейс
+// Постоянное состояние.
+PRUnitySDK.Trackers.Hud.SetVisible(false);
 bool visible = PRUnitySDK.Trackers.Hud.IsVisible;
+
+// Временное скрытие с возвратом: катсцена, ролик открытия кейса.
+PRUnitySDK.Trackers.Hud.Hide(this);
+PRUnitySDK.Trackers.Hud.Release(this);
 
 // То же самое рядом с окнами:
 PRUnitySDK.Windows.HideHud();
 ```
+
+`Hide` и `Release` работают по источникам, как флаги в `FlagsManager`: интерфейс скрыт, пока
+его держит хоть один источник, и возвращается сам, когда отпустят все. Прежнее состояние
+запоминать не нужно, а два ролика подряд не отменяют друг друга. Источник, уничтоженный
+без `Release`, отбрасывается при следующем пересчёте — иначе интерфейс остался бы скрытым
+навсегда; на смену сцены есть `ReleaseAll()`.
 
 При регистрации элемент сразу приводится к текущему состоянию — созданный после скрытия
 на экран не выйдет, хотя событие и пропустил. Смена состояния дополнительно публикуется
