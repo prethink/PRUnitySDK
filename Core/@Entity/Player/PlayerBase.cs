@@ -191,6 +191,16 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
         SetPosition(position);
     }
 
+    /// <summary>
+    /// Игровой ник.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="EntityBase.Name"/>: то — название вида сущности из метаданных,
+    /// одно на всех игроков, а это имя конкретного. Меняется через <see cref="SetNick"/>,
+    /// и о смене сообщает <see cref="OnNickChange"/>.
+    /// </remarks>
+    public string Nick => playerName;
+
     public virtual void SetNick(string playerName)
     {
         this.playerName = playerName;

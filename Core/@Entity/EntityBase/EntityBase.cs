@@ -263,10 +263,22 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     #region Методы
 
+    /// <summary>
+    /// Сущность зарегистрирована и готова показывать себя.
+    /// </summary>
+    /// <remarks>
+    /// Точка расширения для проектного слоя: интерфейс над сущностью — имя, уровень,
+    /// полоса здоровья — создаётся отсюда, а не правкой ядра. Подписчиков может быть
+    /// сколько угодно, порядок задаёт <c>Order</c>.
+    /// </remarks>
+    public const string EntityRegisteredStage = "EntityBaseRegistered";
+
     protected override void Start()
     {
         RegisterEntity();
         base.Start();
+
+        this.RunMethodHooks(EntityRegisteredStage);
     }
 
     protected override void UnRegisterEventsOnDestroy()
