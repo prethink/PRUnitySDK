@@ -22,6 +22,16 @@ public class EnumerationReferenceDrawer : PropertyDrawer
 
     private const string DefaultSuffix = " (по умолчанию)";
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Всегда одна строка: дравер рисует единственный выпадающий список. Без этого высоту
+    /// считал бы сериализованный класс со своими полями, и в списке ссылок строки разъезжались бы.
+    /// </remarks>
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return EditorGUIUtility.singleLineHeight;
+    }
+
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         var valueProperty = property.FindPropertyRelative(EnumerationReference.ProtectedStringValueName);
@@ -130,11 +140,42 @@ public class EnumerationReferenceDrawer : PropertyDrawer
     /// <summary>
     /// Набор, к которому привязано это поле.
     /// </summary>
+    /// <remarks>
+    /// Тип поля - не всегда сама ссылка: у списка и массива дравер рисует каждый элемент,
+    /// и набор лежит внутри элемента. Без разбора коллекции провайдером считался бы
+    /// <c>EnumerationReference</c>, и отрисовка падала бы прямо посреди инспектора.
+    /// </remarks>
     private Type GetProviderType()
     {
-        Type referenceType = fieldInfo.FieldType;
+        return GetProviderType(fieldInfo.FieldType);
+    }
 
-        return referenceType.IsGenericType ? referenceType.GetGenericArguments()[0] : null;
+    /// <summary>
+    /// Ищет набор в типе поля, разбирая коллекцию и цепочку наследования ссылки.
+    /// </summary>
+    /// <param name="fieldType">Тип поля или его элемента.</param>
+    private static Type GetProviderType(Type fieldType)
+    {
+        if (fieldType == null)
+            return null;
+
+        if (typeof(EnumerationReference).IsAssignableFrom(fieldType))
+        {
+            // Набор задан в обобщённом предке: у наследника с готовым набором своих
+            // аргументов нет.
+            for (Type type = fieldType; type != null; type = type.BaseType)
+            {
+                if (type.IsGenericType)
+                    return type.GetGenericArguments()[0];
+            }
+
+            return null;
+        }
+
+        if (fieldType.IsArray)
+            return GetProviderType(fieldType.GetElementType());
+
+        return fieldType.IsGenericType ? GetProviderType(fieldType.GetGenericArguments()[0]) : null;
     }
 
     private string[] GetOptions()
