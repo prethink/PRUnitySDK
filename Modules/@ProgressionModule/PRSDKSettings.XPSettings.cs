@@ -7,7 +7,7 @@ public partial class PRSDKSettings
 }
 
 [Serializable]
-public class XPSettings
+public partial class XPSettings
 {
     [field: Header("XP система")]
     [Tooltip("Стартовое количество очков для расчета уровней")]
