@@ -12,6 +12,7 @@
 | `GameObjectExtensions.cs` | Поиск компонентов, работа с иерархией и обновление UI layout |
 | `ItemExtensions.cs` | Получение локализованного имени предмета |
 | `ListExtensions.cs` | Циклическая навигация и добавление с заменой |
+| `NumberExtensions.cs` | Приведение `decimal` к `long` с обрезкой по нулю и `long.MaxValue` |
 | `QualityExtension.cs` | Сравнение и локализация качества |
 | `ReflectionExtension.cs` | Вызов методов по SDK-атрибутам и поиск реализаций типов |
 | `SDKExtensions.cs` | Получение Unity-компонентов через `IEntity` |

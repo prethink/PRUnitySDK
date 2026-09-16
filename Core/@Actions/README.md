@@ -13,6 +13,7 @@
 | `ActionMonoBehaviourBase` | Основа действий-компонентов |
 | `InlineActionBase` | Основа действий, настраиваемых прямо в инспекторе владельца |
 | `IconActionBase` | ScriptableObject-действие с иконкой |
+| `TimedActionBase` | ScriptableObject-действие со сроком: дни, часы и минуты |
 | `InlineActionContainer` | Ассет с одним встроенным действием |
 | `InlineActionPipeline` | Ассет из нескольких встроенных действий по порядку |
 | `ActionSequence` | Последовательное выполнение набора действий |

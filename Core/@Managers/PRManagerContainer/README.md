@@ -41,7 +41,7 @@ PRUnitySDK.InitializeManager(() =>
 
 ## Расширение модулем
 
-Не редактируйте центральный список для модульного менеджера. Создайте рядом с модулем partial-файл по образцу `Modules/@ProgressionModule/PRManagerContainer.XPManager.cs`:
+Не редактируйте центральный список для модульного менеджера. Создайте рядом с модулем partial-файл — образец в проектном слое, `PRUnitySDKPrivate/Modules/@ProgressionModule/PRManagerContainer.XPManager.cs`:
 
 ```csharp
 public partial class PRManagerContainer

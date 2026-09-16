@@ -38,7 +38,7 @@
 | [`Entity`](Core/@Entity/README.md) / Items / [`Wallet`](Core/Wallet/README.md) / [`Reward`](Core/Reward/README.md) | Базовые модели сущностей, предметов, ресурсов и наград |
 | [`GameRules`](Core/GameRules/README.md) | Глобальные ограничения характеристик поверх персональных модификаторов |
 | [`GameDataStorage`](Core/GameDataStorage/README.md) | Сохранение прогресса и [состояния объектов сцены](Core/GameDataStorage/ObjectState/README.md) между запусками |
-| State / Progression / Damage | Переиспользуемые игровые модули |
+| State / Damage | Переиспользуемые игровые модули |
 | Quality / Localization / Logging | Качество предметов, переводы и структурированное логирование |
 
 ## Карта фреймворка
@@ -102,7 +102,6 @@ graph TD
         HitBox["HitBox"]
         Cam["Camera"]
         Tr["Translate"]
-        XP["@ProgressionModule"]
         Tween["DOTweenEffects"]
     end
 
@@ -141,7 +140,6 @@ graph TD
     Damage --> Items
     HitBox --> Damage
     Tween --> Time
-    XP --> Entity
 
     Editor --> Entity
     Editor --> Db
@@ -164,6 +162,9 @@ graph TD
 игры, а один и тот же фреймворк обслуживает несколько игр. Какая из них собирается
 сейчас, указывает `PRSDKProject` — окно `PRUnitySDK/Windows/Project`. Подробности —
 в [PRUnityData/README.md](../PRUnityData/README.md).
+
+Опыт и уровни теперь тоже в проектном слое: `XPManager`, фоновое начисление и бустеры
+опыта живут в [PRUnitySDKPrivate/Modules/@ProgressionModule](../PRUnitySDKPrivate/Modules/@ProgressionModule/README.md).
 
 ## Требования
 
@@ -521,7 +522,7 @@ PRUnitySDK/
 
 ### Модули и интеграции
 
-- [Modules](Modules/README.md) — опциональные игровые модули: `StateManager`, `XPManager`
+- [Modules](Modules/README.md) — опциональные игровые модули: `StateManager`
 - [DamageSystem](Modules/@DamageSystem/README.md) — создание, модификация и применение урона через хуки
 - [HitBox](Modules/HitBox/README.md) — связь физических коллайдеров с `DamageSystem`
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
