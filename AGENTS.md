@@ -351,6 +351,13 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `HealthComponent.HealthInitializedStage` — стадия хуков после `InitHealth`. Отсюда
   сущность достраивают тем, что должно знать её здоровье; в private-слое так создаётся
   полоса здоровья.
+- Система опыта из ядра уехала: `@ProgressionModule` вместе с `XPManager`, `XPSettings`,
+  `XPEvents`, фоновым опытом и бустерами опыта теперь лежит
+  в `PRUnitySDKPrivate/Modules/@ProgressionModule`. Публичный SDK опыта не знает.
+- `TimedActionBase` (`Core/@Actions/Base`) — основа действия, которому задают срок
+  в днях, часах и минутах.
+- `NumberExtensions.ClampToLong` (`Core/#Extensions`) — приведение `decimal` к `long`
+  с обрезкой по нулю и `long.MaxValue`.
 
 Журнал работ проектного слоя — `PRUnitySDKPrivate/WORKLOG.md`.
 
