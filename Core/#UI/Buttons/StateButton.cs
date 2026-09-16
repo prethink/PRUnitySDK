@@ -22,14 +22,31 @@ public class StateButton : ButtonBase
     {
         var container = new ValueStringContainer();
         OnRequestValue?.Invoke(container);
-        if (!string.IsNullOrEmpty(container.Value))
-            buttonIcon.sprite = stateIcon.FirstOrDefault(x => x.Name.Equals(container.Value)).Icon;
+        ApplyState(container);
     }
 
     public void ChangeState(ValueStringContainer container)
     {
-        if (!string.IsNullOrEmpty(container.Value))
-            buttonIcon.sprite = stateIcon.FirstOrDefault(x => x.Name.Equals(container.Value, StringComparison.OrdinalIgnoreCase)).Icon;
+        ApplyState(container);
+    }
+
+    /// <summary>
+    /// Ставит кнопке иконку запрошенного состояния.
+    /// </summary>
+    /// <remarks>
+    /// Состояние без своей иконки оставляет кнопку как есть: пустой список или опечатка
+    /// в имени не должны стирать картинку.
+    /// </remarks>
+    private void ApplyState(ValueStringContainer container)
+    {
+        if (container == null || string.IsNullOrEmpty(container.Value))
+            return;
+
+        var state = stateIcon.FirstOrDefault(
+            x => x.Name.Equals(container.Value, StringComparison.OrdinalIgnoreCase));
+
+        if (state != null)
+            buttonIcon.sprite = state.Icon;
     }
 
     [Serializable]

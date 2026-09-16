@@ -66,7 +66,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
     {
         if (cameraController == null)
         {
-            Debug.LogWarning("Попытка добавить null камеру в стек");
+            PRLog.WriteWarning(this, "Попытка добавить null камеру в стек");
             return;
         }
 
@@ -134,7 +134,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
             if (deadControllers.Count == 0)
                 return;
 
-            Debug.LogWarning($"Найдено {deadControllers.Count} мертвых ссылок в стеке камер, очищаем...");
+            PRLog.WriteWarning(this, $"Найдено {deadControllers.Count} мертвых ссылок в стеке камер, очищаем...");
 
             // Создаем новый стек без мертвых ссылок
             var tempStack = new Stack<CameraControllerBase>();
@@ -171,7 +171,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
                     return controller;
 
                 // Если мертв, удаляем и продолжаем
-                Debug.LogWarning("Удаляем мертвую ссылку из стека камер");
+                PRLog.WriteWarning(this, "Удаляем мертвую ссылку из стека камер");
                 _cameraStack.Pop();
             }
 
@@ -219,7 +219,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
     {
         if (camera == null)
         {
-            Debug.LogError("Попытка установить null как MainCamera");
+            PRLog.WriteError(this, "Попытка установить null как MainCamera");
             return;
         }
         lock (_lock)
@@ -233,7 +233,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
     {
         if (cameraControllerBase == null || camera == null)
         {
-            Debug.LogError("SetCurrent получил null параметры");
+            PRLog.WriteError(this, "SetCurrent получил null параметры");
             return;
         }
 
@@ -282,7 +282,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
                 _cameraStack.Push(tempList[i]);
             }
 
-            Debug.Log($"Удален контроллер из стека. Осталось: {_cameraStack.Count}");
+            PRLog.WriteDebug(this, $"Удален контроллер из стека. Осталось: {_cameraStack.Count}");
         }
     }
 
@@ -298,7 +298,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
 
             if (_cameraStack.Count == 0)
             {
-                Debug.Log("Стек камер пуст, показываем игровые камеры");
+                PRLog.WriteDebug(this, "Стек камер пуст, показываем игровые камеры");
                 ShowPlayerCameras();
                 return;
             }
@@ -308,12 +308,12 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
 
             if (previous == null)
             {
-                Debug.LogWarning("Не найдено живых контроллеров камер в стеке");
+                PRLog.WriteWarning(this, "Не найдено живых контроллеров камер в стеке");
                 ShowPlayerCameras();
                 return;
             }
 
-            Debug.Log($"Восстанавливаем камеру: {previous.gameObject.name}");
+            PRLog.WriteDebug(this, $"Восстанавливаем камеру: {previous.gameObject.name}");
 
             // Активируем найденную камеру
             previous.SetMain(pushInStack: false);

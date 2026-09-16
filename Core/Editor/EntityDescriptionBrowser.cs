@@ -97,11 +97,7 @@ public sealed class EntityDescriptionBrowser : ScriptableObject
         // инспектор после этого падает при первой же отрисовке.
         DestroyInspector();
 
-        assets = AssetDatabase.FindAssets($"t:{searchType}")
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Distinct(StringComparer.Ordinal)
-            .Select(AssetDatabase.LoadAssetAtPath<ScriptableObject>)
-            .Where(asset => asset is IEntityMetadata)
+        assets = EntityDescriptionAssets.Find(searchType)
             .OrderBy(asset => asset.GetType().Name, StringComparer.Ordinal)
             .ThenBy(asset => asset.name, StringComparer.OrdinalIgnoreCase)
             .ToArray();

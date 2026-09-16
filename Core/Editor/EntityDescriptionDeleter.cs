@@ -23,12 +23,7 @@ public static class EntityDescriptionDeleter
     /// <returns><c>true</c>, если ассет удалён.</returns>
     public static bool DeleteAsset(Object asset)
     {
-        if (asset == null)
-            return false;
-
-        string path = AssetDatabase.GetAssetPath(asset);
-
-        if (string.IsNullOrEmpty(path))
+        if (!TryGetAssetPath(asset, out string path))
             return false;
 
         IReadOnlyList<string> usages = EntityMetadataUsageIndex.GetUsages(asset);
@@ -60,12 +55,7 @@ public static class EntityDescriptionDeleter
     /// <returns><c>true</c>, если что-то удалено.</returns>
     public static bool DeleteWithPrefabs(Object asset)
     {
-        if (asset == null)
-            return false;
-
-        string path = AssetDatabase.GetAssetPath(asset);
-
-        if (string.IsNullOrEmpty(path))
+        if (!TryGetAssetPath(asset, out string path))
             return false;
 
         IReadOnlyList<string> prefabs = EntityMetadataUsageIndex.GetPrefabs(asset);
@@ -132,6 +122,16 @@ public static class EntityDescriptionDeleter
     /// Длинный список обрезается: в системном диалоге он всё равно не поместится,
     /// а решение принимается по первым строкам и по их количеству.
     /// </remarks>
+    /// <summary>
+    /// Путь ассета, если удалять вообще есть что.
+    /// </summary>
+    private static bool TryGetAssetPath(Object asset, out string path)
+    {
+        path = asset != null ? AssetDatabase.GetAssetPath(asset) : null;
+
+        return !string.IsNullOrEmpty(path);
+    }
+
     private static string Describe(IReadOnlyList<string> paths)
     {
         const int limit = 10;

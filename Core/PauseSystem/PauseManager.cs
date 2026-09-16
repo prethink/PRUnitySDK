@@ -36,7 +36,7 @@ public class PauseManager : IPauseManager
     /// <summary>
     /// Пауза по причине потери фокуса приложения.
     /// </summary>
-    public bool isFocusPaused;
+    private bool isFocusPaused;
 
     /// <summary>
     /// Музыкальная пауза.

@@ -354,10 +354,19 @@ Partial-поля Settings и Database не требуют ручного доб�
 - Система опыта из ядра уехала: `@ProgressionModule` вместе с `XPManager`, `XPSettings`,
   `XPEvents`, фоновым опытом и бустерами опыта теперь лежит
   в `PRUnitySDKPrivate/Modules/@ProgressionModule`. Публичный SDK опыта не знает.
+- Игровые типы сущностей (`Portal`, `Dashboard`, `Pet`, `Hat`, `Gift`, `Reward`) уехали
+  из `EntityTypeEnumerations` ядра в private partial рядом с самими сущностями. В ядре
+  остались `Unknown`, `Box`, `Common`, `Player`, `GameEvent`; свои типы игра добавляет
+  partial-файлом, а не правкой ядра.
+- `RigidBodyPauseMonitor` удалён. Логическая пауза не трогает `Time.timeScale`, поэтому
+  физика на паузе продолжает считать; что должно замирать — либо на слое `PRTimeScale`
+  с драйвером, либо кинематическое и движимое скриптом. Подробности —
+  в `Core/PauseSystem/README.md`.
 - `TimedActionBase` (`Core/@Actions/Base`) — основа действия, которому задают срок
   в днях, часах и минутах.
 - `NumberExtensions.ClampToLong` (`Core/#Extensions`) — приведение `decimal` к `long`
-  с обрезкой по нулю и `long.MaxValue`.
+  с обрезкой: без параметров по нулю и `long.MaxValue`, с параметрами по своим границам.
+  Им же считает `LongPropertyContainer`.
 
 Журнал работ проектного слоя — `PRUnitySDKPrivate/WORKLOG.md`.
 

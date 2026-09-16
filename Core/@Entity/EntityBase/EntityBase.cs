@@ -165,7 +165,9 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
             return;
         }
 
-        if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.Destroy)
+        Enumeration disposeAction = EntityDisposeAction.ToEnumeration();
+
+        if (disposeAction == EntityDisposeEnumerations.Destroy)
         {
             OnDestroyPool(true);
             Destroy(this.gameObject);
@@ -173,17 +175,18 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         }
         // Условия на activeSelf нет: у спрятанной сущности иначе не остаётся подходящей
         // ветки, и она доходит до предупреждения про пул с полным уничтожением.
-        else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.Hide)
+        else if (disposeAction == EntityDisposeEnumerations.Hide)
         {
             EntityGameObject.SetActive(false);
             return;
         }
-        else if (EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.HideInPool && !InPool && PoolBehaviour.IsInitialize)
+        else if (disposeAction == EntityDisposeEnumerations.HideInPool && !InPool && PoolBehaviour.IsInitialize)
         {
             OnDestroyPool();
             return;
         }
-        else if(EntityDisposeAction.ToEnumeration() == EntityDisposeEnumerations.HideInPool && InPool || !InPool && !PoolBehaviour.IsInitialize)
+        else if ((disposeAction == EntityDisposeEnumerations.HideInPool && InPool)
+                 || (!InPool && !PoolBehaviour.IsInitialize))
         {
             PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} использует настройку {nameof(EntityDisposeEnumerations.HideInPool)}, но при этом создается не через pool system. Объект полностью уничтожен.");
             Destroy(this.gameObject);

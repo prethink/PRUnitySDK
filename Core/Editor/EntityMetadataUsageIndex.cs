@@ -36,9 +36,7 @@ public static class EntityMetadataUsageIndex
     /// <returns>Пути префабов; пусто, если описанием никто не пользуется.</returns>
     public static IReadOnlyList<string> GetPrefabs(Object asset)
     {
-        return GetUsages(asset)
-            .Where(path => path.EndsWith(".prefab", System.StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        return FilterByExtension(asset, ".prefab");
     }
 
     /// <summary>
@@ -50,8 +48,13 @@ public static class EntityMetadataUsageIndex
     /// </remarks>
     public static IReadOnlyList<string> GetScenes(Object asset)
     {
+        return FilterByExtension(asset, ".unity");
+    }
+
+    private static IReadOnlyList<string> FilterByExtension(Object asset, string extension)
+    {
         return GetUsages(asset)
-            .Where(path => path.EndsWith(".unity", System.StringComparison.OrdinalIgnoreCase))
+            .Where(path => path.EndsWith(extension, System.StringComparison.OrdinalIgnoreCase))
             .ToArray();
     }
 
@@ -96,13 +99,7 @@ public static class EntityMetadataUsageIndex
     {
         var result = new Dictionary<string, List<string>>();
 
-        // Описания и определения индексируются вместе: и то и другое - то, чем сущность
-        // представляется игроку, и вопрос «кто этим пользуется» к ним одинаковый.
-        var metadataPaths = new HashSet<string>(
-            AssetDatabase.FindAssets($"t:{nameof(EntityMetadataBase)}")
-                .Concat(AssetDatabase.FindAssets($"t:{nameof(ItemDefinitionBase)}"))
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .Where(path => !string.IsNullOrEmpty(path)));
+        var metadataPaths = new HashSet<string>(EntityDescriptionAssets.FindPaths());
 
         if (metadataPaths.Count == 0)
             return result;

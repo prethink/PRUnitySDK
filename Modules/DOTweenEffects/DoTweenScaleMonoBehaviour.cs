@@ -39,33 +39,15 @@ public class DoTweenScaleMonoBehaviour : DoTweenBaseEffectMonoBehaviour
         bool animateY = scale.y != 0 && !Mathf.Approximately(scale.y, startScale.y);
         bool animateZ = scale.z != 0 && !Mathf.Approximately(scale.z, startScale.z);
 
-        if (animateX && animateY && animateZ)
+        if (animateX || animateY || animateZ)
         {
-            tween = gameObject.transform.DOScale(scale, duration);
-        }
-        else if (animateX && animateY)
-        {
-            tween = gameObject.transform.DOScale(new Vector2(scale.x, scale.y), duration);
-        }
-        else if (animateX && animateZ)
-        {
-            tween = gameObject.transform.DOScale(new Vector3(scale.x, startScale.y, scale.z), duration);
-        }
-        else if (animateY && animateZ)
-        {
-            tween = gameObject.transform.DOScale(new Vector3(startScale.x, scale.y, scale.z), duration);
-        }
-        else if (animateX)
-        {
-            tween = gameObject.transform.DOScaleX(scale.x, duration);
-        }
-        else if (animateY)
-        {
-            tween = gameObject.transform.DOScaleY(scale.y, duration);
-        }
-        else if (animateZ)
-        {
-            tween = gameObject.transform.DOScaleZ(scale.z, duration);
+            // Оси, которые не анимируются, остаются в исходном масштабе.
+            var target = new Vector3(
+                animateX ? scale.x : startScale.x,
+                animateY ? scale.y : startScale.y,
+                animateZ ? scale.z : startScale.z);
+
+            tween = gameObject.transform.DOScale(target, duration);
         }
         else
         {

@@ -59,13 +59,4 @@ public class ProjectProperties : ICloneable
         return clone;
     }
 
-    public ProjectProperties()
-    {
-        ObjectProperties = new Dictionary<string, object>(ObjectProperties);
-        LongProperties = new Dictionary<string, long>(LongProperties);
-        DateTimeProperties = new Dictionary<string, DateTime>(DateTimeProperties);
-        StringProperties = new Dictionary<string, string>(StringProperties);
-        FloatProperties = new Dictionary<string, float>(FloatProperties);
-        BoolProperties = new Dictionary<string, bool>(BoolProperties);
-    }
 }

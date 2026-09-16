@@ -60,7 +60,7 @@ public class Player : EntityBase<PlayerMetadata>
 | Уничтожение | `DestroyEntity()` с учётом пула и настройки `EntityDisposeAction` |
 | Пул | Реализация `IPoolable` через `PoolBehaviour` |
 | Пауза и время | Наследуется от `PRMonoBehaviour`; слой времени — `GetTimeScaleLayer()` |
-| Мониторы | Автоматически подхватывает `RigidBodyPauseMonitor` и `AnimatorPauseMonitor` |
+| Мониторы | Автоматически подхватывает `AnimatorPauseMonitor` |
 
 ### Какой базовый класс выбрать
 

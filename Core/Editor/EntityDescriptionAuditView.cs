@@ -133,12 +133,7 @@ public sealed class EntityDescriptionAuditView : ScriptableObject
 
     private static IEnumerable<ScriptableObject> FindDescriptions()
     {
-        return AssetDatabase.FindAssets($"t:{nameof(EntityMetadataBase)}")
-            .Concat(AssetDatabase.FindAssets($"t:{nameof(ItemDefinitionBase)}"))
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Distinct(System.StringComparer.Ordinal)
-            .Select(AssetDatabase.LoadAssetAtPath<ScriptableObject>)
-            .Where(asset => asset is IEntityMetadata);
+        return EntityDescriptionAssets.Find();
     }
 
     private static int Rank(MessageType severity)

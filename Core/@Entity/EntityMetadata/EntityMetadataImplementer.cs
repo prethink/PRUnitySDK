@@ -20,7 +20,7 @@ public class EntityMetadataImplementer : IEntityMetadata
     /// <summary>
     /// Модификаторы характеристик, которые описание добавляет сущности.
     /// </summary>
-    public IEnumerable<StatModifier> StatModifiers { get; } = new List<StatModifier>();
+    public IEnumerable<StatModifier> StatModifiers { get; } = Array.Empty<StatModifier>();
 
     public EntityMetadataImplementer(
         Guid type,

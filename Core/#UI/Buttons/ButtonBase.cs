@@ -92,8 +92,17 @@ public class ButtonBase : PRMonoBehaviour
         PRUnitySDK.Metric.Send($"button", "click", metricKey);
     }
 
+    /// <summary>
+    /// Играет звук нажатия, если он задан на самой кнопке.
+    /// </summary>
+    /// <remarks>
+    /// Общего звука кнопки у SDK нет: каждая кнопка звучит своим клипом или молчит.
+    /// </remarks>
     public void ClickSound()
     {
-        //TODO:PRUnitySDK.Managers.SoundManager.PlaySoundUIOneShot(clickSound != null ? clickSound : soundDatabase.UISound.ButtonClick);
+        if (clickSound == null || PRUnitySDK.Managers.Sound == null)
+            return;
+
+        PRUnitySDK.Managers.Sound.PlaySoundUIOneShot(clickSound);
     }
 }

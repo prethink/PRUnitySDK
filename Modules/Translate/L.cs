@@ -18,22 +18,27 @@ public static class L
             return key;
 
         var localizationDataBase = PRUnitySDK.Database.LocalizationDatabase;
-        var translate = string.Empty;
-        var projectLocalization = localizationDataBase.Project.FirstOrDefault(x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (projectLocalization != null)
-            translate = projectLocalization.GetTranslate(languageTranslator.GetCurrentLang());
 
-        if (!string.IsNullOrEmpty(translate))
-            return GetTranslate(translate, args);
+        // Проектная база важнее общей: игра переопределяет строку SDK своим ключом.
+        var translate = FindTranslate(localizationDataBase.Project, key);
 
-        var commonLocalization = localizationDataBase.Common.FirstOrDefault(x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (commonLocalization != null)
-            translate = commonLocalization.GetTranslate(languageTranslator.GetCurrentLang());
+        if (string.IsNullOrEmpty(translate))
+            translate = FindTranslate(localizationDataBase.Common, key);
 
-        if (!string.IsNullOrEmpty(translate))
-            return GetTranslate(translate, args);
+        return string.IsNullOrEmpty(translate)
+            ? $"NOT_FOUND_KEY_{key}"
+            : GetTranslate(translate, args);
+    }
 
-        return $"NOT_FOUND_KEY_{key}";
+    /// <summary>
+    /// Ищет перевод ключа в указанном списке.
+    /// </summary>
+    private static string FindTranslate(List<LocalizationControl> localizations, string key)
+    {
+        var localization = localizations.FirstOrDefault(
+            x => x.LocalizationKey.Trim().Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        return localization?.GetTranslate(languageTranslator.GetCurrentLang());
     }
 
     public static IReadOnlyDictionary<LangType, string> GetDictionary(string key)

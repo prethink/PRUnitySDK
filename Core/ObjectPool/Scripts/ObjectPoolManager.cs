@@ -191,7 +191,7 @@ public class ObjectPoolManager : MonoBehaviour
     {
         if (objects == null || objects.Count == 0)
         {
-            Debug.LogError($"[ObjectPoolManager] Не удалось зарегистрировать пул '{type}/{category}': список префабов пуст.");
+            PRLog.WriteError(this, $"[ObjectPoolManager] Не удалось зарегистрировать пул '{type}/{category}': список префабов пуст.");
             return;
         }
 
@@ -312,7 +312,7 @@ public class ObjectPoolManager : MonoBehaviour
         var key = new PoolKey(type, category);
         if (!pools.TryGetValue(key, out var entry))
         {
-            Debug.LogError($"[ObjectPoolManager] Пул '{key}' не зарегистрирован. Сначала вызовите RegisterPoolObject.");
+            PRLog.WriteError(this, $"[ObjectPoolManager] Пул '{key}' не зарегистрирован. Сначала вызовите RegisterPoolObject.");
             return null;
         }
 
@@ -457,7 +457,7 @@ public class ObjectPoolManager : MonoBehaviour
         // что приводило к NullReferenceException, если objects == null.
         if (count < 1 || entry?.Prefabs == null || entry.Prefabs.Count == 0)
         {
-            Debug.LogError("[ObjectPoolManager] Невозможно создать объекты пула: некорректные входные данные.");
+            PRLog.WriteError(this, "[ObjectPoolManager] Невозможно создать объекты пула: некорректные входные данные.");
             yield break;
         }
 
@@ -643,7 +643,7 @@ public class ObjectPoolManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"[ObjectPoolManager] Не найден пул с ключом '{key}'.");
+            PRLog.WriteError(this, $"[ObjectPoolManager] Не найден пул с ключом '{key}'.");
         }
     }
 
@@ -659,20 +659,6 @@ public class ObjectPoolManager : MonoBehaviour
 
     #endregion
 
-    #region Monobehaviour
-
-    private void Start()
-    {
-        //this.SetParentSystem();
-
-        //foreach (var container in resourceContainer.PoolManagerContainer.GetAllData)
-        //{
-        //    foreach (var pool in container.Value)
-        //        RegisterPoolObject(container.GetKey(), pool.Name, pool.Prefabs, pool.Count);
-        //}
-    }
-
-    #endregion
 }
 
 public class ObjectPoolManagerFactory : SingletonMonoBehaviourFactoryBase<ObjectPoolManager>
