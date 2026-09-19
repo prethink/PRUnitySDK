@@ -465,7 +465,7 @@ PRUnitySDK/
 
 - [SDK](Core/SDK/README.md) — facade, инициализация и service resolver
 - [ResourcePaths](Core/ResourcePaths/README.md) — канонические пути к runtime-ресурсам и правила расширения
-- [Окна Database и Settings](Core/Editor/README.md) — секции, поиск, заполнение каталогов, валидация definitions
+- [Окна Database и Settings](Core/Editor/README.md) — секции с описанием и сбросом, поиск, заполнение каталогов, валидация definitions
   и [наборы состава базы](Core/Editor/DATABASE-PRESETS.md) для разных игр
 - [Attributes](Core/@Attributes/README.md) — method hooks, переопределение сервисов и расширение Inspector
 - [Actions](Core/@Actions/README.md) — переиспользуемые действия с единым контрактом проверки и выполнения
@@ -508,7 +508,7 @@ PRUnitySDK/
 - [Wallet](Core/Wallet/README.md) — баланс, начисление и списание валюты поверх `ResourceManager`
 - [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
-- [Локализация](Modules/Translate/README.md) — переводы в базе, ассетах и на префабах, сбор и обмен через CSV
+- [Локализация](Modules/Translate/README.md) — переводы в базе, ассетах и на префабах, живой перевод чисел, сбор и обмен через CSV
 - [Utils](Core/%23Utils/README.md) — мелкие помощники: логирование, ресурсы, работа с материалами
 - [GameDataStorage](Core/GameDataStorage/README.md) — storage-контракты и универсальный `ProjectDataMap`
 - [Состояние объекта сцены](Core/GameDataStorage/ObjectState/README.md) — `SaveableObjectState`: объект появляется таким, каким его оставили

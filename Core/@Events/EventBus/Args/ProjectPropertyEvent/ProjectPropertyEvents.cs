@@ -51,6 +51,14 @@ public static class ProjectPropertyEvents
             return;
         }
 
+        if (typeof(T) == typeof(decimal))
+        {
+            var previous = (decimal)(object)previousValue;
+            var current = (decimal)(object)currentValue;
+            EventBus.RaiseEvent<IDecimalProjectPropertyChangedEvent>(invoke => invoke.OnDecimalProjectPropertyChanged(propertyName, previous, current));
+            return;
+        }
+
         if (typeof(T) == typeof(bool))
         {
             var previous = (bool)(object)previousValue;

@@ -2,9 +2,13 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Добавляет инструменты проверки языка в стандартный Inspector <see cref="LocalizationObserver"/>.
+/// Добавляет инструменты проверки языка в стандартный Inspector наблюдателей перевода.
 /// </summary>
-[CustomEditor(typeof(LocalizationObserver), true)]
+/// <remarks>
+/// Редактор один на всех: кнопки переключают язык, а какой источник у наблюдателя —
+/// провайдер или ключ — для проверки неважно.
+/// </remarks>
+[CustomEditor(typeof(LocalizationObserverBase), true)]
 public sealed class LocalizationObserverEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Свойства проекта (long/float/DateTime/string/bool) по строковому имени
+/// Свойства проекта (long/float/decimal/DateTime/string/bool) по строковому имени
 /// в <c>GameManager.GetProjectData().ProjectProperties</c>. Set* по умолчанию сразу
 /// пишет данные на диск.
 /// </summary>
@@ -83,6 +83,32 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
+    /// Сохраняет значение decimal под именем name. save определяет, будет ли сразу
+    /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
+    /// будет ли разослано уведомление об изменении (см. описание класса).
+    /// </summary>
+    /// <remarks>
+    /// Тип для счёта, который копится дробными долями и растёт без предела: опыт,
+    /// множители, мягкая валюта. У float в таком счёте точность уходит вместе с ростом
+    /// числа, и мелкие начисления перестают доходить.
+    /// </remarks>
+    public void SetDecimal(string name, decimal value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
+    {
+        SetValue(name, value, save, ignoreSaveCooldown, requiredNotify);
+    }
+
+    /// <summary>
+    /// Прибавляет value к текущему значению свойства name (0, если свойства ещё
+    /// не было) и сохраняет результат через SetDecimal. Результат упирается в границы
+    /// decimal, а не роняет игру переполнением.
+    /// </summary>
+    public void AddDecimal(string name, decimal value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
+    {
+        TryGetDecimal(name, out var currentValue);
+        SetDecimal(name, currentValue.AddSafe(value), save, ignoreSaveCooldown, requiredNotify);
+    }
+
+    /// <summary>
     /// Сохраняет значение bool под именем name. save определяет, будет ли сразу
     /// вызван GameManager.SaveProjectData() (запись на диск), requiredNotify -
     /// будет ли разослано уведомление об изменении (см. описание класса).
@@ -154,6 +180,11 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// value будет содержать 0.</summary>
     public bool TryGetFloat(string name, out float value) => TryGetValue(name, out value);
 
+    /// <summary>Пытается получить значение decimal по имени name. Возвращает
+    /// false, если свойство с таким именем не было сохранено - в этом случае
+    /// value будет содержать 0.</summary>
+    public bool TryGetDecimal(string name, out decimal value) => TryGetValue(name, out value);
+
     /// <summary>Пытается получить значение bool по имени name. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать false.</summary>
@@ -176,6 +207,10 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>Возвращает значение float по имени name, либо fallback, если свойство
     /// ещё не сохранялось - например, значение настройки по умолчанию.</summary>
     public float GetFloat(string name, float fallback = 0f) => TryGetFloat(name, out var value) ? value : fallback;
+
+    /// <summary>Возвращает значение decimal по имени name, либо fallback, если свойство
+    /// ещё не сохранялось - например, стартовое количество опыта.</summary>
+    public decimal GetDecimal(string name, decimal fallback = 0m) => TryGetDecimal(name, out var value) ? value : fallback;
 
     /// <summary>Возвращает значение bool по имени name, либо fallback, если свойство
     /// ещё не сохранялось. Указывать fallback нужно там, где значимо именно
@@ -203,6 +238,11 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// value будет содержать 0.</summary>
     public bool TryGetFloat(Enumeration enumeration, out float value) => TryGetValue(enumeration.Value, out value);
 
+    /// <summary>Пытается получить значение decimal по ключу enumeration. Возвращает
+    /// false, если свойство с таким именем не было сохранено - в этом случае
+    /// value будет содержать 0.</summary>
+    public bool TryGetDecimal(Enumeration enumeration, out decimal value) => TryGetValue(enumeration.Value, out value);
+
     /// <summary>Пытается получить значение bool по ключу enumeration. Возвращает
     /// false, если свойство с таким именем не было сохранено - в этом случае
     /// value будет содержать false.</summary>
@@ -224,6 +264,10 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     /// <summary>Возвращает значение float по ключу enumeration, либо fallback,
     /// если свойство ещё не сохранялось.</summary>
     public float GetFloat(Enumeration enumeration, float fallback = 0f) => TryGetFloat(enumeration.Value, out var value) ? value : fallback;
+
+    /// <summary>Возвращает значение decimal по ключу enumeration, либо fallback,
+    /// если свойство ещё не сохранялось.</summary>
+    public decimal GetDecimal(Enumeration enumeration, decimal fallback = 0m) => TryGetDecimal(enumeration.Value, out var value) ? value : fallback;
 
     /// <summary>Возвращает значение bool по ключу enumeration, либо fallback,
     /// если свойство ещё не сохранялось.</summary>
@@ -276,6 +320,15 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     }
 
     /// <summary>
+    /// Перегрузка AddDecimal для типизированного ключа <see cref="EnumerationType{T}"/> с T = decimal.
+    /// </summary>
+    public void AddDecimal(EnumerationType<decimal> enumerationType, decimal value, bool save = true, bool ignoreSaveCooldown = false, bool requiredNotify = true)
+    {
+        TryGetValue(enumerationType, out var currentValue);
+        SetValue(enumerationType, currentValue.AddSafe(value), save, ignoreSaveCooldown, requiredNotify);
+    }
+
+    /// <summary>
     /// Общая реализация для всех TryGet*-методов - находит нужный словарь через
     /// GetProperties&lt;T&gt;() и делегирует в его обычный Dictionary.TryGetValue.
     /// </summary>
@@ -318,6 +371,8 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
             removed = stringMap.TryRemoveValue(propertyName, out _);
         else if (type == typeof(bool))
             removed = boolMap.TryRemoveValue(propertyName, out _);
+        else if (type == typeof(decimal))
+            removed = decimalMap.TryRemoveValue(propertyName, out _);
         else
         {
             // Неизвестный тип: предупреждаем, чтобы опечатка в typeof(...) у вызывающего
@@ -385,6 +440,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
     private readonly ProjectDataMap<string, DateTime> dateTimeMap;
     private readonly ProjectDataMap<string, string> stringMap;
     private readonly ProjectDataMap<string, bool> boolMap;
+    private readonly ProjectDataMap<string, decimal> decimalMap;
 
     public ProjectPropertiesManager()
     {
@@ -393,6 +449,7 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
         dateTimeMap = CreateMap(properties => properties.DateTimeProperties);
         stringMap = CreateMap(properties => properties.StringProperties);
         boolMap = CreateMap(properties => properties.BoolProperties);
+        decimalMap = CreateMap(properties => properties.DecimalProperties);
     }
 
     private static ProjectDataMap<string, T> CreateMap<T>(Func<ProjectProperties, IDictionary<string, T>> selector)
@@ -424,6 +481,9 @@ public class ProjectPropertiesManager : SingletonProviderBase<ProjectPropertiesM
 
         if (typeof(T) == typeof(bool))
             return (ProjectDataMap<string, T>)(object)boolMap;
+
+        if (typeof(T) == typeof(decimal))
+            return (ProjectDataMap<string, T>)(object)decimalMap;
 
         throw new NotSupportedException($"Тип свойства '{typeof(T)}' не поддерживается ProjectPropertiesManager.");
     }

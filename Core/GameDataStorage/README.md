@@ -51,12 +51,25 @@ ValueChange<long> change = resources.SetValue("Coin", 100);
 | Сервис | Словарь в `ProjectData` | Что решает сам |
 | --- | --- | --- |
 | [ResourceManager](../Items/Resources/README.md) | `Resources` | сохранение, `IResourceValueChangedEvent` |
-| [ProjectPropertiesManager](../@Managers/ProjectPropertiesManager/README.md) | словари `ProjectProperties` по типам | сохранение, типизированные события свойств |
+| [ProjectPropertiesManager](../@Managers/ProjectPropertiesManager/README.md) | словари `ProjectProperties` по типам (`long`, `float`, `decimal`, `DateTime`, `string`, `bool`) | сохранение, типизированные события свойств |
 | [TimeLimitedRewardService](../Reward/README.md#ограниченные-по-времени-награды) | `TimeLimitedRewards` | сохранение, события выдачи и истечения |
 
 Заводить отдельный словарь стоит, когда данные образуют самостоятельный домен: их нужно
 перечислять, чистить целиком или обрабатывать по своим правилам. Разовые значения без
 такой потребности достаточно хранить в `ProjectProperties`.
+
+## Настройки сохранения
+
+`GameStorageSettings` (раздел `Game Storage` в окне `PRUnitySDK/Windows/Settings`) —
+автосохранение и его период, стратегия записи, шифрование и его стратегия при загрузке.
+
+Раздел реализует `IDefaultSettings`, поэтому у него в окне настроек работает кнопка
+«Сбросить»: она зовёт `SetDefaultSettings` — тот же метод, которым заполняется новый
+ассет настроек.
+
+Стратегию записи и шифрование меняют до релиза. Сохранения, записанные по прежним
+правилам, после такой правки читаются уже не так, и у игрока на руках остаётся файл,
+который игра не понимает, — поэтому раздел помечен предупреждением прямо в окне.
 
 ## PRGameStorageService
 

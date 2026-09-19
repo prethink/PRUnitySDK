@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
+[SettingsDescription("Режим проекта: что считается релизом, сколько писать в лог, как разрешаются зависимости. Отсюда начинают, когда игра ведёт себя в сборке иначе, чем в редакторе.")]
 public partial class PRProjectSettings
 {
     [field: SerializeField] public ReleaseType ReleaseType { get; protected set; }
@@ -30,6 +31,7 @@ public enum ResolveStrategy
 }
 
 [Serializable]
+[SettingsDescription("Хост для PRMonoBehaviour без своего объекта на сцене: как он создаётся и живёт между сценами.")]
 public class PRMonobehaviourHostSettings
 {
     [field: SerializeField] public float Tick { get; protected set; }

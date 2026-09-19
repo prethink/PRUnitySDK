@@ -12,7 +12,7 @@
 | `GameObjectExtensions.cs` | Поиск компонентов, работа с иерархией и обновление UI layout |
 | `ItemExtensions.cs` | Получение локализованного имени предмета |
 | `ListExtensions.cs` | Циклическая навигация и добавление с заменой |
-| `NumberExtensions.cs` | Приведение `decimal` к `long` с обрезкой по границам |
+| `NumberExtensions.cs` | Арифметика `decimal`, упирающаяся в предел вместо исключения, и приведение к `long` с обрезкой |
 | `QualityExtension.cs` | Сравнение и локализация качества |
 | `ReflectionExtension.cs` | Вызов методов по SDK-атрибутам и поиск реализаций типов |
 | `SDKExtensions.cs` | Получение Unity-компонентов через `IEntity` |
@@ -40,6 +40,24 @@ IEnumerable<Modifier> modifiers = this.CollectPartialResult<Modifier>(context);
 ```
 
 Подходят методы, возвращающие `T`, `T[]` или `IEnumerable<T>`. Параметры должны быть совместимы с аргументами вызова. `null` разрешён для ссылочных типов и `Nullable<T>`. Методы вызываются по `Order`; результат `null` пропускается с предупреждением.
+
+## Числа без переполнения
+
+`decimal` на переполнении не заворачивается, как целые, а бросает `OverflowException`.
+Для счёта, который копится без предела — опыт, ресурсы, — это означает, что одно
+начисление способно уронить игру, поэтому такой счёт складывают и умножают через
+`NumberExtensions`:
+
+```csharp
+decimal total = current.AddSafe(reward);          // упрётся в decimal.MaxValue
+decimal boosted = amount.MultiplySafe(1.5m);      // и здесь тоже
+decimal score = raw.ClampToPositive();            // минус отбрасывается
+long shown = score.ClampToLong();                 // дробная часть отбрасывается
+```
+
+`AddSafe` и `MultiplySafe` возвращают границу `decimal`, а не бросают исключение: счёт,
+доросший до предела, останавливается, и игрок этого не замечает. Падение на начислении
+заметили бы все.
 
 ## Особенности
 

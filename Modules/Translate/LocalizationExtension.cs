@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 
 /// <summary>
@@ -54,6 +55,60 @@ public static class LocalizationExtension
 
         if (languageComponent != null)
             languageComponent.SetLocalization(localization);
+    }
+
+    /// <summary>
+    /// Привязывает к тексту источник перевода и аргументы, которые пересобираются
+    /// при смене языка.
+    /// </summary>
+    /// <remarks>
+    /// Так отдают аргументы, зависящие от языка. Прежде всего это числа: у сокращённого
+    /// числа подпись разряда переводится (<c>12,3K</c> против <c>12,3 тыс.</c>), и готовая
+    /// строка после смены языка осталась бы от прежнего.
+    /// </remarks>
+    public static void SetLocalization(this TextMeshProUGUI textMesh, ILocalizationProvider localization,
+        Func<string[]> args)
+    {
+        LocalizationObserver languageComponent = textMesh.GetLanguageComponent();
+
+        if (languageComponent != null)
+            languageComponent.SetLocalization(localization, args);
+    }
+
+    /// <summary>
+    /// Показывает в тексте одно число и держит его переведённым.
+    /// </summary>
+    /// <remarks>
+    /// Для подписей, которые состоят из числа и ничего больше: счётчик в ячейке хотбара,
+    /// количество в списке. Присвоенное в <c>text</c>, такое число выглядит непереводимым,
+    /// но его разряд — тоже слово, и при смене языка он должен меняться.
+    /// <para>
+    /// Число берётся функцией: наблюдатель зовёт её на каждую смену языка. Менять само
+    /// значение по ходу игры она не обязана — достаточно, чтобы отдавала текущее.
+    /// </para>
+    /// </remarks>
+    /// <param name="textMesh">Текст, в котором показывается число.</param>
+    /// <param name="value">Источник числа.</param>
+    /// <param name="minDigitsBeforeShorten">
+    /// С какой длины целой части число сокращается разрядом.
+    /// </param>
+    public static void SetLocalizedNumber(this TextMeshProUGUI textMesh, Func<decimal> value,
+        int minDigitsBeforeShorten = 5)
+    {
+        if (value == null)
+            return;
+
+        textMesh.SetLocalization(NumberLabels.Value,
+            () => new[] { NumberConverter.FormatNumber(value.Invoke(), minDigitsBeforeShorten) });
+    }
+
+    /// <summary>
+    /// Показывает в тексте одно число, не меняющееся до следующего вызова.
+    /// </summary>
+    public static void SetLocalizedNumber(this TextMeshProUGUI textMesh, decimal value,
+        int minDigitsBeforeShorten = 5)
+    {
+        textMesh.SetLocalizedNumber(() => value, minDigitsBeforeShorten);
     }
 
     /// <summary>

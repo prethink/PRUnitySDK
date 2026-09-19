@@ -41,6 +41,40 @@ public static class L
         return localization?.GetTranslate(languageTranslator.GetCurrentLang());
     }
 
+    /// <summary>
+    /// Перевод ключа, если он есть в базе.
+    /// </summary>
+    /// <remarks>
+    /// В отличие от <see cref="Tr"/>, отсутствующий ключ здесь не превращается
+    /// в <c>NOT_FOUND_KEY_*</c>: вызывающий код сам решает, показать запасной вариант
+    /// или ничего. Нужен там, где пометка на экране хуже, чем непереведённая строка, —
+    /// например у подписей разрядов числа.
+    /// </remarks>
+    public static bool TryTr(string key, out string value, params string[] args)
+    {
+        value = string.Empty;
+
+        if (languageTranslator == null || string.IsNullOrEmpty(key))
+            return false;
+
+        var localizationDataBase = PRUnitySDK.Database.LocalizationDatabase;
+
+        if (localizationDataBase == null)
+            return false;
+
+        // Порядок тот же, что у Tr: проектная база переопределяет общую.
+        var translate = FindTranslate(localizationDataBase.Project, key);
+
+        if (string.IsNullOrEmpty(translate))
+            translate = FindTranslate(localizationDataBase.Common, key);
+
+        if (string.IsNullOrEmpty(translate))
+            return false;
+
+        value = GetTranslate(translate, args);
+        return true;
+    }
+
     public static IReadOnlyDictionary<LangType, string> GetDictionary(string key)
     {
         var localizationDataBase = PRUnitySDK.Database.LocalizationDatabase;

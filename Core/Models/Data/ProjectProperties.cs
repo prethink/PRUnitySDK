@@ -41,6 +41,17 @@ public class ProjectProperties : ICloneable
     public Dictionary<string, bool> BoolProperties = new();
 
     /// <summary>
+    /// Словарь для хранения свойств типа decimal.
+    /// </summary>
+    /// <remarks>
+    /// Отдельный от float: счёт, который копится дробными долями — опыт, мягкая валюта, —
+    /// на float теряет точность тем быстрее, чем больше накопил, и в сохранении это видно
+    /// как съеденные начисления.
+    /// </remarks>
+    [JsonProperty("dec")]
+    public Dictionary<string, decimal> DecimalProperties = new();
+
+    /// <summary>
     /// Создает глубокую копию объекта ProjectProperties.
     /// </summary>
     /// <returns>Глубокая копия объекта ProjectProperties.</returns>
@@ -53,7 +64,8 @@ public class ProjectProperties : ICloneable
             DateTimeProperties = new Dictionary<string, DateTime>(DateTimeProperties),
             StringProperties = new Dictionary<string, string>(StringProperties),
             FloatProperties = new Dictionary<string, float>(FloatProperties),
-            BoolProperties = new Dictionary<string, bool>(BoolProperties)
+            BoolProperties = new Dictionary<string, bool>(BoolProperties),
+            DecimalProperties = new Dictionary<string, decimal>(DecimalProperties)
         };
 
         return clone;

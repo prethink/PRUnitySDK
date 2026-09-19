@@ -2,6 +2,7 @@
 using UnityEngine;
 
 [Serializable]
+[SettingsDescription("С чего начинает новый игрок: громкость, чувствительность, инверсия осей, курсор. Это только стартовые значения — дальше их меняет сам игрок, и сохранение важнее того, что стоит здесь.")]
 public class DefaultSettings 
 {
     /// <summary>

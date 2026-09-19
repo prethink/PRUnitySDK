@@ -16,7 +16,8 @@ public partial class PRSDKSettings
 /// Настройки для сохранения.
 /// </summary>
 [Serializable]
-public class GameStorageSettings
+[SettingsDescription("Сохранение: автосохранение и его период, стратегия записи, шифрование. Шифрование и стратегию меняют до релиза: сохранения игроков, записанные по прежним правилам, читаются уже не так.", Warning = "Правка после релиза может обесценить сохранения на руках у игроков.")]
+public class GameStorageSettings : IDefaultSettings
 {
     /// <summary>
     /// Признак включенного автоматического сохранения данных.

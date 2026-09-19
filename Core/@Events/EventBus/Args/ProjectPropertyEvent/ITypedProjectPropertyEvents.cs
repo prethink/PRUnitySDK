@@ -2,7 +2,7 @@
 /// Уведомления об изменении свойства проекта с уже готовыми значениями нужного типа.
 /// <para>
 /// Интерфейс объявлен для каждого типа отдельно, а не одним generic: набор типов
-/// у ProjectProperties закрыт (long, float, bool, string, DateTime), и подписаться
+/// у ProjectProperties закрыт (long, float, decimal, bool, string, DateTime), и подписаться
 /// на посторонний тип нельзя. Один класс может реализовать сразу несколько интерфейсов.
 /// </para>
 /// <para>
@@ -23,6 +23,13 @@ public interface IFloatProjectPropertyChangedEvent : IGlobalSubscriber
 {
     /// <summary>Вызывается при изменении float-свойства.</summary>
     void OnFloatProjectPropertyChanged(string propertyName, float previousValue, float currentValue);
+}
+
+/// <inheritdoc cref="ILongProjectPropertyChangedEvent"/>
+public interface IDecimalProjectPropertyChangedEvent : IGlobalSubscriber
+{
+    /// <summary>Вызывается при изменении decimal-свойства.</summary>
+    void OnDecimalProjectPropertyChanged(string propertyName, decimal previousValue, decimal currentValue);
 }
 
 /// <inheritdoc cref="ILongProjectPropertyChangedEvent"/>

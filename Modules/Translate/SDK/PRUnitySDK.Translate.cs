@@ -54,6 +54,11 @@
     private static void InitializeLocalization()
     {
         L.InitTranslate(LanguageManager);
+
+        // Подписи разрядов (K, M, B) тоже текст для игрока: в турецком B - это тысяча,
+        // а в английском миллиард. Пока переводов для них нет, числа выводятся латиницей.
+        NumberConverter.SuffixProvider = new LocalizationNumberSuffixProvider();
+
         DefaultLanguage = LocalizationUtils.GetLanguageCode(Database.LocalizationDatabase.DefaultLanguage);
         //if (PRUnitySDK.Settings.Project.ReleaseType == ReleaseType.Debug)
         //    LanguageManager.SwitchLang(DefaultLanguage);

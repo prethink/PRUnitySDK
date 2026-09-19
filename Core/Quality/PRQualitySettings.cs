@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
+[SettingsDescription("Качества предметов: вес в случайной выдаче, цвет подписи и поправка к уровню. Вес — не проценты: шанс считается долей от суммы весов всех качеств, участвующих в розыгрыше.")]
 public class PRQualitySettings
 {
     [field: SerializeField] public bool UseDefaultColor { get; protected set; } = true;

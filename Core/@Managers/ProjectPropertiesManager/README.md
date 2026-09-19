@@ -1,6 +1,6 @@
 # ProjectPropertiesManager
 
-`ProjectPropertiesManager` предоставляет типизированный доступ к произвольным значениям внутри `ProjectData.ProjectProperties`. Поддерживаются `long`, `float`, `DateTime`, `string` и `bool`; каждый тип хранится в отдельном словаре.
+`ProjectPropertiesManager` предоставляет типизированный доступ к произвольным значениям внутри `ProjectData.ProjectProperties`. Поддерживаются `long`, `float`, `decimal`, `DateTime`, `string` и `bool`; каждый тип хранится в отдельном словаре.
 
 После готовности данных менеджер доступен через:
 
@@ -24,6 +24,26 @@ properties.RemoveProperty<long>("Coins");
 ```
 
 Для чтения доступны пары `TryGet*`/`Get*` для каждого поддерживаемого типа.
+
+### Какой тип брать для чисел
+
+| Тип | Для чего |
+| --- | --- |
+| `long` | счётчики и целые величины: сколько раз, сколько штук, какой уровень |
+| `float` | настройки и доли в пределах разумного: громкость, чувствительность, прогресс |
+| `decimal` | счёт, который копится дробными долями и растёт без предела: опыт, мягкая валюта |
+
+Разница между `float` и `decimal` вылезает не сразу: у `float` точность уходит вместе
+с ростом числа, и у игрока с большим счётом мелкие начисления перестают доходить — число
+меняется, а сохранённое значение остаётся прежним. У `decimal` 28 значащих цифр без такого
+эффекта, и вмещает он почти на десять порядков больше `long`.
+
+За это платят скоростью и размером: `decimal` считается заметно медленнее, поэтому
+для настроек и счётчиков он не нужен.
+
+Складывать такой счёт лучше через `AddDecimal` или `AddSafe` из
+[NumberExtensions](../../%23Extensions/README.md#числа-без-переполнения): `decimal`
+на переполнении бросает исключение, а не заворачивается, и одно начисление уронило бы игру.
 
 ### fallback
 
@@ -65,7 +85,7 @@ long b = properties.GetValue(coinsKey, 100L);       // Enumeration
 long c = properties.GetValue(typedCoinsKey, 100L);  // EnumerationType<long>
 ```
 
-Для `EnumerationType<long>` и `EnumerationType<float>` есть `AddLong` и `AddFloat`.
+Для `EnumerationType<long>`, `EnumerationType<float>` и `EnumerationType<decimal>` есть `AddLong`, `AddFloat` и `AddDecimal`.
 
 ## Сохранение
 
@@ -150,6 +170,7 @@ public class CoinsView : MonoBehaviour, ILongProjectPropertyChangedEvent
 | `IProjectPropertyChangedEvent` | `OnProjectPropertyChanged(string)` |
 | `ILongProjectPropertyChangedEvent` | `OnLongProjectPropertyChanged(string, long previous, long current)` |
 | `IFloatProjectPropertyChangedEvent` | `OnFloatProjectPropertyChanged(string, float previous, float current)` |
+| `IDecimalProjectPropertyChangedEvent` | `OnDecimalProjectPropertyChanged(string, decimal previous, decimal current)` |
 | `IBoolProjectPropertyChangedEvent` | `OnBoolProjectPropertyChanged(string, bool previous, bool current)` |
 | `IStringProjectPropertyChangedEvent` | `OnStringProjectPropertyChanged(string, string previous, string current)` |
 | `IDateTimeProjectPropertyChangedEvent` | `OnDateTimeProjectPropertyChanged(string, DateTime previous, DateTime current)` |
@@ -168,10 +189,10 @@ public class CoinsView : MonoBehaviour, ILongProjectPropertyChangedEvent
 
 | Группа | Методы |
 | --- | --- |
-| запись | `SetDateTime`, `SetLong`, `SetString`, `SetFloat`, `SetBool`, `SetValue<T>` |
-| накопление | `AddLong`, `AddFloat` |
-| безопасное чтение | `TryGetDateTime`, `TryGetLong`, `TryGetString`, `TryGetFloat`, `TryGetBool`, `TryGetValue<T>` |
-| чтение с fallback | `GetDateTime`, `GetLong`, `GetString`, `GetFloat`, `GetBool`, `GetValue<T>` — все с необязательным `fallback` |
+| запись | `SetDateTime`, `SetLong`, `SetString`, `SetFloat`, `SetDecimal`, `SetBool`, `SetValue<T>` |
+| накопление | `AddLong`, `AddFloat`, `AddDecimal` |
+| безопасное чтение | `TryGetDateTime`, `TryGetLong`, `TryGetString`, `TryGetFloat`, `TryGetDecimal`, `TryGetBool`, `TryGetValue<T>` |
+| чтение с fallback | `GetDateTime`, `GetLong`, `GetString`, `GetFloat`, `GetDecimal`, `GetBool`, `GetValue<T>` — все с необязательным `fallback` |
 | удаление | `RemoveProperty(string, Type)`, `RemoveProperty<T>(string)`, `RemoveProperty<T>(EnumerationType<T>)` |
 
 ## Универсальное хранилище
