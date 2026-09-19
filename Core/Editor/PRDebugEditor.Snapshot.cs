@@ -40,6 +40,7 @@ public partial class PRDebugEditor
             CaptureFlags();
             CaptureMonoWindows();
             CaptureObjectStates();
+            CaptureSaveValues();
             CaptureBackgroundTasks();
             CaptureGameRules();
             CaptureProblems();
@@ -66,6 +67,7 @@ public partial class PRDebugEditor
         objectStates.Clear();
         objectStatesSavedTotal = 0;
         objectStatesOrphanCount = 0;
+        saveValues.Clear();
         backgroundTasks.Clear();
         statRules.Clear();
         timeScaleRows.Clear();
