@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Resource definition", menuName = "PRUnitySDK/Create/Definition/Resources")]
+[CreateAssetMenu(fileName = "Resource definition", menuName = "PRUnitySDK/Create/Definition/Resources/Resource")]
 public class ResourceItemDefinition : ResourceItemDefinitionBase
 {
     [field: SerializeField] public EnumerationReference<ResourceEnumerations> CurrencyType { get; private set; } = new();
