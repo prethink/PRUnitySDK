@@ -100,6 +100,25 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
     [field: SerializeField] public bool IsBlockDamage { get; protected set; }
 
+    /// <summary>
+    /// Бесконечное здоровье: урон проходит целиком, но не тратится и не убивает.
+    /// </summary>
+    /// <remarks>
+    /// Не то же, что <see cref="IsBlockDamage"/>. Заблокированный урон не проходит вовсе:
+    /// попадание приходит с <see cref="DamageResult.Blocked"/>, эффекты молчат, и бить
+    /// по такой сущности бессмысленно. Здесь наоборот — удар засчитывается полностью,
+    /// цифра урона и вспышка показываются, а здоровье остаётся прежним. Это груша:
+    /// по ней бьют, она отзывается, сломать её нельзя.
+    /// <para>
+    /// Событие <see cref="OnHealthChange"/> при этом не поднимается: здоровье не менялось,
+    /// и полоса над такой сущностью не должна дёргаться. Тем, кому нужен сам факт удара,
+    /// служит <see cref="OnDamageProcessed"/> — через него работают эффекты урона.
+    /// </para>
+    /// </remarks>
+    [field: SerializeField]
+    [field: Tooltip("Бесконечное здоровье: урон проходит и показывается, но не тратится и не убивает.")]
+    public bool IsImmortal { get; protected set; }
+
     [field: SerializeField] public float MaxHealth { get; protected set; } = 100;
 
     [field: SerializeField] public float Health { get; protected set; }
@@ -199,10 +218,17 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
                 InternalTakeDamage();
                 var before = Health;
-                Health = Mathf.Clamp(before - data.Damage, 0f, MaxHealth);
-                var result = Health <= 0f ? DamageResult.Killed : DamageResult.Damaged;
+                var after = Mathf.Clamp(before - data.Damage, 0f, MaxHealth);
+
+                // Бесконечное здоровье тратить нечего, но удар засчитывается целиком:
+                // в результат уходит настоящий урон, иначе AppliedDamage оказался бы нулевым
+                // и по груше не сработали бы ни цифра, ни вспышка.
+                if (!IsImmortal)
+                    Health = after;
+
+                var result = after <= 0f && !IsImmortal ? DamageResult.Killed : DamageResult.Damaged;
                 context.DamageResult = result;
-                context.Outcome = new DamageOutcome(result, data, before, Health, hitPoint, hitCollider);
+                context.Outcome = new DamageOutcome(result, data, before, after, hitPoint, hitCollider);
                 LastDamageOutcome = context.Outcome;
 
                 if (result == DamageResult.Killed)
@@ -236,10 +262,16 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
         if (outcome.Result == DamageResult.Damaged || outcome.Result == DamageResult.Killed)
         {
-            NotifyListeners(OnHealthChange, listener => listener(new HealthChangedEventArgsBase(
-                outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
-            NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(new HealthChangedEventArgsBase(
-                outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
+            // У бесконечного здоровья событие о его изменении не поднимается: оно
+            // не менялось, а полоса над грушей иначе дёргалась бы от каждого удара
+            // и возвращалась бы полной при следующей перерисовке.
+            if (!IsImmortal)
+            {
+                NotifyListeners(OnHealthChange, listener => listener(new HealthChangedEventArgsBase(
+                    outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
+                NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(new HealthChangedEventArgsBase(
+                    outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
+            }
 
             if (killed)
                 NotifyDeath(attacker);
@@ -607,6 +639,16 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     public void SetOverrideIsAlive(Func<bool> overrideFunc)
     {
         overrideIsAlive = overrideFunc;
+    }
+
+    /// <summary>
+    /// Задаёт бесконечное здоровье.
+    /// </summary>
+    /// <param name="value">true - урон проходит и показывается, но не тратится и не убивает.</param>
+    public virtual HealthComponent SetImmortal(bool value)
+    {
+        IsImmortal = value;
+        return this;
     }
 
     public virtual bool IsAlive()
