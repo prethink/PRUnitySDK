@@ -80,6 +80,18 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </summary>
     [SerializeField] protected EnumerationReference<EntityDisposeEnumerations> EntityDisposeAction = new();
 
+    /// <summary>
+    /// Место, поворот и размер, с которыми сущность появилась; к ним её возвращает
+    /// восстановление.
+    /// </summary>
+    private Vector3 startPosition;
+
+    private Quaternion startRotation;
+
+    private Vector3 startScale;
+
+    private bool startTransformCaptured;
+
     #endregion
 
     #region IEntity
@@ -221,6 +233,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
         InitializeEntityMetadata();
         ApplyDescriptionOverrides();
+        CaptureStartTransform();
         InitializeEntity();
     }
 
@@ -348,17 +361,65 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// Возвращает на сцену сущность, спрятанную при уничтожении.
     /// </summary>
     /// <remarks>
+    /// Восстанавливается всё и всегда: место, поворот, состояние. Спрашивать сущность,
+    /// есть ли ей что чинить, мы не пытаемся — надломленный блок, сдвинутый блок и целый
+    /// блок отвечали бы по-разному, а забывший ответить не восстановился бы вовсе и молча.
+    /// <para>
     /// Инициализация повторяется, как при выдаче из пула: для сущности это новое появление
     /// на сцене, и состояние прошлой жизни на ней остаться не должно. Объект включается
     /// до инициализации, иначе она не сможет запустить корутины и работать с компонентами.
+    /// </para>
     /// </remarks>
     public virtual void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
     {
-        if (EntityDisposeAction.ToEnumeration() != EntityDisposeEnumerations.Hide || EntityGameObject.activeSelf)
+        if (EntityDisposeAction.ToEnumeration() != EntityDisposeEnumerations.Hide)
             return;
 
-        EntityGameObject.SetActive(true);
+        if (!EntityGameObject.activeSelf)
+            EntityGameObject.SetActive(true);
+
+        RestoreStartTransform();
         InitializeEntity();
+    }
+
+    /// <summary>
+    /// Запоминает место, поворот и размер, с которыми сущность появилась.
+    /// </summary>
+    /// <remarks>
+    /// До первой инициализации: она уже может сущность подвинуть или раздуть, и тогда
+    /// запомнилось бы не то состояние, с которого всё начиналось.
+    /// <para>
+    /// Размер берётся у <see cref="EntityGameObject"/>, а не у корня иерархии: задают его
+    /// именно телу, а корень обычно остаётся единичным.
+    /// </para>
+    /// </remarks>
+    private void CaptureStartTransform()
+    {
+        if (startTransformCaptured)
+            return;
+
+        startPosition = Position;
+        startRotation = Rotation;
+        startScale = EntityGameObject.transform.localScale;
+        startTransformCaptured = true;
+    }
+
+    /// <summary>
+    /// Возвращает сущность к тому месту, повороту и размеру, с которых она начинала.
+    /// </summary>
+    /// <remarks>
+    /// Блок можно не только разбить: его сталкивают, разворачивают, раздувают зельем.
+    /// Уровень, в котором всё цело, но стоит не там и не такого размера, восстановленным
+    /// не назовёшь.
+    /// </remarks>
+    private void RestoreStartTransform()
+    {
+        if (!startTransformCaptured)
+            return;
+
+        SetPositionAndRotation(startPosition, startRotation);
+
+        EntityGameObject.transform.localScale = startScale;
     }
 
     #endregion

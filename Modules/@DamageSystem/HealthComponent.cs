@@ -105,6 +105,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     [field: SerializeField] public float Health { get; protected set; }
 
 
+
     /// <summary>
     /// Стадия хука «здоровье получило стартовые значения».
     /// </summary>
@@ -402,7 +403,10 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         Health = MaxHealth;
         isAlive = Health > 0;
 
-        var change = new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth);
+        // Помечаем стартовым: разница здесь положительная и от лечения неотличима,
+        // а лечение поднимает полосу над головой. Без метки она выскакивала бы над каждой
+        // появившейся сущностью и над каждой возвращённой на сцену.
+        var change = new HealthChangedEventArgsBase(previousHealth, Health, MaxHealth, null, isInitial: true);
         NotifyListeners(OnHealthChange, listener => listener(change));
         NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(change));
     }

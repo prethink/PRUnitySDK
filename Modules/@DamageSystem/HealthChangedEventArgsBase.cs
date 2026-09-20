@@ -29,6 +29,18 @@ public class HealthChangedEventArgsBase
     public DamageOutcome DamageOutcome { get; }
 
     /// <summary>
+    /// Изменение принесло стартовые значения, а не урон или лечение.
+    /// </summary>
+    /// <remarks>
+    /// Так приходит <see cref="HealthComponent.InitHealth"/>: сущность начинает жизнь
+    /// заново — на сцене, из пула или возвращённой после смерти, — и здоровье встаёт
+    /// на потолок. Разница при этом положительная и от настоящего лечения не отличается,
+    /// поэтому её помечают: полоса над головой поднимается от лечения, и без метки она
+    /// выскакивала бы над каждой только что появившейся сущностью.
+    /// </remarks>
+    public bool IsInitial { get; }
+
+    /// <summary>
     /// Создаёт данные без известного предыдущего значения для обратной совместимости.
     /// </summary>
     /// <param name="currentHealth">Текущее здоровье.</param>
@@ -45,15 +57,18 @@ public class HealthChangedEventArgsBase
     /// <param name="currentHealth">Здоровье после изменения.</param>
     /// <param name="maxHealth">Максимальное здоровье.</param>
     /// <param name="damageOutcome">Связанный результат урона либо <c>null</c>.</param>
+    /// <param name="isInitial">Изменение принесло стартовые значения.</param>
     public HealthChangedEventArgsBase(
         float previousHealth,
         float currentHealth,
         float maxHealth,
-        DamageOutcome damageOutcome = null)
+        DamageOutcome damageOutcome = null,
+        bool isInitial = false)
     {
         PreviousHealth = previousHealth;
         CurrentHealth = currentHealth;
         MaxHealth = maxHealth;
         DamageOutcome = damageOutcome;
+        IsInitial = isInitial;
     }
 }

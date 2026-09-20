@@ -23,7 +23,7 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     #region MonoBehaviour
 
     [Header("Базовые настройки")]
-    [SerializeField] protected Ease ease;
+    [SerializeField, EasePreview] protected Ease ease;
     [SerializeField] protected LoopType loopType;
     [SerializeField] protected int loopCount;
     [SerializeField, Min(0f)] protected float duration;
