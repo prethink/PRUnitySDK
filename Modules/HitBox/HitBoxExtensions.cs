@@ -162,4 +162,90 @@ public static class HitBoxExtensions
 
         return link.Entity.TryGetComponent(out health);
     }
+
+    /// <summary>
+    /// Находит, кому наносить урон: хитбокс, а без него — здоровье.
+    /// Подходит для аргумента <c>OnTriggerEnter</c> и результатов <c>Raycast</c>.
+    /// </summary>
+    /// <remarks>
+    /// Общая форма вместо двух проверок подряд. Порядок не случаен: хитбокс умножает урон
+    /// на зону и помечает крит, а напрямую в здоровье эти правила проходят мимо —
+    /// выстрел в голову засчитался бы обычным.
+    /// <para>
+    /// Порядок здесь ещё и обязателен. <see cref="TryGetHealth(Collider, out HealthComponent)"/>
+    /// находит здоровье <b>через</b> хитбокс, поэтому две проверки подряд срабатывают обе
+    /// и наносят урон дважды. Одна точка входа эту ошибку делает невозможной.
+    /// </para>
+    /// </remarks>
+    public static bool TryGetDamageTarget(this Collider collider, out IDamageable target)
+    {
+        target = null;
+
+        if (collider == null)
+            return false;
+
+        if (collider.TryGetHitBox(out EntityHitBoxBase hitBox))
+        {
+            target = hitBox;
+            return true;
+        }
+
+        if (collider.TryGetHealth(out HealthComponent health))
+        {
+            target = health;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Находит, кому наносить урон при столкновении.
+    /// </summary>
+    public static bool TryGetDamageTarget(this Collision collision, out IDamageable target)
+    {
+        target = null;
+
+        if (collision == null)
+            return false;
+
+        if (collision.TryGetHitBox(out EntityHitBoxBase hitBox))
+        {
+            target = hitBox;
+            return true;
+        }
+
+        if (collision.TryGetHealth(out HealthComponent health))
+        {
+            target = health;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Находит, кому наносить урон, на игровом объекте.
+    /// </summary>
+    public static bool TryGetDamageTarget(this GameObject gameObject, out IDamageable target)
+    {
+        target = null;
+
+        if (gameObject == null)
+            return false;
+
+        if (gameObject.TryGetHitBox(out EntityHitBoxBase hitBox))
+        {
+            target = hitBox;
+            return true;
+        }
+
+        if (gameObject.TryGetHealth(out HealthComponent health))
+        {
+            target = health;
+            return true;
+        }
+
+        return false;
+    }
 }
