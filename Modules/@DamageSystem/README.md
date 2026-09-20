@@ -20,6 +20,7 @@
 | `IDamageProvider` | Источник `DamageData` |
 | `DamageBase` | Базовая реализация провайдера |
 | `CommonDamage` | Универсальный простой урон |
+| `Damages` | Создание урона нужного вида одной строкой |
 | `IDamageable` | Контракт объекта, принимающего урон |
 | `HealthComponent` | Здоровье, смерть, лечение и возрождение сущности |
 | `EntityHitBoxBase` | Перенаправление попадания от коллайдера к сущности |
@@ -56,15 +57,43 @@
 ## Нанесение урона
 
 ```csharp
-IDamageProvider damage = new CommonDamage(
-    damage: 25f,
-    knockBackPower: 4f);
-
 DamageResult result = target.TakeDamage(
     attacker,
     weapon,
-    damage);
+    Damages.Bullet(25f, knockBack: 4f));
 ```
+
+### Виды урона
+
+Наследников на каждый вид в системе нет, и заводить их не нужно. По классу урона никто
+не ветвится: сопротивления, зональные множители и события читают флаги `DamageType`.
+А сам `DamageType` комбинируется — один удар бывает разом огненным, взрывным и по
+площади, — и класс на вид такого не выразил бы.
+
+Выражает это `Damages`:
+
+```csharp
+Damages.Fire(10f);
+Damages.Poison(5f);
+Damages.Of(30f, DamageType.Fire | DamageType.Explosion, knockBack: 5f);
+```
+
+Именованные методы есть на каждый вид из `DamageType`: `Common`, `Fall`, `Bullet`,
+`Fire`, `Ice`, `Electric`, `Poison`, `Radiation`, `Explosion`, `Acid`, `Mental`.
+Составной урон и пометки вроде `AreaOfEffect` — через `Of`. Готовые данные заворачивает
+обратно в провайдер `Damages.From(data)`.
+
+Смысл против голого конструктора один: вид нельзя забыть и нельзя перепутать местами
+с силой отдачи. `new CommonDamage(10f, 0f, DamageType.Fire)` против `Damages.Fire(10f)`.
+
+`Critical` через `Damages` обычно не ставят — его выставляет зональный декоратор при
+попадании в критическую зону.
+
+Класс назван `Damages`, а не `Damage`: неймспейсов в SDK нет, а `Damage` уже занято
+членами в `DamageBase`, `DamageData`, `TakeDamageEvent` и других — внутри них тип
+с таким именем оказался бы затенён.
+
+`new CommonDamage(...)` никуда не делся и работает как раньше.
 
 Если известна точка или конкретный коллайдер попадания, используйте соответствующую перегрузку `TakeDamage()`. Она дополнительно вызовет `OnHitVector` или `OnHitCollider`.
 
