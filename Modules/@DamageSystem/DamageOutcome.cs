@@ -8,11 +8,6 @@ public sealed class DamageOutcome
     private readonly DamageData damageData;
 
     /// <summary>
-    /// Здоровье действительно уменьшилось.
-    /// </summary>
-    private readonly bool healthReduced;
-
-    /// <summary>
     /// Результат обработки попытки нанесения урона.
     /// </summary>
     public DamageResult Result { get; }
@@ -20,11 +15,6 @@ public sealed class DamageOutcome
     /// <summary>
     /// Итог попытки, которая не дошла до здоровья.
     /// </summary>
-    /// <remarks>
-    /// Чтобы <c>TakeDamage</c> никогда не возвращал <c>null</c>: тому, кто не нашёл
-    /// здоровья, ответить нечем, а проверка на <c>null</c> у каждого вызова стоила бы
-    /// дороже общего пустого итога.
-    /// </remarks>
     public static DamageOutcome NotHandled { get; } = new(DamageResult.NotHandled, null, 0f, 0f);
 
     /// <summary>
@@ -43,9 +33,14 @@ public sealed class DamageOutcome
     public float HealthAfter { get; }
 
     /// <summary>
-    /// Фактически снятое здоровье с учётом ограничения диапазоном здоровья.
+    /// Засчитанный урон: потерянные HP у обычной цели, полный урон у бессмертной.
     /// </summary>
-    public float AppliedDamage => HealthBefore - HealthAfter;
+    public float AppliedDamage { get; }
+
+    /// <summary>
+    /// Фактическая потеря HP; у бессмертной цели равна нулю.
+    /// </summary>
+    public float HealthLost => Mathf.Max(0f, HealthBefore - HealthAfter);
 
     /// <summary>
     /// Количество урона, поглощённое сопротивлениями и защитными обработчиками.
@@ -53,25 +48,14 @@ public sealed class DamageOutcome
     public float AbsorbedDamage => damageData?.AbsorbedDamage ?? 0f;
 
     /// <summary>
+    /// Попадание принято, включая смертельное, нулевой урон и удар по бессмертной цели.
+    /// </summary>
+    public bool WasApplied => Result.IsApplied();
+
+    /// <summary>
     /// Здоровье цели действительно уменьшилось.
     /// </summary>
-    /// <remarks>
-    /// Второй вопрос после <c>Result.IsApplied()</c> и отличается от него ровно одним
-    /// случаем: у сущности с бесконечным здоровьем (<c>HealthComponent.IsImmortal</c>)
-    /// удар засчитывается целиком — результат <see cref="DamageResult.Damaged"/>,
-    /// <see cref="AppliedDamage"/> настоящий, эффекты срабатывают, — а тратить нечего.
-    /// <para>
-    /// По самому <see cref="DamageResult"/> это не узнать: груша и обычная цель
-    /// возвращают одно и то же значение. Поэтому ответ живёт здесь, а не расширением
-    /// перечисления.
-    /// </para>
-    /// <para>
-    /// Спрашивают об этом те, кому важна убыль, а не факт удара: прогресс «снесено
-    /// здоровья», достижения, статистика боя. Эффектам и опыту хватает
-    /// <c>IsApplied()</c> — иначе груша перестала бы отзываться.
-    /// </para>
-    /// </remarks>
-    public bool WasHealthReduced => healthReduced && AppliedDamage > 0f;
+    public bool WasHealthReduced => HealthLost > 0f;
 
     /// <summary>
     /// Содержит ли итоговый тип урона флаг <see cref="DamageType.Critical"/>.
@@ -98,9 +82,8 @@ public sealed class DamageOutcome
     /// <param name="healthAfter">Здоровье после обработки.</param>
     /// <param name="hitPoint">Необязательная мировая точка попадания.</param>
     /// <param name="hitCollider">Необязательный коллайдер попадания.</param>
-    /// <param name="healthReduced">
-    /// Здоровье действительно уменьшилось. Ложно у сущности с бесконечным здоровьем:
-    /// урон ей засчитывается целиком, а тратить нечего.
+    /// <param name="appliedDamage">
+    /// Засчитанный урон; если не задан, используется фактическая потеря HP.
     /// </param>
     public DamageOutcome(
         DamageResult result,
@@ -109,7 +92,7 @@ public sealed class DamageOutcome
         float healthAfter,
         Vector3? hitPoint = null,
         Collider hitCollider = null,
-        bool healthReduced = true)
+        float? appliedDamage = null)
     {
         Result = result;
         this.damageData = damageData?.Clone();
@@ -117,6 +100,6 @@ public sealed class DamageOutcome
         HealthAfter = healthAfter;
         HitPoint = hitPoint;
         HitCollider = hitCollider;
-        this.healthReduced = healthReduced;
+        AppliedDamage = appliedDamage ?? HealthLost;
     }
 }

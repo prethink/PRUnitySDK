@@ -25,7 +25,7 @@ public class TakeDamageEvent : CombatEventBase
     public DamageResult Result => Outcome?.Result ?? DamageResult.Damaged;
 
     /// <summary>
-    /// Количество фактически снятого здоровья.
+    /// Засчитанный урон, включая полный урон по бессмертной цели.
     /// </summary>
     public float AppliedDamage => Outcome?.AppliedDamage ?? damage?.Damage ?? 0f;
 

@@ -177,6 +177,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
         var damageHook = new DamageHookEvent(attacker, weapon, Entity, damageProvider, DamageResult.NotHandled);
         var killed = false;
+        var notifyHealthChange = false;
         void Reject(DamageHookEvent context, DamageResult result)
         {
             if (result == DamageResult.Miss)
@@ -218,18 +219,16 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
                 InternalTakeDamage();
                 var before = Health;
-                var after = Mathf.Clamp(before - data.Damage, 0f, MaxHealth);
+                var immortal = IsImmortal;
+                var after = immortal ? before : Mathf.Clamp(before - data.Damage, 0f, MaxHealth);
+                var appliedDamage = immortal ? data.Damage : before - after;
+                Health = after;
+                notifyHealthChange = !immortal;
 
-                // Бесконечное здоровье тратить нечего, но удар засчитывается целиком:
-                // в результат уходит настоящий урон, иначе AppliedDamage оказался бы нулевым
-                // и по груше не сработали бы ни цифра, ни вспышка.
-                if (!IsImmortal)
-                    Health = after;
-
-                var result = after <= 0f && !IsImmortal ? DamageResult.Killed : DamageResult.Damaged;
+                var result = after <= 0f && !immortal ? DamageResult.Killed : DamageResult.Damaged;
                 context.DamageResult = result;
                 context.Outcome = new DamageOutcome(
-                    result, data, before, after, hitPoint, hitCollider, healthReduced: !IsImmortal);
+                    result, data, before, after, hitPoint, hitCollider, appliedDamage);
                 LastDamageOutcome = context.Outcome;
 
                 if (result == DamageResult.Killed)
@@ -261,12 +260,10 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         if (outcome == null)
             return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
-        if (outcome.Result.IsApplied())
+        if (outcome.WasApplied)
         {
-            // У бесконечного здоровья событие о его изменении не поднимается: оно
-            // не менялось, а полоса над грушей иначе дёргалась бы от каждого удара
-            // и возвращалась бы полной при следующей перерисовке.
-            if (!IsImmortal)
+            // Post-хук может переключить бессмертие; событие относится к состоянию в момент удара.
+            if (notifyHealthChange)
             {
                 NotifyListeners(OnHealthChange, listener => listener(new HealthChangedEventArgsBase(
                     outcome.HealthBefore, outcome.HealthAfter, MaxHealth, outcome)));
