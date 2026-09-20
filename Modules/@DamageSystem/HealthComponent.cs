@@ -589,11 +589,6 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         return true;
     }
 
-    private void OnHeathChange()
-    {
-
-    }
-
     /// <summary>
     /// Может ли сущность принимать урон.
     /// </summary>
