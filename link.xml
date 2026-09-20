@@ -3,37 +3,44 @@
 -->
 <linker>
   <assembly fullname="Assembly-CSharp">
-    <type fullname="AbilityEnumerationProvider" preserve="all" />
-    <type fullname="AbilityStatusEnumerationProvider" preserve="all" />
+    <type fullname="AbilityEnumerations" preserve="all" />
+    <type fullname="AbilityStatusEnumerations" preserve="all" />
     <type fullname="AchievementReservedItems" preserve="all" />
-    <type fullname="BackgroundTaskKeyEnumerationProvider" preserve="all" />
+    <type fullname="BackgroundExperienceSourceTask" preserve="all" />
+    <type fullname="BackgroundTaskKeyEnumerations" preserve="all" />
     <type fullname="CaseReservedItems" preserve="all" />
-    <type fullname="CharacterEnumeration" preserve="all" />
-    <type fullname="ContainerTypeEnumerationProvider" preserve="all" />
+    <type fullname="CharacterEnumerations" preserve="all" />
+    <type fullname="ContainerTypeEnumerations" preserve="all" />
     <type fullname="DailyGiftReservedItems" preserve="all" />
-    <type fullname="EntityTypeEnumerationProvider" preserve="all" />
+    <type fullname="EntityDisposeEnumerations" preserve="all" />
+    <type fullname="EntityTypeEnumerations" preserve="all" />
     <type fullname="FreeGiftReservedItems" preserve="all" />
-    <type fullname="GameFlagsEnumerationProvider" preserve="all" />
-    <type fullname="GameSettingsEnumerationProvider" preserve="all" />
-    <type fullname="GizmoEnumerationProvider" preserve="all" />
-    <type fullname="LayersEnumerationProvider" preserve="all" />
-    <type fullname="MonoWindowKeyEnumerationProvider" preserve="all" />
-    <type fullname="NPCStatesEnumerationProvider" preserve="all" />
+    <type fullname="GameFlagsEnumerations" preserve="all" />
+    <type fullname="GameSettingsEnumerations" preserve="all" />
+    <type fullname="GizmoEnumerations" preserve="all" />
+    <type fullname="HotbarInputEnumerations" preserve="all" />
+    <type fullname="InventoryActionEnumerations" preserve="all" />
+    <type fullname="LayersEnumerations" preserve="all" />
+    <type fullname="MonoWindowKeyEnumerations" preserve="all" />
+    <type fullname="NPCStatesEnumerations" preserve="all" />
     <type fullname="NewDayWatcherTask" preserve="all" />
-    <type fullname="NotifiersKeyEnumerationProvider" preserve="all" />
-    <type fullname="PRTimeScaleEnumerationProvider" preserve="all" />
-    <type fullname="PlayerBotStatesEnumerationProvider" preserve="all" />
-    <type fullname="PlayerCameraEnumerationProvider" preserve="all" />
-    <type fullname="PlayerEventEnumerationProvider" preserve="all" />
+    <type fullname="NotifiersKeyEnumerations" preserve="all" />
+    <type fullname="ObjectStateGroupEnumerations" preserve="all" />
+    <type fullname="PRTimeScaleEnumerations" preserve="all" />
+    <type fullname="PlayerBotStatesEnumerations" preserve="all" />
+    <type fullname="PlayerCameraEnumerations" preserve="all" />
+    <type fullname="PlayerEventEnumerations" preserve="all" />
     <type fullname="PlayerFlags" preserve="all" />
-    <type fullname="PlayerInputEnumerationProvider" preserve="all" />
+    <type fullname="PlayerInputEnumerations" preserve="all" />
     <type fullname="PlayerRules" preserve="all" />
-    <type fullname="PlayerStateEnumerationProvider" preserve="all" />
+    <type fullname="PlayerStateEnumerations" preserve="all" />
+    <type fullname="PlayerStateFlags" preserve="all" />
     <type fullname="PlayerStatsEnumeration" preserve="all" />
     <type fullname="PlaytimeTrackerTask" preserve="all" />
-    <type fullname="ResourceEnumerationProvider" preserve="all" />
+    <type fullname="ResourceEnumerations" preserve="all" />
     <type fullname="StateId" preserve="all" />
-    <type fullname="TriggerKeyEnumerationProvider" preserve="all" />
-    <type fullname="UICommandEnumerationProvider" preserve="all" />
+    <type fullname="TriggerKeyEnumerations" preserve="all" />
+    <type fullname="UICommandEnumerations" preserve="all" />
+    <type fullname="WheelOfFortuneReservedItems" preserve="all" />
   </assembly>
 </linker>
