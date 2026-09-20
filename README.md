@@ -37,6 +37,7 @@
 | [`FlagsSystem`](Core/FlagsSystem/README.md) | Совместное управление состояниями объекта из нескольких источников |
 | [`Entity`](Core/@Entity/README.md) / Items / [`Wallet`](Core/Wallet/README.md) / [`Reward`](Core/Reward/README.md) | Базовые модели сущностей, предметов, ресурсов и наград |
 | [`GameRules`](Core/GameRules/README.md) | Глобальные ограничения характеристик поверх персональных модификаторов |
+| [`Conditions`](Core/@Conditions/README.md) | Настраиваемые правила «когда это разрешено»: ассетом или прямо в инспекторе |
 | [`GameDataStorage`](Core/GameDataStorage/README.md) | Сохранение прогресса и [состояния объектов сцены](Core/GameDataStorage/ObjectState/README.md) между запусками |
 | State / Damage | Переиспользуемые игровые модули |
 | Quality / Localization / Logging | Качество предметов, переводы и структурированное логирование |
@@ -82,6 +83,7 @@ graph TD
         Rules["GameRules"]
         Props["PropertyContainer"]
         Flags["FlagsSystem"]
+        Cond["@Conditions<br/>ICondition, ConditionBase"]
     end
 
     subgraph RUNTIME["Рантайм-инфраструктура"]
@@ -124,6 +126,8 @@ graph TD
     Rules --> Models
     Reward --> Items
     Wallet --> Models
+    Cond --> Items
+    Cond --> Wallet
 
     Managers --> Storage
     Managers --> Items
@@ -469,6 +473,7 @@ PRUnitySDK/
   и [наборы состава базы](Core/Editor/DATABASE-PRESETS.md) для разных игр
 - [Attributes](Core/@Attributes/README.md) — method hooks, переопределение сервисов и расширение Inspector
 - [Actions](Core/@Actions/README.md) — переиспользуемые действия с единым контрактом проверки и выполнения
+- [Conditions](Core/@Conditions/README.md) — переиспользуемые правила «когда это разрешено»; рядом с действиями, но отдельно от них: действие совершает поступок, условие только спрашивает
 - [EventBus](Core/@Events/EventBus/README.md) — типизированная шина уведомлений о произошедшем
 - [HookSystem](Core/HookSystem/README.md) — перехват действий с возможностью изменить или запретить их
 - [FlagsSystem](Core/FlagsSystem/README.md) — согласование независимых решений компонентов без прямых зависимостей

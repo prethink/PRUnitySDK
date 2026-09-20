@@ -16,8 +16,8 @@ public interface IDamageable
     /// <param name="attacker">Кто наносит урон. Может быть null для урона от окружения.</param>
     /// <param name="weapon">Чем нанесён урон. Может быть null.</param>
     /// <param name="damage">Источник данных об уроне; проходит через декораторы и хуки.</param>
-    /// <returns>Чем закончилась попытка.</returns>
-    DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage);
+    /// <returns>Подробный итог попытки; никогда не <c>null</c>.</returns>
+    DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage);
 
     /// <summary>
     /// Принять урон с известной точкой попадания - она попадает в
@@ -27,8 +27,8 @@ public interface IDamageable
     /// <param name="weapon">Чем нанесён урон.</param>
     /// <param name="damage">Источник данных об уроне.</param>
     /// <param name="point">Мировая точка попадания.</param>
-    /// <returns>Чем закончилась попытка.</returns>
-    DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point);
+    /// <returns>Подробный итог попытки; никогда не <c>null</c>.</returns>
+    DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point);
 
     /// <summary>
     /// Принять урон с известным коллайдером - по нему определяется зона попадания,
@@ -38,6 +38,6 @@ public interface IDamageable
     /// <param name="weapon">Чем нанесён урон.</param>
     /// <param name="damage">Источник данных об уроне.</param>
     /// <param name="collider">Задетый коллайдер.</param>
-    /// <returns>Чем закончилась попытка.</returns>
-    DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider);
+    /// <returns>Подробный итог попытки; никогда не <c>null</c>.</returns>
+    DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider);
 }

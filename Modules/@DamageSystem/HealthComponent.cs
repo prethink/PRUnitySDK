@@ -155,12 +155,12 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
     #region IDamagable
 
-    public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damageProvider)
+    public DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damageProvider)
     {
         return ProcessDamage(attacker, weapon, damageProvider, null, null);
     }
 
-    private DamageResult ProcessDamage(
+    private DamageOutcome ProcessDamage(
         IEntity attacker,
         IWeapon weapon,
         IDamageProvider damageProvider,
@@ -228,7 +228,8 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
                 var result = after <= 0f && !IsImmortal ? DamageResult.Killed : DamageResult.Damaged;
                 context.DamageResult = result;
-                context.Outcome = new DamageOutcome(result, data, before, after, hitPoint, hitCollider);
+                context.Outcome = new DamageOutcome(
+                    result, data, before, after, hitPoint, hitCollider, healthReduced: !IsImmortal);
                 LastDamageOutcome = context.Outcome;
 
                 if (result == DamageResult.Killed)
@@ -260,7 +261,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         if (outcome == null)
             return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
 
-        if (outcome.Result == DamageResult.Damaged || outcome.Result == DamageResult.Killed)
+        if (outcome.Result.IsApplied())
         {
             // У бесконечного здоровья событие о его изменении не поднимается: оно
             // не менялось, а полоса над грушей иначе дёргалась бы от каждого удара
@@ -287,7 +288,8 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         }
 
         RaiseDamageProcessed(attacker, weapon, outcome);
-        return outcome.Result;
+
+        return outcome;
     }
 
     private bool deferDeathNotifications;
@@ -369,7 +371,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <param name="hitPoint">Точка попадания, если была передана.</param>
     /// <param name="hitCollider">Коллайдер попадания, если был передан.</param>
     /// <returns>Та же причина отказа - для возврата из ProcessDamage.</returns>
-    private DamageResult FailAttempt(
+    private DamageOutcome FailAttempt(
         DamageResult result,
         IEntity attacker,
         IWeapon weapon,
@@ -381,31 +383,33 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         CompleteDamageAttempt(outcome);
         RaiseDamageProcessed(attacker, weapon, outcome);
 
-        return result;
+        return outcome;
     }
 
-    public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point)
+    public DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point)
     {
-        var result = ProcessDamage(attacker, weapon, damage, point, null);
-        if (result != DamageResult.Miss)
+        DamageOutcome outcome = ProcessDamage(attacker, weapon, damage, point, null);
+
+        if (outcome.Result != DamageResult.Miss)
         {
-            NotifyListeners(OnHitVector, listener => listener(attacker, point, damage, result));
-            NotifyUnityEvent(() => OnHitVectorUnity?.Invoke(attacker, point, damage, result));
+            NotifyListeners(OnHitVector, listener => listener(attacker, point, damage, outcome.Result));
+            NotifyUnityEvent(() => OnHitVectorUnity?.Invoke(attacker, point, damage, outcome.Result));
         }
 
-        return result;
+        return outcome;
     }
 
-    public DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider)
+    public DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider)
     {
-        var result = ProcessDamage(attacker, weapon, damage, null, collider);
-        if (result != DamageResult.Miss)
+        DamageOutcome outcome = ProcessDamage(attacker, weapon, damage, null, collider);
+
+        if (outcome.Result != DamageResult.Miss)
         {
-            NotifyListeners(OnHitCollider, listener => listener(attacker, collider, damage, result));
-            NotifyUnityEvent(() => OnHitColliderUnity?.Invoke(attacker, collider, damage, result));
+            NotifyListeners(OnHitCollider, listener => listener(attacker, collider, damage, outcome.Result));
+            NotifyUnityEvent(() => OnHitColliderUnity?.Invoke(attacker, collider, damage, outcome.Result));
         }
 
-        return result;
+        return outcome;
     }
 
     #endregion

@@ -26,8 +26,8 @@ public static class DamageableExtensions
     /// <param name="target">Кому достаётся урон.</param>
     /// <param name="attacker">Кто наносит урон; может быть <c>null</c> для урона от окружения.</param>
     /// <param name="damage">Источник данных об уроне.</param>
-    /// <returns>Чем закончилась попытка.</returns>
-    public static DamageResult TakeDamage(this IDamageable target, IEntity attacker, IDamageProvider damage)
+    /// <returns>Подробный итог попытки; никогда не <c>null</c>.</returns>
+    public static DamageOutcome TakeDamage(this IDamageable target, IEntity attacker, IDamageProvider damage)
     {
         return target.TakeDamage(attacker, null, damage);
     }
@@ -39,8 +39,8 @@ public static class DamageableExtensions
     /// <param name="attacker">Кто наносит урон.</param>
     /// <param name="damage">Источник данных об уроне.</param>
     /// <param name="point">Мировая точка попадания: уходит в отброс и эффекты.</param>
-    /// <returns>Чем закончилась попытка.</returns>
-    public static DamageResult TakeDamage(this IDamageable target, IEntity attacker, IDamageProvider damage, Vector3 point)
+    /// <returns>Подробный итог попытки; никогда не <c>null</c>.</returns>
+    public static DamageOutcome TakeDamage(this IDamageable target, IEntity attacker, IDamageProvider damage, Vector3 point)
     {
         return target.TakeDamage(attacker, null, damage, point);
     }
@@ -52,8 +52,8 @@ public static class DamageableExtensions
     /// <param name="attacker">Кто наносит урон.</param>
     /// <param name="damage">Источник данных об уроне.</param>
     /// <param name="collider">Задетый коллайдер: по нему определяется зона.</param>
-    /// <returns>Чем закончилась попытка.</returns>
-    public static DamageResult TakeDamage(this IDamageable target, IEntity attacker, IDamageProvider damage, Collider collider)
+    /// <returns>Подробный итог попытки; никогда не <c>null</c>.</returns>
+    public static DamageOutcome TakeDamage(this IDamageable target, IEntity attacker, IDamageProvider damage, Collider collider)
     {
         return target.TakeDamage(attacker, null, damage, collider);
     }

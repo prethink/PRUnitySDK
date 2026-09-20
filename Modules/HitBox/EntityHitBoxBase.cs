@@ -41,13 +41,13 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
     /// <param name="attacker">Атакующая сущность.</param>
     /// <param name="weapon">Использованное оружие.</param>
     /// <param name="damage">Провайдер исходного урона.</param>
-    /// <returns>Результат обработки либо <see cref="DamageResult.NotHandled"/>.</returns>
-    public virtual DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage)
+    /// <returns>Итог обработки либо <see cref="DamageOutcome.NotHandled"/>.</returns>
+    public virtual DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage)
     {
         if (damage != null && TryGetHealthComponent(out var healthComponent))
             return healthComponent.TakeDamage(attacker, weapon, GetHandledDamage(damage));
 
-        return DamageResult.NotHandled;
+        return DamageOutcome.NotHandled;
     }
 
     /// <summary>
@@ -57,13 +57,13 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
     /// <param name="weapon">Использованное оружие.</param>
     /// <param name="damage">Провайдер исходного урона.</param>
     /// <param name="point">Мировая точка попадания.</param>
-    /// <returns>Результат обработки либо <see cref="DamageResult.NotHandled"/>.</returns>
-    public virtual DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point)
+    /// <returns>Итог обработки либо <see cref="DamageOutcome.NotHandled"/>.</returns>
+    public virtual DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Vector3 point)
     {
         if (damage != null && TryGetHealthComponent(out var healthComponent))
             return healthComponent.TakeDamage(attacker, weapon, GetHandledDamage(damage), point);
 
-        return DamageResult.NotHandled;
+        return DamageOutcome.NotHandled;
     }
 
     /// <summary>
@@ -73,8 +73,8 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
     /// <param name="weapon">Использованное оружие.</param>
     /// <param name="damage">Провайдер исходного урона.</param>
     /// <param name="collider">Коллайдер попадания; при <c>null</c> используется <see cref="Collider"/>.</param>
-    /// <returns>Результат обработки либо <see cref="DamageResult.NotHandled"/>.</returns>
-    public virtual DamageResult TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider)
+    /// <returns>Итог обработки либо <see cref="DamageOutcome.NotHandled"/>.</returns>
+    public virtual DamageOutcome TakeDamage(IEntity attacker, IWeapon weapon, IDamageProvider damage, Collider collider)
     {
         if (damage != null && TryGetHealthComponent(out var healthComponent))
             return healthComponent.TakeDamage(
@@ -83,7 +83,7 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
                 GetHandledDamage(damage),
                 collider != null ? collider : Collider);
 
-        return DamageResult.NotHandled;
+        return DamageOutcome.NotHandled;
     }
 
     /// <summary>

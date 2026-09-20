@@ -77,7 +77,7 @@ Collider
 if (Physics.Raycast(ray, out RaycastHit hit, distance, hitMask) &&
     hit.collider.TryGetComponent<IDamageable>(out var damageable))
 {
-    DamageResult result = damageable.TakeDamage(
+    DamageOutcome outcome = damageable.TakeDamage(
         attacker,
         weapon,
         weapon,
@@ -107,7 +107,7 @@ IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
 ```csharp
 if (other.TryGetDamageTarget(out IDamageable target))
 {
-    DamageResult result = target.TakeDamage(attacker, damage);
+    DamageOutcome outcome = target.TakeDamage(attacker, damage);
 }
 ```
 
