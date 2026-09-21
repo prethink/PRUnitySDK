@@ -20,6 +20,11 @@ public class AllCondition : ICondition
     [Tooltip("Условия, которые должны выполниться все сразу.")]
     private List<ICondition> conditions = new();
 
+    /// <summary>
+    /// Вложенные условия.
+    /// </summary>
+    public IReadOnlyList<ICondition> Conditions => conditions;
+
     /// <inheritdoc />
     public bool Evaluate()
     {

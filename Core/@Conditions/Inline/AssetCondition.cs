@@ -17,6 +17,15 @@ public class AssetCondition : ICondition
     [Tooltip("Условие-ассет, у которого спрашивают ответ.")]
     private ConditionBase condition;
 
+    /// <summary>
+    /// Условие-ассет, у которого спрашивают ответ.
+    /// </summary>
+    /// <remarks>
+    /// Отдаётся наружу ради подписи на экране: описание собирается по самому правилу,
+    /// а переходник о нём ничего не знает.
+    /// </remarks>
+    public ConditionBase Condition => condition;
+
     /// <inheritdoc />
     /// <remarks>
     /// Пустая ссылка считается выполненной: недонастроенный слот не запирает.

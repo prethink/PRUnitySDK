@@ -20,6 +20,11 @@ public class AnyCondition : ICondition
     [Tooltip("Условия, из которых достаточно одного выполненного.")]
     private List<ICondition> conditions = new();
 
+    /// <summary>
+    /// Вложенные условия.
+    /// </summary>
+    public IReadOnlyList<ICondition> Conditions => conditions;
+
     /// <inheritdoc />
     public bool Evaluate()
     {
