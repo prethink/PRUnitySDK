@@ -36,17 +36,26 @@ public interface IHealthEntity
     public IEntity Killer { get; }
 
     /// <summary>
-    /// Убить сущность без указания источника.
+    /// Убить сущность от имени игры.
     /// </summary>
-    /// <returns>Была ли сущность убита этим вызовом.</returns>
-    public bool Kill();
+    /// <returns>Итог убийства; никогда не <c>null</c>.</returns>
+    public DamageOutcome Kill();
 
     /// <summary>
     /// Убить сущность с указанием источника - он попадёт в <see cref="Killer"/>
-    /// и в событие смерти.
+    /// и в события смерти.
     /// </summary>
-    /// <returns>Была ли сущность убита этим вызовом.</returns>
-    public bool IsKill(IEntity killer);
+    /// <remarks>
+    /// Смерть по команде минует расчёт урона: хуки не спрашиваются, неуязвимость
+    /// и бессмертие не спасают.
+    /// </remarks>
+    /// <param name="killer">Кто убил.</param>
+    /// <param name="weapon">Чем убил, если это важно подписчикам.</param>
+    /// <returns>
+    /// Итог с результатом <see cref="DamageResult.Killed"/>, либо
+    /// <see cref="DamageResult.NotHandled"/>, если сущность уже мертва.
+    /// </returns>
+    public DamageOutcome Kill(IEntity killer, IWeapon weapon = null);
 
     /// <summary>
     /// Воскресить на текущем месте с восстановлением здоровья.

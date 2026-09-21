@@ -23,8 +23,9 @@
 | `Damages` | Создание урона нужного вида одной строкой |
 | `DamageOverTimeCoroutine` | Периодический урон: горение, отравление, кровотечение |
 | `DamageResultExtensions` | `result.IsApplied()` — принят ли результат `Damaged` или `Killed` |
-| `DamageOutcome` | Подробный итог: `WasApplied`, `AppliedDamage`, `HealthLost`, `WasHealthReduced`, `WasCritical` |
+| `DamageOutcome` | Подробный итог: участники удара и их места, `WasApplied`, `AppliedDamage`, `HealthLost`, `WasHealthReduced`, `WasCritical` |
 | `IDamageable` | Контракт объекта, принимающего урон; `TakeDamage` отдаёт `DamageOutcome` |
+| `IHealthEntity` | Контракт носителя здоровья: `Kill`, `Revive`, `Spawn`, `IsAlive` |
 | `HealthComponent` | Здоровье, смерть, лечение и возрождение сущности |
 | `EntityHitBoxBase` | Перенаправление попадания от коллайдера к сущности |
 | `UnitHitBox` | Зона тела и множитель урона |
@@ -92,7 +93,37 @@ DamageOutcome outcome = target.TakeDamage(
 
 `TakeDamage` возвращает `DamageOutcome`. Результат, урон и изменение здоровья доступны
 прямо в возвращённом объекте. Если хитбокс не нашёл здоровье цели, он возвращает
-`DamageOutcome.NotHandled`; встроенные реализации не возвращают `null`.
+`DamageOutcome.NotHandled(...)`; встроенные реализации не возвращают `null`.
+
+### Участники удара
+
+Итог знает, кто и чем ударил:
+
+```csharp
+if (outcome.WasApplied)
+    scoreboard.AddHit(outcome.Attacker, outcome.Victim, outcome.Weapon, outcome.AppliedDamage);
+```
+
+- `Attacker` — атакующий; у урона от окружения пуст;
+- `Victim` — сущность, которая приняла удар;
+- `Weapon` — оружие; у урона без оружия пуст;
+- `DamageProvider` — провайдер в том виде, в каком он дошёл до здоровья;
+- `AttackerPosition`, `VictimPosition` — где они стояли в момент удара.
+
+Места — снимок, а не позиция живого объекта. Итог читают позже самого удара: после
+смертельного сущность прячут или отдают в пул, снаряд с атакующим уничтожается сразу
+после попадания, и спрашивать место у них уже поздно. Отсюда берут направление отброса,
+точку посмертного эффекта и разбор того, где игроков убивают.
+
+Пусто у того, кто на сцене не стоит: урон от окружения и другие игровые события своего
+места не имеют. Позицию у них не спрашивают и намеренно — объект такого события создаёт
+фабрика по первому обращению.
+
+Участники заполнены у любого результата, включая `Miss`, `Blocked` и `NotHandled`.
+У отказов `DamageData` пуст, и чем именно пытались ударить, показывает только
+`DamageProvider`. Собственная реализация `IDamageable` передаёт участников в
+`DamageOutcome.NotHandled(attacker, victim, weapon, damage)`, когда обработать урон
+некому.
 
 ### Виды урона
 
@@ -180,6 +211,10 @@ IDamageProvider damage = new CommonDamage(data);
 - `RawDamage` — исходное значение до зональных множителей и защиты;
 - `AbsorbedDamage` — сколько урона поглотили сопротивления;
 - `HitGroup` — зона попадания.
+
+`DamageSource` вручную указывают только для урона, который приходит не через
+`TakeDamage`. В обычном конвейере его проставляет `HealthComponent` из атакующего,
+если провайдер оставил поле пустым.
 
 ## Урон без оружия
 
@@ -335,12 +370,18 @@ public void HandleHook(DamageHookEvent eventArgs)
 - `OnSpawn`;
 - `OnScaleChanged`.
 
-`OnDamageProcessed` передаёт `DamageOutcome` после любой попытки нанесения урона. Он содержит результат, здоровье до и после, засчитанный и поглощённый урон, фактическую потерю HP. Последний результат также доступен через `LastDamageOutcome`.
+`OnDamageProcessed` передаёт `DamageOutcome` после любой попытки нанесения урона. Он содержит участников удара, результат, здоровье до и после, засчитанный и поглощённый урон, фактическую потерю HP. Последний результат также доступен через `LastDamageOutcome`.
+
+`OnHitVector` и `OnHitCollider` передают тот же `DamageOutcome`. Точка и коллайдер лежат в нём (`HitPoint`, `HitCollider`), атакующий и оружие — там же:
+
+```csharp
+health.OnHitCollider += outcome => PlayImpact(outcome.HitCollider, outcome.Attacker);
+```
 
 Глобальные события:
 
 - `IOnTakeDamageEvents.OnTakeDamage()` — применённый урон, включая смертельный;
-- `IEntityKillEvent.OnKill()` — убийство сущности уроном;
+- `IEntityKillEvent.OnKill()` — убийство сущности: смертельным уроном или командой `Kill`;
 - `IDamageProcessedEvents.OnDamageProcessed()` — любая завершённая попытка, включая `Miss`, `Blocked` и `NotHandled`.
 
 `TakeDamageEvent` содержит `Outcome`, `Result`, `AppliedDamage` и снимок итогового `DamageData`. `EntityKillEventArgs` также содержит тот же `Outcome`, поэтому обработчику убийства доступны тип урона, зона попадания и фактически снятое здоровье (`HealthLost`).
@@ -371,7 +412,7 @@ public sealed class CombatLog : PRMonoBehaviour, IDamageProcessedEvents
 7. Публикуется глобальный `OnDamageProcessed`.
 8. Перегрузка с точкой/коллайдером вызывает `OnHitVector`/`OnHitCollider`.
 
-Имена событий и их аргументы сохранены. Для совместимости события попадания, как раньше, вызываются для всех результатов, кроме `Miss`, включая `Blocked` и `NotHandled`. Сам факт вызова `OnHitCollider` не означает списания HP — проверяйте результат.
+События попадания вызываются для всех результатов, кроме `Miss`, включая `Blocked` и `NotHandled`. Сам факт вызова `OnHitCollider` не означает списания HP — проверяйте `outcome.Result`.
 
 `BlockDamage`, `MissDamage` и обычный `Supercede` подавляют оригинальное действие. Обычный `Supercede` без причины даёт `NotHandled`. У отказов вызываются только локальное и глобальное `OnDamageProcessed` (и событие попадания по правилу выше). Нулевой урон даёт `Damaged` с `AppliedDamage == 0`; если нужен эффект только при потере HP, проверяйте `WasHealthReduced`.
 
@@ -394,8 +435,8 @@ Post-хук предназначен для наблюдения: изменен
 | `OnScaleChangedUnity` | трансформ (`Transform`) |
 | `OnHealthChangeUnity` | `HealthChangedEventArgsBase` |
 | `OnDamageProcessedUnity` | `DamageOutcome` |
-| `OnHitColliderUnity` | атакующий, коллайдер, провайдер урона, результат |
-| `OnHitVectorUnity` | атакующий, точка попадания, провайдер урона, результат |
+| `OnHitColliderUnity` | `DamageOutcome` |
+| `OnHitVectorUnity` | `DamageOutcome` |
 
 Можно назначать обычные Inspector-действия без аргументов, например запуск звука
 или эффекта, либо методы с совпадающей динамической сигнатурой. Интерфейсные
@@ -407,6 +448,41 @@ Post-хук предназначен для наблюдения: изменен
 и не прерывает последующие этапы обработки урона и CombatEvents. Внутри одного
 UnityEvent исключение может прервать оставшиеся обработчики этого UnityEvent —
 это стандартное поведение Unity.
+
+## Смерть по команде
+
+Убийство без урона — зона смерти, скрипт, истёкший таймер — идёт через `Kill`:
+
+```csharp
+DamageOutcome outcome = health.Kill(deadZoneEntity);
+
+if (outcome.Result == DamageResult.Killed)
+    ShowDeathMessage(outcome.Victim);
+```
+
+- `Kill(killer, weapon = null)` — убийца попадает в `Killer` и в события;
+- `Kill()` — от имени игры;
+- `Suicide()` — сущность убивает себя сама.
+
+Все три возвращают `DamageOutcome`: `Killed`, либо `NotHandled`, если сущность уже мертва.
+`AppliedDamage` в таком итоге равен нулю при полной потере HP — урона никто не наносил,
+поэтому эффекты попадания и всплывающие числа молчат. `DamageData` и `DamageProvider`
+пусты, участники заполнены.
+
+Команда минует расчёт урона: хуки не спрашиваются, неуязвимость и `Is Immortal`
+не спасают. Зона смерти не должна пропускать сущность с открытым окном неуязвимости.
+
+Уведомления те же, что у смертельного урона, кроме глобального `OnTakeDamage`: его такая
+смерть не публикует, чтобы не попасть в статистику нанесённого урона. Порядок:
+`OnHealthChange` → `DeathHandle` и `OnEntityDead` → локальное `OnDamageProcessed`
+и `LastDamageOutcome` → глобальные `OnKill` и `OnDamageProcessed`.
+
+Убийство самой сущностью себя или другой сущностью — это `Kill`, а не `TakeDamage`
+с огромным числом: урон проходит через хуки, сопротивления и бессмертие, и «гарантированно
+смертельного» числа не существует.
+
+`SetDead(killer)` — защищённая точка переопределения для сущности с особым порядком
+смерти. Уведомления она не рассылает, их отправляет вызывающий.
 
 ## Лечение и возрождение
 
@@ -435,7 +511,7 @@ UnityEvent исключение может прервать оставшиеся
 
 ```csharp
 var data = context.DamageProvider?.GetDamageData()?.Clone();   // DamageData + HashSet<Guid>
-context.Outcome = new DamageOutcome(result, data, ...);        // внутри ещё один Clone
+context.Outcome = new DamageOutcome(result, ..., data, ...);   // внутри ещё один Clone
 ```
 
 `DamageData.Clone()` зовётся дважды и каждый раз создаёт два объекта. Плюс геттер:
@@ -454,6 +530,6 @@ public DamageData DamageData => damageData?.Clone();
 ## Рекомендации
 
 - Создавайте новый `DamageId` для каждой независимой атаки.
-- Указывайте `DamageSource`, если источник важен для эффектов или аналитики.
+- Указывайте `DamageSource` только там, где урон не проходит через `TakeDamage`.
 - Не изменяйте общий `DamageData` из нескольких систем одновременно; используйте `Clone()` или декораторы.
 - Проверяйте `DamageOutcome.WasApplied` или `DamageOutcome.Result`, если после попадания требуется отдельная реакция.

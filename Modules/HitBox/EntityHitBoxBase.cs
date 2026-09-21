@@ -17,6 +17,11 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
     [field: SerializeField] public Collider Collider { get; private set; }
 
     /// <summary>
+    /// Сущность, которой принадлежит зона попадания.
+    /// </summary>
+    public EntityBase OwnerEntity => EntityLink != null ? EntityLink.Entity : null;
+
+    /// <summary>
     /// Настроены ли ссылка на сущность и коллайдер.
     /// </summary>
     public bool IsConfigured => EntityLink != null &&
@@ -47,7 +52,7 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
         if (damage != null && TryGetHealthComponent(out var healthComponent))
             return healthComponent.TakeDamage(attacker, weapon, GetHandledDamage(damage));
 
-        return DamageOutcome.NotHandled;
+        return DamageOutcome.NotHandled(attacker, OwnerEntity, weapon, damage);
     }
 
     /// <summary>
@@ -63,7 +68,7 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
         if (damage != null && TryGetHealthComponent(out var healthComponent))
             return healthComponent.TakeDamage(attacker, weapon, GetHandledDamage(damage), point);
 
-        return DamageOutcome.NotHandled;
+        return DamageOutcome.NotHandled(attacker, OwnerEntity, weapon, damage);
     }
 
     /// <summary>
@@ -83,7 +88,7 @@ public abstract class EntityHitBoxBase : PRMonoBehaviour, IDamageable
                 GetHandledDamage(damage),
                 collider != null ? collider : Collider);
 
-        return DamageOutcome.NotHandled;
+        return DamageOutcome.NotHandled(attacker, OwnerEntity, weapon, damage);
     }
 
     /// <summary>

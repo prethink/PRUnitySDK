@@ -39,7 +39,7 @@ Collider
 
 `EntityHitBoxBase` автоматически находит `EntityLink` и `Collider` на том же объекте. `EntityLink` автоматически ищет `EntityBase` на текущем или родительском объекте.
 
-Свойство `IsConfigured` показывает, найдены ли ссылка на сущность и коллайдер. Если связанная сущность не имеет `HealthComponent`, `TakeDamage()` возвращает `DamageResult.NotHandled`.
+Свойство `IsConfigured` показывает, найдены ли ссылка на сущность и коллайдер. Связанная сущность доступна как `OwnerEntity`. Если у неё нет `HealthComponent`, `TakeDamage()` возвращает результат `NotHandled` с заполненными участниками удара: атакующим, целью, оружием и провайдером урона.
 
 ## UnitHitBox
 

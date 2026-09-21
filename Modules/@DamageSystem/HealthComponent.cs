@@ -56,14 +56,14 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     //public event Action<IEntity, DamageBase, float, float, bool> OnHealthChange;
 
     /// <summary>
-    /// Событие попадания в коллайдер.
+    /// Событие попадания в коллайдер; коллайдер лежит в <see cref="DamageOutcome.HitCollider"/>.
     /// </summary>
-    public event Action<IEntity, Collider, IDamageProvider, DamageResult> OnHitCollider;
+    public event Action<DamageOutcome> OnHitCollider;
 
     /// <summary>
-    /// События попадания.
+    /// Событие попадания в точку; точка лежит в <see cref="DamageOutcome.HitPoint"/>.
     /// </summary>
-    public event Action<IEntity, Vector3, IDamageProvider, DamageResult> OnHitVector;
+    public event Action<DamageOutcome> OnHitVector;
 
     /// <summary>
     /// Inspector-события получают те же аргументы после соответствующих C#-событий.
@@ -87,10 +87,10 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     public UnityEvent<DamageOutcome> OnDamageProcessedUnity { get; private set; } = new();
 
     [field: SerializeField]
-    public UnityEvent<IEntity, Collider, IDamageProvider, DamageResult> OnHitColliderUnity { get; private set; } = new();
+    public UnityEvent<DamageOutcome> OnHitColliderUnity { get; private set; } = new();
 
     [field: SerializeField]
-    public UnityEvent<IEntity, Vector3, IDamageProvider, DamageResult> OnHitVectorUnity { get; private set; } = new();
+    public UnityEvent<DamageOutcome> OnHitVectorUnity { get; private set; } = new();
 
     #endregion
 
@@ -168,12 +168,12 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         Collider hitCollider)
     {
         if (damageProvider == null)
-            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
+            return FailAttempt(DamageResult.NotHandled, attacker, weapon, null, hitPoint, hitCollider);
 
         // Пауза - не промах: на Miss вешают звук и эффект уклонения, а урон, пришедший
         // во время паузы, просто не обрабатывается.
         if (PRUnitySDK.PauseManager.IsLogicPaused)
-            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
+            return FailAttempt(DamageResult.NotHandled, attacker, weapon, damageProvider, hitPoint, hitCollider);
 
         var damageHook = new DamageHookEvent(attacker, weapon, Entity, damageProvider, DamageResult.NotHandled);
         var killed = false;
@@ -186,7 +186,17 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
                 InternalBlockDamage();
 
             context.DamageResult = result;
-            context.Outcome = new DamageOutcome(result, null, Health, Health, hitPoint, hitCollider);
+            context.Outcome = new DamageOutcome(
+                result,
+                context.Attacker,
+                context.Victim,
+                context.Weapon,
+                context.DamageProvider,
+                null,
+                Health,
+                Health,
+                hitPoint,
+                hitCollider);
             LastDamageOutcome = context.Outcome;
         }
 
@@ -217,6 +227,10 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
                 if (data.RawDamage == 0f && data.Damage != 0f)
                     data.RawDamage = data.Damage;
 
+                // Эффекты и аналитика читают источник из данных урона, а провайдер задаёт
+                // его редко: без этой строки атакующий до них не доходит.
+                data.DamageSource ??= context.Attacker;
+
                 InternalTakeDamage();
                 var before = Health;
                 var immortal = IsImmortal;
@@ -228,15 +242,25 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
                 var result = after <= 0f && !immortal ? DamageResult.Killed : DamageResult.Damaged;
                 context.DamageResult = result;
                 context.Outcome = new DamageOutcome(
-                    result, data, before, after, hitPoint, hitCollider, appliedDamage);
+                    result,
+                    context.Attacker,
+                    context.Victim,
+                    context.Weapon,
+                    context.DamageProvider,
+                    data,
+                    before,
+                    after,
+                    hitPoint,
+                    hitCollider,
+                    appliedDamage);
                 LastDamageOutcome = context.Outcome;
 
                 if (result == DamageResult.Killed)
                 {
-                    // Фиксируем смерть до уведомления подписчиков, сохраняя возможность переопределить IsKill.
+                    // Фиксируем смерть до уведомления подписчиков, сохраняя возможность переопределить SetDead.
                     var previousDeferral = deferDeathNotifications;
                     deferDeathNotifications = true;
-                    try { killed = IsKill(attacker); }
+                    try { killed = SetDead(attacker); }
                     finally { deferDeathNotifications = previousDeferral; }
                 }
             }, context =>
@@ -258,7 +282,8 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
         var outcome = damageHook.Outcome;
         if (outcome == null)
-            return FailAttempt(DamageResult.NotHandled, attacker, weapon, hitPoint, hitCollider);
+            return FailAttempt(
+                DamageResult.NotHandled, attacker, weapon, damageHook.DamageProvider, hitPoint, hitCollider);
 
         if (outcome.WasApplied)
         {
@@ -365,6 +390,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <param name="result">Причина отказа.</param>
     /// <param name="attacker">Кто наносил урон.</param>
     /// <param name="weapon">Чем наносился урон.</param>
+    /// <param name="damageProvider">Провайдер урона, который не был обработан.</param>
     /// <param name="hitPoint">Точка попадания, если была передана.</param>
     /// <param name="hitCollider">Коллайдер попадания, если был передан.</param>
     /// <returns>Та же причина отказа - для возврата из ProcessDamage.</returns>
@@ -372,10 +398,12 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         DamageResult result,
         IEntity attacker,
         IWeapon weapon,
+        IDamageProvider damageProvider,
         Vector3? hitPoint,
         Collider hitCollider)
     {
-        var outcome = new DamageOutcome(result, null, Health, Health, hitPoint, hitCollider);
+        var outcome = new DamageOutcome(
+            result, attacker, Entity, weapon, damageProvider, null, Health, Health, hitPoint, hitCollider);
 
         CompleteDamageAttempt(outcome);
         RaiseDamageProcessed(attacker, weapon, outcome);
@@ -389,8 +417,8 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
         if (outcome.Result != DamageResult.Miss)
         {
-            NotifyListeners(OnHitVector, listener => listener(attacker, point, damage, outcome.Result));
-            NotifyUnityEvent(() => OnHitVectorUnity?.Invoke(attacker, point, damage, outcome.Result));
+            NotifyListeners(OnHitVector, listener => listener(outcome));
+            NotifyUnityEvent(() => OnHitVectorUnity?.Invoke(outcome));
         }
 
         return outcome;
@@ -402,8 +430,8 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
 
         if (outcome.Result != DamageResult.Miss)
         {
-            NotifyListeners(OnHitCollider, listener => listener(attacker, collider, damage, outcome.Result));
-            NotifyUnityEvent(() => OnHitColliderUnity?.Invoke(attacker, collider, damage, outcome.Result));
+            NotifyListeners(OnHitCollider, listener => listener(outcome));
+            NotifyUnityEvent(() => OnHitColliderUnity?.Invoke(outcome));
         }
 
         return outcome;
@@ -445,11 +473,16 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     }
 
     /// <summary>
-    /// Убить сущность.
+    /// Отмечает сущность мёртвой и запоминает убийцу.
     /// </summary>
+    /// <remarks>
+    /// Точка переопределения для сущностей с особым порядком смерти. Уведомления здесь
+    /// не публикуются - их рассылает тот, кто вызвал: смертельный урон или
+    /// <see cref="Kill(IEntity, IWeapon)"/>.
+    /// </remarks>
     /// <param name="killer">Убийца.</param>
-    /// <returns>True - удачно, false нет.</returns>
-    public virtual bool IsKill(IEntity killer)
+    /// <returns>Сущность умерла от этого вызова.</returns>
+    protected virtual bool SetDead(IEntity killer)
     {
         if (!IsAlive())
             return false;
@@ -468,12 +501,62 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     }
 
     /// <summary>
-    /// Убить сущность.
+    /// Убить сущность без расчёта урона.
     /// </summary>
-    /// <returns>True - удачно, false нет.</returns>
-    public virtual bool Kill()
+    /// <remarks>
+    /// Смерть по команде: зона смерти, скрипт, истёкший таймер. Хуки урона не
+    /// спрашиваются, неуязвимость и <see cref="IsImmortal"/> не спасают - зона смерти
+    /// не должна пропускать сущность с открытым окном неуязвимости.
+    /// <para>
+    /// Глобальное <c>OnTakeDamage</c> не публикуется: урона никто не наносил, и в
+    /// статистику нанесённого такая смерть попасть не должна. Убийство видно через
+    /// <c>OnKill</c> и <see cref="OnDamageProcessed"/>, у итога <c>AppliedDamage</c>
+    /// равен нулю при полной потере HP.
+    /// </para>
+    /// </remarks>
+    /// <param name="killer">Кто убил; попадёт в <see cref="Killer"/> и в события.</param>
+    /// <param name="weapon">Чем убил, если это важно подписчикам.</param>
+    /// <returns>
+    /// Итог с результатом <see cref="DamageResult.Killed"/>, либо
+    /// <see cref="DamageResult.NotHandled"/>, если сущность уже мертва.
+    /// </returns>
+    public virtual DamageOutcome Kill(IEntity killer, IWeapon weapon = null)
     {
-        return IsKill(GameEventEntityFactory.CreateEventGame());
+        float before = Health;
+
+        // Смерть фиксируем до уведомлений, чтобы подписчик увидел сущность уже мёртвой.
+        var previousDeferral = deferDeathNotifications;
+        deferDeathNotifications = true;
+        bool killed;
+        try { killed = SetDead(killer); }
+        finally { deferDeathNotifications = previousDeferral; }
+
+        if (!killed)
+            return DamageOutcome.NotHandled(killer, Entity, weapon);
+
+        var outcome = new DamageOutcome(
+            DamageResult.Killed, killer, Entity, weapon, null, null, before, Health, appliedDamage: 0f);
+
+        NotifyListeners(OnHealthChange, listener => listener(new HealthChangedEventArgsBase(
+            before, Health, MaxHealth, outcome)));
+        NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(new HealthChangedEventArgsBase(
+            before, Health, MaxHealth, outcome)));
+
+        NotifyDeath(killer);
+        CompleteDamageAttempt(outcome);
+        CombatEvents.RaiseOnKill(new EntityKillEventArgs(killer, Entity, outcome, weapon));
+        RaiseDamageProcessed(killer, weapon, outcome);
+
+        return outcome;
+    }
+
+    /// <summary>
+    /// Убить сущность от имени игры.
+    /// </summary>
+    /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon)"/>.</returns>
+    public virtual DamageOutcome Kill()
+    {
+        return Kill(GameEventEntityFactory.CreateEventGame());
     }
 
     /// <summary>
@@ -569,12 +652,12 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     }
 
     /// <summary>
-    /// Суицид.
+    /// Суицид: сущность убивает себя сама.
     /// </summary>
-    /// <returns>True - удачно, false нет.</returns>
-    public virtual bool Suicide()
+    /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon)"/>.</returns>
+    public virtual DamageOutcome Suicide()
     {
-        return IsKill(GameEventEntityFactory.CreateEventSuicide());
+        return Kill(GameEventEntityFactory.CreateEventSuicide());
     }
 
     public virtual void Spawn(Vector3 spawnPosition)

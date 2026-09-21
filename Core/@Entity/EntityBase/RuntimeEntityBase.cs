@@ -1,5 +1,4 @@
 using AYellowpaper.SerializedCollections;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,21 +20,31 @@ public abstract class RuntimeEntityBase : EntityBase, IEntityMetadata, IEntityMe
     protected override void InitializeEntityMetadata()
     {
         baseEntityMetadata = this;
-        overrideEntityMetadata = this.GetComponent<IEntityMetadataProvider>()?.EntityMetadata;
+        overrideEntityMetadata = GetOverrideMetadata();
 
-        if (baseEntityMetadata != null && overrideEntityMetadata != null)
+        Description = overrideEntityMetadata != null
+            ? new EntityDescription(baseEntityMetadata, overrideEntityMetadata)
+            : new EntityDescription(baseEntityMetadata);
+    }
+
+    /// <summary>
+    /// Переопределяющее описание с того же объекта.
+    /// </summary>
+    /// <remarks>
+    /// Себя пропускаем: сущность сама <see cref="IEntityMetadataProvider"/>, а её
+    /// <see cref="EntityMetadata"/> читает <c>Description</c>, которого на этом шаге ещё
+    /// нет. <c>GetComponent</c> возвращал именно её, и сущность без отдельного
+    /// <see cref="EntityMetadataProvider"/> падала в <c>Awake</c>.
+    /// </remarks>
+    /// <returns>Описание соседнего провайдера либо <c>null</c>.</returns>
+    private IEntityMetadata GetOverrideMetadata()
+    {
+        foreach (IEntityMetadataProvider provider in GetComponents<IEntityMetadataProvider>())
         {
-            Description = new EntityDescription(baseEntityMetadata, overrideEntityMetadata);
+            if (!ReferenceEquals(provider, this))
+                return provider.EntityMetadata;
         }
-        else if (baseEntityMetadata != null)
-        {
-            Description = new EntityDescription(baseEntityMetadata);
-        }
-        else if (overrideEntityMetadata != null)
-        {
-            Description = new EntityDescription(overrideEntityMetadata);
-        }
-        else
-            throw new InvalidOperationException("� �������� ��� ��������.");
+
+        return null;
     }
 }
