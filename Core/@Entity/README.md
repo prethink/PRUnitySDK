@@ -118,8 +118,13 @@ QualityType q = entity.Description.GetQuality();
 не трогая остальные, — например, показать в UI имя конкретного бота.
 
 `EntityBase<TMetadata>` собирает контейнер сам: базовым берёт свой ассет, переопределением —
-`IEntityMetadataProvider`, найденный на объекте. `RuntimeEntityBase` пользуется
-`EntityUtils.GetEntityMetadata()`: там базовым описанием служит сама сущность.
+`IEntityMetadataProvider`, найденный на объекте.
+
+У `RuntimeEntityBase` базовым описанием служит сама сущность: имя, иконка и перевод лежат
+полями прямо в ней, отдельного ассета не нужно. Переопределение она ищет так же — но
+**пропускает себя**: сущность и сама `IEntityMetadataProvider`, а её `EntityMetadata`
+читает ещё не собранное `Description`. Без этого любая `RuntimeEntityBase` без отдельного
+`EntityMetadataProvider` падала в `Awake`.
 
 Готовая реализация переопределения — компонент `EntityMetadataProvider`: повесьте его на объект
 сущности и укажите ассет `EntityMetadataBase`. Так одному экземпляру можно дать собственное имя

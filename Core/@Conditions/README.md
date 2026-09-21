@@ -21,6 +21,10 @@
 | `ConditionEnumerations` | Набор имён правил; игра дополняет его partial-частью |
 | `ConditionComparison` | Как сравнивать: `>=`, `>`, `==`, `!=`, `<=`, `<` |
 | `ConditionMatch` | Сколько вложенных условий должно выполниться: все или любое |
+| `IConditionProvider` | Владелец отдаёт своё условие наружу — [для показа игроку](#условие-на-экране) |
+| `ConditionDescription` | Подпись условия частями: перевод, аргументы, иконка |
+| `ConditionDescriptions` | Собирает подпись по условию; сюда же регистрируют свои |
+| `ConditionLabels` | Тексты требований, свой на каждое сравнение |
 
 ## Как это выглядит у владельца
 
@@ -214,16 +218,20 @@ ConditionRegistry.Instance.Register(
 **`IConditionProvider`** — владелец условия отдаёт его наружу:
 
 ```csharp
-public class BlockDamageHook : DamageConditionBase, IConditionProvider
+public class DoorLock : PRMonoBehaviour, IConditionProvider
 {
-    [field: SerializeField] public ConditionBase Condition { get; protected set; }
+    [SerializeReference, ReferenceSelector] private ICondition condition;
 
-    ICondition IConditionProvider.Condition => Condition;
+    public ICondition Condition => condition;
 }
 ```
 
 Так подпись над целью спрашивает правило у компонента, не зная, что это за компонент.
-Владелец при этом остаётся собой: хук решает, пропускать ли урон, а не рисует интерфейс.
+Владелец при этом остаётся собой: он решает, пускать ли удар или срабатывание,
+а не рисует интерфейс.
+
+В проекте его реализуют условия урона и срабатывания — `DamageCondition`
+и `TriggerCondition` из private-слоя.
 
 **`ConditionDescriptions.Get(condition)`** собирает подпись — `ConditionDescription`:
 перевод, аргументы функцией и иконка. Готовой строки там нет намеренно: подпись висит
