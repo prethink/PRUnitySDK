@@ -25,6 +25,23 @@ properties.RemoveProperty<long>("Coins");
 
 Для чтения доступны пары `TryGet*`/`Get*` для каждого поддерживаемого типа.
 
+Для настройки, у которой значение из `PRSDKSettings` служит запасным, можно читать
+сохранённое переопределение через `OverrideProperties.Get(key, fallback)`.
+Типизированный `EnumerationType<T>` задаёт и имя свойства, и тип значения; переопределение
+записывается через `SetValue(key, value)` и убирается через `RemoveProperty(key)`.
+Если изменение влияет на вычисленное состояние, вызывающий модуль должен его пересчитать.
+
+```csharp
+private static readonly EnumerationType<float> SpeedOverride = new("Example.Speed");
+
+float speed = OverrideProperties.Get(SpeedOverride, settings.Speed);
+properties.SetValue(SpeedOverride, 1.25f);
+properties.RemoveProperty(SpeedOverride);
+```
+
+Пример с `GrowthFactor` и автоматическим пересчётом есть в
+[документации опыта](../../../../PRUnitySDKPrivate/Modules/%40ProgressionModule/README.md#кривые-уровней).
+
 ### Какой тип брать для чисел
 
 | Тип | Для чего |
