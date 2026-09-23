@@ -332,6 +332,9 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- Окно `PRUnitySDK/Windows/Debug Window` принимает вкладки модулей: реализация
+  `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Вкладка с
+  `AvailableInEditMode` видна и без Play Mode — для данных на диске.
 - `ReservedItemsManager` — отвечает, достаётся ли предмет не покупкой; источники
   регистрируются сами атрибутом `[AutoReservedItemsProvider]`.
 - `ISaveable.TrySaveData` синхронный; собирается перед записью и при уходе объекта

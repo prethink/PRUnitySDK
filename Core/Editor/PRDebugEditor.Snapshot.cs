@@ -13,6 +13,9 @@ public partial class PRDebugEditor
         nextRefresh = EditorApplication.timeSinceStartup + Math.Max(0.1d, refreshInterval);
         ClearSnapshot();
 
+        // Вкладки модулей обновляются и вне игры: часть из них показывает данные с диска.
+        RefreshModuleTabs();
+
         if (!EditorApplication.isPlaying)
         {
             lastRefreshUtc = DateTime.UtcNow;

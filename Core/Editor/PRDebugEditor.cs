@@ -140,6 +140,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         refreshInterval = SessionState.GetFloat(RefreshIntervalKey, 1f);
         executor = long.TryParse(SessionState.GetString(ExecutorKey, "0"), out long saved) ? saved : 0L;
         DiscoverHealthChecks();
+        DiscoverModuleTabs();
         EventBus.OnEventRaised += OnEventBusRaised;
         EditorApplication.update += AutoRefresh;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -190,6 +191,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         if (!EditorApplication.isPlaying)
         {
             EditorGUILayout.HelpBox("Runtime diagnostics are available in Play Mode.", MessageType.Info);
+            DrawEditModeModuleTabs();
             return;
         }
 
@@ -214,7 +216,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
             ($"Entities ({entityInstances.Count})", DrawEntities),
             ($"Pools ({pools.Count})", DrawPools),
             ($"Flags ({flagResolvers.Count})", DrawFlags)
-        };
+        }.Concat(GetModuleTabEntries()).ToArray();
 
         // Вкладок больше десятка: ряд кнопок при такой ширине либо переносится на
         // несколько строк, либо сжимается до нечитаемого размера, поэтому раздел
