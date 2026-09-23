@@ -1,3 +1,5 @@
+using UnityEngine;
+
 /// <summary>
 /// Условие: отвечает на вопрос, не меняя ничего вокруг.
 /// </summary>
@@ -24,5 +26,6 @@ public interface ICondition
     /// дешёвым и не менять состояние игры. Условие, которое что-то делает по дороге,
     /// ломает всех, кто спрашивает его «просто посмотреть».
     /// </remarks>
-    bool Evaluate();
+    /// <param name="actor">Тот, для кого проверяют условие; <c>null</c> для правил состояния мира.</param>
+    bool Evaluate(GameObject actor = null);
 }

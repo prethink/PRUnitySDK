@@ -49,7 +49,7 @@ public class ResourceInlineCondition : ICondition
     public long Missing => ResourceCondition.GetMissing(resource, comparison, amount);
 
     /// <inheritdoc />
-    public bool Evaluate()
+    public bool Evaluate(GameObject actor = null)
     {
         return ResourceCondition.Evaluate(resource, comparison, amount);
     }

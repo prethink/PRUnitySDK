@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Правила, которые игра объявляет кодом и выбирает по имени.
@@ -15,7 +16,7 @@ using System.Collections.Generic;
 /// </remarks>
 public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
 {
-    private readonly Dictionary<Enumeration, Func<bool>> rules = new();
+    private readonly Dictionary<Enumeration, Func<GameObject, bool>> rules = new();
 
     /// <summary>
     /// Имена, о которых уже пожаловались.
@@ -40,6 +41,19 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
     /// <param name="key">Имя правила.</param>
     /// <param name="rule">Ответ правила.</param>
     public void Register(Enumeration key, Func<bool> rule)
+    {
+        if (key == null || rule == null)
+            return;
+
+        Register(key, _ => rule());
+    }
+
+    /// <summary>
+    /// Объявляет правило, которое зависит от проверяемого игрового объекта.
+    /// </summary>
+    /// <param name="key">Имя правила.</param>
+    /// <param name="rule">Ответ для переданного участника.</param>
+    public void Register(Enumeration key, Func<GameObject, bool> rule)
     {
         if (key == null || rule == null)
             return;
@@ -84,13 +98,14 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
     /// </remarks>
     /// <param name="key">Имя правила.</param>
     /// <returns>Ответ правила; <c>true</c>, если правила с таким именем нет.</returns>
-    public bool Evaluate(Enumeration key)
+    /// <param name="actor">Тот, для кого проверяют правило; может отсутствовать.</param>
+    public bool Evaluate(Enumeration key, GameObject actor = null)
     {
         if (key == null)
             return true;
 
-        if (rules.TryGetValue(key, out Func<bool> rule))
-            return rule.Invoke();
+        if (rules.TryGetValue(key, out Func<GameObject, bool> rule))
+            return rule.Invoke(actor);
 
         if (reported.Add(key))
             PRLog.WriteError(this, $"Правило [{key}] не объявлено: условие считается выполненным. " +

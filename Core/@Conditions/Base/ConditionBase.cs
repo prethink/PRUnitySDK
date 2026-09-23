@@ -18,5 +18,5 @@ using UnityEngine;
 public abstract class ConditionBase : ScriptableObject, ICondition
 {
     /// <inheritdoc />
-    public abstract bool Evaluate();
+    public abstract bool Evaluate(GameObject actor = null);
 }

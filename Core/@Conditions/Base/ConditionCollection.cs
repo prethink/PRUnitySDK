@@ -53,7 +53,7 @@ public class ConditionCollection : ConditionBase
     /// Пустой набор выполнен при любом режиме: отсутствие правил — это разрешение.
     /// Пустые строки списка пропускаются по той же причине.
     /// </remarks>
-    public override bool Evaluate()
+    public override bool Evaluate(GameObject actor = null)
     {
         // Набор может содержать набор, поэтому мышкой собирается кольцо: A ссылается
         // на B, B обратно на A. Без этой проверки такое кольцо уходит в бесконечную
@@ -69,7 +69,7 @@ public class ConditionCollection : ConditionBase
 
         try
         {
-            return EvaluateConditions();
+            return EvaluateConditions(actor);
         }
         finally
         {
@@ -77,7 +77,7 @@ public class ConditionCollection : ConditionBase
         }
     }
 
-    private bool EvaluateConditions()
+    private bool EvaluateConditions(GameObject actor)
     {
         if (conditions == null)
             return true;
@@ -91,7 +91,7 @@ public class ConditionCollection : ConditionBase
 
             hasAny = true;
 
-            bool met = condition.Evaluate();
+            bool met = condition.Evaluate(actor);
 
             if (match == ConditionMatch.All && !met)
                 return false;

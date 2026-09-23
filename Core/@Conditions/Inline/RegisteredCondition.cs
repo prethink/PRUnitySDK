@@ -25,8 +25,8 @@ public class RegisteredCondition : ICondition
     public Enumeration Rule => rule?.ToEnumeration();
 
     /// <inheritdoc />
-    public bool Evaluate()
+    public bool Evaluate(GameObject actor = null)
     {
-        return ConditionRegistry.Instance.Evaluate(Rule);
+        return ConditionRegistry.Instance.Evaluate(Rule, actor);
     }
 }

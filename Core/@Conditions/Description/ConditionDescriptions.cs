@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Собирает подпись условия: по чему видно, что именно нужно игроку.
@@ -53,7 +54,8 @@ public static class ConditionDescriptions
     /// условия по ресурсу подпись общая, различается только хранение.
     /// </remarks>
     /// <param name="condition">Условие.</param>
-    public static ConditionDescription Get(ICondition condition)
+    /// <param name="actor">Тот, для кого выбирают невыполненное требование.</param>
+    public static ConditionDescription Get(ICondition condition, GameObject actor = null)
     {
         if (condition == null)
             return null;
@@ -65,10 +67,10 @@ public static class ConditionDescriptions
         {
             ResourceCondition resource => Resource(resource.Resource, resource.Comparison, resource.Amount),
             ResourceInlineCondition inline => Resource(inline.Resource, inline.Comparison, inline.Amount),
-            AssetCondition asset => Get(asset.Condition),
-            AllCondition all => FromSet(all.Conditions),
-            AnyCondition any => FromSet(any.Conditions),
-            ConditionCollection collection => FromSet(collection.Conditions),
+            AssetCondition asset => Get(asset.Condition, actor),
+            AllCondition all => FromSet(all.Conditions, actor),
+            AnyCondition any => FromSet(any.Conditions, actor),
+            ConditionCollection collection => FromSet(collection.Conditions, actor),
             _ => null
         };
     }
@@ -82,7 +84,7 @@ public static class ConditionDescriptions
     /// иначе подпись пропадала бы в момент выполнения и цель выглядела бы сломанной.
     /// </remarks>
     /// <param name="conditions">Вложенные условия.</param>
-    private static ConditionDescription FromSet(IEnumerable<ICondition> conditions)
+    private static ConditionDescription FromSet(IEnumerable<ICondition> conditions, GameObject actor)
     {
         if (conditions == null)
             return null;
@@ -91,12 +93,12 @@ public static class ConditionDescriptions
 
         foreach (ICondition condition in conditions)
         {
-            ConditionDescription description = Get(condition);
+            ConditionDescription description = Get(condition, actor);
 
             if (description == null)
                 continue;
 
-            if (!condition.Evaluate())
+            if (!condition.Evaluate(actor))
                 return description;
 
             first ??= description;
