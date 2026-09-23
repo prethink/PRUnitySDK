@@ -114,6 +114,23 @@ public class NameService : SingletonProviderBase<NameService>
     }
 
     /// <summary>
+    /// Резервирует конкретное имя, если оно свободно.
+    /// </summary>
+    /// <remarks>
+    /// Для имени, пришедшего не из этого сервиса, — например, имени игрока из записи.
+    /// Без резерва его мог бы получить случайным выбором следующий, и в игре оказались бы
+    /// двое с одним именем.
+    /// </remarks>
+    /// <param name="name">Имя.</param>
+    /// <returns><see langword="true"/>, если имя было свободно и теперь зарезервировано.</returns>
+    public bool TryReserveName(string name)
+    {
+        EnsureInitialized();
+
+        return !string.IsNullOrWhiteSpace(name) && reservedNames.Add(name.Trim());
+    }
+
+    /// <summary>
     /// Освобождает ранее выданное имя, чтобы его снова можно было использовать.
     /// </summary>
     /// <returns><see langword="true"/>, если имя находилось в резерве.</returns>
