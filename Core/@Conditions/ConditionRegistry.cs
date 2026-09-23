@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// Правила, которые игра объявляет кодом и выбирает по имени.
@@ -16,7 +15,7 @@ using UnityEngine;
 /// </remarks>
 public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
 {
-    private readonly Dictionary<Enumeration, Func<GameObject, bool>> rules = new();
+    private readonly Dictionary<Enumeration, Func<ConditionContextBase, bool>> rules = new();
 
     /// <summary>
     /// Имена, о которых уже пожаловались.
@@ -49,11 +48,11 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
     }
 
     /// <summary>
-    /// Объявляет правило, которое зависит от проверяемого игрового объекта.
+    /// Объявляет правило, которое зависит от обстоятельств проверки.
     /// </summary>
     /// <param name="key">Имя правила.</param>
-    /// <param name="rule">Ответ для переданного участника.</param>
-    public void Register(Enumeration key, Func<GameObject, bool> rule)
+    /// <param name="rule">Ответ по контексту; участник лежит в <see cref="ConditionContextBase.Actor"/>.</param>
+    public void Register(Enumeration key, Func<ConditionContextBase, bool> rule)
     {
         if (key == null || rule == null)
             return;
@@ -98,14 +97,14 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
     /// </remarks>
     /// <param name="key">Имя правила.</param>
     /// <returns>Ответ правила; <c>true</c>, если правила с таким именем нет.</returns>
-    /// <param name="actor">Тот, для кого проверяют правило; может отсутствовать.</param>
-    public bool Evaluate(Enumeration key, GameObject actor = null)
+    /// <param name="context">Обстоятельства проверки; <c>null</c> равносилен <see cref="ConditionContextEmpty"/>.</param>
+    public bool Evaluate(Enumeration key, ConditionContextBase context)
     {
         if (key == null)
             return true;
 
-        if (rules.TryGetValue(key, out Func<GameObject, bool> rule))
-            return rule.Invoke(actor);
+        if (rules.TryGetValue(key, out Func<ConditionContextBase, bool> rule))
+            return rule.Invoke(context ?? ConditionContextEmpty.Instance);
 
         if (reported.Add(key))
             PRLog.WriteError(this, $"Правило [{key}] не объявлено: условие считается выполненным. " +

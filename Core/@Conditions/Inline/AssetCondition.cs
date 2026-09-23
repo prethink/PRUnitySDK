@@ -30,8 +30,8 @@ public class AssetCondition : ICondition
     /// <remarks>
     /// Пустая ссылка считается выполненной: недонастроенный слот не запирает.
     /// </remarks>
-    public bool Evaluate(GameObject actor = null)
+    public bool Evaluate(ConditionContextBase context)
     {
-        return condition == null || condition.Evaluate(actor);
+        return condition == null || condition.Evaluate(context);
     }
 }

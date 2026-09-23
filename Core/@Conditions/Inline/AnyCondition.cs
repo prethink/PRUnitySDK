@@ -26,7 +26,7 @@ public class AnyCondition : ICondition
     public IReadOnlyList<ICondition> Conditions => conditions;
 
     /// <inheritdoc />
-    public bool Evaluate(GameObject actor = null)
+    public bool Evaluate(ConditionContextBase context)
     {
         if (conditions == null || conditions.Count == 0)
             return true;
@@ -40,7 +40,7 @@ public class AnyCondition : ICondition
 
             hasAny = true;
 
-            if (condition.Evaluate(actor))
+            if (condition.Evaluate(context))
                 return true;
         }
 

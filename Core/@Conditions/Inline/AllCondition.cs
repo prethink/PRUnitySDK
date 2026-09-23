@@ -26,7 +26,7 @@ public class AllCondition : ICondition
     public IReadOnlyList<ICondition> Conditions => conditions;
 
     /// <inheritdoc />
-    public bool Evaluate(GameObject actor = null)
+    public bool Evaluate(ConditionContextBase context)
     {
         if (conditions == null)
             return true;
@@ -34,7 +34,7 @@ public class AllCondition : ICondition
         foreach (ICondition condition in conditions)
         {
             // Пустая строка списка - недонастроенный слот, а не запрет.
-            if (condition != null && !condition.Evaluate(actor))
+            if (condition != null && !condition.Evaluate(context))
                 return false;
         }
 

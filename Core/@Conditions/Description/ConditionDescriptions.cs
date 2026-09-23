@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// Собирает подпись условия: по чему видно, что именно нужно игроку.
@@ -47,6 +46,15 @@ public static class ConditionDescriptions
     }
 
     /// <summary>
+    /// Подпись условия без обстоятельств проверки либо <c>null</c>, если показывать нечего.
+    /// </summary>
+    /// <param name="condition">Условие.</param>
+    public static ConditionDescription Get(ICondition condition)
+    {
+        return Get(condition, ConditionContextEmpty.Instance);
+    }
+
+    /// <summary>
     /// Подпись условия либо <c>null</c>, если показывать нечего.
     /// </summary>
     /// <remarks>
@@ -54,8 +62,8 @@ public static class ConditionDescriptions
     /// условия по ресурсу подпись общая, различается только хранение.
     /// </remarks>
     /// <param name="condition">Условие.</param>
-    /// <param name="actor">Тот, для кого выбирают невыполненное требование.</param>
-    public static ConditionDescription Get(ICondition condition, GameObject actor = null)
+    /// <param name="context">Обстоятельства, по которым выбирают невыполненное требование.</param>
+    public static ConditionDescription Get(ICondition condition, ConditionContextBase context)
     {
         if (condition == null)
             return null;
@@ -67,10 +75,10 @@ public static class ConditionDescriptions
         {
             ResourceCondition resource => Resource(resource.Resource, resource.Comparison, resource.Amount),
             ResourceInlineCondition inline => Resource(inline.Resource, inline.Comparison, inline.Amount),
-            AssetCondition asset => Get(asset.Condition, actor),
-            AllCondition all => FromSet(all.Conditions, actor),
-            AnyCondition any => FromSet(any.Conditions, actor),
-            ConditionCollection collection => FromSet(collection.Conditions, actor),
+            AssetCondition asset => Get(asset.Condition, context),
+            AllCondition all => FromSet(all.Conditions, context),
+            AnyCondition any => FromSet(any.Conditions, context),
+            ConditionCollection collection => FromSet(collection.Conditions, context),
             _ => null
         };
     }
@@ -84,7 +92,7 @@ public static class ConditionDescriptions
     /// иначе подпись пропадала бы в момент выполнения и цель выглядела бы сломанной.
     /// </remarks>
     /// <param name="conditions">Вложенные условия.</param>
-    private static ConditionDescription FromSet(IEnumerable<ICondition> conditions, GameObject actor)
+    private static ConditionDescription FromSet(IEnumerable<ICondition> conditions, ConditionContextBase context)
     {
         if (conditions == null)
             return null;
@@ -93,12 +101,12 @@ public static class ConditionDescriptions
 
         foreach (ICondition condition in conditions)
         {
-            ConditionDescription description = Get(condition, actor);
+            ConditionDescription description = Get(condition, context);
 
             if (description == null)
                 continue;
 
-            if (!condition.Evaluate(actor))
+            if (!condition.Evaluate(context))
                 return description;
 
             first ??= description;

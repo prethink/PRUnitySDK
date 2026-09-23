@@ -53,7 +53,7 @@ public class ResourceCondition : ConditionBase
     public long Missing => GetMissing(resource, comparison, amount);
 
     /// <inheritdoc />
-    public override bool Evaluate(GameObject actor = null)
+    public override bool Evaluate(ConditionContextBase context)
     {
         return Evaluate(resource, comparison, amount);
     }

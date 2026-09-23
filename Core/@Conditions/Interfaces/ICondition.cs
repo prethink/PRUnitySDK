@@ -1,5 +1,3 @@
-using UnityEngine;
-
 /// <summary>
 /// Условие: отвечает на вопрос, не меняя ничего вокруг.
 /// </summary>
@@ -26,6 +24,18 @@ public interface ICondition
     /// дешёвым и не менять состояние игры. Условие, которое что-то делает по дороге,
     /// ломает всех, кто спрашивает его «просто посмотреть».
     /// </remarks>
-    /// <param name="actor">Тот, для кого проверяют условие; <c>null</c> для правил состояния мира.</param>
-    bool Evaluate(GameObject actor = null);
+    /// <param name="context">Обстоятельства проверки; для правил состояния мира —
+    /// <see cref="ConditionContextEmpty"/>.</param>
+    bool Evaluate(ConditionContextBase context);
+
+    /// <summary>
+    /// Выполнено ли условие сейчас, без обстоятельств.
+    /// </summary>
+    /// <remarks>
+    /// Для правил состояния мира: передаёт в основной метод <see cref="ConditionContextEmpty"/>.
+    /// </remarks>
+    bool Evaluate()
+    {
+        return Evaluate(ConditionContextEmpty.Instance);
+    }
 }
