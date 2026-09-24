@@ -528,7 +528,8 @@ PRUnitySDK/
 ### Модули и интеграции
 
 - [Modules](Modules/README.md) — опциональные игровые модули: `StateManager`
-- [DamageSystem](Modules/@DamageSystem/README.md) — создание, модификация и применение урона через хуки
+- [DamageSystem](Modules/@DamageSystem/README.md) — создание, модификация и применение урона через хуки; правила урона игры (`DamageRules`) из настроек проекта, со сцены и из кода
+- [GameSessions](Modules/GameSessions/README.md) — сессия карты и раунды с режимами и правилами; одиночная игра и локальный мультиплеер
 - [HitBox](Modules/HitBox/README.md) — связь физических коллайдеров с `DamageSystem`
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
 - [YG2 Integration](YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
