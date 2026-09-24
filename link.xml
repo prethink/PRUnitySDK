@@ -8,8 +8,10 @@
     <type fullname="AchievementReservedItems" preserve="all" />
     <type fullname="BackgroundExperienceSourceTask" preserve="all" />
     <type fullname="BackgroundTaskKeyEnumerations" preserve="all" />
+    <type fullname="ButtonFamilyEnumerations" preserve="all" />
     <type fullname="CaseReservedItems" preserve="all" />
     <type fullname="CharacterEnumerations" preserve="all" />
+    <type fullname="ConditionEnumerations" preserve="all" />
     <type fullname="ContainerTypeEnumerations" preserve="all" />
     <type fullname="DailyGiftReservedItems" preserve="all" />
     <type fullname="EntityDisposeEnumerations" preserve="all" />
@@ -17,10 +19,12 @@
     <type fullname="FreeGiftReservedItems" preserve="all" />
     <type fullname="GameFlagsEnumerations" preserve="all" />
     <type fullname="GameSettingsEnumerations" preserve="all" />
+    <type fullname="GhostActionEnumerations" preserve="all" />
     <type fullname="GizmoEnumerations" preserve="all" />
     <type fullname="HotbarInputEnumerations" preserve="all" />
     <type fullname="InventoryActionEnumerations" preserve="all" />
     <type fullname="LayersEnumerations" preserve="all" />
+    <type fullname="MeleeWeaponTypeEnumerations" preserve="all" />
     <type fullname="MonoWindowKeyEnumerations" preserve="all" />
     <type fullname="NPCStatesEnumerations" preserve="all" />
     <type fullname="NewDayWatcherTask" preserve="all" />
@@ -41,6 +45,7 @@
     <type fullname="StateId" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />
     <type fullname="UICommandEnumerations" preserve="all" />
+    <type fullname="WeaponFlags" preserve="all" />
     <type fullname="WheelOfFortuneReservedItems" preserve="all" />
   </assembly>
 </linker>

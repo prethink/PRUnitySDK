@@ -92,6 +92,8 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     private bool startTransformCaptured;
 
+    private EntityWireVisual wireVisual;
+
     #endregion
 
     #region IEntity
@@ -172,6 +174,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
         if(options.FullDestroy)
         {
+            ClearWireVisual();
             OnDestroyPool(true);
             Destroy(this.gameObject);
             return;
@@ -181,6 +184,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
         if (disposeAction == EntityDisposeEnumerations.Destroy)
         {
+            ClearWireVisual();
             OnDestroyPool(true);
             Destroy(this.gameObject);
             return;
@@ -190,6 +194,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         else if (disposeAction == EntityDisposeEnumerations.Hide)
         {
             EntityGameObject.SetActive(false);
+            return;
+        }
+        else if (disposeAction == EntityDisposeEnumerations.HideWire)
+        {
+            if (EntityGameObject.activeSelf)
+            {
+                wireVisual = EntityWireVisual.Create(EntityGameObject);
+                EntityGameObject.SetActive(false);
+            }
+
             return;
         }
         else if (disposeAction == EntityDisposeEnumerations.HideInPool && !InPool && PoolBehaviour.IsInitialize)
@@ -299,6 +313,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     protected override void UnRegisterEventsOnDestroy()
     {
+        ClearWireVisual();
         UnregisterEntity();
         base.UnRegisterEventsOnDestroy();
     }
@@ -372,14 +387,24 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </remarks>
     public virtual void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
     {
-        if (EntityDisposeAction.ToEnumeration() != EntityDisposeEnumerations.Hide)
+        Enumeration disposeAction = EntityDisposeAction.ToEnumeration();
+        if (disposeAction != EntityDisposeEnumerations.Hide &&
+            disposeAction != EntityDisposeEnumerations.HideWire)
             return;
+
+        ClearWireVisual();
 
         if (!EntityGameObject.activeSelf)
             EntityGameObject.SetActive(true);
 
         RestoreStartTransform();
         InitializeEntity();
+    }
+
+    private void ClearWireVisual()
+    {
+        wireVisual?.Dispose();
+        wireVisual = null;
     }
 
     /// <summary>

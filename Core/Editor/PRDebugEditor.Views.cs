@@ -942,7 +942,7 @@ public partial class PRDebugEditor
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.HelpBox(
-            "Brings back entities disposed with EntityDisposeAction = Hide and initializes them again.",
+            "Brings back entities disposed with EntityDisposeAction = Hide or HideWire and initializes them again.",
             MessageType.None);
     }
 
