@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Проигрывает звук в месте попадания, когда связанная сущность получила урон.
+/// Проигрывает звук в месте попадания, когда связанная сущность получила урон или умерла.
 /// </summary>
-public sealed class DamageSound : MonoBehaviour
+public sealed class HealthSound : MonoBehaviour
 {
     private enum PlaybackOrder
     {
@@ -14,13 +14,18 @@ public sealed class DamageSound : MonoBehaviour
 
     [SerializeField] private HealthComponent healthComponent;
     [SerializeField] private List<AudioClip> damageClips = new();
+
+    [Tooltip("Играет при смерти вместо звука урона. Если список пуст, смертельный удар звучит как обычный.")]
+    [SerializeField] private List<AudioClip> deathClips = new();
+
     [SerializeField] private PlaybackOrder playbackOrder;
     [SerializeField, Range(0f, 1f)] private float volume = 1f;
     [SerializeField, Range(0.1f, 3f)] private float minPitch = 0.9f;
     [SerializeField, Range(0.1f, 3f)] private float maxPitch = 1.1f;
 
     private DamageOutcome lastPlayedOutcome;
-    private int nextClipIndex;
+    private int nextDamageClipIndex;
+    private int nextDeathClipIndex;
 
     private void OnEnable()
     {
@@ -29,11 +34,11 @@ public sealed class DamageSound : MonoBehaviour
 
         if (healthComponent == null)
         {
-            Debug.LogWarning("DamageSound не нашёл HealthComponent.", this);
+            Debug.LogWarning("HealthSound не нашёл HealthComponent.", this);
             return;
         }
 
-        // Смертельный урон обрабатывается до скрытия объекта; для остальных
+        // Смерть обрабатывается до скрытия объекта; для остальных
         // попаданий достаточно итогового события обработки.
         healthComponent.OnHealthChange += OnHealthChanged;
         healthComponent.OnDamageProcessed += OnDamageProcessed;
@@ -53,25 +58,24 @@ public sealed class DamageSound : MonoBehaviour
     private void OnHealthChanged(HealthChangedEventArgsBase change)
     {
         if (change?.DamageOutcome?.Result == DamageResult.Killed)
-            PlayDamageSound(change.DamageOutcome);
+            PlaySound(change.DamageOutcome);
     }
 
     private void OnDamageProcessed(DamageOutcome outcome)
     {
-        PlayDamageSound(outcome);
+        PlaySound(outcome);
     }
 
-    private void PlayDamageSound(DamageOutcome outcome)
+    private void PlaySound(DamageOutcome outcome)
     {
-        if (outcome == null || !outcome.WasApplied ||
-            outcome.AppliedDamage <= 0f || ReferenceEquals(lastPlayedOutcome, outcome))
+        if (outcome == null || !outcome.WasApplied || ReferenceEquals(lastPlayedOutcome, outcome))
             return;
 
         SoundManager sound = PRUnitySDK.Managers?.Sound;
         if (sound == null)
             return;
 
-        AudioClip clip = SelectClip();
+        AudioClip clip = SelectClip(outcome);
         if (clip == null)
             return;
 
@@ -81,21 +85,42 @@ public sealed class DamageSound : MonoBehaviour
         sound.PlaySoundEffectAtPoint(clip, position, pitchRange, volume);
     }
 
-    private AudioClip SelectClip()
+    /// <summary>
+    /// Выбирает звук смерти или урона.
+    /// </summary>
+    /// <remarks>
+    /// Смерть через <see cref="HealthComponent.Kill(IEntity, IWeapon)"/> приходит с нулевым
+    /// уроном, поэтому звук урона на ней не играет, а звук смерти играет.
+    /// </remarks>
+    private AudioClip SelectClip(DamageOutcome outcome)
     {
-        if (damageClips == null || damageClips.Count == 0)
+        if (outcome.Result == DamageResult.Killed)
+        {
+            AudioClip deathClip = SelectClip(deathClips, ref nextDeathClipIndex);
+            if (deathClip != null)
+                return deathClip;
+        }
+
+        return outcome.AppliedDamage > 0f
+            ? SelectClip(damageClips, ref nextDamageClipIndex)
+            : null;
+    }
+
+    private AudioClip SelectClip(List<AudioClip> clips, ref int nextClipIndex)
+    {
+        if (clips == null || clips.Count == 0)
             return null;
 
         if (playbackOrder == PlaybackOrder.Sequential)
         {
-            for (int offset = 0; offset < damageClips.Count; offset++)
+            for (int offset = 0; offset < clips.Count; offset++)
             {
-                int index = (nextClipIndex + offset) % damageClips.Count;
-                AudioClip clip = damageClips[index];
+                int index = (nextClipIndex + offset) % clips.Count;
+                AudioClip clip = clips[index];
                 if (clip == null)
                     continue;
 
-                nextClipIndex = (index + 1) % damageClips.Count;
+                nextClipIndex = (index + 1) % clips.Count;
                 return clip;
             }
 
@@ -103,7 +128,7 @@ public sealed class DamageSound : MonoBehaviour
         }
 
         int availableCount = 0;
-        foreach (AudioClip clip in damageClips)
+        foreach (AudioClip clip in clips)
         {
             if (clip != null)
                 availableCount++;
@@ -113,7 +138,7 @@ public sealed class DamageSound : MonoBehaviour
             return null;
 
         int selected = UnityEngine.Random.Range(0, availableCount);
-        foreach (AudioClip clip in damageClips)
+        foreach (AudioClip clip in clips)
         {
             if (clip == null)
                 continue;

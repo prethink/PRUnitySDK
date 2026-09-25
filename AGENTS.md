@@ -332,6 +332,8 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- `DamageSound` переименован в `HealthSound` (GUID тот же) и получил список звуков
+  смерти `Death Clips`; смерть через `Kill()` тоже звучит.
 - Окно `PRUnitySDK/Windows/Debug Window` принимает вкладки модулей: реализация
   `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Вкладка с
   `AvailableInEditMode` видна и без Play Mode — для данных на диске.
