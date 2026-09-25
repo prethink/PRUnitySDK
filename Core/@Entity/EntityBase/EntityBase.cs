@@ -196,11 +196,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
             EntityGameObject.SetActive(false);
             return;
         }
-        else if (disposeAction == EntityDisposeEnumerations.HideWire)
+        else if (disposeAction == EntityDisposeEnumerations.HideWire ||
+                 disposeAction == EntityDisposeEnumerations.HideWirePolygons)
         {
             if (EntityGameObject.activeSelf)
             {
-                wireVisual = EntityWireVisual.Create(EntityGameObject);
+                EntityWireStyle style = disposeAction == EntityDisposeEnumerations.HideWirePolygons
+                    ? EntityWireStyle.Polygons
+                    : EntityWireStyle.Triangles;
+
+                wireVisual = EntityWireVisual.Create(EntityGameObject, style);
                 EntityGameObject.SetActive(false);
             }
 
@@ -389,7 +394,8 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     {
         Enumeration disposeAction = EntityDisposeAction.ToEnumeration();
         if (disposeAction != EntityDisposeEnumerations.Hide &&
-            disposeAction != EntityDisposeEnumerations.HideWire)
+            disposeAction != EntityDisposeEnumerations.HideWire &&
+            disposeAction != EntityDisposeEnumerations.HideWirePolygons)
             return;
 
         ClearWireVisual();

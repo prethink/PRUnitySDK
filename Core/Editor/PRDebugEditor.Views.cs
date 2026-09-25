@@ -36,6 +36,8 @@ public partial class PRDebugEditor
 
         DrawSaveInfo();
 
+        DrawOverviewSections();
+
         DrawSectionHeader("Summary");
         DrawSummaryLine(("Players", players.Count), ("Humans", humanCount), ("AI", aiCount),
             ("Initialized", initializationEntries.Count), ("Entities", entityTotal), ("On scene", entityOnScene),
@@ -942,7 +944,7 @@ public partial class PRDebugEditor
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.HelpBox(
-            "Brings back entities disposed with EntityDisposeAction = Hide or HideWire and initializes them again.",
+            "Brings back entities disposed with EntityDisposeAction = Hide, HideWire or HideWirePolygons and initializes them again.",
             MessageType.None);
     }
 

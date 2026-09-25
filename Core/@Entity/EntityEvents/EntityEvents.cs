@@ -24,7 +24,14 @@ public static class EntityEvents
     public static void EquipmentChanged(IEntity entity) => EventBus.RaiseEvent<IEntityEquipmentChangedEvent>(invoke => invoke.OnEntityEquipmentChanged(new EntityEquipmentChangedEventArgs(entity)));
 
     /// <summary>
-    /// Вызывает событие восстановления спрятанных сущностей.
+    /// Вызывает событие восстановления спрятанных сущностей, а следом — событие о том,
+    /// что восстановление завершено.
     /// </summary>
-    public static void RestoreHideEntities() => EventBus.RaiseEvent<IRestoreHideEntitiesEvent>(invoke => invoke.RestoreHideEvent(new RestoreHideEntitiesEventArgs()));
+    public static void RestoreHideEntities()
+    {
+        var args = new RestoreHideEntitiesEventArgs();
+
+        EventBus.RaiseEvent<IRestoreHideEntitiesEvent>(invoke => invoke.RestoreHideEvent(args));
+        EventBus.RaiseEvent<IHideEntitiesRestoredEvent>(invoke => invoke.OnHideEntitiesRestored(args));
+    }
 }

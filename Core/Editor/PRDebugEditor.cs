@@ -141,6 +141,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         executor = long.TryParse(SessionState.GetString(ExecutorKey, "0"), out long saved) ? saved : 0L;
         DiscoverHealthChecks();
         DiscoverModuleTabs();
+        DiscoverOverviewSections();
         EventBus.OnEventRaised += OnEventBusRaised;
         EditorApplication.update += AutoRefresh;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
