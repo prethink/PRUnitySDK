@@ -334,6 +334,13 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- Переход окон `MonoWindowBase`: окно вырастает из центра и сжимается обратно (DOTween,
+  unscaled time). Общая настройка — `PRSDKSettings.WindowTransition`: пресет
+  (`Pop` по умолчанию, `Soft`, `Fade`, `SlideUp`, `SlideDown`, `Elastic`) или `Custom` со своими
+  значениями. У окна — `Transition Mode` (Default/Override/None), `Transition Target` и
+  `virtual MonoWindowTransition GetTransition()`.
+  Закрываемое окно сразу невидимо для трекера (`IsVisible`), хотя ещё анимируется.
+
 - `Settings.Entity.WireScale` — размер каркаса `HideWire`: исходный (по умолчанию) или на момент смерти.
 - `HealthComponent.OnHit` — попадание, которое стоит показать (эффекты, звук). Удар без урона
   входит в него, только если включено `PRSDKSettings.Health.ZeroDamageIsHit`.

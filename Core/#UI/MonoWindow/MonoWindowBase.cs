@@ -27,19 +27,32 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     /// <summary>
     /// Показывает, активно ли сейчас содержимое окна.
     /// </summary>
-    public bool IsVisible => isActiveAndEnabled && GetContainer().activeInHierarchy;
+    /// <remarks>
+    /// Окно, которое уже закрыто и только доигрывает переход, видимым не считается.
+    /// </remarks>
+    public bool IsVisible => isActiveAndEnabled && !isHiding && GetContainer().activeInHierarchy;
 
     /// <summary>
     /// Отображает окно с указанными параметрами.
     /// </summary>
+    /// <remarks>
+    /// Переход играет, только если окно было закрыто: повторный показ открытого окна
+    /// с новыми данными его не дёргает.
+    /// </remarks>
     public virtual void Show(MonoWindowArgs args)
     {
         GameObject windowContainer = GetContainer();
+        bool wasHidden = !windowContainer.activeSelf || isHiding;
+
         if (!windowContainer.activeSelf)
             windowContainer.SetActive(true);
 
         windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
         isShown = true;
+
+        if (wasHidden)
+            PlayShowTransition();
+
         AcquireWindowState();
     }
 
@@ -47,13 +60,22 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     /// Скрывает окно и освобождает принадлежащее ему состояние паузы.
     /// </summary>
     /// <param name="isForceClose">
-    /// При принудительном закрытии сохранение пользовательских данных не запускается.
+    /// При принудительном закрытии сохранение пользовательских данных не запускается,
+    /// а переход не играет: окно исчезает сразу.
     /// </param>
     public virtual void Hide(bool isForceClose = false)
     {
         GameObject windowContainer = GetContainer();
-        bool wasVisible = windowContainer.activeSelf;
+        bool wasHiding = isHiding;
+        bool wasVisible = windowContainer.activeSelf && !wasHiding;
         isShown = false;
+
+        // Принудительное закрытие не ждёт уже начатого перехода.
+        if (wasHiding && isForceClose)
+        {
+            StopTransition();
+            windowContainer.SetActive(false);
+        }
 
         if (!wasVisible && !ownsLogicPause && !ownsCursor)
             return;
@@ -61,8 +83,11 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         if (wasVisible && !isForceClose)
             GameManager.Instance.StartSaveTask();
 
-        if (wasVisible)
+        if (wasVisible && (isForceClose || !TryPlayHideTransition()))
+        {
+            StopTransition();
             windowContainer.SetActive(false);
+        }
 
         ReleaseWindowState();
     }
