@@ -443,3 +443,24 @@ Partial-поля Settings и Database не требуют ручного доб�
 5. Если изменение пишет в `ProjectData`, проверьте обе половины операции: списание и выдача должны одинаково относиться к кулдауну сохранения.
 6. Для Editor-кода убедитесь, что он находится в `Editor` и не попадает в runtime/build.
 7. Для менеджера проверьте уникальность типа, hook stage/priority, готовность зависимостей, factory/Resources-путь, родителя `ManagerContainer` и ссылки в `Core/@Managers/README.md`.
+
+## Тесты
+
+EditMode-тесты на NUnit лежат **рядом с модулем**, в его папке `Editor`
+(например `Core/@Entity/Sides/Editor/EntitySidesTests.cs`): так они попадают в сборку
+редактора без своих `.asmdef` — SDK живёт одной сборкой.
+
+Каждый файл тестов обёрнут в `#if PRSDK_TESTS`. SDK подключают и проекты без пакета
+Test Framework: без обёртки тесты там не собрались бы и остановили всю компиляцию.
+
+Запуск: добавить `PRSDK_TESTS` в `Project Settings → Player → Scripting Define Symbols`,
+затем `Window → General → Test Runner → EditMode → Run All`. После прогона символ можно убрать.
+
+Проверяйте чистые решения, а не сцену: `EntitySides.ResolveDamage` с настройками, созданными
+в тесте, а не `GetDamage` с сущностями и ассетом проекта. Коду, которому нужны настройки
+проекта, давайте получать их параметром — тогда тест подставит свои.
+
+| Тесты | Что проверяют |
+| --- | --- |
+| `Core/@Entity/Sides/Editor/EntitySidesTests` | свой-чужой: урон, враг, команды, friendly fire, матрица, стороны |
+| `Core/RemoteFlags/Editor/RemoteFlagsTests` | разбор флагов проекта |

@@ -11,18 +11,19 @@ public partial class PRUnitySDK
     private static readonly object EntitySidesOwner = new();
 
     /// <summary>
-    /// Ставит правило «свой-чужой», если стороны включены в настройках.
+    /// Ставит правило «свой-чужой».
     /// </summary>
     /// <remarks>
-    /// Прежнее снимается: настройки перечитываются при каждом старте SDK, и без этого
-    /// правила копились бы при входе в Play Mode без перезагрузки домена.
+    /// Ставится всегда, а выключенные стороны правило просто пропускает
+    /// (<see cref="EntitySides.ResolveDamage"/>): так их можно включить и выключить на ходу
+    /// (<see cref="EntitySidesSettings.SetEnabled"/>). Прежнее снимается: настройки
+    /// перечитываются при каждом старте SDK, и без этого правила копились бы при входе
+    /// в Play Mode без перезагрузки домена.
     /// </remarks>
     [MethodHook(MethodHookStage.SDK, PRIORITY_ENTITY_SIDES)]
     private static void InitializeEntitySides()
     {
         DamageRules.Instance.Remove(EntitySidesOwner);
-
-        if (Settings.Sides.Enabled)
-            DamageRules.Instance.Add(new EntitySideDamageRule(), EntitySidesOwner);
+        DamageRules.Instance.Add(new EntitySideDamageRule(), EntitySidesOwner);
     }
 }

@@ -15,10 +15,12 @@
     <type fullname="ContainerTypeEnumerations" preserve="all" />
     <type fullname="DailyGiftReservedItems" preserve="all" />
     <type fullname="EntityDisposeEnumerations" preserve="all" />
+    <type fullname="EntitySideEnumerations" preserve="all" />
     <type fullname="EntityTypeEnumerations" preserve="all" />
     <type fullname="FreeGiftReservedItems" preserve="all" />
     <type fullname="GameFlagsEnumerations" preserve="all" />
     <type fullname="GameSettingsEnumerations" preserve="all" />
+    <type fullname="GameSignalEnumerations" preserve="all" />
     <type fullname="GhostActionEnumerations" preserve="all" />
     <type fullname="GizmoEnumerations" preserve="all" />
     <type fullname="HotbarInputEnumerations" preserve="all" />

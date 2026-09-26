@@ -44,9 +44,23 @@
 Enumeration side = EntitySides.GetSide(entity);
 EntitySideDamage damage = EntitySides.GetDamage(attacker, victim);   // Hit / NoDamage / Block
 bool canHit = EntitySides.CanHit(attacker, victim);   // удар засчитается (в том числе без урона)
-bool enemy = EntitySides.IsEnemy(bot, target);        // удар наносит урон — по этому выбирают цели
+bool enemy = EntitySides.IsEnemy(bot, target);        // враг — по этому выбирают цели
 bool ally = EntitySides.IsSameTeam(a, b);
 ```
+
+«Можно ударить» и «враг» — разные вопросы. При `Friendly Fire` союзника ударить можно,
+но врагом он не становится, и бот не пойдёт на своих. Враг: игрок другой команды; без
+команд — тот, по кому удар наносит урон (клетка «Бьёт»).
+
+Само решение — чистые функции, их можно спрашивать со своими настройками (так их и тестируют):
+
+```csharp
+EntitySides.ResolveDamage(settings, attackerSide, victimSide, EntityTeamRelation.SameTeam);
+EntitySides.ResolveEnemy(settings, firstSide, secondSide, EntityTeamRelation.None);
+```
+
+Настройки меняются и на ходу — например, режим с дружественным огнём:
+`PRUnitySDK.Settings.Sides.SetFriendlyFire(true)`, `SetEnabled(false)`, `SetEntityTypeSide(...)`.
 
 ## Устройство
 
@@ -59,5 +73,6 @@ bool ally = EntitySides.IsSameTeam(a, b);
 | `EntitySideOverride` | своя сторона отдельной сущности |
 | `Editor/EntitySideMatrixDrawer` | матрица треугольником в инспекторе |
 
-Правило сторон стоит в общей очереди правил урона (`DamageRules`) на `Order = -200`.
+Правило сторон стоит в общей очереди правил урона (`DamageRules`) на `Order = -200` всегда;
+выключенные стороны оно пропускает, поэтому их можно включить посреди игры.
 Правила проекта и сцены (`DamageRuleComponent`) продолжают работать рядом с ним.

@@ -32,6 +32,8 @@ public abstract partial class MonoWindowBase
     private Vector2 restPosition;
     private bool isSliding;
     private CanvasGroup fadeGroup;
+    private float restAlpha = 1f;
+    private bool restBlocksRaycasts = true;
 
     /// <summary>
     /// Переход окна или <see langword="null"/>, если окно появляется и закрывается сразу.
@@ -96,8 +98,8 @@ public abstract partial class MonoWindowBase
 
         if (fadeGroup != null)
         {
-            fadeGroup.blocksRaycasts = true;
-            transition.Join(fadeGroup.DOFade(1f, settings.ShowDuration).SetEase(Ease.OutQuad));
+            fadeGroup.blocksRaycasts = restBlocksRaycasts;
+            transition.Join(fadeGroup.DOFade(restAlpha, settings.ShowDuration).SetEase(Ease.OutQuad));
         }
 
         transition
@@ -238,15 +240,28 @@ public abstract partial class MonoWindowBase
 
         if (settings.Fade)
         {
-            fadeGroup ??= GetFadeGroup();
+            if (fadeGroup == null)
+            {
+                fadeGroup = GetFadeGroup();
+                captureRest = true;
+            }
+
+            // Своё состояние группы окно могло задать само: переход возвращает к нему,
+            // а не к «видно и нажимается».
+            if (captureRest)
+            {
+                restAlpha = fadeGroup.alpha;
+                restBlocksRaycasts = fadeGroup.blocksRaycasts;
+            }
+
             return;
         }
 
         if (fadeGroup == null)
             return;
 
-        fadeGroup.alpha = 1f;
-        fadeGroup.blocksRaycasts = true;
+        fadeGroup.alpha = restAlpha;
+        fadeGroup.blocksRaycasts = restBlocksRaycasts;
         fadeGroup = null;
     }
 
@@ -279,8 +294,8 @@ public abstract partial class MonoWindowBase
 
         if (fadeGroup != null)
         {
-            fadeGroup.alpha = 1f;
-            fadeGroup.blocksRaycasts = true;
+            fadeGroup.alpha = restAlpha;
+            fadeGroup.blocksRaycasts = restBlocksRaycasts;
         }
     }
 }

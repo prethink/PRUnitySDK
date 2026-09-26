@@ -3,7 +3,8 @@ using System.Linq;
 using UnityEditor;
 
 /// <summary>
-/// Проверка модулей: манифесты, обёртки файлов и отключённые обязательные модули.
+/// Проверка модулей: манифесты, обёртки файлов, отключённые обязательные модули
+/// и включённые модули с отключёнными зависимостями.
 /// </summary>
 public sealed class PRModuleValidator : IProjectValidator
 {
@@ -41,6 +42,20 @@ public sealed class PRModuleValidator : IProjectValidator
             {
                 yield return new ProjectValidationIssue(MessageType.Error,
                     $"Обязательный модуль {module.DisplayName} отключён. Включите его в окне модулей.", module.Manifest);
+            }
+
+            // Окно модулей такого не допускает, но символы правят и руками в Player Settings,
+            // и через слияние в git. Модуль тогда не собирается, а причина не видна.
+            List<PRModuleInfo> disabledDependencies = disabled.Contains(module.Id)
+                ? new List<PRModuleInfo>()
+                : module.Dependencies.Where(dependency => disabled.Contains(dependency.Id)).ToList();
+
+            if (disabledDependencies.Count > 0)
+            {
+                yield return new ProjectValidationIssue(MessageType.Error,
+                    $"Модуль {module.DisplayName} включён, а его зависимости отключены: " +
+                    $"{string.Join(", ", disabledDependencies.Select(dependency => dependency.DisplayName))}. " +
+                    "Включите их или отключите модуль в окне модулей.", module.Manifest);
             }
 
             if (module.UnguardedScripts.Count > 0 && PRModuleManifest.IsValidId(module.Id))

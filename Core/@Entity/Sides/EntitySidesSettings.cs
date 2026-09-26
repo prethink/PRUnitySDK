@@ -84,6 +84,42 @@ public class EntitySidesSettings
     /// </summary>
     public Enumeration DefaultSide => defaultSide?.ToEnumeration() ?? EntitySideEnumerations.Neutral;
 
+    /// <summary>
+    /// Включает или выключает стороны — например, на время режима без правил.
+    /// </summary>
+    public EntitySidesSettings SetEnabled(bool value)
+    {
+        Enabled = value;
+        return this;
+    }
+
+    /// <summary>
+    /// Разрешает или запрещает игрокам одной команды бить друг друга.
+    /// </summary>
+    public EntitySidesSettings SetFriendlyFire(bool value)
+    {
+        FriendlyFire = value;
+        return this;
+    }
+
+    /// <summary>
+    /// Сопоставляет виду сущности сторону, заменяя прежнее сопоставление.
+    /// </summary>
+    public EntitySidesSettings SetEntityTypeSide(Enumeration entityType, Enumeration side)
+    {
+        if (entityType == null)
+            return this;
+
+        entityTypeSides.RemoveAll(entry => entry?.EntityType != null && entry.EntityType.Value == entityType.Value);
+
+        var added = new EntityTypeSide();
+        added.EntityType.Set(entityType);
+        added.Side.Set(side);
+        entityTypeSides.Add(added);
+
+        return this;
+    }
+
     private static EnumerationReference<EntitySideEnumerations> Side(Enumeration value)
     {
         var reference = new EnumerationReference<EntitySideEnumerations>();
