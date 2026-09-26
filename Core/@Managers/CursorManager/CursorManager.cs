@@ -186,10 +186,13 @@ public class CursorManager : SingletonProviderBase<CursorManager>
     /// Применяет CursorState к реальным системным свойствам UnityEngine.Cursor.
     /// Единственное место в классе, которое напрямую трогает Cursor.lockState/
     /// Cursor.visible - все остальные методы должны идти через этот вызов.
+    /// На тач-устройствах курсор никогда не блокируется: при Locked
+    /// StandaloneInputModule перестаёт обрабатывать перетаскивание и для касаний,
+    /// и экранный джойстик не работает.
     /// </summary>
     private void Apply(CursorState state)
     {
-        Cursor.lockState = state.LockMode;
+        Cursor.lockState = PRUnitySDK.DeviceInfo.IsTouchDevice() ? CursorLockMode.None : state.LockMode;
         Cursor.visible = state.Visible;
     }
 }
