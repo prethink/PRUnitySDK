@@ -6,9 +6,7 @@ public class DummyMetric : MetricBase
 
     public override void Send(string eventName) { }
 
-    public override void Send(string eventName, Dictionary<string, string> eventParams) { }
-
-    public override void Send(string rootKeyEvent, string subKeyEvent, string subValueEvent) { }
+    public override void Send(string eventName, IReadOnlyDictionary<string, object> eventParams) { }
 
     #endregion
 }
