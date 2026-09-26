@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
@@ -6,6 +7,11 @@ using System.Linq;
 public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
 {
     private static MonoWindowsTracker eventSubscriber;
+
+    /// <summary>
+    /// Окна, о показе которых уже сообщено (<see cref="IMonoWindowVisibilityEvent"/>).
+    /// </summary>
+    private readonly HashSet<MonoWindowBase> shownWindows = new();
 
     /// <summary>
     /// Текущее видимое окно либо <see langword="null"/>.
@@ -165,6 +171,10 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
 
         CurrentWindow = window;
         UpdateGlobalWindowState();
+
+        // Окно сообщает о показе и при повторном включении — событие только на первый раз.
+        if (shownWindows.Add(window))
+            EventBus.RaiseEvent<IMonoWindowVisibilityEvent>(x => x.OnWindowShown(window));
     }
 
     /// <summary>
@@ -176,6 +186,10 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
             CurrentWindow = elements.LastOrDefault(x => x != null && x.IsVisible);
 
         UpdateGlobalWindowState();
+
+        // Скрытие приходит и от выключения окна, которое не открывали: такое не событие.
+        if (shownWindows.Remove(window))
+            EventBus.RaiseEvent<IMonoWindowVisibilityEvent>(x => x.OnWindowHidden(window));
     }
 
     private void HideWindows(bool isForceClose)

@@ -25,6 +25,14 @@
 Зависимости:
 - YG2.Storage 
 
+## RemoteFlags
+
+Флаги проекта (`PRUnitySDK.RemoteFlags`) из флагов Яндекса; флага нет — значение из
+настроек проекта. См. `Core/RemoteFlags/README.md`.
+
+Зависимости:
+- YG2.Flags
+
 ## Translate
 
 Зависимости:

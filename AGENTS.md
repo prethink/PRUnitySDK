@@ -334,6 +334,19 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- Флаги проекта `PRUnitySDK.RemoteFlags` (`IRemoteFlags`, `Core/RemoteFlags`): `TryGetInt`,
+  `GetFloat`, `GetBool`, `GetEnum`… Без площадки — из `PRSDKSettings.RemoteFlags`, с YG2 —
+  `YandexRemoteFlags` (флаги Яндекса, запасом настройки). Не путать с `FlagsSystem`.
+
+- Игровые сигналы: `GameplayEvents.RaiseSignal(signal, source)` поднимает `GameSignalEventArgs`
+  в `IGameplayEvent`; сигналы — partial `GameSignalEnumerations` в проекте.
+- `IMonoWindowVisibilityEvent` — окно показано / скрыто (поднимает `MonoWindowsTracker`).
+
+- Свой-чужой (`Core/@Entity/Sides`): стороны сущностей (`EntitySideEnumerations`), матрица
+  «сторона × сторона» в `PRSDKSettings.Sides` (бьёт / без урона / не бьёт), команды игроков
+  сильнее матрицы. Спрашивать через `EntitySides` (`GetDamage`, `CanHit`, `IsEnemy`), к урону
+  применяется правилом `EntitySideDamageRule`, которое SDK ставит сам.
+
 - Переход окон `MonoWindowBase`: окно вырастает из центра и сжимается обратно (DOTween,
   unscaled time). Общая настройка — `PRSDKSettings.WindowTransition`: пресет
   (`Pop` по умолчанию, `Soft`, `Fade`, `SlideUp`, `SlideDown`, `Elastic`) или `Custom` со своими

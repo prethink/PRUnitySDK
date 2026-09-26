@@ -399,6 +399,10 @@ DamageRules.Instance.Remove(this);
 Своё правило — наследник `DamageRule` с методом `Apply`; фильтры и место в очереди
 хуков даёт база и сервис.
 
+«Кто кого бьёт» по сторонам и командам — не набор правил, а матрица в настройках:
+см. [`Core/@Entity/Sides`](../../Core/@Entity/Sides/README.md). SDK сам ставит для неё
+правило `EntitySideDamageRule` рядом с правилами проекта.
+
 Пример — «боты бьют блоки, но не ломают» (игра PickBox): `MultiplyDamageRule`
 с `Attackers = AI`, `Victim Types` — виды блоков, `Multiplier = 0`.
 
