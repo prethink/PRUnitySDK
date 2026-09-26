@@ -46,6 +46,16 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     public event Action<DamageOutcome> OnDamageProcessed;
 
     /// <summary>
+    /// Попадание, которое стоит показать игроку: эффектами, звуком, цифрой урона.
+    /// </summary>
+    /// <remarks>
+    /// Приходит после <see cref="OnDamageProcessed"/> для засчитанного удара с уроном больше
+    /// нуля. Удар без урона приходит, только если проект считает его попаданием
+    /// (<see cref="HealthSettings.ZeroDamageIsHit"/>). Промах и блок не приходят никогда.
+    /// </remarks>
+    public event Action<DamageOutcome> OnHit;
+
+    /// <summary>
     /// Последний завершённый результат обработки урона этой сущностью.
     /// </summary>
     public DamageOutcome LastDamageOutcome { get; protected set; }
@@ -371,6 +381,27 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         LastDamageOutcome = outcome;
         NotifyListeners(OnDamageProcessed, listener => listener(outcome));
         NotifyUnityEvent(() => OnDamageProcessedUnity?.Invoke(outcome));
+
+        if (IsHit(outcome))
+            NotifyListeners(OnHit, listener => listener(outcome));
+    }
+
+    /// <summary>
+    /// Считается ли исход попаданием для <see cref="OnHit"/>.
+    /// </summary>
+    /// <remarks>
+    /// Смерть через <see cref="Kill(IEntity, IWeapon)"/> тоже приходит с нулевым уроном,
+    /// но это команда, а не удар, и попаданием не считается.
+    /// </remarks>
+    public static bool IsHit(DamageOutcome outcome)
+    {
+        if (outcome == null || !outcome.WasApplied)
+            return false;
+
+        if (outcome.AppliedDamage > 0f)
+            return true;
+
+        return outcome.Result != DamageResult.Killed && (PRUnitySDK.Settings?.Health?.ZeroDamageIsHit ?? false);
     }
 
     private void RaiseDamageProcessed(IEntity attacker, IWeapon weapon, DamageOutcome outcome)

@@ -38,10 +38,10 @@ public sealed class HealthSound : MonoBehaviour
             return;
         }
 
-        // Смерть обрабатывается до скрытия объекта; для остальных
-        // попаданий достаточно итогового события обработки.
+        // Смерть обрабатывается до скрытия объекта. Остальные удары приходят через OnHit:
+        // что считать попаданием, в том числе удар без урона, решает HealthComponent.
         healthComponent.OnHealthChange += OnHealthChanged;
-        healthComponent.OnDamageProcessed += OnDamageProcessed;
+        healthComponent.OnHit += OnHit;
     }
 
     private void OnDisable()
@@ -49,7 +49,7 @@ public sealed class HealthSound : MonoBehaviour
         if (healthComponent != null)
         {
             healthComponent.OnHealthChange -= OnHealthChanged;
-            healthComponent.OnDamageProcessed -= OnDamageProcessed;
+            healthComponent.OnHit -= OnHit;
         }
 
         lastPlayedOutcome = null;
@@ -61,7 +61,7 @@ public sealed class HealthSound : MonoBehaviour
             PlaySound(change.DamageOutcome);
     }
 
-    private void OnDamageProcessed(DamageOutcome outcome)
+    private void OnHit(DamageOutcome outcome)
     {
         PlaySound(outcome);
     }
@@ -101,9 +101,11 @@ public sealed class HealthSound : MonoBehaviour
                 return deathClip;
         }
 
-        return outcome.AppliedDamage > 0f
-            ? SelectClip(damageClips, ref nextDamageClipIndex)
-            : null;
+        // Смерть без урона — команда Kill(): звука удара у неё нет.
+        if (outcome.Result == DamageResult.Killed && outcome.AppliedDamage <= 0f)
+            return null;
+
+        return SelectClip(damageClips, ref nextDamageClipIndex);
     }
 
     private AudioClip SelectClip(List<AudioClip> clips, ref int nextClipIndex)

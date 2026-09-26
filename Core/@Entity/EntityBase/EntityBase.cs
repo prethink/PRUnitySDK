@@ -205,7 +205,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
                     ? EntityWireStyle.Polygons
                     : EntityWireStyle.Triangles;
 
-                wireVisual = EntityWireVisual.Create(EntityGameObject, style);
+                wireVisual = EntityWireVisual.Create(EntityGameObject, style, GetWireScale());
                 EntityGameObject.SetActive(false);
             }
 
@@ -424,6 +424,17 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// именно телу, а корень обычно остаётся единичным.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Размер каркаса спрятанной сущности; пусто — текущий размер.
+    /// </summary>
+    private Vector3? GetWireScale()
+    {
+        bool original = PRUnitySDK.Settings?.Entity == null ||
+                        PRUnitySDK.Settings.Entity.WireScale == EntityWireScaleMode.Original;
+
+        return original && startTransformCaptured ? startScale : null;
+    }
+
     private void CaptureStartTransform()
     {
         if (startTransformCaptured)

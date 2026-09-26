@@ -334,6 +334,9 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- `Settings.Entity.WireScale` — размер каркаса `HideWire`: исходный (по умолчанию) или на момент смерти.
+- `HealthComponent.OnHit` — попадание, которое стоит показать (эффекты, звук). Удар без урона
+  входит в него, только если включено `PRSDKSettings.Health.ZeroDamageIsHit`.
 - Окно `PRUnitySDK/Модули` вырезает модули из сборки define-символами
   `PRSDK_DISABLE_<Id>`. Модуль — папка с `Module.asset`, его скрипты обёрнуты в `#if`.
   Раскатано пока на `Boosters`, `VIP` и окно `WheelOfFortune`.

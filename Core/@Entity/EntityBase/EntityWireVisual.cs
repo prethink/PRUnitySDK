@@ -62,7 +62,8 @@ internal sealed class EntityWireVisual : IDisposable
     private readonly Material lineMaterial;
     private readonly Material surfaceMaterial;
 
-    private EntityWireVisual(GameObject source, EntityWireStyle style, Material lineMaterial, Material surfaceMaterial)
+    private EntityWireVisual(GameObject source, EntityWireStyle style, Material lineMaterial, Material surfaceMaterial,
+        Vector3? rootScale)
     {
         this.style = style;
         this.lineMaterial = lineMaterial;
@@ -70,6 +71,10 @@ internal sealed class EntityWireVisual : IDisposable
         root = new GameObject($"{source.name} Wire");
         root.transform.SetParent(source.transform.parent, false);
         CopyTransform(source.transform, root.transform);
+
+        if (rootScale.HasValue)
+            root.transform.localScale = rootScale.Value;
+
         CopyRenderers(source.transform, root.transform);
     }
 
@@ -78,12 +83,13 @@ internal sealed class EntityWireVisual : IDisposable
     /// </summary>
     /// <param name="source">Сущность, на месте которой встаёт каркас.</param>
     /// <param name="style">Из каких рёбер строить каркас.</param>
-    public static EntityWireVisual Create(GameObject source, EntityWireStyle style)
+    /// <param name="rootScale">Размер каркаса вместо текущего размера сущности; пусто — текущий.</param>
+    public static EntityWireVisual Create(GameObject source, EntityWireStyle style, Vector3? rootScale = null)
     {
         if (!TryGetMaterials(style, out Material line, out Material surface))
             return null;
 
-        return new EntityWireVisual(source, style, line, surface);
+        return new EntityWireVisual(source, style, line, surface, rootScale);
     }
 
     /// <remarks>
