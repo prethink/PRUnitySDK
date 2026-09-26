@@ -43,23 +43,13 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage, IGameDataStorageSave
 
         PRLog.WriteDebug(this, $"Try loading data use strategy {GetSettings().SaveStrategy}");
 
-        saveData = new PRSaveData();
-        bool result = false;
-
-        var rawData = PlayerPrefs.GetString(SaveDataKey, string.Empty);
-
-        if (string.IsNullOrEmpty(rawData))
-            PRLog.WriteWarning(this, "Cannot loading. Raw data is empty.");
-        else if (GetSettings().UseEncryption)
-            result = LoadingJsonEncryptedData(rawData);
-        else
-            result = LoadingJsonData(rawData);
+        bool loaded = SaveDataVersioning.TryReadRaw(PlayerPrefs.GetString(SaveDataKey, string.Empty), out saveData);
 
         stopwatch.Stop();
         readySignal.SetReady();
         PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
 
-        return result;
+        return loaded;
     }
 
     /// <summary>
@@ -71,12 +61,7 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage, IGameDataStorageSave
         stopwatch.Start();
 
         saveData.UpdateDate = PRUnitySDK.ServerTime.GetNow();
-
-        var rawData = GetSettings().UseEncryption
-            ? PRJsonUtils.SerializeObjectWithEncryption(saveData)
-            : PRJsonUtils.SerializeObject(saveData);
-
-        PlayerPrefs.SetString(SaveDataKey, rawData);
+        PlayerPrefs.SetString(SaveDataKey, SaveDataVersioning.Serialize(saveData));
         PlayerPrefs.Save();
 
         stopwatch.Stop();
@@ -112,66 +97,6 @@ public class PlayerPrefsSaveLoadManager : IGameDataStorage, IGameDataStorageSave
     public GameStorageSettings GetSettings()
     {
         return PRUnitySDK.Settings.GameStorage;
-    }
-
-    #endregion
-
-    #region Методы
-
-    /// <summary>
-    /// Загрузка при включённом шифровании. Стратегия Convert дополнительно пробует
-    /// прочитать данные как обычный (нешифрованный) JSON - это позволяет подхватить
-    /// сейв, записанный до включения шифрования.
-    /// </summary>
-    private bool LoadingJsonEncryptedData(string rawData)
-    {
-        PRLog.WriteDebug(this, "Use Encryption");
-
-        PRSaveData result;
-
-        if (GetSettings().EncryptionStrategy == EncryptionLoadingStrategy.Convert
-            && PRJsonUtils.TryDeserializeObject(rawData, out result, false))
-        {
-            saveData = result;
-            PRLog.WriteDebug(this, "Success loading data.");
-            return true;
-        }
-
-        if (PRJsonUtils.TryDeserializeObjectDecrypt(rawData, out result))
-        {
-            saveData = result;
-            PRLog.WriteDebug(this, "Success loading encryption data.");
-            return true;
-        }
-
-        PRLog.WriteError(this, "Cannot loading data");
-        return false;
-    }
-
-    /// <summary>
-    /// Загрузка при выключенном шифровании: сначала обычный JSON, затем - попытка
-    /// расшифровать, чтобы не потерять сейв, записанный до выключения шифрования.
-    /// </summary>
-    private bool LoadingJsonData(string rawData)
-    {
-        PRSaveData result;
-
-        if (PRJsonUtils.TryDeserializeObject(rawData, out result, false))
-        {
-            saveData = result;
-            PRLog.WriteDebug(this, "Success loading data.");
-            return true;
-        }
-
-        if (PRJsonUtils.TryDeserializeObjectDecrypt(rawData, out result))
-        {
-            saveData = result;
-            PRLog.WriteDebug(this, "Success loading encryption data.");
-            return true;
-        }
-
-        PRLog.WriteError(this, "Cannot loading data");
-        return false;
     }
 
     #endregion

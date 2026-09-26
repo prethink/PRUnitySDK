@@ -431,6 +431,10 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `NumberExtensions.ClampToLong` (`Core/#Extensions`) — приведение `decimal` к `long`
   с обрезкой: без параметров по нулю и `long.MaxValue`, с параметрами по своим границам.
   Им же считает `LongPropertyContainer`.
+- У сохранения есть версия: `PRSaveData.Version`, текущая в `GameStorageSettings.SaveVersion`.
+  Старое сохранение по `VersionMismatchAction` грузится как есть (по умолчанию), преобразуется шагами `ISaveMigration`
+  (находятся сами) или отбрасывается. Меняете то, что лежит в сохранении, поднимайте версию.
+  Подробности в `Core/GameDataStorage/README.md`.
 
 Журнал работ проектного слоя — `PRUnitySDKPrivate/WORKLOG.md`.
 
@@ -464,3 +468,4 @@ Test Framework: без обёртки тесты там не собрались 
 | --- | --- |
 | `Core/@Entity/Sides/Editor/EntitySidesTests` | свой-чужой: урон, враг, команды, friendly fire, матрица, стороны |
 | `Core/RemoteFlags/Editor/RemoteFlagsTests` | разбор флагов проекта |
+| `Core/GameDataStorage/Editor/SaveDataVersioningTests` | версия сохранения: шаги преобразования, новое сохранение, сохранение новее сборки |

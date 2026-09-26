@@ -30,99 +30,16 @@ public class YandexGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         PRLog.WriteDebug(this, $"Try loading data use strategy {GetSettings().SaveStrategy}");
-        saveData = new PRSaveData();
-        bool result = false;
-        if (GetSettings().SaveStrategy == SaveStrategy.Serialize)
+        bool loaded = GetSettings().SaveStrategy switch
         {
-            if(string.IsNullOrEmpty(YG2.saves.RawData))
-                PRLog.WriteWarning(this, $"Cannot loading. Raw data is empty.");
-            else if (GetSettings().UseEncryption)
-                result = LoadingJsonEncryptedData();
-            else
-                result = LoadingJsonData();
-        }
-        else if (GetSettings().SaveStrategy == SaveStrategy.Class)
-        {
-            PRSaveData storedSaveData = YG2.saves?.PRSaveData;
-            result = storedSaveData != null;
-            saveData = (PRSaveData)storedSaveData?.Clone() ?? new PRSaveData();
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
+            SaveStrategy.Serialize => SaveDataVersioning.TryReadRaw(YG2.saves.RawData, out saveData),
+            SaveStrategy.Class => SaveDataVersioning.TryRead(YG2.saves?.PRSaveData, out saveData),
+            _ => throw new NotImplementedException()
+        };
         stopwatch.Stop();
         readySignal.SetReady();
         PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
-        return result;
-    }
-
-    private bool LoadingJsonEncryptedData()
-    {
-        PRLog.WriteDebug(this, $"Use Encryption");
-        PRSaveData result;
-        if (GetSettings().EncryptionStrategy == EncryptionLoadingStrategy.Convert)
-        {
-            if (PRJsonUtils.TryDeserializeObject<PRSaveData>(YG2.saves.RawData, out result, false))
-            {
-                saveData = result;
-                PRLog.WriteDebug(this, $"Success loading data.");
-                return true;
-            }
-            else if(PRJsonUtils.TryDeserializeObjectDecrypt(YG2.saves.RawData, out result))
-            {
-                saveData = result;
-                PRLog.WriteDebug(this, $"Cannot convert data");
-                PRLog.WriteDebug(this, $"Success loading encryption data.");
-                return true;
-            }
-            else
-            {
-                PRLog.WriteError(this, $"Cannot loading data");
-                return false;
-            }
-        }
-        else if (GetSettings().EncryptionStrategy == EncryptionLoadingStrategy.OnlyEncryption)
-        {
-            if (PRJsonUtils.TryDeserializeObjectDecrypt(YG2.saves.RawData, out result))
-            {
-                saveData = result;
-                PRLog.WriteDebug(this, $"Success loading encryption data.");
-                return true;
-            }
-            else
-            {
-                PRLog.WriteError(this, $"Cannot loading data");
-                return false;
-            }
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    private bool LoadingJsonData()
-    {
-        PRSaveData result;
-        if (PRJsonUtils.TryDeserializeObjectDecrypt(YG2.saves.RawData, out result))
-        {
-            saveData = result;
-            PRLog.WriteDebug(this, $"Success loading encryption data.");
-            return true;
-        }
-        if (PRJsonUtils.TryDeserializeObject<PRSaveData>(YG2.saves.RawData, out result))
-        {
-            saveData = result;
-            PRLog.WriteDebug(this, $"Cannot convert encryption data");
-            PRLog.WriteDebug(this, $"Success loading data.");
-            return true;
-        }
-        else
-        {
-            PRLog.WriteError(this, $"Cannot loading data");
-            return false;
-        }
+        return loaded;
     }
 
     public void Save()
@@ -133,16 +50,14 @@ public class YandexGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
         PRLog.WriteDebug(this, $"Try save data use strategy {GetSettings().SaveStrategy}");
         if (GetSettings().SaveStrategy == SaveStrategy.Serialize)
         {
-            if(GetSettings().UseEncryption)
-                YG2.saves.RawData = PRJsonUtils.SerializeObjectWithEncryption(saveData);
-            else
-                YG2.saves.RawData = PRJsonUtils.SerializeObject(saveData);
+            YG2.saves.RawData = SaveDataVersioning.Serialize(saveData);
 
             if (YG2.isSDKEnabled)
                 YG2.SaveProgress();
         }
         else if(GetSettings().SaveStrategy == SaveStrategy.Class)
         {
+            SaveDataVersioning.Stamp(saveData);
             YG2.saves.PRSaveData = (PRSaveData)saveData.Clone();
 
             if (YG2.isSDKEnabled)

@@ -51,7 +51,8 @@ public sealed class ReflectionPreserveGenerator : IPreprocessBuildWithReport
         typeof(IReservedItemsProvider),
         typeof(IBackgroundTask),
         typeof(IEnumerationProvider),
-        typeof(IStatRuleProvider)
+        typeof(IStatRuleProvider),
+        typeof(ISaveMigration)
     };
 
     /// <inheritdoc />

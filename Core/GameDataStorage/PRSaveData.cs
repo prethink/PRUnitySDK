@@ -5,6 +5,15 @@ public class PRSaveData : ICloneable
     public string SaveId;
 
     /// <summary>
+    /// Версия формата, в которой записано сохранение.
+    /// </summary>
+    /// <remarks>
+    /// Конструктор её не заполняет: он вызывается и при чтении, и старое сохранение без
+    /// этого поля выдало бы себя за текущее. Ставится при записи через <see cref="SaveDataVersioning.Stamp"/>.
+    /// </remarks>
+    public int Version;
+
+    /// <summary>
     /// Дата создания сохранения по времени <see cref="PRUnitySDK.ServerTime"/>.
     /// </summary>
     public DateTime SaveDate;
@@ -31,6 +40,7 @@ public class PRSaveData : ICloneable
     {
         var data = new PRSaveData();
         data.SaveId = SaveId;
+        data.Version = Version;
         data.SaveDate = SaveDate;
         data.UpdateDate = UpdateDate;
         data.GameSettings = (GameSettings)GameSettings.Clone();

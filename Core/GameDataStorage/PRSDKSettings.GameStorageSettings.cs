@@ -49,6 +49,23 @@ public class GameStorageSettings : IDefaultSettings
     /// </summary>
     [field: SerializeField] public long SaveCooldownSeconds { get; private set; }
 
+    /// <summary>
+    /// Версия формата сохранения, которую пишет эта сборка.
+    /// </summary>
+    /// <remarks>
+    /// Сохранения, записанные до появления версии, считаются версией 0.
+    /// </remarks>
+    [field: SerializeField, Min(0)]
+    [field: Tooltip("Версия формата сохранения. Поднимать при изменении того, что лежит в сохранении. Сохранения без версии считаются версией 0.")]
+    public int SaveVersion { get; private set; } = 1;
+
+    /// <summary>
+    /// Что делать с сохранением старой версии.
+    /// </summary>
+    [field: SerializeField]
+    [field: Tooltip("Что делать с сохранением старой версии: загрузить как есть, преобразовать шагами (при неудаче начнётся новое) или начать новое.")]
+    public SaveVersionMismatchAction VersionMismatchAction { get; private set; } = SaveVersionMismatchAction.Keep;
+
     #region Базовый класс
 
     /// <inheridoc />
@@ -59,6 +76,8 @@ public class GameStorageSettings : IDefaultSettings
         SaveStrategy = SaveStrategy.Serialize;
         UseEncryption = true;
         EncryptionStrategy = EncryptionLoadingStrategy.Convert;
+        SaveVersion = 1;
+        VersionMismatchAction = SaveVersionMismatchAction.Keep;
     }
 
     #endregion

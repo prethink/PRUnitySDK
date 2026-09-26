@@ -71,21 +71,36 @@ public class PRJsonUtils
     }
 
     /// <summary>
+    /// Расшифровывает AES-256 строку в JSON.
+    /// </summary>
+    /// <returns><c>false</c>, если строка не зашифрована этим ключом.</returns>
+    public static bool TryDecrypt(string encryptedJson, out string json)
+    {
+        json = null;
+
+        if (string.IsNullOrWhiteSpace(encryptedJson))
+            return false;
+
+        try
+        {
+            json = PRCrypto.DecryptString(encryptedJson, PRCrypto.Password);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            PRLog.WriteWarning(typeof(PRJsonUtils), ex.ToString());
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Расшифровывает AES-256 строку в JSON и десериализует в объект.
     /// </summary>
     public static bool TryDeserializeObjectDecrypt<T>(string encryptedJson, out T result)
     {
         result = default(T);
-        try
-        {
-            string json = PRCrypto.DecryptString(encryptedJson, PRCrypto.Password);
-            return TryDeserializeObject<T>(json, out result);
-        }
-        catch(Exception ex)
-        {
-            PRLog.WriteWarning(typeof(PRJsonUtils), ex.ToString());
-            return false;
-        }
+
+        return TryDecrypt(encryptedJson, out string json) && TryDeserializeObject(json, out result);
     }
 }
  
