@@ -133,11 +133,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// В точке оказывается <see cref="EntityGameObject"/>, а переносится вся иерархия целиком:
     /// поставить в точку корень — значит промахнуться на величину смещения вложенного объекта,
     /// а подвинуть только вложенный объект — оторвать его от собственной иерархии.
+    /// <para>
+    /// Физическому телу сущности поза ставится отдельно — см. <see cref="SyncBody"/>.
+    /// </para>
     /// </remarks>
     /// <param name="position">Куда поставить сущность.</param>
     public virtual void SetPosition(Vector3 position)
     {
         RootEntityObject.transform.position += position - Position;
+
+        SyncBody(withRotation: false);
     }
 
     /// <summary>
@@ -153,6 +158,38 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         // смещение до сущности считается уже после разворота.
         root.rotation = rotation * Quaternion.Inverse(Quaternion.Inverse(root.rotation) * Rotation);
         root.position += position - Position;
+
+        SyncBody(withRotation: true);
+    }
+
+    /// <summary>
+    /// Ставит телу на <see cref="EntityGameObject"/> ту же позу, что у его transform.
+    /// </summary>
+    /// <remarks>
+    /// Без этого перенос вне шага физики у интерполируемого тела пропадал через раз:
+    /// интерполяция каждый кадр пишет в transform позу тела и перетирает перенос, если
+    /// шаг физики не успел пройти до следующего кадра. На время рекламы YG2 ставит
+    /// <c>Time.timeScale = 0</c>, шагов нет вовсе — телепорт после ролика не срабатывал.
+    /// Перенос из триггера идёт внутри шага и этого не замечал.
+    /// <para>
+    /// Только тело самой сущности: остальное в её иерархии — кирки на орбите, кости ragdoll —
+    /// едет за корнем само. И без <c>Physics.SyncTransforms</c>: поза тела уходит в физику
+    /// сразу, а общая синхронизация стоила бы дорого там, где сущность ставят каждый кадр,
+    /// как повтор призрака.
+    /// </para>
+    /// </remarks>
+    /// <param name="withRotation">Ставить ли и поворот.</param>
+    protected void SyncBody(bool withRotation)
+    {
+        if (EntityGameObject == null || !EntityGameObject.TryGetComponent(out Rigidbody body))
+            return;
+
+        Transform bodyTransform = body.transform;
+
+        body.position = bodyTransform.position;
+
+        if (withRotation)
+            body.rotation = bodyTransform.rotation;
     }
 
     public virtual void GenerateId(Func<long> register)

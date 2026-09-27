@@ -103,6 +103,7 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
     /// <remarks>
     /// Через <see cref="EntityBase.SetPosition"/>: тело игрока — вложенный объект,
     /// и постановка в точку корня промахивается на его смещение.
+    /// Физическое тело игрока переносит сам <see cref="EntityBase.SetPosition"/>.
     /// </remarks>
     /// <param name="position">Куда перенести игрока.</param>
     public virtual void Teleport(Vector3 position)
