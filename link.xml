@@ -45,6 +45,7 @@
     <type fullname="PlaytimeTrackerTask" preserve="all" />
     <type fullname="ResourceEnumerations" preserve="all" />
     <type fullname="StateId" preserve="all" />
+    <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />
     <type fullname="UICommandEnumerations" preserve="all" />
     <type fullname="WeaponFlags" preserve="all" />
