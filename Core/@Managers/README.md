@@ -14,7 +14,7 @@
 | [OpenedItemsManager](OpenedItemsManager/README.md) | `PRUnitySDK.Managers.OpenedItems` | что открыто и сколько его есть: `ProjectData.OpenedItems`, с делением по видам |
 | [SelectedItemsManager](SelectedItemsManager/README.md) | `PRUnitySDK.Managers.SelectedItems` | что из имеющегося надето у каждого локального игрока |
 | [ReservedItemsManager](ReservedItemsManager/README.md) | `PRUnitySDK.Managers.ReservedItems` | предметы, которые выдаются не покупкой: награды, подарки, кейсы |
-| [CursorManager](CursorManager/README.md) | `CursorManager.Instance` | конкурирующие запросы состояния системного курсора |
+| [CursorManager](CursorManager/README.md) | `CursorManager.Instance` | конкурирующие запросы состояния системного курсора и снимок их источников для диагностики |
 | [PRManagerContainer](PRManagerContainer/README.md) | `PRUnitySDK.Managers` | создание, порядок и расширение набора менеджеров |
 
 Контейнер также публикует менеджеры из соседних подсистем: `ObjectPool` и `Flags`.

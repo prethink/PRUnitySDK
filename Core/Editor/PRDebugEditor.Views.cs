@@ -77,6 +77,17 @@ public partial class PRDebugEditor
         DrawKeyValue("Lock", Cursor.lockState.ToString());
         DrawKeyValue("Debug request", cursor.HasRequest(debugCursorSource));
 
+        var requests = cursor.GetActiveRequests();
+        DrawKeyValue("Active requests", requests.Count);
+        for (int i = 0; i < requests.Count; i++)
+        {
+            var request = requests[i];
+            string sourceName = request.Source is UnityEngine.Object source && source != null
+                ? $"{source.GetType().Name} ({source.name})"
+                : request.Source?.GetType().Name ?? "null";
+            DrawKeyValue($"{i + 1}. {sourceName}", $"{request.State.LockMode}, Visible = {request.State.Visible}");
+        }
+
         DrawCursorButtons(cursor);
 
         EditorGUILayout.HelpBox(

@@ -11,9 +11,6 @@ public sealed class UIButtonDefinitionEditor : Editor
     {
         DrawDefaultInspector();
         serializedObject.Update();
-        Object source = serializedObject.FindProperty("iconProvider").objectReferenceValue;
-        if (source != null && !(source is IIconProvider))
-            EditorGUILayout.HelpBox("Icon Provider должен реализовывать IIconProvider. Пока используется запасной Sprite.", MessageType.Error);
         if (!serializedObject.FindProperty("openWindow").boolValue &&
             serializedObject.FindProperty("action").objectReferenceValue == null && target.GetType() == typeof(UIButtonDefinition))
             EditorGUILayout.HelpBox("Назначьте Action или включите Open Window: сейчас кнопка ничего не выполняет.", MessageType.Warning);

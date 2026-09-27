@@ -123,6 +123,14 @@ public class CursorManager : SingletonProviderBase<CursorManager>
     }
 
     /// <summary>
+    /// Возвращает снимок активных запросов от старого к последнему обновлённому.
+    /// </summary>
+    public IReadOnlyList<(object Source, CursorState State)> GetActiveRequests()
+    {
+        return activeRequests.ToArray();
+    }
+
+    /// <summary>
     /// Загружает состояние по умолчанию: если defaultState уже был установлен
     /// раньше (кем-то вызывался LoadCursorState до этого) - возвращает именно
     /// его, игнорируя переданный аргумент. Если ещё не установлен - сохраняет

@@ -35,6 +35,7 @@ public sealed class InventoryWindow : MonoBehaviour
 | `Hide(source)` | записать `CursorLockMode.Locked` и `Visible = false` |
 | `Release(source)` | удалить запрос и применить последний из оставшихся |
 | `HasRequest(source)` | проверить наличие запроса источника |
+| `GetActiveRequests()` | получить снимок источников и состояний в порядке последнего обращения |
 | `LoadCursorState(source, defaultState)` | после готовности `GameManager` создать запрос из сохранённого bool или переданного fallback |
 | `SetCursorSprite(sprite)` | немедленно передать texture спрайта в `Cursor.SetCursor` |
 
@@ -73,3 +74,11 @@ PRUnitySDK.Managers.ProjectProperties.SetValue(
 - Если после снятия всех запросов `defaultState` не задан, применяется emergency fallback: `Locked` и `Visible = false`.
 - `SetCursorSprite` не входит в `CursorState`; `Release` не восстанавливает предыдущую texture.
 - `Release` неизвестного источника безопасен, но не сообщает об ошибке.
+
+## Диагностика
+
+В `PRUnitySDK/Windows/Debug Window` в разделе `Cursor` показан список `Active requests`.
+Последняя строка определяет состояние после `Release`. Если подсказка Tab уже предлагает
+показать курсор, а он виден, проверьте оставшийся источник с `Visible = true`.
+Каждый владелец снимает свой запрос при закрытии и отключении; прямое изменение
+`Cursor.visible` не удаляет запись из менеджера.

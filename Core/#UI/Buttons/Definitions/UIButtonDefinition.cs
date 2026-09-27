@@ -8,9 +8,14 @@ using UnityEngine;
 public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalizationProvider
 {
     [Header("Внешний вид")]
-    [SerializeField, IconPreview] private ScriptableObject iconProvider;
     [SerializeField, SpritePreview(80)] private Sprite icon;
+    [Tooltip("Размер иконки относительно подложки: 1 — 100%, 0.6 — 60%. Пропорции спрайта сохраняются.")]
+    [SerializeField, Min(0f)] private float iconSize = 0.74f;
     [SerializeField] private Sprite background;
+    [Tooltip("Картинка между подложкой и иконкой, например лучи. Пусто — без промежуточного слоя.")]
+    [SerializeField, SpritePreview(80)] private Sprite decoration;
+    [Tooltip("Размер промежуточной картинки относительно подложки: 1 — 100%. Значение больше 1 выводит лучи за края подложки.")]
+    [SerializeField, Min(0f)] private float decorationSize = 1f;
     [SerializeField] private Color color = new(0.18f, 0.65f, 1f, 1f);
     [SerializeField] private bool showButton = true;
     [SerializeField] private bool showDescription = true;
@@ -36,13 +41,25 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     [SerializeField] private UIButtonEffects effects = new();
 
     /// <summary>
-    /// Иконка от ассета с IIconProvider; отдельный Sprite служит запасным вариантом.
+    /// Спрайт иконки; без него слой иконки не отображается.
     /// </summary>
-    public Sprite Icon => iconProvider is IIconProvider provider && provider.Icon != null ? provider.Icon : icon;
+    public Sprite Icon => icon;
+    /// <summary>
+    /// Размер иконки относительно подложки; 1 соответствует всей подложке.
+    /// </summary>
+    public float IconSize => Mathf.Max(0f, iconSize);
     /// <summary>
     /// Подложка кнопки; без спрайта вид использует стандартное скругление.
     /// </summary>
     public Sprite Background => background;
+    /// <summary>
+    /// Необязательная картинка между подложкой и иконкой.
+    /// </summary>
+    public Sprite Decoration => decoration;
+    /// <summary>
+    /// Размер промежуточной картинки относительно подложки; значения больше 1 выходят за её края.
+    /// </summary>
+    public float DecorationSize => Mathf.Max(0f, decorationSize);
     /// <summary>
     /// Цвет подложки.
     /// </summary>
