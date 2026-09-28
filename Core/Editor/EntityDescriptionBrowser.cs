@@ -30,10 +30,13 @@ public sealed class EntityDescriptionBrowser : ScriptableObject
     [SerializeField] private string countLabel = "Описаний";
     [SerializeField] private string search = string.Empty;
     [SerializeField] private int typeIndex;
+    [SerializeField] private string entityTypeFilter = string.Empty;
     [SerializeField] private ScriptableObject selected;
 
     private ScriptableObject[] assets = Array.Empty<ScriptableObject>();
     private string[] typeNames = { "Все" };
+    private string[] entityTypeValues = { string.Empty };
+    private string[] entityTypeNames = { "Все типы" };
     private Editor inspector;
     private EntityPrefabsGrid prefabs;
     private EntitySceneUsageList scenes;
@@ -109,10 +112,33 @@ public sealed class EntityDescriptionBrowser : ScriptableObject
                 .OrderBy(name => name, StringComparer.Ordinal))
             .ToArray();
 
+        RebuildEntityTypes();
         RebuildSeverities();
 
         if (selected != null && !assets.Contains(selected))
             Select(null);
+    }
+
+    private void RebuildEntityTypes()
+    {
+        string[] values = assets.OfType<EntityMetadataBase>()
+            .Select(GetEntityType)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+
+        entityTypeValues = new[] { string.Empty }.Concat(values).ToArray();
+        entityTypeNames = new[] { "Все типы" }.Concat(values).ToArray();
+
+        // Значение хранится строкой: добавление типа не должно сдвигать выбранный пункт.
+        if (!entityTypeValues.Contains(entityTypeFilter, StringComparer.Ordinal))
+            entityTypeFilter = string.Empty;
+    }
+
+    private static string GetEntityType(EntityMetadataBase asset)
+    {
+        return EnumerationReference<EntityTypeEnumerations>.ToValue(asset.EntityType);
     }
 
     private void OnDisable()
@@ -137,6 +163,24 @@ public sealed class EntityDescriptionBrowser : ScriptableObject
             if (GUILayout.Button("Обновить", EditorStyles.toolbarButton, GUILayout.Width(80f)))
             {
                 Reload();
+                GUIUtility.ExitGUI();
+            }
+        }
+
+        if (searchType != nameof(EntityMetadataBase))
+            return;
+
+        using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+        {
+            EditorGUILayout.LabelField("Тип сущности:", GUILayout.Width(100f));
+            int current = Mathf.Max(0, Array.IndexOf(entityTypeValues, entityTypeFilter));
+            int next = EditorGUILayout.Popup(current, entityTypeNames,
+                EditorStyles.toolbarPopup, GUILayout.Width(220f));
+
+            if (next != current)
+            {
+                entityTypeFilter = entityTypeValues[next];
+                listScroll = Vector2.zero;
                 GUIUtility.ExitGUI();
             }
         }
@@ -216,6 +260,12 @@ public sealed class EntityDescriptionBrowser : ScriptableObject
             string typeName = typeNames[typeIndex];
             result = result.Where(asset =>
                 string.Equals(asset.GetType().Name, typeName, StringComparison.Ordinal));
+        }
+
+        if (!string.IsNullOrEmpty(entityTypeFilter))
+        {
+            result = result.Where(asset => asset is EntityMetadataBase metadata &&
+                string.Equals(GetEntityType(metadata), entityTypeFilter, StringComparison.Ordinal));
         }
 
         if (!string.IsNullOrWhiteSpace(search))
