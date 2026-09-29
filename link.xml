@@ -33,6 +33,7 @@
     <type fullname="NotifiersKeyEnumerations" preserve="all" />
     <type fullname="ObjectStateGroupEnumerations" preserve="all" />
     <type fullname="PRTimeScaleEnumerations" preserve="all" />
+    <type fullname="PetStatesEnumerations" preserve="all" />
     <type fullname="PlayerBotStatesEnumerations" preserve="all" />
     <type fullname="PlayerCameraEnumerations" preserve="all" />
     <type fullname="PlayerEventEnumerations" preserve="all" />
@@ -47,6 +48,7 @@
     <type fullname="StateId" preserve="all" />
     <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />
+    <type fullname="UIButtonAttentionWatcher" preserve="all" />
     <type fullname="UICommandEnumerations" preserve="all" />
     <type fullname="WeaponFlags" preserve="all" />
     <type fullname="WheelOfFortuneReservedItems" preserve="all" />

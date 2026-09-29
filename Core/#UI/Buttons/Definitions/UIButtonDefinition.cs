@@ -23,6 +23,8 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
 
     [Header("Нажатие")]
     [SerializeField] private ActionBase action;
+    [Tooltip("Ключ метрики нажатия: отправляется как button → click → ключ. Пусто — без метрики.")]
+    [SerializeField] private string metricKey;
     [SerializeField] private bool openWindow;
     [SerializeField] private EnumerationReference<MonoWindowKeyEnumerations> window = new();
     [Tooltip("Необязательная клавиша общего экранного интерфейса. None — только нажатие мышью или касанием.")]
@@ -73,6 +75,10 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     /// </summary>
     public bool ShowDescription => showDescription;
     /// <summary>
+    /// Ключ нажатия в событии button с параметром click; пустое значение отключает отправку.
+    /// </summary>
+    public string MetricKey => metricKey;
+    /// <summary>
     /// Необязательная клавиша общего HUD.
     /// </summary>
     public KeyCode Hotkey => hotkey;
@@ -111,11 +117,17 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     public virtual bool CanInvoke() => (action != null || openWindow) && (action == null || action.CanExecute());
 
     /// <summary>
-    /// Выполняет действие, затем открывает окно. Отказ действия не открывает окно.
+    /// Отправляет метрику допустимого нажатия, выполняет действие и открывает окно. Отказ действия не открывает окно.
     /// </summary>
     public virtual bool Invoke()
     {
-        if (!CanInvoke() || action != null && !action.Execute())
+        if (!CanInvoke())
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(metricKey))
+            PRUnitySDK.Metric?.Send("button", "click", metricKey);
+
+        if (action != null && !action.Execute())
             return false;
 
         return !openWindow || PRUnitySDK.Trackers.MonoWindows.TryShowWindow(window.ToEnumeration());
