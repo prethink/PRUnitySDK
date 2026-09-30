@@ -92,15 +92,5 @@ public class PRJsonUtils
             return false;
         }
     }
-
-    /// <summary>
-    /// Расшифровывает AES-256 строку в JSON и десериализует в объект.
-    /// </summary>
-    public static bool TryDeserializeObjectDecrypt<T>(string encryptedJson, out T result)
-    {
-        result = default(T);
-
-        return TryDecrypt(encryptedJson, out string json) && TryDeserializeObject(json, out result);
-    }
 }
  

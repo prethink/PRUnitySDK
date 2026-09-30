@@ -456,17 +456,6 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     }
 
     /// <summary>
-    /// Запоминает место, поворот и размер, с которыми сущность появилась.
-    /// </summary>
-    /// <remarks>
-    /// До первой инициализации: она уже может сущность подвинуть или раздуть, и тогда
-    /// запомнилось бы не то состояние, с которого всё начиналось.
-    /// <para>
-    /// Размер берётся у <see cref="EntityGameObject"/>, а не у корня иерархии: задают его
-    /// именно телу, а корень обычно остаётся единичным.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// Размер каркаса спрятанной сущности; пусто — текущий размер.
     /// </summary>
     private Vector3? GetWireScale()
@@ -477,6 +466,17 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         return original && startTransformCaptured ? startScale : null;
     }
 
+    /// <summary>
+    /// Запоминает место, поворот и размер, с которыми сущность появилась.
+    /// </summary>
+    /// <remarks>
+    /// До первой инициализации: она уже может сущность подвинуть или раздуть, и тогда
+    /// запомнилось бы не то состояние, с которого всё начиналось.
+    /// <para>
+    /// Размер берётся у <see cref="EntityGameObject"/>, а не у корня иерархии: задают его
+    /// именно телу, а корень обычно остаётся единичным.
+    /// </para>
+    /// </remarks>
     private void CaptureStartTransform()
     {
         if (startTransformCaptured)

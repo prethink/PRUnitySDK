@@ -17,6 +17,16 @@ public class LocalizationProvider : ILocalizationProvider
         this.LocalizationValues = localization;
     }
 
+    public LocalizationProvider(string key, string english, string russian, string turkish)
+        : this(key, new Dictionary<LangType, string>
+        {
+            { LangType.English, english },
+            { LangType.Russian, russian },
+            { LangType.Turkey, turkish },
+        })
+    {
+    }
+
     public LocalizationProvider(string text)
     {
         this.LocalizationValues = new Dictionary<LangType, string>() 

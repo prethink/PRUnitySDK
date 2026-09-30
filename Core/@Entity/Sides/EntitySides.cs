@@ -64,7 +64,12 @@ public static class EntitySides
         if (attacker.IsNull() || victim.IsNull() || ReferenceEquals(attacker, victim))
             return EntitySideDamage.Hit;
 
-        return ResolveDamage(Settings, GetSide(attacker), GetSide(victim), GetTeamRelation(attacker, victim));
+        // Правило стоит всегда и зовётся на каждый удар: выключенные стороны не ищем вовсе.
+        EntitySidesSettings settings = Settings;
+        if (settings == null || !settings.Enabled)
+            return EntitySideDamage.Hit;
+
+        return ResolveDamage(settings, GetSide(attacker), GetSide(victim), GetTeamRelation(attacker, victim));
     }
 
     /// <summary>

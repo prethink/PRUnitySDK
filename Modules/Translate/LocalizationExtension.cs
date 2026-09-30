@@ -31,6 +31,27 @@ public static class LocalizationExtension
     }
 
     /// <summary>
+    /// Сам источник, если в его словаре есть хоть одна непустая строка, иначе запасной.
+    /// </summary>
+    /// <remarks>
+    /// Словарь у ассета бывает пуст, и тогда перевод дал бы на экран пометку
+    /// <c>NotFoundTranslate</c>.
+    /// </remarks>
+    public static ILocalizationProvider OrFallback(this ILocalizationProvider localization, ILocalizationProvider fallback)
+    {
+        if (localization?.LocalizationValues != null)
+        {
+            foreach (var pair in localization.LocalizationValues)
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Value))
+                    return localization;
+            }
+        }
+
+        return fallback;
+    }
+
+    /// <summary>
     /// Привязывает к тексту источник перевода и аргументы к нему.
     /// </summary>
     /// <remarks>

@@ -18,8 +18,11 @@ public static class PRModuleDefines
     /// </summary>
     public static HashSet<string> ReadDisabledIds()
     {
-        var target = NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+        return ReadDisabledIds(NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+    }
 
+    private static HashSet<string> ReadDisabledIds(NamedBuildTarget target)
+    {
         return new HashSet<string>(Split(PlayerSettings.GetScriptingDefineSymbols(target))
             .Where(IsModuleSymbol)
             .Select(symbol => symbol.Substring(PRModuleManifest.DefinePrefix.Length)));
@@ -35,11 +38,7 @@ public static class PRModuleDefines
 
         foreach (NamedBuildTarget target in GetTargets())
         {
-            var ids = Split(PlayerSettings.GetScriptingDefineSymbols(target))
-                .Where(IsModuleSymbol)
-                .Select(symbol => symbol.Substring(PRModuleManifest.DefinePrefix.Length));
-
-            if (!current.SetEquals(ids))
+            if (!current.SetEquals(ReadDisabledIds(target)))
                 result.Add(target.TargetName);
         }
 

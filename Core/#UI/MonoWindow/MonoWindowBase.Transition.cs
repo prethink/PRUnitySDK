@@ -273,11 +273,7 @@ public abstract partial class MonoWindowBase
     /// </remarks>
     private CanvasGroup GetFadeGroup()
     {
-        GameObject windowContainer = GetContainer();
-
-        return windowContainer.TryGetComponent(out CanvasGroup group)
-            ? group
-            : windowContainer.AddComponent<CanvasGroup>();
+        return GetContainer().GetOrAddComponent<CanvasGroup>();
     }
 
     private void ResetTransitionState()
