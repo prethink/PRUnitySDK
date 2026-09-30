@@ -42,6 +42,15 @@ public partial class EntityTracker : EntityTrackerBase<IEntity>
     #endregion
 
     /// <summary>
+    /// Сущность снята с учёта.
+    /// </summary>
+    /// <remarks>
+    /// Для тех, кто ведёт свой учёт поверх сущностей: трекер игроков снимает игрока,
+    /// которого убрали отсюда напрямую. Сам трекер сущностей о них не знает.
+    /// </remarks>
+    public event Action<IEntity> Unregistered;
+
+    /// <summary>
     /// Регистрирует живую сущность, если она ещё не присутствует в трекере.
     /// </summary>
     public override bool Register(IEntity entity)
@@ -68,8 +77,7 @@ public partial class EntityTracker : EntityTrackerBase<IEntity>
             return false;
 
         UnRegisterEntityType(entity.EntityType);
-        if (entity is IPlayer player)
-            PlayerService.Instance.Unregister(player);
+        Unregistered?.Invoke(entity);
         //if (gameSessionManager.Settings.isActiveDebugLog)
         //    PRLog.WriteDebug(this, $"Сущность {entity.EntityType} - ID:{entity.Id} удалена из entityTracker.");
 

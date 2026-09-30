@@ -80,6 +80,8 @@ public class ActionResultTests
         int count = 0;
         ActionResult result = ActionSequence.Execute(new[] { first, failed, last }, true, ref count);
         Assert.IsTrue(result.IsFailed);
+        Assert.IsTrue(result.IsPartiallyApplied);
+        Assert.IsTrue(result.HasApplied);
         Assert.AreSame(ActionLabels.InvalidUrl, result.FailureReason);
         Assert.AreEqual(1, count);
         Assert.AreEqual(1, first.Executions);
@@ -109,9 +111,11 @@ public class ActionResultTests
         int count = 2;
         ActionResult result = ActionSequence.Execute(new[] { first, second }, false, ref count);
         Assert.IsTrue(result.IsFailed);
+        Assert.IsFalse(result.HasApplied);
         Assert.AreSame(ActionLabels.InvalidUrl, result.FailureReason);
         Assert.AreEqual(2, count);
         Assert.IsFalse(ActionSequence.CanExecuteAny(new[] { first, second }));
+        Assert.AreSame(ActionLabels.InvalidUrl, ActionSequence.CheckAny(new[] { first, second }).FailureReason);
     }
 
     [Test]
@@ -164,7 +168,7 @@ public class ActionResultTests
     }
 
     [Test]
-    public void Pipeline_ReportsNestedRefusalAndClearsCountOnRejectedCheck()
+    public void Pipeline_ReportsNestedRefusalAndRejectedCheck()
     {
         var pipeline = UnityEngine.ScriptableObject.CreateInstance<ActionResultTestPipeline>();
         try
@@ -174,15 +178,15 @@ public class ActionResultTests
             typeof(InlineActionPipeline).GetField("actions", flags).SetValue(pipeline, new List<IAction> { nested });
             ActionResult refused = pipeline.Execute();
             Assert.IsTrue(refused.IsFailed);
+            Assert.IsFalse(refused.HasApplied);
             Assert.AreSame(ActionLabels.InvalidUrl, refused.FailureReason);
-            Assert.AreEqual(0, pipeline.LastExecutedCount);
 
             nested.Outcome = ActionResult.Success;
             Assert.IsTrue(pipeline.Execute().IsSuccess);
-            Assert.AreEqual(1, pipeline.LastExecutedCount);
+            Assert.AreEqual(2, nested.Executions);
             pipeline.Availability = ActionResult.Fail(ActionLabels.GameNotReady);
             Assert.IsTrue(pipeline.Execute().IsFailed);
-            Assert.AreEqual(0, pipeline.LastExecutedCount);
+            Assert.AreEqual(2, nested.Executions);
         }
         finally { UnityEngine.Object.DestroyImmediate(pipeline); }
     }

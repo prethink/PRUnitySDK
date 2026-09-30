@@ -75,7 +75,6 @@ Autosave включается настройкой `GameStorage.EnabledAutoSave`
 | `CanStartSave(bool)` | проверяет доступность полного сохранения без изменения cooldown |
 | `SaveCooldownRemainingSeconds` | оставшееся время cooldown в целых секундах |
 | `LoadDefaultControlSettings(...)` | применяет default control settings по текущей логике и при необходимости сохраняет |
-| `LoadingUserCursorState()` / `ChangeCursorState()` | legacy-управление `Cursor.visible` через `GameSettings.IsShowCursor` |
 | `OnPageVisibilityChange(int)` | WebGL/iOS-мост видимости страницы для системы пауз |
 
 ## Пауза и фокус

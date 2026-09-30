@@ -26,7 +26,8 @@ public static class ActionSequence
     /// Выполняет действия по порядку, накапливая счётчик между несколькими списками.
     /// </summary>
     /// <returns>
-    /// При stopOnFailure сохраняет первый отказ; иначе успешен, если хотя бы одно действие выполнено.
+    /// При stopOnFailure — первый отказ, с отметкой <see cref="ActionResult.IsPartiallyApplied"/>,
+    /// если до него что-то успело выполниться; иначе успешен, если хотя бы одно действие выполнено.
     /// </returns>
     public static ActionResult Execute<T>(IReadOnlyList<T> actions, bool stopOnFailure, ref int executed)
         where T : IAction
@@ -49,7 +50,7 @@ public static class ActionSequence
             }
 
             if (stopOnFailure)
-                return result;
+                return executed > before ? result.AsPartiallyApplied() : result;
             firstFailure ??= result;
         }
 
@@ -61,16 +62,33 @@ public static class ActionSequence
     /// </summary>
     public static bool CanExecuteAny<T>(IReadOnlyList<T> actions) where T : IAction
     {
-        if (actions == null)
-            return false;
+        return CheckAny(actions).IsSuccess;
+    }
 
-        foreach (T action in actions)
+    /// <summary>
+    /// Успех, если хотя бы одно действие выполнимо; иначе первый отказ из списка.
+    /// </summary>
+    /// <returns>Для списка без действий — <see cref="ActionLabels.EmptySequence"/>.</returns>
+    public static ActionResult CheckAny<T>(IReadOnlyList<T> actions) where T : IAction
+    {
+        ActionResult? firstFailure = null;
+
+        if (actions != null)
         {
-            if (action != null && action.CanExecute().IsSuccess)
-                return true;
+            foreach (T action in actions)
+            {
+                if (action == null)
+                    continue;
+
+                ActionResult result = action.CanExecute();
+                if (result.IsSuccess)
+                    return result;
+
+                firstFailure ??= result;
+            }
         }
 
-        return false;
+        return firstFailure ?? ActionResult.Fail(ActionLabels.EmptySequence);
     }
 
     /// <summary>

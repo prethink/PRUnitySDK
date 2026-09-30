@@ -298,27 +298,6 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         return tcs.Task;
     }
 
-    public void LoadingUserCursorState()
-    {
-        Cursor.visible = GetGameSettings().IsShowCursor;
-        //TODO
-    }
-
-    public void ChangeCursorState()
-    {
-        if (!Cursor.visible && GetGameSettings().IsShowCursor)
-        {
-            Cursor.visible = GetGameSettings().IsShowCursor;
-        }
-        else
-        {
-            GetGameSettings().IsShowCursor = !GetGameSettings().IsShowCursor;
-            Cursor.visible = GetGameSettings().IsShowCursor;
-            StartSaveTask();
-        }
-
-    }
-
     /// <summary>
     /// Сохраняет проектные данные.
     /// </summary>

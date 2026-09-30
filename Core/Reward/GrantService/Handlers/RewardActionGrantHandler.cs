@@ -19,7 +19,7 @@ public sealed class RewardActionGrantHandler : IRewardGrantHandler
         if (reward == null || !reward.IsConfigured)
             return false;
 
-        reward.InvokeAction();
-        return true;
+        // Частично выполненное действие считается выданным: повтор выдал бы первую часть дважды.
+        return reward.InvokeAction().HasApplied;
     }
 }

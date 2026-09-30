@@ -19,9 +19,13 @@ public class RewardAction : RewardBase
 
     public override bool IsConfigured => Action != null;
 
-    public void InvokeAction()
+    /// <summary>
+    /// Выполняет действие награды.
+    /// </summary>
+    /// <returns>Результат действия; без действия — отказ.</returns>
+    public ActionResult InvokeAction()
     {
-        Action?.Execute();
+        return Action != null ? Action.Execute() : ActionResult.Fail(ActionLabels.MissingAction);
     }
 
     /// <summary>

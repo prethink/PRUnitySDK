@@ -172,10 +172,6 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         ownsCursor = false;
         CursorManager.Instance.Release(this);
-
-        if (!PRUnitySDK.Trackers.MonoWindows.HasOpenWindows && GameManager.HasInstance
-            && GameManager.Instance.ReadySignal.IsReady)
-            GameManager.Instance.LoadingUserCursorState();
     }
 
     private void AcquireLogicPause()

@@ -5,10 +5,14 @@ using UnityEngine;
 /// Менеджер управления курсором. Работает через именованные запросы состояния
 /// (Show/Hide с указанием source - обычно `this` вызывающего кода, как и в
 /// FlagResolver): пока активен хотя бы один запрос "показать", курсор виден,
-/// независимо от того, в каком порядке снимаются остальные запросы. Release(source)
-/// возвращает курсор к состоянию самого позднего из ОСТАВШИХСЯ активных запросов,
-/// а не к жёстко зафиксированному "предыдущему" - это устойчиво к ситуации, когда
-/// открыто два окна и закрывается не последнее из них.
+/// независимо от того, в каком порядке снимаются остальные запросы. Без запросов
+/// "показать" действует самый поздний из оставшихся запросов, а без запросов вовсе -
+/// состояние по умолчанию. Это устойчиво к ситуации, когда открыто два окна и
+/// закрывается не последнее из них.
+/// <para>
+/// Менеджер - единственный, кто пишет <c>Cursor.visible</c> и <c>Cursor.lockState</c>:
+/// прямая запись жила бы только до ближайшего пересчёта и спорила бы с запросами.
+/// </para>
 /// </summary>
 public class CursorManager : SingletonProviderBase<CursorManager>
 {
@@ -70,6 +74,17 @@ public class CursorManager : SingletonProviderBase<CursorManager>
     private CursorState? defaultState;
 
     /// <summary>
+    /// Курсор показан по чьему-то запросу: указатель сейчас принадлежит интерфейсу.
+    /// </summary>
+    /// <remarks>
+    /// По нему ввод игрока решает, отдавать ли мышь и свайп камере и атаке. Так окну,
+    /// колесу эмоций или рекламе достаточно попросить курсор — запрещать взгляд и удар
+    /// каждому игроку по отдельности не нужно. На тач-устройствах курсор не рисуется,
+    /// но смысл тот же: палец нужен интерфейсу.
+    /// </remarks>
+    public bool IsCursorShown { get; private set; }
+
+    /// <summary>
     /// Запрашивает видимый, разблокированный курсор от имени source (например,
     /// конкретное открытое окно UI). Повторный вызов с тем же source обновляет
     /// его существующую запись вместо создания дубликата в списке активных.
@@ -90,26 +105,20 @@ public class CursorManager : SingletonProviderBase<CursorManager>
     }
 
     /// <summary>
-    /// Снимает запрос конкретного source и применяет состояние самого позднего
-    /// из оставшихся активных запросов - либо defaultState (или EmergencyFallback,
-    /// если LoadCursorState ещё ни разу не вызывался), если запросов больше нет.
-    /// Это и есть "вернуть как было до этого", но корректно работающее и при
-    /// нескольких одновременных запросах, снятых в любом порядке.
+    /// Снимает запрос конкретного source и пересчитывает курсор по оставшимся
+    /// запросам (см. <see cref="ApplyActive"/>). Это и есть "вернуть как было до этого",
+    /// но корректно работающее и при нескольких одновременных запросах, снятых в любом
+    /// порядке. Источник без запроса ничего не меняет - снимать "на всякий случай" можно.
     /// </summary>
     public void Release(object source)
     {
         int index = activeRequests.FindIndex(r => Equals(r.Source, source));
 
-        if (index >= 0)
-            activeRequests.RemoveAt(index);
-
-        if (activeRequests.Count > 0)
-        {
-            Apply(activeRequests[activeRequests.Count - 1].State);
+        if (index < 0)
             return;
-        }
 
-        Apply(defaultState ?? EmergencyFallback);
+        activeRequests.RemoveAt(index);
+        ApplyActive();
     }
 
     /// <summary>
@@ -171,8 +180,7 @@ public class CursorManager : SingletonProviderBase<CursorManager>
 
     /// <summary>
     /// Добавляет или обновляет запись запроса конкретного source в списке
-    /// активных, затем сразу применяет переданное состояние к системному
-    /// курсору - то есть последний вызвавший Show/Hide всегда выигрывает.
+    /// активных и пересчитывает курсор (см. <see cref="ApplyActive"/>).
     /// Если у source уже была запись, старая позиция удаляется и запись
     /// добавляется заново в конец списка - иначе повторный Show/Hide уже
     /// известного source не двигал бы его позицию, и "последний в списке"
@@ -187,7 +195,38 @@ public class CursorManager : SingletonProviderBase<CursorManager>
 
         activeRequests.Add((source, state));
 
+        ApplyActive();
+    }
+
+    /// <summary>
+    /// Применяет итоговое состояние: самый поздний запрос "показать", если такой есть,
+    /// иначе самый поздний из запросов, иначе defaultState (или EmergencyFallback,
+    /// если LoadCursorState ещё ни разу не вызывался).
+    /// </summary>
+    /// <remarks>
+    /// "Показать" побеждает, потому что его просит тот, кому нужен указатель: окно,
+    /// реклама, колесо эмоций. Постоянный запрос "спрятать" (например, у локального
+    /// игрока) не должен отбирать курсор у открытого окна только потому, что его
+    /// тронули позже.
+    /// </remarks>
+    private void ApplyActive()
+    {
+        for (int i = activeRequests.Count - 1; i >= 0; i--)
+        {
+            if (activeRequests[i].State.Visible)
+            {
+                Apply(activeRequests[i].State);
+                IsCursorShown = true;
+                return;
+            }
+        }
+
+        CursorState state = activeRequests.Count > 0
+            ? activeRequests[activeRequests.Count - 1].State
+            : defaultState ?? EmergencyFallback;
+
         Apply(state);
+        IsCursorShown = state.Visible;
     }
 
     /// <summary>

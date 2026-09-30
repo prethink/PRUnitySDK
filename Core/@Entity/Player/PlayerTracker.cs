@@ -50,6 +50,11 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
     /// </summary>
     private readonly SortedSet<long> freePlayerIds = new();
 
+    /// <summary>
+    /// Трекер сущностей, в котором регистрируются игроки и на снятие из которого подписан этот.
+    /// </summary>
+    private EntityTracker boundEntities;
+
     #endregion
 
     #region События
@@ -142,7 +147,7 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
         if (!allowed)
             return false;
 
-        EntityTracker entityTracker = EntityService.Instance;
+        EntityTracker entityTracker = BindEntities();
         if (!entityTracker.Contains(player) && !entityTracker.Register(player))
             return false;
 
@@ -219,6 +224,39 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
             $"Игрок {player.Description?.GetName() ?? "<unnamed>"} - ID:{player.Id} удален из сессии.");
 
         return true;
+    }
+
+    /// <summary>
+    /// Подписывается на снятие сущностей у текущего трекера сущностей.
+    /// </summary>
+    /// <remarks>
+    /// Игрока могут снять с учёта сущностей напрямую, минуя этот трекер (например, общая
+    /// очистка). Тогда снимаем его и здесь: владелец учёта игроков — этот трекер, и знать
+    /// об игроках трекеру сущностей незачем.
+    /// </remarks>
+    private EntityTracker BindEntities()
+    {
+        EntityTracker current = EntityService.Instance;
+
+        if (ReferenceEquals(current, boundEntities))
+            return current;
+
+        if (boundEntities != null)
+            boundEntities.Unregistered -= OnEntityUnregistered;
+
+        boundEntities = current;
+
+        if (current != null)
+            current.Unregistered += OnEntityUnregistered;
+
+        return current;
+    }
+
+    private void OnEntityUnregistered(IEntity entity)
+    {
+        // Повторный вход из собственного Unregister безопасен: игрок уже удалён из elements.
+        if (entity is IPlayer player)
+            Unregister(player);
     }
 
     public void InvokeOnPlayerDead(IEntity killer, PlayerBase player)

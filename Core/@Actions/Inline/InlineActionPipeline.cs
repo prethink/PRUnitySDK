@@ -30,48 +30,29 @@ public class InlineActionPipeline : IconActionBase
     public IReadOnlyList<IAction> Actions => actions;
 
     /// <summary>
-    /// Количество действий, выполненных при последнем вызове <see cref="ActionBase.Execute"/>.
-    /// </summary>
-    public int LastExecutedCount { get; private set; }
-
-    /// <summary>
-    /// Проверяет, что конвейер не пуст и общие условия выполнения соблюдены.
+    /// Проверяет общие условия и то, что хотя бы одно действие конвейера выполнимо.
     /// </summary>
     /// <remarks>
-    /// Выполнимость каждого действия здесь не проверяется: каждое из них решает само.
     /// Строгую проверку «все готовы» ассет не навязывает, потому что частично применимый
-    /// набор - обычная ситуация: часть наград может быть уже выдана.
+    /// набор - обычная ситуация: часть наград может быть уже выдана. Но набор, в котором
+    /// не выполнимо ничего, отказывает сразу — с причиной первого отказавшего действия.
     /// </remarks>
     public override ActionResult CanExecute()
     {
         ActionResult availability = base.CanExecute();
         if (availability.IsFailed)
             return availability;
-        return ActionSequence.HasAny(actions)
-            ? ActionResult.Success : ActionResult.Fail(ActionLabels.EmptySequence);
-    }
-
-    /// <summary>
-    /// Проверяет, выполнимо ли сейчас хотя бы одно действие конвейера.
-    /// </summary>
-    public bool CanExecuteAny()
-    {
-        return ActionSequence.CanExecuteAny(actions);
+        return ActionSequence.CheckAny(actions);
     }
 
     /// <inheritdoc />
-    public override ActionResult Execute()
-    {
-        LastExecutedCount = 0;
-        return base.Execute();
-    }
-
-    /// <inheritdoc />
+    /// <remarks>
+    /// Прерванный на середине конвейер отвечает отказом с
+    /// <see cref="ActionResult.IsPartiallyApplied"/>: первая часть уже выдана.
+    /// </remarks>
     protected override ActionResult Action()
     {
         int executed = 0;
-        ActionResult result = ActionSequence.Execute(actions, stopOnFailure, ref executed);
-        LastExecutedCount = executed;
-        return result;
+        return ActionSequence.Execute(actions, stopOnFailure, ref executed);
     }
 }
