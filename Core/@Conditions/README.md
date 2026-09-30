@@ -7,6 +7,7 @@
 
 | Тип | Назначение |
 | --- | --- |
+| `ConditionResult` | Исход проверки, локализованное описание отказа и иконка |
 | `ICondition` | Контракт с методом `Evaluate(ConditionContextBase context)` и `Evaluate()` без контекста |
 | `ConditionContextBase` | Обстоятельства проверки: [для кого и при каких данных](#контекст-проверки) |
 | `ConditionContextEmpty` | Контекст без обстоятельств — для правил состояния мира |
@@ -91,7 +92,7 @@ private ICondition condition;
 из выпадашки.
 
 Логика при этом не раздваивается: расчёт лежит статическими методами у ассета
-(`ResourceCondition.Evaluate`, `GetMissing`, `GetBalance`), встроенная форма их зовёт.
+(`Matches`, `GetMissing`, `GetBalance`). Публичная проверка `Evaluate` возвращает результат.
 Сравнение и работа с кошельком написаны один раз и разъехаться между формами не могут.
 
 Сериализация у форм разная, и это цена такого устройства: поля продублированы
@@ -194,7 +195,7 @@ ConditionRegistry.Instance.Register(MyConditions.CanUseButton,
 пустая настройка значит «правила нет», а здесь имя выбрано, но правила за ним не
 оказалось: это опечатка или несостоявшаяся регистрация.
 
-Ответ при этом всё равно `true` — как и везде, недонастроенное не запирает. В логе
+Ответ при этом всё равно `ConditionResult.Success` — как и везде, недонастроенное не запирает. В логе
 ошибка, игра не встала. Жалоба на одно имя пишется один раз: условие спрашивают
 на каждый кадр, и без этого лог залило бы тысячами одинаковых строк.
 
@@ -242,7 +243,7 @@ ConditionRegistry.Instance.Register(MyConditions.CanUseButton,
 
 ## Условие на экране
 
-Условие само по себе отвечает «да» или «нет». Игроку этого мало: запертую цель нужно
+Условие возвращает `ConditionResult` с исходом проверки и причиной отказа. Игроку этого мало: запертую цель нужно
 объяснить — чего и сколько не хватает.
 
 **`IConditionProvider`** — владелец условия отдаёт его наружу:
@@ -287,3 +288,44 @@ ConditionDescriptions.Register<BossDefeatedCondition>(
 
 Сам показ — дело интерфейса: `ConditionPlateInstaller` в приватном слое
 (`Components/ConditionPlate`).
+
+## Результат проверки
+
+`Evaluate(context)` и `Evaluate()` возвращают `ConditionResult`.
+Используйте `.IsSuccess` для разрешения и `.IsFailed` для отказа.
+`default` считается отказом без причины.
+
+```csharp
+public ConditionResult Evaluate(ConditionContextBase context)
+{
+    return CanEnter(context.Actor)
+        ? ConditionResult.Success
+        : ConditionResult.Fail(DoorLabels.KeyRequired);
+}
+```
+
+`Fail(provider, args, icon)` принимает локализованный текст, функцию аргументов
+и необязательную иконку. Провайдер задаётся для English, Russian и Turkey.
+`Fail(this, context)` откладывает построение описания до обращения к `FailureDescription`;
+его берёт существующий `ConditionDescriptions`, включая зарегистрированные описания.
+При частых проверках ресурса описание не создаётся. Для UI возьмите `FailureDescription`
+один раз, затем передайте `Text` и `Args` в `SetLocalization`.
+
+`AllCondition` и All-набор возвращают первый отказ; Any-варианты — первый отказ,
+только если не выполнено ни одного правила. Проверка заканчивается сразу после
+определившего исход правила. `AssetCondition` сохраняет результат ассета.
+Отказ `NotCondition` описывает запрет, а не невыполненное требование внутреннего
+условия, которое в этом случае как раз выполнено.
+
+Пустые настройки по-прежнему успешны. Реестр принимает также функции с `ConditionResult`:
+
+```csharp
+ConditionRegistry.Instance.Register(MyConditions.CanEnter,
+    context => CanEnter(context.Actor)
+        ? ConditionResult.Success
+        : ConditionResult.Fail(DoorLabels.KeyRequired));
+```
+
+Bool-перегрузки регистрации остаются; при отказе дают общее локализованное описание.
+При миграции реализации замените возвращаемый bool на `ConditionResult`,
+а потребители bool-проверок переведите на `.IsSuccess` / `.IsFailed`.

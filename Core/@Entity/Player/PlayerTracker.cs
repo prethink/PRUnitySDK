@@ -72,14 +72,10 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
     {
         foreach (var player in elements.ToList())
         {
-            if (player == null || player.IsNull())
-            {
-                elements.Remove(player);
+            if (!Unregister(player) || player.IsNull())
                 continue;
-            }
 
             player.DestroyEntity(new EntityDestroyOptions { FullDestroy = true });
-            Unregister(player);
         }
 
         ClearLocalPlayers();
@@ -146,9 +142,11 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
         if (!allowed)
             return false;
 
-        var playerId = GetPlayerId();
+        EntityTracker entityTracker = EntityService.Instance;
+        if (!entityTracker.Contains(player) && !entityTracker.Register(player))
+            return false;
 
-        player.GenerateId(EntityIdGenerator.Instance.RegisterId);
+        var playerId = GetPlayerId();
         player.GeneratePlayerId(() => playerId);
         elements.Add(player);
         RegisterLocalPlayer(player);
@@ -213,6 +211,7 @@ public partial class PlayerTracker : EntityTrackerBase<IPlayer>
         if (player == null || !elements.Remove(player))
             return false;
 
+        EntityService.Instance.Unregister(player);
         ReleasePlayerId(player.PlayerId);
         UnregisterLocalPlayer(player);
         this.RunMethodHooks(PlayerLeftStage, player);

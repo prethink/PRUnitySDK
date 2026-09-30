@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -107,6 +107,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     public abstract string Name { get; }
 
     public virtual bool OnScene => this.EntityGameObject.activeInHierarchy;
+
+    /// <summary>
+    /// Настроенное действие при уничтожении сущности.
+    /// </summary>
+    public Enumeration DisposeAction => EntityDisposeAction.ToEnumeration();
 
     public virtual GameObject EntityGameObject => entityGameObject != null ? entityGameObject : gameObject;
     public virtual GameObject RootEntityObject => rootGameObject != null ? rootGameObject : gameObject;
@@ -217,7 +222,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
             return;
         }
 
-        Enumeration disposeAction = EntityDisposeAction.ToEnumeration();
+        Enumeration disposeAction = DisposeAction;
 
         if (disposeAction == EntityDisposeEnumerations.Destroy)
         {
@@ -429,7 +434,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </remarks>
     public virtual void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
     {
-        Enumeration disposeAction = EntityDisposeAction.ToEnumeration();
+        Enumeration disposeAction = DisposeAction;
         if (disposeAction != EntityDisposeEnumerations.Hide &&
             disposeAction != EntityDisposeEnumerations.HideWire &&
             disposeAction != EntityDisposeEnumerations.HideWirePolygons)

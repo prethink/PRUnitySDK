@@ -24,7 +24,7 @@ public class ActionRunner : PRMonoBehaviour
 
     [Header("Поведение")]
     [SerializeField]
-    [Tooltip("Останавливаться, если очередное действие вернуло false.")]
+    [Tooltip("Останавливаться, если очередное действие отказало.")]
     private bool stopOnFailure;
 
     /// <summary>
@@ -35,7 +35,8 @@ public class ActionRunner : PRMonoBehaviour
     {
         int executed = 0;
 
-        if (!ActionSequence.Execute(actions, stopOnFailure, ref executed))
+        ActionResult result = ActionSequence.Execute(actions, stopOnFailure, ref executed);
+        if (stopOnFailure && result.IsFailed)
             return executed;
 
         ActionSequence.Execute(assetActions, stopOnFailure, ref executed);

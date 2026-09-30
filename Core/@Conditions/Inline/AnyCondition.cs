@@ -26,25 +26,24 @@ public class AnyCondition : ICondition
     public IReadOnlyList<ICondition> Conditions => conditions;
 
     /// <inheritdoc />
-    public bool Evaluate(ConditionContextBase context)
+    public ConditionResult Evaluate(ConditionContextBase context)
     {
-        if (conditions == null || conditions.Count == 0)
-            return true;
+        if (conditions == null)
+            return ConditionResult.Success;
 
-        var hasAny = false;
-
+        ConditionResult? firstFailure = null;
         foreach (ICondition condition in conditions)
         {
             if (condition == null)
                 continue;
 
-            hasAny = true;
+            ConditionResult result = condition.Evaluate(context);
+            if (result.IsSuccess)
+                return result;
 
-            if (condition.Evaluate(context))
-                return true;
+            firstFailure ??= result;
         }
 
-        // Список из одних пустых строк - тот же недонастроенный слот, что и пустой список.
-        return !hasAny;
+        return firstFailure ?? ConditionResult.Success;
     }
 }

@@ -26,31 +26,34 @@ public static class ActionSequence
     /// Выполняет действия по порядку, накапливая счётчик между несколькими списками.
     /// </summary>
     /// <returns>
-    /// <see langword="false"/>, если выполнение прервано и продолжать не нужно.
+    /// При stopOnFailure сохраняет первый отказ; иначе успешен, если хотя бы одно действие выполнено.
     /// </returns>
-    public static bool Execute<T>(IReadOnlyList<T> actions, bool stopOnFailure, ref int executed)
+    public static ActionResult Execute<T>(IReadOnlyList<T> actions, bool stopOnFailure, ref int executed)
         where T : IAction
     {
         if (actions == null)
-            return true;
+            return ActionResult.Success;
 
+        int before = executed;
+        ActionResult? firstFailure = null;
         foreach (T action in actions)
         {
-            // Пустой элемент - обычное дело: строку в списке добавили, тип ещё не выбрали.
             if (action == null)
                 continue;
 
-            if (action.Execute())
+            ActionResult result = action.Execute();
+            if (result.IsSuccess)
             {
                 executed++;
                 continue;
             }
 
             if (stopOnFailure)
-                return false;
+                return result;
+            firstFailure ??= result;
         }
 
-        return true;
+        return executed > before ? ActionResult.Success : firstFailure ?? ActionResult.Success;
     }
 
     /// <summary>
@@ -63,7 +66,7 @@ public static class ActionSequence
 
         foreach (T action in actions)
         {
-            if (action != null && action.CanExecute())
+            if (action != null && action.CanExecute().IsSuccess)
                 return true;
         }
 

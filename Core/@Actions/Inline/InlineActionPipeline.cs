@@ -21,7 +21,7 @@ public class InlineActionPipeline : IconActionBase
     private List<IAction> actions = new();
 
     [SerializeField]
-    [Tooltip("Прерывать выполнение, если очередное действие вернуло false.")]
+    [Tooltip("Прерывать выполнение, если очередное действие отказало.")]
     private bool stopOnFailure;
 
     /// <summary>
@@ -42,9 +42,13 @@ public class InlineActionPipeline : IconActionBase
     /// Строгую проверку «все готовы» ассет не навязывает, потому что частично применимый
     /// набор - обычная ситуация: часть наград может быть уже выдана.
     /// </remarks>
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute() && ActionSequence.HasAny(actions);
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        return ActionSequence.HasAny(actions)
+            ? ActionResult.Success : ActionResult.Fail(ActionLabels.EmptySequence);
     }
 
     /// <summary>
@@ -56,8 +60,18 @@ public class InlineActionPipeline : IconActionBase
     }
 
     /// <inheritdoc />
-    protected override void Action()
+    public override ActionResult Execute()
     {
-        LastExecutedCount = ActionSequence.Execute(actions, stopOnFailure);
+        LastExecutedCount = 0;
+        return base.Execute();
+    }
+
+    /// <inheritdoc />
+    protected override ActionResult Action()
+    {
+        int executed = 0;
+        ActionResult result = ActionSequence.Execute(actions, stopOnFailure, ref executed);
+        LastExecutedCount = executed;
+        return result;
     }
 }

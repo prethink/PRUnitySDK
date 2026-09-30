@@ -6,7 +6,7 @@ public class ActionButton : ButtonBase
 
     public override bool CanExecute()
     {
-        return base.CanExecute() && action != null && action.CanExecute();
+        return base.CanExecute() && action != null && action.CanExecute().IsSuccess;
     }
 
     protected override void InternalExecute()

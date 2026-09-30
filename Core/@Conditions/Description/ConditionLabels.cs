@@ -27,19 +27,33 @@ public static class ConditionLabels
         return comparison switch
         {
             ConditionComparison.Greater =>
-                Provider("condition_requirement_greater", "More than {0} needed", "Нужно больше {0}", "{0}'dan fazla gerekli"),
+                Requirement0,
             ConditionComparison.Equal =>
-                Provider("condition_requirement_equal", "Exactly {0} needed", "Нужно ровно {0}", "Tam olarak {0} gerekli"),
+                Requirement1,
             ConditionComparison.NotEqual =>
-                Provider("condition_requirement_not_equal", "{0} does not fit", "Столько не подходит: {0}", "{0} uygun değil"),
+                Requirement2,
             ConditionComparison.LessOrEqual =>
-                Provider("condition_requirement_less_or_equal", "{0} at most", "Не больше {0}", "En fazla {0}"),
+                Requirement3,
             ConditionComparison.Less =>
-                Provider("condition_requirement_less", "Fewer than {0}", "Меньше {0}", "{0}'dan az"),
+                Requirement4,
             _ =>
-                Provider("condition_requirement", "{0} needed", "Нужно {0}", "{0} gerekli")
+                Requirement5
         };
     }
+
+    private static readonly ILocalizationProvider Requirement0 = Provider("condition_requirement_greater", "More than {0} needed", "Нужно больше {0}", "{0}'dan fazla gerekli");
+    private static readonly ILocalizationProvider Requirement1 = Provider("condition_requirement_equal", "Exactly {0} needed", "Нужно ровно {0}", "Tam olarak {0} gerekli");
+    private static readonly ILocalizationProvider Requirement2 = Provider("condition_requirement_not_equal", "{0} does not fit", "Столько не подходит: {0}", "{0} uygun değil");
+    private static readonly ILocalizationProvider Requirement3 = Provider("condition_requirement_less_or_equal", "{0} at most", "Не больше {0}", "En fazla {0}");
+    private static readonly ILocalizationProvider Requirement4 = Provider("condition_requirement_less", "Fewer than {0}", "Меньше {0}", "{0}'dan az");
+    private static readonly ILocalizationProvider Requirement5 = Provider("condition_requirement", "{0} needed", "Нужно {0}", "{0} gerekli");
+
+    /// <summary>
+    /// Запасное описание отказа, когда условие не задаёт свою причину.
+    /// </summary>
+    public static readonly ILocalizationProvider Unavailable = Provider(
+        "condition_unavailable", "The requirement is not met",
+        "Требование не выполнено", "Gereksinim karşılanmadı");
 
     private static ILocalizationProvider Provider(string key, string english, string russian, string turkish)
     {

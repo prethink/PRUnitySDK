@@ -5,7 +5,7 @@ using System.Linq;
 /// <summary>
 /// Хранит игровые сущности, назначает им идентификаторы и ведёт статистику по типам.
 /// </summary>
-public class EntityTracker : EntityTrackerBase<IEntity>
+public partial class EntityTracker : EntityTrackerBase<IEntity>
 {
     #region Поля и свойства
 
@@ -68,6 +68,8 @@ public class EntityTracker : EntityTrackerBase<IEntity>
             return false;
 
         UnRegisterEntityType(entity.EntityType);
+        if (entity is IPlayer player)
+            PlayerService.Instance.Unregister(player);
         //if (gameSessionManager.Settings.isActiveDebugLog)
         //    PRLog.WriteDebug(this, $"Сущность {entity.EntityType} - ID:{entity.Id} удалена из entityTracker.");
 
@@ -103,14 +105,10 @@ public class EntityTracker : EntityTrackerBase<IEntity>
     {
         foreach (var entity in elements.ToList())
         {
-            if (entity == null || entity.IsNull())
-            {
-                elements.Remove(entity);
+            if (!Unregister(entity) || entity.IsNull())
                 continue;
-            }
 
             entity.DestroyEntity(new EntityDestroyOptions() { FullDestroy = true });
-            Unregister(entity);
         }
 
         registeredEntity.Clear();

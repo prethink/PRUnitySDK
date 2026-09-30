@@ -14,16 +14,16 @@ public abstract class ActionBase : ScriptableObject, IAction
     /// <summary>
     /// Проверяет возможность выполнения действия.
     /// </summary>
-    public virtual bool CanExecute()
+    public virtual ActionResult CanExecute()
     {
         return executer.CanExecute();
     }
 
     /// <summary>
-    /// Выполняет действие, если CanExecute() возвращает true.
+    /// Выполняет действие, если CanExecute() возвращает успешный результат.
     /// </summary>
-    /// <returns>True, если действие было вызвано.</returns>
-    public virtual bool Execute()
+    /// <returns>Результат проверки или выполнения действия.</returns>
+    public virtual ActionResult Execute()
     {
         return executer.Execute(CanExecute, Action);
     }
@@ -31,5 +31,5 @@ public abstract class ActionBase : ScriptableObject, IAction
     /// <summary>
     /// Реализация действия без дополнительных проверок.
     /// </summary>
-    protected abstract void Action();
+    protected abstract ActionResult Action();
 }

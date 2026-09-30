@@ -6,6 +6,7 @@
 
 | Тип | Назначение |
 | --- | --- |
+| `ActionResult` | Исход, локализованная причина отказа, аргументы функцией и иконка |
 | `IAction` | Контракт с методами `CanExecute()` и `Execute()` |
 | `IActionProvider` | Предоставляет действие через свойство `Action` |
 | `ActionExecuter` | Общая механика проверки и выполнения для разных базовых Unity-типов |
@@ -37,20 +38,23 @@
 ```text
 Execute()
 └── CanExecute()
-    ├── false → действие не вызывается, результат false
-    └── true  → Action(), результат true
+    ├── IsFailed  → действие не вызывается, возвращается причина проверки
+    └── IsSuccess → Action(), возвращается результат выполнения
 ```
 
 Базовая проверка требует завершённой инициализации `PRUnitySDK`. Наследник расширяет её через `base.CanExecute()`:
 
 ```csharp
-public override bool CanExecute()
+public override ActionResult CanExecute()
 {
-    return base.CanExecute() && amount > 0;
+    ActionResult ready = base.CanExecute();
+    if (ready.IsFailed)
+        return ready;
+    return amount > 0 ? ActionResult.Success : ActionResult.Fail(ActionLabels.InvalidAmount);
 }
 ```
 
-`true` означает, что внутреннее действие было вызвано. Исключения из действия не преобразуются в `false`: они передаются вызывающему коду.
+Успех возвращается после выполненного эффекта. Отказ может произойти как при проверке, так и внутри выполнения. Исключения передаются вызывающему коду.
 
 ## ScriptableObject-действие
 
@@ -62,14 +66,18 @@ public sealed class LoadLevelAction : ActionBase
 {
     [SerializeField] private int sceneIndex;
 
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute() && sceneIndex >= 0;
+        ActionResult ready = base.CanExecute();
+        if (ready.IsFailed)
+            return ready;
+        return sceneIndex >= 0 ? ActionResult.Success : ActionResult.Fail(ActionLabels.Unavailable);
     }
 
-    protected override void Action()
+    protected override ActionResult Action()
     {
         SceneChanger.Instance.SceneChange(sceneIndex);
+        return ActionResult.Success;
     }
 }
 ```
@@ -83,14 +91,18 @@ ScriptableObject-действия подходят для конфигураци
 ```csharp
 public sealed class DisableObjectAction : ActionMonoBehaviourBase
 {
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute() && gameObject.activeSelf;
+        ActionResult ready = base.CanExecute();
+        if (ready.IsFailed)
+            return ready;
+        return gameObject.activeSelf ? ActionResult.Success : ActionResult.Fail(ActionLabels.Unavailable);
     }
 
-    protected override void Action()
+    protected override ActionResult Action()
     {
         gameObject.SetActive(false);
+        return ActionResult.Success;
     }
 }
 ```
@@ -108,11 +120,18 @@ public class GiveCoinsAction : InlineActionBase
 {
     [SerializeField] private long amount = 100;
 
-    public override bool CanExecute() => base.CanExecute() && amount > 0;
+    public override ActionResult CanExecute()
+    {
+        ActionResult ready = base.CanExecute();
+        if (ready.IsFailed)
+            return ready;
+        return amount > 0 ? ActionResult.Success : ActionResult.Fail(ActionLabels.InvalidAmount);
+    }
 
-    protected override void Action()
+    protected override ActionResult Action()
     {
         WalletService.Instance.Add(ResourceEnumerationProvider.Coin, amount);
+        return ActionResult.Success;
     }
 }
 ```
@@ -214,7 +233,7 @@ public sealed class ActionProvider : MonoBehaviour, IActionProvider
 Потребитель работает только с интерфейсом:
 
 ```csharp
-if (provider.Action?.Execute() == true)
+if (provider.Action?.Execute().IsSuccess == true)
 {
     OnActionExecuted();
 }
@@ -247,4 +266,30 @@ if (provider.Action?.Execute() == true)
 - Не вызывайте `Action()` напрямую: это обходит проверки.
 - Учитывайте результат `Execute()` в потребителях.
 - Проверяйте сериализованные ссылки на действие на `null`.
-- Для асинхронных операций и подробного результата потребуется отдельный async/result-контракт; текущий `IAction` является синхронным.
+- Для асинхронных операций потребуется отдельный async-контракт; `IAction` является синхронным.
+
+## Причина отказа
+
+`ActionResult.Success` означает успех; `ActionResult.Fail(provider, args, icon)` — отказ.
+`FailureReason` содержит `ILocalizationProvider`, `FailureReasonArgs` — `Func<string[]>`,
+`FailureIcon` — необязательную иконку. `default(ActionResult)` считается отказом без описания.
+
+```csharp
+ActionResult result = action.Execute();
+if (result.IsFailed)
+    label.SetLocalization(result.FailureReason ?? ActionLabels.Unavailable, result.FailureReasonArgs);
+```
+
+Провайдер включает English, Russian и Turkey; аргументы-числа пересчитываются функцией
+при смене языка. Готовую переведённую строку в результат не кладут.
+Проверка доступности не показывает уведомления: этим занимается потребитель после попытки выполнения.
+
+Контейнер сохраняет результат вложенного действия. При `stopOnFailure = true` последовательность
+возвращает первый отказ, даже если часть эффектов уже выполнена. Отката нет.
+При `false` она выполняет остальные действия и возвращает успех, если успешно хотя бы одно,
+иначе — первый отказ. Пустая последовательность-утилита успешна, пустой настроенный pipeline отказывает.
+`LastExecutedCount` сбрасывается при каждой попытке выполнения pipeline; счётчик позволяет
+обнаружить частичную выдачу и избежать повторной награды.
+
+При миграции замените bool-проверку результата на `.IsSuccess` или `.IsFailed`.
+Переопределения `CanExecute()` и `Action()` возвращают `ActionResult`; после эффекта верните успех.

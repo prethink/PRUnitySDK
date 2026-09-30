@@ -24,14 +24,22 @@ public class AddResourceInlineAction : InlineActionBase
     private bool saveImmediately = true;
 
     /// <inheritdoc />
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute() && amount > 0 && resource.ToEnumeration() != null;
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        if (amount <= 0)
+            return ActionResult.Fail(ActionLabels.InvalidAmount);
+        if (resource == null || resource.ToEnumeration() == null)
+            return ActionResult.Fail(ActionLabels.MissingResource);
+        return ActionResult.Success;
     }
 
     /// <inheritdoc />
-    protected override void Action()
+    protected override ActionResult Action()
     {
         WalletService.Instance.Add(resource.ToEnumeration(), amount, saveImmediately);
+        return ActionResult.Success;
     }
 }

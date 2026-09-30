@@ -26,6 +26,7 @@
 | `DamageOutcome` | Подробный итог: участники удара и их места, `WasApplied`, `AppliedDamage`, `HealthLost`, `WasHealthReduced`, `WasCritical` |
 | `IDamageable` | Контракт объекта, принимающего урон; `TakeDamage` отдаёт `DamageOutcome` |
 | `IHealthEntity` | Контракт носителя здоровья: `Kill`, `Revive`, `Spawn`, `IsAlive` |
+| `IHealthProvider` | Ссылка сущности на её `HealthComponent`; используется поиском живых и мёртвых |
 | `HealthComponent` | Здоровье, смерть, лечение и возрождение сущности |
 | `EntityHitBoxBase` | Перенаправление попадания от коллайдера к сущности |
 | `UnitHitBox` | Зона тела и множитель урона |
@@ -532,23 +533,30 @@ UnityEvent исключение может прервать оставшиеся
 Убийство без урона — зона смерти, скрипт, истёкший таймер — идёт через `Kill`:
 
 ```csharp
-DamageOutcome outcome = health.Kill(deadZoneEntity);
+DamageOutcome outcome = health.Kill(deadZoneEntity, force: true);
 
 if (outcome.Result == DamageResult.Killed)
     ShowDeathMessage(outcome.Victim);
 ```
 
-- `Kill(killer, weapon = null)` — убийца попадает в `Killer` и в события;
-- `Kill()` — от имени игры;
+- `Kill(killer, weapon = null, force = false)` — убийца попадает в `Killer` и в события;
+- `Kill(force = false)` — от имени игры;
 - `Suicide()` — сущность убивает себя сама.
 
-Все три возвращают `DamageOutcome`: `Killed`, либо `NotHandled`, если сущность уже мертва.
+Все три возвращают `DamageOutcome`: `Killed` при смерти, `Blocked` при бессмертии без
+`force`, либо `NotHandled`, если сущность уже мертва.
 `AppliedDamage` в таком итоге равен нулю при полной потере HP — урона никто не наносил,
 поэтому эффекты попадания и всплывающие числа молчат. `DamageData` и `DamageProvider`
 пусты, участники заполнены.
 
-Команда минует расчёт урона: хуки не спрашиваются, неуязвимость и `Is Immortal`
-не спасают. Зона смерти не должна пропускать сущность с открытым окном неуязвимости.
+Команда минует расчёт урона: хуки и `IsBlockDamage` не проверяются.
+Обычный `Kill` учитывает `IsImmortal`; `force: true` обходит бессмертие.
+`DeadZone` использует принудительный вызов. Повторный вызов для уже мёртвой сущности
+не публикует смерть ещё раз.
+
+`SetImmortal(bool)` сохраняет HP при принятых атаках. `SetBlockDamage(bool)` отклоняет
+атаки с результатом `Blocked`, без события `OnHit`. Оба метода возвращают компонент
+и позволяют настроить защиту цепочкой: `health.SetImmortal(true).SetBlockDamage(true)`.
 
 Уведомления те же, что у смертельного урона, кроме глобального `OnTakeDamage`: его такая
 смерть не публикует, чтобы не попасть в статистику нанесённого урона. Порядок:

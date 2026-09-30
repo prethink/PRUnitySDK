@@ -114,7 +114,7 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     /// <summary>
     /// Проверяет действие непосредственно перед нажатием.
     /// </summary>
-    public virtual bool CanInvoke() => (action != null || openWindow) && (action == null || action.CanExecute());
+    public virtual bool CanInvoke() => (action != null || openWindow) && (action == null || action.CanExecute().IsSuccess);
 
     /// <summary>
     /// Отправляет метрику допустимого нажатия, выполняет действие и открывает окно. Отказ действия не открывает окно.
@@ -127,7 +127,7 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
         if (!string.IsNullOrWhiteSpace(metricKey))
             PRUnitySDK.Metric?.Send("button", "click", metricKey);
 
-        if (action != null && !action.Execute())
+        if (action != null && action.Execute().IsFailed)
             return false;
 
         return !openWindow || PRUnitySDK.Trackers.MonoWindows.TryShowWindow(window.ToEnumeration());

@@ -15,7 +15,7 @@ using System.Collections.Generic;
 /// </remarks>
 public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
 {
-    private readonly Dictionary<Enumeration, Func<ConditionContextBase, bool>> rules = new();
+    private readonly Dictionary<Enumeration, Func<ConditionContextBase, ConditionResult>> rules = new();
 
     /// <summary>
     /// Имена, о которых уже пожаловались.
@@ -44,7 +44,7 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
         if (key == null || rule == null)
             return;
 
-        Register(key, _ => rule());
+        Register(key, _ => rule() ? ConditionResult.Success : ConditionResult.Fail(ConditionLabels.Unavailable));
     }
 
     /// <summary>
@@ -53,6 +53,26 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
     /// <param name="key">Имя правила.</param>
     /// <param name="rule">Ответ по контексту; участник лежит в <see cref="ConditionContextBase.Actor"/>.</param>
     public void Register(Enumeration key, Func<ConditionContextBase, bool> rule)
+    {
+        if (key == null || rule == null)
+            return;
+
+        Register(key, context => rule(context) ? ConditionResult.Success : ConditionResult.Fail(ConditionLabels.Unavailable));
+    }
+
+    /// <summary>
+    /// Объявляет правило с локализуемой причиной отказа.
+    /// </summary>
+    public void Register(Enumeration key, Func<ConditionResult> rule)
+    {
+        if (key != null && rule != null)
+            Register(key, _ => rule());
+    }
+
+    /// <summary>
+    /// Объявляет правило с контекстом и локализуемой причиной отказа.
+    /// </summary>
+    public void Register(Enumeration key, Func<ConditionContextBase, ConditionResult> rule)
     {
         if (key == null || rule == null)
             return;
@@ -91,26 +111,26 @@ public class ConditionRegistry : SingletonProviderBase<ConditionRegistry>
     /// а здесь имя выбрано, но правила за ним не оказалось: это опечатка или
     /// несостоявшаяся регистрация, и молчать о такой разницей вреднее.
     /// <para>
-    /// Возвращается при этом <c>true</c> — как и везде в системе: недонастроенное
+    /// Возвращается при этом <see cref="ConditionResult.Success"/> — как и везде в системе: недонастроенное
     /// не запирает. Ошибка в логе есть, игра не встала.
     /// </para>
     /// </remarks>
     /// <param name="key">Имя правила.</param>
-    /// <returns>Ответ правила; <c>true</c>, если правила с таким именем нет.</returns>
+    /// <returns>Результат правила; успех, если правила с таким именем нет.</returns>
     /// <param name="context">Обстоятельства проверки; <c>null</c> равносилен <see cref="ConditionContextEmpty"/>.</param>
-    public bool Evaluate(Enumeration key, ConditionContextBase context)
+    public ConditionResult Evaluate(Enumeration key, ConditionContextBase context)
     {
         if (key == null)
-            return true;
+            return ConditionResult.Success;
 
-        if (rules.TryGetValue(key, out Func<ConditionContextBase, bool> rule))
+        if (rules.TryGetValue(key, out Func<ConditionContextBase, ConditionResult> rule))
             return rule.Invoke(context ?? ConditionContextEmpty.Instance);
 
         if (reported.Add(key))
             PRLog.WriteError(this, $"Правило [{key}] не объявлено: условие считается выполненным. " +
                                    "Проверьте регистрацию в ConditionRegistry.");
 
-        return true;
+        return ConditionResult.Success;
     }
 
     /// <summary>

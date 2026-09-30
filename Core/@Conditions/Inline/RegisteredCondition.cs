@@ -25,7 +25,7 @@ public class RegisteredCondition : ICondition
     public Enumeration Rule => rule?.ToEnumeration();
 
     /// <inheritdoc />
-    public bool Evaluate(ConditionContextBase context)
+    public ConditionResult Evaluate(ConditionContextBase context)
     {
         return ConditionRegistry.Instance.Evaluate(Rule, context);
     }

@@ -390,7 +390,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// Считается ли исход попаданием для <see cref="OnHit"/>.
     /// </summary>
     /// <remarks>
-    /// Смерть через <see cref="Kill(IEntity, IWeapon)"/> тоже приходит с нулевым уроном,
+    /// Смерть через <see cref="Kill(IEntity, IWeapon, bool)"/> тоже приходит с нулевым уроном,
     /// но это команда, а не удар, и попаданием не считается.
     /// </remarks>
     public static bool IsHit(DamageOutcome outcome)
@@ -509,7 +509,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <remarks>
     /// Точка переопределения для сущностей с особым порядком смерти. Уведомления здесь
     /// не публикуются - их рассылает тот, кто вызвал: смертельный урон или
-    /// <see cref="Kill(IEntity, IWeapon)"/>.
+    /// <see cref="Kill(IEntity, IWeapon, bool)"/>.
     /// </remarks>
     /// <param name="killer">Убийца.</param>
     /// <returns>Сущность умерла от этого вызова.</returns>
@@ -535,9 +535,8 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// Убить сущность без расчёта урона.
     /// </summary>
     /// <remarks>
-    /// Смерть по команде: зона смерти, скрипт, истёкший таймер. Хуки урона не
-    /// спрашиваются, неуязвимость и <see cref="IsImmortal"/> не спасают - зона смерти
-    /// не должна пропускать сущность с открытым окном неуязвимости.
+    /// Хуки урона и блокировка атак не проверяются. Бессмертие учитывается,
+    /// пока force не установлен в true.
     /// <para>
     /// Глобальное <c>OnTakeDamage</c> не публикуется: урона никто не наносил, и в
     /// статистику нанесённого такая смерть попасть не должна. Убийство видно через
@@ -547,12 +546,18 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// </remarks>
     /// <param name="killer">Кто убил; попадёт в <see cref="Killer"/> и в события.</param>
     /// <param name="weapon">Чем убил, если это важно подписчикам.</param>
+    /// <param name="force">Обойти бессмертие.</param>
     /// <returns>
-    /// Итог с результатом <see cref="DamageResult.Killed"/>, либо
-    /// <see cref="DamageResult.NotHandled"/>, если сущность уже мертва.
+    /// Killed при смерти, Blocked при бессмертии без force, NotHandled для уже мёртвой сущности.
     /// </returns>
-    public virtual DamageOutcome Kill(IEntity killer, IWeapon weapon = null)
+    public virtual DamageOutcome Kill(IEntity killer, IWeapon weapon = null, bool force = false)
     {
+        if (!IsAlive())
+            return DamageOutcome.NotHandled(killer, Entity, weapon);
+
+        if (IsImmortal && !force)
+            return FailAttempt(DamageResult.Blocked, killer, weapon, null, null, null);
+
         float before = Health;
 
         // Смерть фиксируем до уведомлений, чтобы подписчик увидел сущность уже мёртвой.
@@ -584,10 +589,10 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <summary>
     /// Убить сущность от имени игры.
     /// </summary>
-    /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon)"/>.</returns>
-    public virtual DamageOutcome Kill()
+    /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon, bool)"/>.</returns>
+    public virtual DamageOutcome Kill(bool force = false)
     {
-        return Kill(GameEventEntityFactory.CreateEventGame());
+        return Kill(GameEventEntityFactory.CreateEventGame(), force: force);
     }
 
     /// <summary>
@@ -685,7 +690,7 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <summary>
     /// Суицид: сущность убивает себя сама.
     /// </summary>
-    /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon)"/>.</returns>
+    /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon, bool)"/>.</returns>
     public virtual DamageOutcome Suicide()
     {
         return Kill(GameEventEntityFactory.CreateEventSuicide());
@@ -749,6 +754,15 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     {
         NotifyListeners(OnScaleChanged, listener => listener(transform));
         NotifyUnityEvent(() => OnScaleChangedUnity?.Invoke(transform));
+    }
+
+    /// <summary>
+    /// Блокирует входящие атаки; на Kill() не влияет.
+    /// </summary>
+    public virtual HealthComponent SetBlockDamage(bool value)
+    {
+        IsBlockDamage = value;
+        return this;
     }
 
     public void SetOverrideIsAlive(Func<bool> overrideFunc)

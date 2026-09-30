@@ -49,8 +49,10 @@ public class ResourceInlineCondition : ICondition
     public long Missing => ResourceCondition.GetMissing(resource, comparison, amount);
 
     /// <inheritdoc />
-    public bool Evaluate(ConditionContextBase context)
+    public ConditionResult Evaluate(ConditionContextBase context)
     {
-        return ResourceCondition.Evaluate(resource, comparison, amount);
+        return ResourceCondition.Matches(resource, comparison, amount)
+            ? ConditionResult.Success
+            : ConditionResult.Fail(this, context);
     }
 }

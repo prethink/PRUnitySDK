@@ -89,7 +89,7 @@ public sealed class HealthSound : MonoBehaviour
     /// Выбирает звук смерти или урона.
     /// </summary>
     /// <remarks>
-    /// Смерть через <see cref="HealthComponent.Kill(IEntity, IWeapon)"/> приходит с нулевым
+    /// Смерть через <see cref="HealthComponent.Kill(IEntity, IWeapon, bool)"/> приходит с нулевым
     /// уроном, поэтому звук урона на ней не играет, а звук смерти играет.
     /// </remarks>
     private AudioClip SelectClip(DamageOutcome outcome)

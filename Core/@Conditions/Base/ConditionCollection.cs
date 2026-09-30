@@ -53,7 +53,7 @@ public class ConditionCollection : ConditionBase
     /// Пустой набор выполнен при любом режиме: отсутствие правил — это разрешение.
     /// Пустые строки списка пропускаются по той же причине.
     /// </remarks>
-    public override bool Evaluate(ConditionContextBase context)
+    public override ConditionResult Evaluate(ConditionContextBase context)
     {
         // Набор может содержать набор, поэтому мышкой собирается кольцо: A ссылается
         // на B, B обратно на A. Без этой проверки такое кольцо уходит в бесконечную
@@ -64,7 +64,7 @@ public class ConditionCollection : ConditionBase
             PRLog.WriteError(this, $"Набор условий [{name}] ссылается сам на себя по кругу. " +
                                    "Круг разорван, набор считается выполненным.");
 
-            return true;
+            return ConditionResult.Success;
         }
 
         try
@@ -77,29 +77,31 @@ public class ConditionCollection : ConditionBase
         }
     }
 
-    private bool EvaluateConditions(ConditionContextBase context)
+    private ConditionResult EvaluateConditions(ConditionContextBase context)
     {
         if (conditions == null)
-            return true;
+            return ConditionResult.Success;
 
-        var hasAny = false;
-
+        ConditionResult? firstFailure = null;
+        bool hasAny = false;
         foreach (ConditionBase condition in conditions)
         {
             if (condition == null)
                 continue;
 
             hasAny = true;
+            ConditionResult result = condition.Evaluate(context);
+            if (match == ConditionMatch.All && result.IsFailed)
+                return result;
+            if (match == ConditionMatch.Any && result.IsSuccess)
+                return result;
 
-            bool met = condition.Evaluate(context);
-
-            if (match == ConditionMatch.All && !met)
-                return false;
-
-            if (match == ConditionMatch.Any && met)
-                return true;
+            if (result.IsFailed)
+                firstFailure ??= result;
         }
 
-        return match == ConditionMatch.All || !hasAny;
+        return match == ConditionMatch.All || !hasAny
+            ? ConditionResult.Success
+            : firstFailure ?? ConditionResult.Fail(ConditionLabels.Unavailable);
     }
 }

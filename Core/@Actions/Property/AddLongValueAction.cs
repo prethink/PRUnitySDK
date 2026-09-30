@@ -10,14 +10,19 @@ public class AddLongValueAction : ActionBase
     [SerializeField] protected long count;
 
     /// <inheritdoc />
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute() && !string.IsNullOrWhiteSpace(propertyName);
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        return !string.IsNullOrWhiteSpace(propertyName)
+            ? ActionResult.Success : ActionResult.Fail(ActionLabels.MissingPropertyName);
     }
 
     /// <inheritdoc />
-    protected override void Action()
+    protected override ActionResult Action()
     {
         PRUnitySDK.Managers.ProjectProperties.AddLong(propertyName, count, save: false);
+        return ActionResult.Success;
     }
 }

@@ -247,77 +247,102 @@ RootEntityObject.transform.position += position - Position;
 
 ## Реестры
 
-Сущности попадают в один из **двух независимых** реестров. Это ключевой факт про модуль,
-и он не следует из названий:
+`EntityTracker` хранит все сущности, включая игроков. `PlayerTracker` остаётся отдельным
+реестром игроков: он ведёт Player ID, локальные слоты, счётчики и события входа/выхода.
 
 | Реестр | Кто туда попадает | Доступ |
 | --- | --- | --- |
-| `EntityTracker` | Все сущности, **кроме игроков** | `PRUnitySDK.Trackers.Entities` |
-| `PlayerTracker` | Только игроки (`PlayerBase` и наследники) | `PRUnitySDK.Trackers.Players` |
+| `EntityTracker` | Все зарегистрированные сущности, включая игроков | `PRUnitySDK.Trackers.Entities` |
+| `PlayerTracker` | Игроки (`PlayerBase` и наследники) | `PRUnitySDK.Trackers.Players` |
 
-`PlayerBase` переопределяет `RegisterEntity()` и регистрирует себя **только** в
-`PlayerTracker`, не вызывая базовую реализацию:
+Игроки регистрируются через `PlayerTracker.Register()`. После проверки доступности локального
+слота он добавляет игрока в общий реестр. Entity ID выдаётся один раз общим трекером; если
+сущность уже зарегистрирована там, её ID сохраняется. Player ID назначается отдельно.
+Уход игрока через любой из двух реестров удаляет его из обоих и освобождает локальный слот.
 
-```csharp
-protected override void RegisterEntity()
-{
-    PRUnitySDK.Trackers.Players.Register(this);
-    OnPlayerInit?.Invoke(this);
-}
-```
-
-Практические следствия, о которых легко забыть:
-
-- `Trackers.Entities.Entities` **не содержит игроков**;
-- `GetExactExistsEntityCount(EntityTypeEnumerationProvider.Player)` вернёт `0`;
-- `EntityTracker.Clear()`, `ClearRound()` и `ClearSession()` игроков не трогают — для них
-  те же операции нужно вызывать у `PlayerTracker`;
-- статистика `RegisteredEntity` игроков не учитывает.
-
-Если нужны «все объекты мира вместе с игроками» — берите оба списка.
+`EntityTracker.Clear()` уничтожает также игроков и снимает их с `PlayerTracker`.
+`PlayerTracker.Clear()` уничтожает только игроков и удаляет их из общего реестра.
+Последовательная очистка обоих реестров не уничтожает игрока повторно. Перед уничтожением
+объект снимается с регистрации, поэтому callbacks очистки уже не найдут его в реестре.
 
 ### Когда происходит регистрация
 
 | Момент | Что происходит |
 | --- | --- |
 | `Awake` / `InitializationComponents` | Регистрации ещё нет, `Id == 0` |
-| `Start` | `RegisterEntity()` → выдача `Id` → сущность в реестре |
-| Уход в пул | Регистрация **сохраняется**, меняется только `InPool` |
+| `Start` | Регистрация, выдача `Id`, сущность в реестре |
+| Уход в пул | Регистрация сохраняется, меняется `InPool` |
 | Возврат из пула | Повторной регистрации нет, `Id` остаётся прежним |
-| `OnDestroy` | `UnregisterEntity()` через `UnRegisterEventsOnDestroy()` |
-
-Из-за этого объект в пуле продолжает считаться существующей сущностью — именно для этого
-у трекера есть отдельные счётчики `GetEntityOnSceneCount()` и `GetEntityInPoolCount()`.
-
-Если наследник переопределяет `RegisterEntity()` или `UnregisterEntity()`, он берёт на себя
-и выбор реестра — как это делает `PlayerBase`. Забыть про `base` здесь не ошибка,
-а способ сменить реестр; но и потерять регистрацию совсем так же легко.
+| `OnDestroy` | Снятие с регистрации через `UnRegisterEventsOnDestroy()` |
 
 ### Идентификаторы
 
-`Id` выдаёт общий `EntityIdGenerator` — сквозной счётчик, растущий от нуля. Оба трекера
-берут Id из него, поэтому идентификаторы игроков и остальных сущностей не пересекаются.
-Освобождённые Id **не переиспользуются**: удалённая сущность свой номер уносит с собой.
+`EntityIdGenerator` выдаёт сквозной Entity ID. Освобождённые Entity ID не переиспользуются.
+Player ID переиспользуются, а локальным игрокам зарезервированы значения
+`LocalPlayerOneId` и `LocalPlayerTwoId`.
 
-У игрока есть второй идентификатор — `PlayerId`, и он ведёт себя иначе: номера
-переиспользуются, а локальным игрокам зарезервированы фиксированные значения
-(`LocalPlayerOneId`, `LocalPlayerTwoId`).
-
-### Подсчёт
+### Поиск и подсчёт
 
 ```csharp
 var tracker = PRUnitySDK.Trackers.Entities;
 
-long pets       = tracker.GetExactExistsEntityCount(EntityTypeEnumerationProvider.Pet);
-long petsOnScene = tracker.GetExactEntityOnSceneCount(EntityTypeEnumerationProvider.Pet);
-long petsInPool  = tracker.GetExactEntityInPoolCount(EntityTypeEnumerationProvider.Pet);
+var all = tracker.GetEntities();
+var visiblePlayers = tracker.GetEntities(
+    EntityTypeEnumerations.Player, EntitySearchFlags.Visible);
+var living = tracker.GetEntities(
+    EntitySearchFlags.Visible | EntitySearchFlags.Alive);
+var ofMetadata = tracker.GetEntities(metadata, EntitySearchFlags.NotInPool);
+var ofDefinition = tracker.GetEntities(definition, EntitySearchFlags.Visible);
+var containers = tracker.GetEntities<ContainerEntityBase>(EntitySearchFlags.Visible);
 
-long allContainers = tracker.GetInheritedExistsEntityCount(typeof(ContainerEntityBase));
+// Можно одновременно ограничить вид и описание.
+var specific = tracker.GetEntities(entityType, EntitySearchFlags.Visible, metadata);
+long count = tracker.GetEntitiesCount(metadata, EntitySearchFlags.Visible);
 ```
 
-`GetExact*` сравнивает `EntityType`, `GetInherited*` — CLR-тип с учётом наследования.
-Считайте именно этими методами: они не создают промежуточных коллекций, в отличие от
-свойства `Entities`, которое каждый раз возвращает новый список.
+EntityType сравнивается как `Enumeration`; CLR-тип в generic-поиске учитывает наследников
+и реализации интерфейса. Метаданные сравниваются по ссылке с `Description.Base`, `Description.Override` и
+исходным `EntityBase<EntityMetadata>.Metadata`. Поэтому сущность с `EntityDefinition<T>`
+находится как по её конкретному `Definition`, так и по общему ассету `EntityMetadata`.
+`Definition` уже реализует `IEntityMetadata` и передаётся в тот же метод поиска.
+Переопределение иконки или имени не исключает сущность из поиска по исходному ассету.
+Два разных ассета с одинаковым именем не совпадают.
+
+| Флаг | Условие |
+| --- | --- |
+| `None` | Все существующие зарегистрированные сущности, включая скрытые и пул |
+| `OnScene` | Существующее свойство `IEntity.OnScene`; у `EntityBase` это активность иерархии |
+| `InPool` / `NotInPool` | Объект в пуле / вне пула; `NotInPool` включает скрытые |
+| `Visible` | `OnScene && !InPool`, без проверки камеры |
+| `NotVisible` | Обратное `Visible`, включая отключённые объекты и пул |
+| `Hide` | Неактивен, вне пула, настроен `Hide` |
+| `HideWire` | Неактивен, вне пула, настроен `HideWire` |
+| `HideWirePolygons` | Неактивен, вне пула, настроен `HideWirePolygons` |
+| `Hidden` | Неактивен, вне пула, настроен любой из трёх Hide-режимов |
+| `Alive` / `Dead` | `IHealthProvider.Health.IsAlive()` возвращает true / false |
+
+Все условия объединяются через «и», кроме Hide-режимов: их маска выбирает любой указанный
+режим. Например, `HideWire | HideWirePolygons | Dead` найдёт мёртвые сущности,
+неактивные вне пула с одним из двух настроенных Hide-режимов. `Visible | Hidden` или `Alive | Dead` вернут пустой список.
+
+`Hide`, `HideWire` и `HideWirePolygons` выбирают неактивные сущности вне пула
+по настроенному действию `EntityBase.DisposeAction`. Это чтение существующего
+`EntityDisposeAction`, без отдельного состояния скрытия. Причину отключения поиск
+не отслеживает: отключённый вручную объект с такой настройкой тоже подходит под
+соответствующий Hide-флаг. Восстановленная активная сущность и объект в пуле не подходят.
+
+`Alive` и `Dead` требуют `IHealthProvider` у самой сущности и существующий
+`HealthComponent` в его свойстве `Health`. Трекер читает эту ссылку без поиска компонентов.
+Объекты без здоровья не подходят ни под один из этих двух флагов.
+Уничтоженные Unity-объекты исключаются из любого поиска.
+
+`GetEntities()` возвращает новый список; `GetEntitiesCount(...)` с фильтром считает
+без создания списка. Существующие `GetExact*Count`, `GetInherited*Count` и статистика
+`RegisteredEntity` сохранены. `GetEntitiesCount()` без аргументов по-прежнему возвращает
+число регистраций; для подсчёта только существующих объектов передайте `EntitySearchFlags.None`.
+
+EditMode-тесты поиска и синхронизации реестров находятся в
+`EntityManager/Editor/EntityTrackerSearchTests.cs` и включаются символом `PRSDK_TESTS`.
 
 ## Время жизни
 
@@ -454,6 +479,14 @@ float speed = EntityStatsUtils.GetStat(
 (`Human` / `AI` / `NPC`) и характеристиками. `PlayerBase` добавляет события смены ника,
 инициализации, изменения очков и учёт атакующего.
 
+`PlayerBase` реализует `IHealthProvider`. При инициализации он запоминает существующий
+`HealthComponent` на своём объекте или добавляет его, если в префабе компонента нет.
+Для локальных игроков и ботов устанавливаются `IsImmortal = true` и `IsBlockDamage = true`:
+атаки блокируются и здоровье не расходуется. Обычный `Kill()` возвращает `Blocked`.
+`DeadZone` вызывает `Kill(this, force: true)`, поэтому зона смерти продолжает убивать
+игроков и запускать возрождение. Эти признаки сохраняются после `Revive`.
+
+
 `PlayerTracker` ведёт отдельный учёт: сколько всего игроков, сколько людей, сколько
 локальных. Локальным игрокам выделены фиксированные идентификаторы
 (`LocalPlayerOneId`, `LocalPlayerTwoId`), а `MaxLocalPlayer` зависит от устройства —
@@ -522,9 +555,6 @@ PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
   `EntityService.Instance` и `PRUnitySDK.Trackers.Entities`.
 - **`Id` недоступен до `Start()`.** Регистрация идёт из `Start()`, поэтому в `Awake` и
   `InitializationComponents` идентификатор равен нулю.
-- **Игроков нет в `EntityTracker`.** `PlayerBase` регистрирует себя только в `PlayerTracker`,
-  поэтому обход всех сущностей игроков не увидит, а `Clear*` у `EntityTracker` их не затронет.
-  Разделение намеренное, но легко приводит к «пропавшим» объектам при подсчётах.
 - **Регистрация не снимается при уходе в пул.** Скрытая в пуле сущность остаётся в реестре;
   различать её нужно по `InPool`, а не по факту присутствия в списке.
 - **Снимки коллекций аллоцируют.** `Entities`, `Players` и `TrackerBase.Elements` каждый раз

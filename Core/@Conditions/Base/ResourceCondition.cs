@@ -53,9 +53,11 @@ public class ResourceCondition : ConditionBase
     public long Missing => GetMissing(resource, comparison, amount);
 
     /// <inheritdoc />
-    public override bool Evaluate(ConditionContextBase context)
+    public override ConditionResult Evaluate(ConditionContextBase context)
     {
-        return Evaluate(resource, comparison, amount);
+        return Matches(resource, comparison, amount)
+            ? ConditionResult.Success
+            : ConditionResult.Fail(this, context);
     }
 
     /// <summary>
@@ -72,7 +74,15 @@ public class ResourceCondition : ConditionBase
     /// <param name="resource">Ресурс; <c>null</c> означает «условия нет».</param>
     /// <param name="comparison">Как сравнивать.</param>
     /// <param name="amount">Число для сравнения.</param>
-    public static bool Evaluate(ResourceItemDefinition resource, ConditionComparison comparison, long amount)
+    public static ConditionResult Evaluate(ResourceItemDefinition resource, ConditionComparison comparison, long amount)
+    {
+        return Matches(resource, comparison, amount)
+            ? ConditionResult.Success
+            : ConditionResult.Fail(ConditionLabels.Requirement(comparison),
+                () => new[] { NumberConverter.FormatNumber(amount) }, resource.Icon);
+    }
+
+    internal static bool Matches(ResourceItemDefinition resource, ConditionComparison comparison, long amount)
     {
         if (resource == null)
             return true;
@@ -104,7 +114,7 @@ public class ResourceCondition : ConditionBase
     /// </remarks>
     public static long GetMissing(ResourceItemDefinition resource, ConditionComparison comparison, long amount)
     {
-        if (resource == null || Evaluate(resource, comparison, amount))
+        if (resource == null || Matches(resource, comparison, amount))
             return 0L;
 
         long balance = GetBalance(resource);

@@ -31,14 +31,17 @@ public class InlineActionContainer : IconActionBase
     /// <summary>
     /// Проверяет общие условия и готовность вложенного действия.
     /// </summary>
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute() && action != null && action.CanExecute();
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        return action != null ? action.CanExecute() : ActionResult.Fail(ActionLabels.MissingAction);
     }
 
     /// <inheritdoc />
-    protected override void Action()
+    protected override ActionResult Action()
     {
-        action.Execute();
+        return action.Execute();
     }
 }

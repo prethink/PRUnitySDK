@@ -11,15 +11,15 @@ public abstract class ActionMonoBehaviourBase : PRMonoBehaviour, IAction
     /// <summary>
     /// Проверяет возможность выполнения действия.
     /// </summary>
-    public virtual bool CanExecute()
+    public virtual ActionResult CanExecute()
     {
         return executer.CanExecute();
     }
 
     /// <summary>
-    /// Выполняет действие, если CanExecute() возвращает true.
+    /// Выполняет действие, если CanExecute() возвращает успешный результат.
     /// </summary>
-    public virtual bool Execute()
+    public virtual ActionResult Execute()
     {
         return executer.Execute(CanExecute, Action);
     }
@@ -27,5 +27,5 @@ public abstract class ActionMonoBehaviourBase : PRMonoBehaviour, IAction
     /// <summary>
     /// Реализация действия без дополнительных проверок.
     /// </summary>
-    protected abstract void Action();
+    protected abstract ActionResult Action();
 }

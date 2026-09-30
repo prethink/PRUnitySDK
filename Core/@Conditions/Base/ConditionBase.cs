@@ -18,14 +18,14 @@ using UnityEngine;
 public abstract class ConditionBase : ScriptableObject, ICondition
 {
     /// <inheritdoc />
-    public abstract bool Evaluate(ConditionContextBase context);
+    public abstract ConditionResult Evaluate(ConditionContextBase context);
 
     /// <inheritdoc cref="ICondition.Evaluate()" />
     /// <remarks>
     /// Повторяет метод интерфейса по умолчанию: тот виден только через
     /// <see cref="ICondition"/>, а ассет чаще держат полем своего типа.
     /// </remarks>
-    public bool Evaluate()
+    public ConditionResult Evaluate()
     {
         return Evaluate(ConditionContextEmpty.Instance);
     }

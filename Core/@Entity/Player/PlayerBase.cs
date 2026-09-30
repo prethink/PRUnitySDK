@@ -1,13 +1,18 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
 /// Базовая сущность игрока.
 /// </summary>
-public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySignalProvider
+public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySignalProvider, IHealthProvider
 {
     #region Поля и свойства
+
+    /// <summary>
+    /// Здоровье игрока; ссылка заполняется при инициализации компонентов.
+    /// </summary>
+    public HealthComponent Health { get; private set; }
 
     protected IPlayerTeam playerTeam = new DefaultTeam();
 
@@ -81,6 +86,14 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
     #endregion
 
     #region MonoBehaviour
+
+    protected override void InitializationComponents()
+    {
+        Health = gameObject.GetOrAddComponent<HealthComponent>();
+        Health.SetImmortal(true);
+        Health.SetBlockDamage(true);
+        base.InitializationComponents();
+    }
 
     protected override void RegisterEntity()
     {

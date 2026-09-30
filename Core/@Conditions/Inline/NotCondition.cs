@@ -20,8 +20,10 @@ public class NotCondition : ICondition
     /// Пустой слот считается выполненным, а не перевёрнутым в запрет: недонастроенное
     /// условие нигде в системе не запирает.
     /// </remarks>
-    public bool Evaluate(ConditionContextBase context)
+    public ConditionResult Evaluate(ConditionContextBase context)
     {
-        return condition == null || !condition.Evaluate(context);
+        return condition == null || condition.Evaluate(context).IsFailed
+            ? ConditionResult.Success
+            : ConditionResult.Fail(this, context);
     }
 }

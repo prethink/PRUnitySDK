@@ -241,7 +241,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         float availableWidth = Mathf.Max(CompactContentMinWidth, position.width - 28f);
         float contentWidth = tableView
             ? compact
-                ? CompactContentMinWidth
+                ? availableWidth
                 : Mathf.Clamp(availableWidth, WideContentMinWidth, ContentMaxWidth)
             : Mathf.Min(availableWidth, ContentMaxWidth);
         EditorGUILayout.BeginVertical(compact && tableView

@@ -6,10 +6,10 @@ public interface IAction
     /// <summary>
     /// Выполняет действие, если оно доступно.
     /// </summary>
-    bool Execute();
+    ActionResult Execute();
 
     /// <summary>
     /// Проверяет возможность выполнения действия без изменения состояния.
     /// </summary>
-    bool CanExecute();
+    ActionResult CanExecute();
 }

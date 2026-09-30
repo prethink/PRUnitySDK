@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 /// <summary>
 /// Базовый класс работы с метриками.
@@ -67,5 +67,18 @@ public abstract class MetricBase
         }
 
         Send(eventName, tree);
+    }
+
+    /// <summary>
+    /// Записывает завершённую передачу адаптеру в журнал Debug только в Editor.
+    /// </summary>
+    /// <param name="eventParams">Фактически переданные параметры после нормализации адаптером.</param>
+    /// <param name="ignored">Адаптер намеренно пропустил отправку.</param>
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    protected void ReportSend(string eventName, IReadOnlyDictionary<string, object> eventParams = null, bool ignored = false)
+    {
+#if UNITY_EDITOR
+        MetricDebugHistory.Record(eventName, eventParams, GetType().FullName, ignored);
+#endif
     }
 }

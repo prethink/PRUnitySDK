@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -21,6 +21,7 @@ public class YGMetrics : MetricBase
     public override void Send(string eventName)
     {
         YG2.MetricaSend(eventName);
+        ReportSend(eventName);
     }
 
     /// <inheritdoc />
@@ -39,6 +40,8 @@ public class YGMetrics : MetricBase
             YG2.MetricaSend(eventName);
         else
             YG2.MetricaSend(eventName, tree);
+
+        ReportSend(eventName, tree);
     }
 
     #endregion

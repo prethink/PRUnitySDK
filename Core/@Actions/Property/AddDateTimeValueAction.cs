@@ -14,18 +14,23 @@ public class AddDateTimeValueAction : ActionBase
     protected string value;
 
     /// <inheritdoc />
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute()
-            && !string.IsNullOrWhiteSpace(propertyName)
-            && TryGetValue(out _);
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        if (string.IsNullOrWhiteSpace(propertyName))
+            return ActionResult.Fail(ActionLabels.MissingPropertyName);
+        return TryGetValue(out _)
+            ? ActionResult.Success : ActionResult.Fail(ActionLabels.InvalidDateTime);
     }
 
     /// <inheritdoc />
-    protected override void Action()
+    protected override ActionResult Action()
     {
         TryGetValue(out var dateTime);
         PRUnitySDK.Managers.ProjectProperties.SetDateTime(propertyName, dateTime);
+        return ActionResult.Success;
     }
 
     private bool TryGetValue(out DateTime dateTime)

@@ -33,16 +33,16 @@ public abstract class InlineActionBase : IAction
     /// <summary>
     /// Проверяет возможность выполнения действия.
     /// </summary>
-    public virtual bool CanExecute()
+    public virtual ActionResult CanExecute()
     {
         return Executer.CanExecute();
     }
 
     /// <summary>
-    /// Выполняет действие, если <see cref="CanExecute"/> возвращает true.
+    /// Выполняет действие, если <see cref="CanExecute"/> возвращает успешный результат.
     /// </summary>
-    /// <returns>True, если действие было вызвано.</returns>
-    public virtual bool Execute()
+    /// <returns>Результат проверки или выполнения действия.</returns>
+    public virtual ActionResult Execute()
     {
         return Executer.Execute(CanExecute, Action);
     }
@@ -50,5 +50,5 @@ public abstract class InlineActionBase : IAction
     /// <summary>
     /// Реализация действия без дополнительных проверок.
     /// </summary>
-    protected abstract void Action();
+    protected abstract ActionResult Action();
 }

@@ -14,9 +14,10 @@ public class LangAction : ActionBase
 
     #region Базовый класс
 
-    protected override void Action()
+    protected override ActionResult Action()
     {
         PRUnitySDK.LanguageManager.SwitchLang(LocalizationUtils.GetLanguageCode(lang));
+        return ActionResult.Success;
     }
 
     #endregion

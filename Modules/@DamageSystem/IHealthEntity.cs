@@ -38,24 +38,24 @@ public interface IHealthEntity
     /// <summary>
     /// Убить сущность от имени игры.
     /// </summary>
+    /// <param name="force">Обойти бессмертие.</param>
     /// <returns>Итог убийства; никогда не <c>null</c>.</returns>
-    public DamageOutcome Kill();
+    public DamageOutcome Kill(bool force = false);
 
     /// <summary>
     /// Убить сущность с указанием источника - он попадёт в <see cref="Killer"/>
     /// и в события смерти.
     /// </summary>
     /// <remarks>
-    /// Смерть по команде минует расчёт урона: хуки не спрашиваются, неуязвимость
-    /// и бессмертие не спасают.
+    /// Хуки урона и блокировка атак не проверяются. Для обхода бессмертия укажите force.
     /// </remarks>
     /// <param name="killer">Кто убил.</param>
     /// <param name="weapon">Чем убил, если это важно подписчикам.</param>
+    /// <param name="force">Обойти бессмертие.</param>
     /// <returns>
-    /// Итог с результатом <see cref="DamageResult.Killed"/>, либо
-    /// <see cref="DamageResult.NotHandled"/>, если сущность уже мертва.
+    /// Killed при смерти, Blocked при бессмертии без force, NotHandled для уже мёртвой сущности.
     /// </returns>
-    public DamageOutcome Kill(IEntity killer, IWeapon weapon = null);
+    public DamageOutcome Kill(IEntity killer, IWeapon weapon = null, bool force = false);
 
     /// <summary>
     /// Воскресить на текущем месте с восстановлением здоровья.

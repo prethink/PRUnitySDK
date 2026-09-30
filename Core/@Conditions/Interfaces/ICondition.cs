@@ -26,7 +26,7 @@ public interface ICondition
     /// </remarks>
     /// <param name="context">Обстоятельства проверки; для правил состояния мира —
     /// <see cref="ConditionContextEmpty"/>.</param>
-    bool Evaluate(ConditionContextBase context);
+    ConditionResult Evaluate(ConditionContextBase context);
 
     /// <summary>
     /// Выполнено ли условие сейчас, без обстоятельств.
@@ -34,7 +34,7 @@ public interface ICondition
     /// <remarks>
     /// Для правил состояния мира: передаёт в основной метод <see cref="ConditionContextEmpty"/>.
     /// </remarks>
-    bool Evaluate()
+    ConditionResult Evaluate()
     {
         return Evaluate(ConditionContextEmpty.Instance);
     }

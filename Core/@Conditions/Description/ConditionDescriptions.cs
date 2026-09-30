@@ -76,6 +76,7 @@ public static class ConditionDescriptions
             ResourceCondition resource => Resource(resource.Resource, resource.Comparison, resource.Amount),
             ResourceInlineCondition inline => Resource(inline.Resource, inline.Comparison, inline.Amount),
             AssetCondition asset => Get(asset.Condition, context),
+            NotCondition => new ConditionDescription(ConditionLabels.Unavailable),
             AllCondition all => FromSet(all.Conditions, context),
             AnyCondition any => FromSet(any.Conditions, context),
             ConditionCollection collection => FromSet(collection.Conditions, context),
@@ -106,7 +107,7 @@ public static class ConditionDescriptions
             if (description == null)
                 continue;
 
-            if (!condition.Evaluate(context))
+            if (condition.Evaluate(context).IsFailed)
                 return description;
 
             first ??= description;

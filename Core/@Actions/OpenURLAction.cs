@@ -15,16 +15,20 @@ public class OpenURLAction : ActionBase
 
     #region Базовый класс
 
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute()
-            && Uri.TryCreate(URL, UriKind.Absolute, out var uri)
-            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        return Uri.TryCreate(URL, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? ActionResult.Success : ActionResult.Fail(ActionLabels.InvalidUrl);
     }
 
-    protected override void Action()
+    protected override ActionResult Action()
     {
         Application.OpenURL(URL);
+        return ActionResult.Success;
     }
 
     #endregion

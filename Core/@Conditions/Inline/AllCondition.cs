@@ -26,18 +26,21 @@ public class AllCondition : ICondition
     public IReadOnlyList<ICondition> Conditions => conditions;
 
     /// <inheritdoc />
-    public bool Evaluate(ConditionContextBase context)
+    public ConditionResult Evaluate(ConditionContextBase context)
     {
         if (conditions == null)
-            return true;
+            return ConditionResult.Success;
 
         foreach (ICondition condition in conditions)
         {
-            // Пустая строка списка - недонастроенный слот, а не запрет.
-            if (condition != null && !condition.Evaluate(context))
-                return false;
+            if (condition == null)
+                continue;
+
+            ConditionResult result = condition.Evaluate(context);
+            if (result.IsFailed)
+                return result;
         }
 
-        return true;
+        return ConditionResult.Success;
     }
 }

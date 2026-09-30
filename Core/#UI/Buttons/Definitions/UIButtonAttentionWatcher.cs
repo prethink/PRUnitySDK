@@ -21,5 +21,5 @@ public sealed class UIButtonAttentionWatcher : WatcherTask<bool>
     /// <inheritdoc />
     public override float RepeatSeconds => interval;
     /// <inheritdoc />
-    public override bool Read() => condition != null && condition.Evaluate();
+    public override bool Read() => condition != null && condition.Evaluate().IsSuccess;
 }

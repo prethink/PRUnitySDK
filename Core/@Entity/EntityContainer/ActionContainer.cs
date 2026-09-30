@@ -13,6 +13,6 @@ public class ActionContainer : ContainerEntityBase<IconActionBase>
 
     protected override bool TryPickup(PlayerBase player)
     {
-        return containerItem != null && containerItem.Execute();
+        return containerItem != null && containerItem.Execute().IsSuccess;
     }
 }

@@ -12,7 +12,7 @@ PRUnitySDK.Trackers
 | Свойство | Тип | Назначение |
 | --- | --- | --- |
 | `Players` | `PlayerTracker` | Игроки, локальные слоты и Player ID |
-| `Entities` | `EntityTracker` | Сущности **кроме игроков** и статистика по их типам |
+| `Entities` | `EntityTracker` | Все сущности, включая игроков, поиск и статистика |
 | `CameraTracker` | `CameraTracker` | Стек контроллеров и игровые камеры |
 | `MonoWindows` | `MonoWindowsTracker` | UI-окна с уникальными ключами |
 | `Notifiers` | `NotifierTracker` | UI-уведомители с уникальными ключами |
@@ -67,22 +67,30 @@ Player ID и локальный слот освобождаются.
 `EntityType`. Методы `GetExact...` фильтруют по точному типу, а `GetInherited...` —
 по совместимости CLR-типа.
 
-> **Игроков здесь нет.** `PlayerBase` переопределяет `RegisterEntity()` и регистрирует себя
-> только в `PlayerTracker`, не вызывая базовую реализацию. Поэтому обход `Entities` игроков
-> не вернёт, счётчик по типу `Player` будет нулевым, а `Clear()`, `ClearRound()` и
-> `ClearSession()` их не затронут — те же методы нужно вызвать и у `PlayerTracker`.
-> Entity ID при этом сквозной: оба трекера берут его из общего `EntityIdGenerator`,
-> так что идентификаторы не пересекаются.
+Игроки регистрируются через PlayerTracker и автоматически добавляются в EntityTracker.
+Общий Entity ID назначается один раз, Player ID и локальные слоты остаются в PlayerTracker.
+Снятие игрока с регистрации через любой из реестров удаляет его из обоих. Clear() общего
+реестра уничтожает также игроков; Clear() реестра игроков оставляет остальные сущности.
 
 Регистрация не снимается, когда сущность уходит в пул: объект остаётся в реестре, меняется
 только флаг `InPool`. Именно поэтому есть отдельные счётчики «на сцене» и «в пуле».
 
 ```csharp
 long enemies = PRUnitySDK.Trackers.Entities.GetExactExistsEntityCount(enemyType);
+var visible = PRUnitySDK.Trackers.Entities.GetEntities(
+    enemyType, EntitySearchFlags.Visible | EntitySearchFlags.Alive);
+long byMetadata = PRUnitySDK.Trackers.Entities.GetEntitiesCount(
+    metadata, EntitySearchFlags.NotInPool);
 ```
 
 `ClearRound()` удаляет сущности с временем жизни `Round`, `ClearSession()` — сначала
 сущности сессии, затем раунда, а `Clear()` уничтожает все сущности.
+
+Поиск принимает EntityType, IEntityMetadata или generic CLR-тип. Флаги состояния задаются
+маской EntitySearchFlags. Hide, HideWire и HideWirePolygons выбирают конкретные способы
+скрытия; Hidden объединяет все три. Подробные условия и примеры — в
+[Entity](../@Entity/README.md#поиск-и-подсчёт).
+
 
 ## CameraTracker
 

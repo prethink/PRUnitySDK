@@ -16,16 +16,20 @@ public class OpenUrlInlineAction : InlineActionBase
     private string url;
 
     /// <inheritdoc />
-    public override bool CanExecute()
+    public override ActionResult CanExecute()
     {
-        return base.CanExecute()
-            && Uri.TryCreate(url, UriKind.Absolute, out Uri uri)
-            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        ActionResult availability = base.CanExecute();
+        if (availability.IsFailed)
+            return availability;
+        return Uri.TryCreate(url, UriKind.Absolute, out Uri uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? ActionResult.Success : ActionResult.Fail(ActionLabels.InvalidUrl);
     }
 
     /// <inheritdoc />
-    protected override void Action()
+    protected override ActionResult Action()
     {
         Application.OpenURL(url);
+        return ActionResult.Success;
     }
 }
