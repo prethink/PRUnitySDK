@@ -39,6 +39,10 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     [Tooltip("Своя картинка индикатора; пусто — красный значок с восклицательным знаком.")]
     [SerializeField] private Sprite attentionIcon;
 
+    [Header("Таймер")]
+    [Tooltip("Обратный отсчёт на кнопке, пока открываемое ею ещё недоступно. Пусто — без таймера.")]
+    [SerializeReference, ReferenceSelector] private IButtonTimer timer;
+
     [Header("Эффекты")]
     [SerializeField] private UIButtonEffects effects = new();
 
@@ -98,6 +102,10 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     /// Необязательная картинка уведомления.
     /// </summary>
     public Sprite AttentionIcon => attentionIcon;
+    /// <summary>
+    /// Необязательный источник обратного отсчёта.
+    /// </summary>
+    public IButtonTimer Timer => timer;
     /// <summary>
     /// Эффекты каждого созданного экземпляра кнопки.
     /// </summary>
