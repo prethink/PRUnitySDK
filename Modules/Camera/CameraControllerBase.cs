@@ -160,9 +160,10 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     }
 
     /// <summary>
-    /// Очистка при уничтожении.
+    /// Очистка при уничтожении. Свой OnDestroy не объявлять: он скроет
+    /// PRMonoBehaviour.OnDestroy, и отписка от EventBus не выполнится.
     /// </summary>
-    protected virtual void OnDestroy()
+    protected override void UnRegisterEventsOnDestroy()
     {
         ClearCamera();
 
@@ -171,5 +172,7 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
         {
             Restore();
         }
+
+        base.UnRegisterEventsOnDestroy();
     }
 }

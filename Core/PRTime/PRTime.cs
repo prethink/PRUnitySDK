@@ -1,5 +1,14 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Игровое и реальное время SDK с учётом паузы и масштаба времени.
+/// </summary>
+/// <remarks>
+/// Работает и на паузе - обнуляет дельты, - поэтому у него свои методы кадра, а не PRUpdate
+/// через раннер. Порядок -1000 ставит его раньше <see cref="PRMonoBehaviourHost"/>: все,
+/// кого раннер вызывает в этом кадре, читают уже посчитанное время.
+/// </remarks>
+[DefaultExecutionOrder(-1000)]
 public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 {
     /// <summary>
@@ -76,8 +85,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         Reset();
     }
 
-    /// <inheritdoc />
-    protected override void Update()
+    private void Update()
     {
         if (!PRUnitySDK.IsInitialized)
             return;
@@ -88,11 +96,15 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
             this.RealDeltaTime = 0f;
             this.GameDeltaTime = 0f;
         }
-        base.Update();
+        else
+        {
+            AdvanceTime();
+        }
+
         EventBus.RaiseEvent<IOnUpdateEvent>(x => x.OnUpdateEvent());
     }
 
-    protected override void FixedUpdate()
+    private void FixedUpdate()
     {
         if (PRUnitySDK.PauseManager.IsLogicPaused)
         {
@@ -111,10 +123,13 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
     #endregion
 
-    #region Базовый класс
+    #region Методы времени
 
-    /// <inheritdoc />
-    protected override void PRUpdate()
+    /// <summary>
+    /// Шаг времени вне паузы. Прежде это был PRUpdate, но тогда раннер вызывал бы его в
+    /// случайном месте кадра, а время должно быть посчитано до всех.
+    /// </summary>
+    private void AdvanceTime()
     {
         UpdateRealTime();
         UpdateGameTime();

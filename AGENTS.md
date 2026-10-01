@@ -334,6 +334,12 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **`PRMonoBehaviour` больше не объявляет Unity `Update/LateUpdate/FixedUpdate`.** Хуки
+  `PRUpdate`/`PRLateUpdate`/`PRFixedUpdate` вызывает `PRUpdateRunner` через `PRMonoBehaviourHost`
+  и только у типов, которые их переопределили. `base.OnEnable/OnDisable/Start` обязательны —
+  без них объект не попадёт в раннер. Кому нужна работа на паузе — свой `private void Update()`
+  (как `PRTime`, `AdMessage`). Подробности — README `Core/PRMonoBehaviour`.
+
 - Флаги проекта `PRUnitySDK.RemoteFlags` (`IRemoteFlags`, `Core/RemoteFlags`): `TryGetInt`,
   `GetFloat`, `GetBool`, `GetEnum`… Без площадки — из `PRSDKSettings.RemoteFlags`, с YG2 —
   `YandexRemoteFlags` (флаги Яндекса, запасом настройки). Не путать с `FlagsSystem`.

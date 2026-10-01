@@ -36,11 +36,11 @@
 | Unity callback | PR hook | Логическая пауза | `DisableMethods` |
 | --- | --- | --- | --- |
 | `Awake` | `InitializationComponents()` | не проверяется | нет |
-| `Start` | запуск optional coroutine-хуков | не проверяется | нет |
-| `Update` | `PRPreUpdate → PRUpdate → PRPostUpdate` | пропускается | нет |
-| `LateUpdate` | `PRLateUpdate()` | пропускается | нет |
-| `FixedUpdate` | `PRFixedUpdate()` | пропускается | нет |
-| `OnEnable` / `OnDisable` | одноимённые virtual | не проверяется | нет |
+| `Start` | запуск optional coroutine-хуков; с этого момента раннер вызывает объект | не проверяется | нет |
+| Раннер, фаза Update | `PRPreUpdate → PRUpdate → PRPostUpdate` | пропускается | нет |
+| Раннер, фаза LateUpdate | `PRLateUpdate()` | пропускается | нет |
+| Раннер, фаза FixedUpdate | `PRFixedUpdate()` | пропускается | нет |
+| `OnEnable` / `OnDisable` | одноимённые virtual; регистрация в раннере и снятие | не проверяется | нет |
 | `OnValidate` | одноимённый virtual | не проверяется | нет |
 | `OnDestroy` | `UnRegisterEventsOnDestroy()` | не проверяется | нет |
 | `OnTriggerEnter/Stay/Exit` | `PROnTriggerEnter/Stay/Exit` | пропускается | **да** |
@@ -78,6 +78,49 @@ public class MovingPlatform : PRMonoBehaviour
 При переопределении `Awake`, `Start`, `OnEnable`, `OnDisable`, `OnValidate`,
 `InitializationComponents` и `UnRegisterEventsOnDestroy` вызывайте базовую реализацию.
 Иначе часть инфраструктуры SDK не выполнится — чаще всего теряется подписка в `EventBus`.
+
+## Раннер обновлений
+
+`PRMonoBehaviour` **не объявляет** Unity-методы `Update`, `LateUpdate` и `FixedUpdate`.
+Пока они были в базе, Unity вызывала их у каждого наследника — тысячи переходов из
+движка в управляемый код за кадр, хотя большинство объектов только проверяло паузу.
+Теперь их вызывает один `PRMonoBehaviourHost`, а `PRUpdateRunner` обходит только тех,
+кто переопределил хук:
+
+| Фаза | Попадает, если тип переопределил |
+| --- | --- |
+| Update | `PRUpdate`, `PRPreUpdate` или `PRPostUpdate` |
+| LateUpdate | `PRLateUpdate` |
+| FixedUpdate | `PRFixedUpdate` |
+
+Переопределения ищутся рефлексией один раз на тип. Для наследника ничего не меняется:
+он по-прежнему переопределяет `PRUpdate` и соседей.
+
+Поведение повторяет Unity:
+
+- вызываются только включённые объекты: регистрация в базовом `OnEnable`, снятие в
+  `OnDisable` и `OnDestroy` — поэтому `base.OnEnable()`/`base.OnDisable()` обязательны;
+- первый вызов — не раньше базового `Start` (без `base.Start()` объект не обновится);
+- порядок между типами задаёт `[DefaultExecutionOrder]` самого класса;
+- исключение в одном объекте пишется в лог и не обрывает остальных;
+- объекты, включённые посреди прохода, получают вызов со следующего кадра.
+
+Пауза проверяется перед **каждым** объектом: если её включили посреди прохода (шаг
+туториала, катсцена, окно), остальные в этом кадре уже не вызываются — как раньше,
+когда каждый проверял её сам.
+
+Порядок кадра: `PRTime` (`[DefaultExecutionOrder(-1000)]`, работает и на паузе) →
+хост: Update-проход раннера, затем `IPRUpdate`-классы и тик. В FixedUpdate хост
+сначала обходит все `PRFixedUpdate`, затем делает `Physics.Simulate`, затем
+`IPRFixedUpdate`-классы — силы, приложенные в шаге, физика обработает в том же шаге.
+
+Кому нужно работать **на паузе**, объявляет собственный Unity-метод (`private void Update()`),
+как `PRTime` и `AdMessage`: раннер на паузе не вызывает никого.
+
+Хост создаётся первой же регистрацией, а не только инициализацией SDK: объекты сцены
+включаются раньше. Счётчики для отладки: `PRMonoBehaviourHost.RunnerUpdateCount`,
+`RunnerLateUpdateCount`, `RunnerFixedUpdateCount`. Отдельная строка профайлера на тип —
+дефайн `PRSDK_RUNNER_PROFILING`, иначе всё время видно под хостом.
 
 ## Фазы Update
 
@@ -328,6 +371,7 @@ protected override void PREndOfFrame() { }
 Глобальный host:
 
 - запускает корутины без локального владельца;
+- единственный, у кого Unity вызывает методы кадра: через них крутит `PRUpdateRunner`;
 - обслуживает зарегистрированные `IPRUpdate`, `IPRFixedUpdate` и `IPRTickable`;
 - выполняет ручной `Physics.Simulate`, когда simulation mode установлен в `Script`;
 - использует интервал тика из настроек проекта.
@@ -362,7 +406,7 @@ flowchart TD
     F -->|нет| F1["Ждём следующего срабатывания"]
     F -->|да| G{"Компонент или GameObject<br/>выключен?"}
 
-    G -->|да| G1["Unity не зовёт callback,<br/>но события шины приходят"]
+    G -->|да| G1["Раннер не зовёт хук,<br/>но события шины приходят"]
     G -->|нет| H["Смотреть ограничения ниже"]
 ```
 
@@ -379,6 +423,9 @@ flowchart TD
 6. Для `Stay`-хуков не истёк интервал из `PROnTriggerStayTimeout` /
    `PROnCollisionStayTimeout`.
 7. Компонент или GameObject выключен — но помните, что события шины он всё равно получает.
+8. Переопределены `OnEnable`, `OnDisable` или `Start` без `base` — объект не попал в
+   раннер или не отмечен стартовавшим, и `PRUpdate` не приходит. Проверьте счётчики
+   `PRMonoBehaviourHost.Runner*Count`.
 
 ## Ограничения
 
@@ -388,6 +435,7 @@ flowchart TD
 - Кеш `IsMethodDisabled()` живёт до перезагрузки домена: атрибут читается один раз
   на тип, менять блокировки в рантайме нельзя.
 - Атрибут производного класса заменяет список базового целиком.
-- Наследник, объявивший собственный Unity `OnTrigger...` или `LateUpdate`, обходит
-  PR-обработку вместе с паузой. Используйте методы с префиксом `PR`/`PROn`.
+- Наследник, объявивший собственный Unity `OnTrigger...`, `Update` или `LateUpdate`,
+  обходит PR-обработку вместе с паузой. Используйте методы с префиксом `PR`/`PROn` —
+  кроме случая, когда работа на паузе и нужна.
 - `OnDestroy` приватный: расширяйте `UnRegisterEventsOnDestroy()`.

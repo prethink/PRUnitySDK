@@ -12,6 +12,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     protected virtual void Start()  
     {
+        MarkStarted();
+
         if (UseCoroutineLateFixedUpdate())
             new LateFixedUpdateCoroutine(() => PRLateFixedUpdate(), this).Execute();
 
@@ -19,42 +21,18 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             new WaitForEndOfFrameCoroutine(() => PREndOfFrame(), this).Execute();
     }
 
-    protected virtual void Update()
-    {
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
-            return;
-
-        if (!PRPreUpdate())
-            return;
-
-        PRUpdate();
-        PRPostUpdate();
-    }
-
-    private void LateUpdate()
-    {
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
-            return;
-
-        PRLateUpdate();
-    }
-
-    protected virtual void FixedUpdate()
-    {
-        if (PRUnitySDK.PauseManager.IsLogicPaused)
-            return;
-
-        PRFixedUpdate();
-    }
+    // Update, LateUpdate и FixedUpdate здесь намеренно не объявлены: Unity вызывала бы их
+    // у каждого наследника, даже пустого. PRUpdate, PRLateUpdate и PRFixedUpdate вызывает
+    // PRUpdateRunner - только у тех, кто их переопределил.
 
     protected virtual void OnEnable()
     {
-        
+        PRUpdateRunner.Register(this);
     }
 
     protected virtual void OnDisable()
     {
-
+        PRUpdateRunner.Unregister(this);
     }
 
     protected virtual void OnValidate()
@@ -265,6 +243,7 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
 
     private void OnDestroy()
     {
+        PRUpdateRunner.Unregister(this);
         UnRegisterEventsOnDestroy();
     }
 

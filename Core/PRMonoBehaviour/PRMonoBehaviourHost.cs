@@ -4,6 +4,14 @@ using UnityEngine;
 /// <summary>
 /// Центральный хост, управляющий пользовательским циклом обновления.
 /// </summary>
+/// <remarks>
+/// Единственный <see cref="PRMonoBehaviour"/>, у которого Unity вызывает методы кадра: через
+/// них он крутит <see cref="PRUpdateRunner"/> и свои списки обычных классов.
+/// <para>
+/// На логической паузе не вызывается ничего, в том числе <see cref="Physics.Simulate(float)"/>:
+/// физика и анимации стоят так же, как стояли, когда каждый объект проверял паузу сам.
+/// </para>
+/// </remarks>
 public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourHost>, ISingletonInitializer
 {
     #region Поля и свойства
@@ -27,6 +35,21 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     /// Кулдаун, управляющий частотой вызова PRTick().
     /// </summary>
     private CooldownBase tickCooldown = new CooldownGameTime();
+
+    /// <summary>
+    /// Сколько <see cref="PRMonoBehaviour"/> получает PRUpdate. Для отладки.
+    /// </summary>
+    public int RunnerUpdateCount => PRUpdateRunner.UpdateCount;
+
+    /// <summary>
+    /// Сколько <see cref="PRMonoBehaviour"/> получает PRLateUpdate. Для отладки.
+    /// </summary>
+    public int RunnerLateUpdateCount => PRUpdateRunner.LateUpdateCount;
+
+    /// <summary>
+    /// Сколько <see cref="PRMonoBehaviour"/> получает PRFixedUpdate. Для отладки.
+    /// </summary>
+    public int RunnerFixedUpdateCount => PRUpdateRunner.FixedUpdateCount;
 
     #endregion
 
@@ -96,14 +119,19 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
 
     #endregion
 
-    #region Базовый класс
+    #region MonoBehaviour
 
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    protected override void PRUpdate()
+    private void Update()
     {
-        base.PRUpdate();
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            return;
+
+        PRUpdateRunner.RunUpdate();
+
+        // Свои списки и тик читают настройки SDK, а хост теперь может появиться раньше
+        // инициализации - его создаёт первый же объект сцены, которому нужен PRUpdate.
+        if (!PRUnitySDK.IsInitialized || PRUnitySDK.PauseManager.IsLogicPaused)
+            return;
 
         for (int i = 0; i < updates.Count; i++)
             updates[i]?.PRUpdate();
@@ -114,16 +142,39 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
         });
     }
 
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    override protected void PRFixedUpdate()
+    private void LateUpdate()
     {
-        base.PRFixedUpdate();
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            return;
 
-        var gameFixedDeltaTime = PRTime.Instance.GameFixedDeltaTime;
-        if (gameFixedDeltaTime > 0 && Physics.simulationMode == SimulationMode.Script)
-            Physics.Simulate(gameFixedDeltaTime);
+        PRUpdateRunner.RunLateUpdate();
+    }
+
+    /// <summary>
+    /// Сначала все PRFixedUpdate, затем шаг физики - как устроено у самой Unity: силы,
+    /// приложенные в этом шаге, физика обработает в этом же шаге.
+    /// </summary>
+    private void FixedUpdate()
+    {
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            return;
+
+        PRUpdateRunner.RunFixedUpdate();
+
+        if (PRUnitySDK.PauseManager.IsLogicPaused)
+            return;
+
+        // Режим проверяется первым: до инициализации SDK физику шагает сама Unity, и
+        // обращение к PRTime.Instance создало бы его раньше времени.
+        if (Physics.simulationMode == SimulationMode.Script)
+        {
+            var gameFixedDeltaTime = PRTime.Instance.GameFixedDeltaTime;
+            if (gameFixedDeltaTime > 0)
+                Physics.Simulate(gameFixedDeltaTime);
+        }
+
+        if (!PRUnitySDK.IsInitialized)
+            return;
 
         for (int i = 0; i < fixedUpdates.Count; i++)
             fixedUpdates[i]?.PRFixedUpdate();
