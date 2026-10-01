@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,6 +7,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     private bool ownsLogicPause;
     private bool ownsCursor;
     private bool isShown;
+    private Coroutine layoutRoutine;
 
     /// <summary>
     /// Уникальный ключ окна в <see cref="MonoWindowsTracker"/>.
@@ -54,6 +56,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
             PlayShowTransition();
 
         AcquireWindowState();
+        ScheduleLayoutRefresh();
     }
 
     /// <summary>
@@ -116,8 +119,42 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     protected override void OnDisable()
     {
         exitButton?.onClick.RemoveListener(ExitButtonAction);
+
+        layoutRoutine = null;
         ReleaseWindowState();
         base.OnDisable();
+    }
+
+    /// <summary>
+    /// Пересобирает раскладку окна в конце кадра после показа.
+    /// </summary>
+    /// <remarks>
+    /// Подписи окно выставляет уже после <see cref="Show"/>, пока контейнер был скрыт или
+    /// только что включился: раскладка, собранная до этого, остаётся прежней, и значок
+    /// заголовка налезает на надпись. Смену языка отдельно ловить не нужно: у открытого
+    /// окна текст перерисовывает <c>LocalizationObserver</c>, а TextMeshPro сам помечает
+    /// раскладку на пересборку.
+    /// </remarks>
+    private void ScheduleLayoutRefresh()
+    {
+        if (!isActiveAndEnabled)
+            return;
+
+        if (layoutRoutine != null)
+            StopCoroutine(layoutRoutine);
+
+        layoutRoutine = StartCoroutine(RefreshLayoutRoutine());
+    }
+
+    private IEnumerator RefreshLayoutRoutine()
+    {
+        yield return new WaitForEndOfFrame();
+
+        layoutRoutine = null;
+
+        GameObject windowContainer = GetContainer();
+        if (windowContainer != null && windowContainer.activeInHierarchy)
+            windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
     }
 
     protected override void RegisterEventsOnCreated()

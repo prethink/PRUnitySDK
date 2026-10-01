@@ -79,8 +79,15 @@ public sealed class InventoryWindowFactory : MonoWindowFactoryBase<InventoryWind
 
 | Контейнер | `sortingOrder` | Что на нём |
 | --- | --- | --- |
-| `HudCanvas` | 0 | Постоянный интерфейс: полосы, панель быстрого доступа |
-| `SharedCanvas` | 100 | Окна с `UseSharedCanvas` |
+| `HudCanvas` | 200 (`HudSortingOrder`) | Постоянный интерфейс: полосы, панель быстрого доступа |
+| окна «под шапкой» | 300 (`UnderPriorityHudWindowsSortingOrder`) | Окна, поверх которых видна шапка (магазин) |
+| `PriorityHudCanvas` | 400 (`PriorityHudSortingOrder`) | Шапка с уровнем и ресурсами |
+| `SharedCanvas` | 500 (`WindowsSortingOrder`) | Обычные окна: перекрывают шапку |
+| уведомления | 1000 (`NotifiersSortingOrder`) | Всплывашки; у `RewardNotifier` и тостов свои, выше |
+
+Порядки лежат в `PRWindowsContainer` константами: новый слой выбирает число между ними, а не подбирает его в префабе.
+
+Своё место окно выбирает в фабрике: `public override int SortingOrder => PRWindowsContainer.UnderPriorityHudWindowsSortingOrder;`. Окну с нестандартным порядком создаётся свой корневой canvas (`GetWindowCanvas`), по одному на порядок.
 
 Порядок задан явно, потому что внутри одного canvas его решает иерархия: постоянный
 интерфейс включается со сцены, то есть **позже** окон, и на общем canvas он накрывал бы

@@ -10,6 +10,16 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
 
     public abstract bool IsSingleton { get; }
 
+    /// <summary>
+    /// Порядок отрисовки canvas, на котором живёт окно (при <see cref="UseSharedCanvas"/>).
+    /// </summary>
+    /// <remarks>
+    /// По умолчанию - общий уровень окон. Окну, которое должно лежать ниже приоритетного
+    /// интерфейса (шапки с ресурсами) или выше обычных окон, возвращают другое число из
+    /// <see cref="PRWindowsContainer"/>: оно получит свой canvas с этим порядком.
+    /// </remarks>
+    public virtual int SortingOrder => PRWindowsContainer.WindowsSortingOrder;
+
     private static T instance;
 
     public virtual T CreateMonoWindow()
@@ -32,7 +42,7 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
         }
 
         var parent = UseSharedCanvas
-            ? PRUnitySDK.Windows.SharedCanvas?.transform
+            ? PRUnitySDK.Windows.GetWindowCanvas(SortingOrder)?.transform
             : PRUnitySDK.Windows.Container?.transform;
 
         if (parent == null)

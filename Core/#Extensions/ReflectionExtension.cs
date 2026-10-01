@@ -48,6 +48,25 @@ public static class ReflectionExtension
     /// <summary>Статические обработчики переопределения свойства по паре (тип, требуемый тип).</summary>
     private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<Type, MethodInfo>> overridePropertyStaticCache = new();
 
+    /// <summary>
+    /// Имена стадий <see cref="MethodHookStage"/> по значению.
+    /// </summary>
+    /// <remarks>
+    /// <c>ToString()</c> у enum в Mono выделяет память на каждом вызове, а стадия паузы
+    /// приходит каждому PRMonoBehaviour на каждое её переключение. Ключ — int: словарь
+    /// с ключом-enum в Mono упаковывал бы его при каждом поиске.
+    /// </remarks>
+    private static readonly Dictionary<int, string> stageNames = Enum.GetValues(typeof(MethodHookStage))
+        .Cast<MethodHookStage>()
+        .Distinct()
+        .ToDictionary(stage => (int)stage, stage => stage.ToString());
+
+    private static string GetStageName(MethodHookStage stage)
+    {
+        // Значение вне объявленных (приведённое из int) — по-старому.
+        return stageNames.TryGetValue((int)stage, out var name) ? name : stage.ToString();
+    }
+
     private static HookMethod[] GetMethodsHooks(this object instance, string methodHookStage)
     {
         return GetHookMethods(instance.GetType(), methodHookStage, instanceHooksCache, InstanceFlags);
@@ -67,6 +86,27 @@ public static class ReflectionExtension
         // Сравнение стадии регистронезависимое, поэтому компаратор задаётся у вложенного словаря.
         var stages = cache.GetOrAdd(type, _ => new ConcurrentDictionary<string, HookMethod[]>(StringComparer.OrdinalIgnoreCase));
 
+        if (stages.TryGetValue(methodHookStage, out var hooks))
+            return hooks;
+
+        return AddHookMethods(stages, type, methodHookStage, bindingFlags);
+    }
+
+    /// <summary>
+    /// Строит и кладёт в кеш хуки стадии, которой в нём ещё нет.
+    /// </summary>
+    /// <remarks>
+    /// Отдельным методом ради замыкания: объект для захваченных параметров C# создаёт
+    /// при входе в метод, где объявлена лямбда, даже если до неё дело не дойдёт. В
+    /// <see cref="GetHookMethods"/> он появлялся на каждом обращении к кешу, а пауза
+    /// рассылается всем PRMonoBehaviour — тысячи объектов на каждое её переключение.
+    /// </remarks>
+    private static HookMethod[] AddHookMethods(
+        ConcurrentDictionary<string, HookMethod[]> stages,
+        Type type,
+        string methodHookStage,
+        BindingFlags bindingFlags)
+    {
         return stages.GetOrAdd(methodHookStage, stage => BuildHookMethods(type, stage, bindingFlags));
     }
 
@@ -76,6 +116,13 @@ public static class ReflectionExtension
 
         foreach (var method in type.GetMethods(bindingFlags))
         {
+            // Атрибут есть у единиц методов, а GetCustomAttribute в Mono на каждом вызове
+            // собирает словарь, списки и массивы — даже когда атрибута нет. Первая пауза,
+            // заполнявшая кеш у сотни типов, выделяла на этом 13 МБ за кадр. IsDefined
+            // отвечает без этих коллекций.
+            if (!method.IsDefined(typeof(MethodHookAttribute), true))
+                continue;
+
             var attribute = method.GetCustomAttribute<MethodHookAttribute>();
 
             if (attribute == null || !attribute.MethodHookStage.Equals(methodHookStage, StringComparison.OrdinalIgnoreCase) || !attribute.IsEnabled)
@@ -163,7 +210,7 @@ public static class ReflectionExtension
     /// </summary>
     public static void RunMethodHooks(this object instance, MethodHookStage methodHookStage)
     {
-        RunMethodHooks(instance, methodHookStage.ToString());
+        RunMethodHooks(instance, GetStageName(methodHookStage));
     }
 
     /// <summary>
@@ -182,7 +229,7 @@ public static class ReflectionExtension
     /// </summary>
     public static void RunMethodHooks(this object instance, MethodHookStage methodHookStage, params object[] arguments)
     {
-        RunMethodHooks(instance, methodHookStage.ToString(), arguments);
+        RunMethodHooks(instance, GetStageName(methodHookStage), arguments);
     }
 
     /// <summary>
@@ -217,7 +264,7 @@ public static class ReflectionExtension
     /// </summary>
     public static void RunStaticMethodHooks(this Type type, MethodHookStage methodHookStage)
     {
-        RunStaticMethodHooks(type, methodHookStage.ToString());
+        RunStaticMethodHooks(type, GetStageName(methodHookStage));
     }
 
     /// <summary>

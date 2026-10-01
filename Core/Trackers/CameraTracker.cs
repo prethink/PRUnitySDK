@@ -188,6 +188,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
         {
             this.RunMethodHooks(PlayerCamerasActiveStage, false);
             _isMainCameraActive = true;
+            ApplyMainCameraActive();
         }
     }
 
@@ -200,7 +201,23 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
         {
             this.RunMethodHooks(PlayerCamerasActiveStage, true);
             _isMainCameraActive = false;
+            ApplyMainCameraActive();
         }
+    }
+
+    /// <summary>
+    /// Включает камеру сцены, только пока камеры игроков спрятаны.
+    /// </summary>
+    /// <remarks>
+    /// Раньше флаг менялся, а сама камера оставалась включённой: глубина у неё ниже, и она
+    /// каждый кадр перерисовывала всю сцену под камерами игроков впустую — в PickBox это
+    /// была половина draw call и треугольников. Выключается компонент, а не объект: на нём
+    /// могут жить другие компоненты сцены.
+    /// </remarks>
+    private void ApplyMainCameraActive()
+    {
+        if (MainCamera != null)
+            MainCamera.enabled = _isMainCameraActive;
     }
 
     /// <summary>
@@ -223,7 +240,13 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
             return;
         }
         lock (_lock)
+        {
             MainCamera = camera;
+
+            // Камера уровня регистрируется и после того, как камеры игроков уже показаны
+            // (смена сцены при живом игроке), — она сразу получает текущее состояние.
+            ApplyMainCameraActive();
+        }
     }
 
     /// <summary>

@@ -26,14 +26,40 @@ public partial class PRWindowsContainer
     public PRContainer HudCanvas;
 
     /// <summary>
-    /// Порядок отрисовки постоянного интерфейса.
+    /// Контейнер постоянного интерфейса, который виден поверх части окон.
     /// </summary>
-    public const int HudSortingOrder = 0;
+    /// <remarks>
+    /// Шапка с уровнем и ресурсами: покупая в магазине, игрок должен видеть, сколько у него
+    /// денег, а обычное окно (подарок, настройки) её перекрывает. Какие окна ниже шапки,
+    /// а какие выше, решает порядок их canvas - см. <see cref="MonoWindowFactoryBase{T}.SortingOrder"/>.
+    /// </remarks>
+    public PRContainer PriorityHudCanvas;
 
     /// <summary>
-    /// Порядок отрисовки окон: всегда поверх постоянного интерфейса.
+    /// Порядок отрисовки постоянного интерфейса.
     /// </summary>
-    public const int WindowsSortingOrder = 100;
+    public const int HudSortingOrder = 200;
+
+    /// <summary>
+    /// Порядок окон, которые лежат ниже приоритетного интерфейса: шапка с ресурсами
+    /// видна поверх них. Магазин из таких.
+    /// </summary>
+    public const int UnderPriorityHudWindowsSortingOrder = 300;
+
+    /// <summary>
+    /// Порядок отрисовки постоянного интерфейса, который остаётся над частью окон.
+    /// </summary>
+    public const int PriorityHudSortingOrder = 400;
+
+    /// <summary>
+    /// Порядок отрисовки обычных окон: над приоритетным интерфейсом.
+    /// </summary>
+    public const int WindowsSortingOrder = 500;
+
+    /// <summary>
+    /// Базовый порядок отрисовки уведомлений: над всем остальным интерфейсом.
+    /// </summary>
+    public const int NotifiersSortingOrder = 1000;
 
     /// <summary>
     /// Контейнер для уведомлений.   
@@ -50,6 +76,31 @@ public partial class PRWindowsContainer
         this.RunMethodHooks(MethodHookStage.PostOperation);
     }
 
+    private readonly System.Collections.Generic.Dictionary<int, PRContainer> windowCanvases = new();
+
+    /// <summary>
+    /// Canvas для окон с указанным порядком отрисовки.
+    /// </summary>
+    /// <remarks>
+    /// Окна с обычным порядком живут на общем canvas. Окну, которому нужен другой уровень
+    /// (ниже шапки или выше уведомлений), заводится свой экранный canvas, по одному
+    /// на каждый порядок. Именно корневой canvas, а не вложенный: у вложенного своя шкала,
+    /// и текст в нём мылится.
+    /// </remarks>
+    public PRContainer GetWindowCanvas(int sortingOrder)
+    {
+        if (sortingOrder == WindowsSortingOrder)
+            return SharedCanvas;
+
+        if (!windowCanvases.TryGetValue(sortingOrder, out PRContainer canvas) || canvas == null)
+        {
+            canvas = CreateScreenCanvas($"Windows.Canvas.{sortingOrder}", sortingOrder);
+            windowCanvases[sortingOrder] = canvas;
+        }
+
+        return canvas;
+    }
+
     private void InitializeWindows()
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -62,6 +113,10 @@ public partial class PRWindowsContainer
         HudCanvas.AddComponent<HudCanvasElement>();
 
         SharedCanvas   = CreateScreenCanvas("Windows.SharedCanvas", WindowsSortingOrder);
+
+        // Над окнами, но под уведомлениями; прячется тем же трекером, что и остальной HUD.
+        PriorityHudCanvas = CreateScreenCanvas("Windows.PriorityHudCanvas", PriorityHudSortingOrder);
+        PriorityHudCanvas.AddComponent<HudCanvasElement>();
 
         EnsureEventSystem();
 
