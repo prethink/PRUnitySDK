@@ -109,6 +109,9 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
             PRSDKInspectorUtility.DrawSectionDescription(sectionType);
 
+            if (DrawExternalEditorLink(sectionType))
+                return false;
+
             using (new EditorGUI.IndentLevelScope())
             {
                 if (DrawChildren(property, sectionType, PRSDKInspectorUtility.GetFieldValue(settings, property)))
@@ -117,6 +120,34 @@ public sealed class PRSDKSettingsEditor : EditorWindow
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Раздел со своим окном показывается ссылкой на него, а не полями.
+    /// </summary>
+    /// <remarks>
+    /// Как и в окне базы: те же данные сырым списком рядом с настоящим редактором только
+    /// разводят правки.
+    /// </remarks>
+    /// <returns><c>true</c>, если у раздела своё окно.</returns>
+    private static bool DrawExternalEditorLink(Type sectionType)
+    {
+        if (sectionType == null
+            || Attribute.GetCustomAttribute(sectionType, typeof(DatabaseExternalEditorAttribute), true)
+                is not DatabaseExternalEditorAttribute external)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(external.Description))
+            EditorGUILayout.HelpBox(external.Description, MessageType.Info);
+
+        string windowName = string.IsNullOrEmpty(external.WindowName) ? external.MenuPath : external.WindowName;
+
+        if (GUILayout.Button($"Открыть окно «{windowName}»"))
+            EditorApplication.ExecuteMenuItem(external.MenuPath);
+
+        return true;
     }
 
     /// <summary>

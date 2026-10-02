@@ -334,6 +334,11 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Ключи ввода одним списком.** `InputEnumerationProviderBase` — база набора ключей ввода;
+  `InputActionEnumerations` собирает значения всех наследников (базовые раньше), `InputKeyReference` —
+  ссылка на такой ключ с конструктором. Окно настроек показывает раздел с `DatabaseExternalEditor`
+  кнопкой его окна вместо полей.
+
 - **`PRMonoBehaviour` больше не объявляет Unity `Update/LateUpdate/FixedUpdate`.** Хуки
   `PRUpdate`/`PRLateUpdate`/`PRFixedUpdate` вызывает `PRUpdateRunner` через `PRMonoBehaviourHost`
   и только у типов, которые их переопределили. `base.OnEnable/OnDisable/Start` обязательны —
