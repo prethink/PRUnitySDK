@@ -132,9 +132,17 @@ public static class EventBus
         if (snapshot.Length == 0)
             return;
 
+        bool foundDead = false;
+
         foreach (IGlobalSubscriber subscriber in snapshot)
         {
-            if (IsDead(subscriber) || subscriber is not TSubscriber typedSubscriber)
+            if (IsDead(subscriber))
+            {
+                foundDead = true;
+                continue;
+            }
+
+            if (subscriber is not TSubscriber typedSubscriber)
                 continue;
 
             try
@@ -145,6 +153,26 @@ public static class EventBus
             {
                 LogSubscriberException(subscriber, exception);
             }
+        }
+
+        // Уничтоженный объект не отписался сам (например, его OnDestroy перекрыт наследником).
+        // Чистка - только когда публикация на него наткнулась: полный проход с проверкой
+        // уничтоженности на каждой публикации стоил бы тысячи вызовов нативного кода.
+        if (foundDead)
+            RemoveDeadSubscribers(typeof(TSubscriber));
+    }
+
+    private static void RemoveDeadSubscribers(Type subscriberType)
+    {
+        lock (subscribersLock)
+        {
+            if (!subscribers.TryGetValue(subscriberType, out SubscribersList<IGlobalSubscriber> list))
+                return;
+
+            list.RemoveDeadSubscribers();
+
+            if (list.Count == 0)
+                subscribers.Remove(subscriberType);
         }
     }
 
@@ -159,7 +187,7 @@ public static class EventBus
             if (!subscribers.TryGetValue(typeof(TSubscriber), out SubscribersList<IGlobalSubscriber> list))
                 return 0;
 
-            int count = list.Count;
+            int count = list.CountAlive();
 
             if (count == 0)
                 subscribers.Remove(typeof(TSubscriber));

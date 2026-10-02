@@ -1,17 +1,40 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 /// <summary>
 /// Хранит подписчиков одного event-интерфейса и создаёт новый snapshot только после
 /// изменения состава подписок.
 /// </summary>
+/// <remarks>
+/// Членство держит множество, порядок доставки - список. Без множества проверка дубликата
+/// при подписке и поиск при отписке шли бы по всему списку, а у интерфейсов, которые
+/// реализует каждый <see cref="PRMonoBehaviour"/>, в нём тысячи объектов: загрузка и
+/// выгрузка сцены росли бы квадратично.
+/// <para>
+/// Из списка отписанные убираются не сразу, а одним проходом при пересборке snapshot:
+/// объекты уходят пачками, и вычёркивать каждый отдельно дороже. Уничтоженные Unity-объекты
+/// ищутся только тогда, когда публикация на них наткнулась - проверка «уничтожен ли объект»
+/// идёт через нативный код, и полный проход на каждой публикации стоил бы тысячи вызовов.
+/// </para>
+/// </remarks>
 internal sealed class SubscribersList<TSubscriber>
     where TSubscriber : class
 {
     /// <summary>
-    /// Текущий изменяемый список подписчиков.
+    /// Подписчики в порядке подписки. Может ещё держать отписанных до пересборки snapshot.
     /// </summary>
     private readonly List<TSubscriber> subscribers = new();
+
+    /// <summary>
+    /// Кто подписан сейчас.
+    /// </summary>
+    private readonly HashSet<TSubscriber> registered = new(ReferenceComparer.Instance);
+
+    /// <summary>
+    /// Отписанные, которые ещё стоят в <see cref="subscribers"/>.
+    /// </summary>
+    private readonly HashSet<TSubscriber> pendingRemoval = new(ReferenceComparer.Instance);
 
     /// <summary>
     /// Массив, используемый публикациями до следующего изменения списка.
@@ -24,32 +47,23 @@ internal sealed class SubscribersList<TSubscriber>
     private bool snapshotDirty = true;
 
     /// <summary>
-    /// Возвращает количество живых подписчиков.
+    /// Сколько подписчиков числится. Уничтоженные Unity-объекты, которых ещё не встретила
+    /// публикация, тоже считаются: точный счёт - <see cref="CountAlive"/>.
     /// </summary>
-    public int Count
-    {
-        get
-        {
-            RemoveDeadSubscribers();
-            return subscribers.Count;
-        }
-    }
+    public int Count => registered.Count;
 
     /// <summary>
     /// Добавляет подписчика, если этот экземпляр ещё не зарегистрирован.
     /// </summary>
     public bool Add(TSubscriber subscriber)
     {
-        if (IsDead(subscriber))
+        if (IsDead(subscriber) || !registered.Add(subscriber))
             return false;
 
-        for (int i = 0; i < subscribers.Count; i++)
-        {
-            if (ReferenceEquals(subscribers[i], subscriber))
-                return false;
-        }
+        // Отписали и подписали заново до пересборки: запись ещё в списке, на своём месте.
+        if (!pendingRemoval.Remove(subscriber))
+            subscribers.Add(subscriber);
 
-        subscribers.Add(subscriber);
         snapshotDirty = true;
         return true;
     }
@@ -59,20 +73,12 @@ internal sealed class SubscribersList<TSubscriber>
     /// </summary>
     public bool Remove(TSubscriber subscriber)
     {
-        if (ReferenceEquals(subscriber, null))
+        if (ReferenceEquals(subscriber, null) || !registered.Remove(subscriber))
             return false;
 
-        for (int i = 0; i < subscribers.Count; i++)
-        {
-            if (!ReferenceEquals(subscribers[i], subscriber))
-                continue;
-
-            subscribers.RemoveAt(i);
-            snapshotDirty = true;
-            return true;
-        }
-
-        return false;
+        pendingRemoval.Add(subscriber);
+        snapshotDirty = true;
+        return true;
     }
 
     /// <summary>
@@ -80,34 +86,52 @@ internal sealed class SubscribersList<TSubscriber>
     /// </summary>
     public TSubscriber[] GetSnapshot()
     {
-        RemoveDeadSubscribers();
-
         if (!snapshotDirty)
             return snapshot;
 
+        Compact();
         snapshot = subscribers.ToArray();
         snapshotDirty = false;
         return snapshot;
     }
 
     /// <summary>
-    /// Удаляет обычные null-ссылки и уничтоженные Unity-объекты.
+    /// Убирает уничтоженные Unity-объекты. Зовётся, когда публикация на них наткнулась.
     /// </summary>
-    private void RemoveDeadSubscribers()
+    public void RemoveDeadSubscribers()
     {
-        bool removed = false;
-
         for (int i = subscribers.Count - 1; i >= 0; i--)
         {
-            if (!IsDead(subscribers[i]))
+            TSubscriber subscriber = subscribers[i];
+
+            if (!IsDead(subscriber))
                 continue;
 
-            subscribers.RemoveAt(i);
-            removed = true;
-        }
-
-        if (removed)
+            registered.Remove(subscriber);
+            pendingRemoval.Add(subscriber);
             snapshotDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// Точное число живых подписчиков. Проходит весь список - не для частых вызовов.
+    /// </summary>
+    public int CountAlive()
+    {
+        RemoveDeadSubscribers();
+        return registered.Count;
+    }
+
+    /// <summary>
+    /// Вычёркивает отписанных из списка одним проходом, сохраняя порядок остальных.
+    /// </summary>
+    private void Compact()
+    {
+        if (pendingRemoval.Count == 0)
+            return;
+
+        subscribers.RemoveAll(pendingRemoval.Contains);
+        pendingRemoval.Clear();
     }
 
     /// <summary>
@@ -119,5 +143,21 @@ internal sealed class SubscribersList<TSubscriber>
             return true;
 
         return subscriber is UnityEngine.Object unityObject && unityObject == null;
+    }
+
+    /// <summary>
+    /// Сравнение по ссылке, как и прежний поиск через <see cref="object.ReferenceEquals"/>.
+    /// </summary>
+    /// <remarks>
+    /// Сравнение Unity по умолчанию считает уничтоженный объект равным null, а хеш берёт
+    /// из идентификатора экземпляра - для учёта подписок нужна именно сама ссылка.
+    /// </remarks>
+    private sealed class ReferenceComparer : IEqualityComparer<TSubscriber>
+    {
+        public static readonly ReferenceComparer Instance = new();
+
+        public bool Equals(TSubscriber left, TSubscriber right) => ReferenceEquals(left, right);
+
+        public int GetHashCode(TSubscriber subscriber) => RuntimeHelpers.GetHashCode(subscriber);
     }
 }
