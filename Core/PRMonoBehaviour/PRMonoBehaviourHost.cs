@@ -37,6 +37,11 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     private CooldownBase tickCooldown = new CooldownGameTime();
 
     /// <summary>
+    /// Делегат тика. Создаётся один раз: лямбда прямо в <c>Update</c> была новым объектом на каждый кадр.
+    /// </summary>
+    private System.Action tickAction;
+
+    /// <summary>
     /// Сколько <see cref="PRMonoBehaviour"/> получает PRUpdate. Для отладки.
     /// </summary>
     public int RunnerUpdateCount => PRUpdateRunner.UpdateCount;
@@ -52,6 +57,19 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
     public int RunnerFixedUpdateCount => PRUpdateRunner.FixedUpdateCount;
 
     #endregion
+
+    /// <summary>
+    /// Пытается получить уже существующий хост, не создавая новый GameObject.
+    /// </summary>
+    /// <remarks>
+    /// Для кода, который может выполняться при закрытии сцены: <see cref="PRMonoBehaviourSingletonBase{T}.Instance"/>
+    /// в этот момент создал бы хост заново.
+    /// </remarks>
+    public static bool TryGetExisting(out PRMonoBehaviourHost host)
+    {
+        host = instance;
+        return host != null;
+    }
 
     #region Registration
 
@@ -136,10 +154,7 @@ public class PRMonoBehaviourHost : PRMonoBehaviourSingletonBase<PRMonoBehaviourH
         for (int i = 0; i < updates.Count; i++)
             updates[i]?.PRUpdate();
 
-        tickCooldown.TryExecute(GetHostTick(), () =>
-        {
-            PRTick();
-        });
+        tickCooldown.TryExecute(GetHostTick(), tickAction ??= PRTick);
     }
 
     private void LateUpdate()

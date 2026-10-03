@@ -11,6 +11,9 @@ using System;
 /// В окне базы остаётся строка с названием и кнопкой, открывающей нужное окно, иначе
 /// раздел не был бы виден вообще.
 /// </para>
+/// <para>
+/// В окне настроек такой раздел не показывается совсем: его окно открывают из меню.
+/// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
 public sealed class DatabaseExternalEditorAttribute : Attribute

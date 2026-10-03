@@ -17,6 +17,14 @@ public sealed class UIButtonEffects
     [field: SerializeField, Tooltip("Градусы в секунду. 0 — не вращать иконку.")]
     public float IconRotationSpeed { get; private set; }
     /// <summary>
+    /// Вращать иконку, только пока условие внимания выполнено.
+    /// </summary>
+    /// <remarks>
+    /// Замена пульсу там, где само движение говорит о готовности: колесо крутится, когда его можно крутить.
+    /// </remarks>
+    [field: SerializeField, Tooltip("Вращать иконку, только пока выполнено условие внимания. Выключено — иконка вращается всегда.")]
+    public bool RotateIconOnlyWhenAttention { get; private set; }
+    /// <summary>
     /// Угловая скорость промежуточной картинки, независимая от вращения иконки.
     /// </summary>
     [field: SerializeField, Tooltip("Градусы в секунду. 0 — неподвижная картинка; знак меняет направление.")]

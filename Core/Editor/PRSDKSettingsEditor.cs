@@ -50,6 +50,9 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
         foreach (SerializedProperty property in properties)
         {
+            if (HasExternalEditor(property))
+                continue;
+
             string sectionName = PRSDKInspectorUtility.GetSectionName(property);
             if (!PRSDKInspectorUtility.MatchesSearch(sectionName, search))
                 continue;
@@ -109,9 +112,6 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
             PRSDKInspectorUtility.DrawSectionDescription(sectionType);
 
-            if (DrawExternalEditorLink(sectionType))
-                return false;
-
             using (new EditorGUI.IndentLevelScope())
             {
                 if (DrawChildren(property, sectionType, PRSDKInspectorUtility.GetFieldValue(settings, property)))
@@ -123,31 +123,19 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     }
 
     /// <summary>
-    /// Раздел со своим окном показывается ссылкой на него, а не полями.
+    /// Раздел правится своим окном и здесь не показывается вовсе.
     /// </summary>
     /// <remarks>
-    /// Как и в окне базы: те же данные сырым списком рядом с настоящим редактором только
-    /// разводят правки.
+    /// Те же данные сырым списком рядом с настоящим редактором только разводят правки,
+    /// а строка-ссылка на окно занимала место в списке и ничего не настраивала: своё окно
+    /// открывается из меню.
     /// </remarks>
-    /// <returns><c>true</c>, если у раздела своё окно.</returns>
-    private static bool DrawExternalEditorLink(Type sectionType)
+    private static bool HasExternalEditor(SerializedProperty property)
     {
-        if (sectionType == null
-            || Attribute.GetCustomAttribute(sectionType, typeof(DatabaseExternalEditorAttribute), true)
-                is not DatabaseExternalEditorAttribute external)
-        {
-            return false;
-        }
+        Type sectionType = PRSDKInspectorUtility.GetFieldType(typeof(PRSDKSettings), property);
 
-        if (!string.IsNullOrEmpty(external.Description))
-            EditorGUILayout.HelpBox(external.Description, MessageType.Info);
-
-        string windowName = string.IsNullOrEmpty(external.WindowName) ? external.MenuPath : external.WindowName;
-
-        if (GUILayout.Button($"Открыть окно «{windowName}»"))
-            EditorApplication.ExecuteMenuItem(external.MenuPath);
-
-        return true;
+        return sectionType != null
+            && Attribute.IsDefined(sectionType, typeof(DatabaseExternalEditorAttribute), true);
     }
 
     /// <summary>
@@ -298,7 +286,10 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     private void SetExpanded(bool expanded)
     {
         foreach (SerializedProperty property in PRSDKInspectorUtility.GetRootProperties(serializedSettings))
-            property.isExpanded = expanded;
+        {
+            if (!HasExternalEditor(property))
+                property.isExpanded = expanded;
+        }
 
         Repaint();
     }

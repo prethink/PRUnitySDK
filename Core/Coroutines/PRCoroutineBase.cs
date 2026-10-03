@@ -61,8 +61,11 @@ public abstract class PRCoroutineBase
 
         if(instance != null)
             instance.StopCoroutine(CurrentCoroutine);
-        else
-            PRMonoBehaviourHost.Instance.StopCoroutine(CurrentCoroutine);
+        // Хост здесь не создаём: останавливают и из OnDestroy, при закрытии сцены, когда
+        // хоста уже нет. Обращение к Instance создало бы его заново, и Unity ругалась бы
+        // на объект, появившийся во время выгрузки. Нет хоста — корутина умерла вместе с ним.
+        else if (PRMonoBehaviourHost.TryGetExisting(out PRMonoBehaviourHost host))
+            host.StopCoroutine(CurrentCoroutine);
 
         return true;
     }

@@ -170,6 +170,11 @@ public class PRPhysicsHost : PRMonoBehaviour
         return result;
     }
 
+    /// <remarks>
+    /// Только в редакторе: гизмо в сборке не рисуются, а аргументы для них создавались бы
+    /// на каждый сферкаст впустую. Вызовы метода компилятор в сборке убирает целиком.
+    /// </remarks>
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
     private void DrawSphereCast(Vector3 origin, float radius, Vector3 direction, float distance, bool result, PRPhysicsOptions options = null)
     {
         if (options != null && options.DebugEnabled)
@@ -200,6 +205,7 @@ public class PRPhysicsHost : PRMonoBehaviour
     // === DRAW HELPERS ===
     // =========================
 
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
     private void Draw(Vector3 origin, Vector3 direction, float distance, bool hit, Color? color = null)
     {
         if (!DebugEnabled) return;
@@ -211,6 +217,7 @@ public class PRPhysicsHost : PRMonoBehaviour
         );
     }
 
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
     private void DrawWireSphere(Vector3 position, float radius, Color color)
     {
         Debug.DrawLine(position + Vector3.up * radius, position - Vector3.up * radius, color);

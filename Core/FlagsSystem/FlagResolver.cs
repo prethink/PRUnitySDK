@@ -59,6 +59,14 @@ public class FlagResolver
     private readonly Dictionary<Enumeration, FlagInfluences> flags = new();
 
     /// <summary>
+    /// Рабочие списки обходов. Свои у каждого резолвера и переиспользуются: покадровые
+    /// флаги сбрасываются каждый кадр у каждого владельца, и новые списки на каждый сброс
+    /// были постоянным мусором.
+    /// </summary>
+    private List<(Enumeration Key, FlagDecision Previous)> changedBuffer;
+    private List<Enumeration> emptyKeysBuffer;
+
+    /// <summary>
     /// Указывает, что контейнер менялся или может содержать уничтоженные Unity sources.
     /// Сбрасывается методом <see cref="Cleanup"/>.
     /// </summary>
@@ -226,13 +234,18 @@ public class FlagResolver
     /// Удаляет все влияния, добавленные через AddFrame/AllowFrame/DenyFrame.
     /// Постоянные влияния тех же sources сохраняются.
     /// </summary>
+    /// <remarks>
+    /// Опустевшая запись флага остаётся в словаре: покадровый флаг на следующем же кадре
+    /// выставят снова, и удалять запись значило бы каждый кадр создавать её заново вместе
+    /// с двумя словарями. Пустая запись отвечает так же, как отсутствующая, —
+    /// <see cref="FlagDecision.Unspecified"/>.
+    /// </remarks>
     public void ClearFrameFlags()
     {
         if (flags.Count == 0)
             return;
 
-        var changed = new List<(Enumeration Key, FlagDecision Previous)>();
-        var emptyKeys = new List<Enumeration>();
+        List<(Enumeration Key, FlagDecision Previous)> changed = RentChanged();
 
         foreach (var item in flags)
         {
@@ -241,20 +254,16 @@ public class FlagResolver
 
             changed.Add((item.Key, Resolve(item.Key)));
             item.Value.Frame.Clear();
-
-            if (item.Value.IsEmpty)
-                emptyKeys.Add(item.Key);
         }
 
-        foreach (var key in emptyKeys)
-            flags.Remove(key);
+        if (changed.Count > 0)
+        {
+            IsDirty = true;
+            foreach (var item in changed)
+                NotifyIfChanged(item.Key, item.Previous);
+        }
 
-        if (changed.Count == 0)
-            return;
-
-        IsDirty = true;
-        foreach (var item in changed)
-            NotifyIfChanged(item.Key, item.Previous);
+        Return(changed);
     }
 
     public void SetDirty() => IsDirty = true;
@@ -267,8 +276,8 @@ public class FlagResolver
         if (source == null || flags.Count == 0)
             return;
 
-        var changed = new List<(Enumeration Key, FlagDecision Previous)>();
-        var emptyKeys = new List<Enumeration>();
+        List<(Enumeration Key, FlagDecision Previous)> changed = RentChanged();
+        List<Enumeration> emptyKeys = RentEmptyKeys();
 
         foreach (var item in flags)
         {
@@ -287,12 +296,15 @@ public class FlagResolver
         foreach (var key in emptyKeys)
             flags.Remove(key);
 
-        if (changed.Count == 0)
-            return;
+        if (changed.Count > 0)
+        {
+            IsDirty = true;
+            foreach (var item in changed)
+                NotifyIfChanged(item.Key, item.Previous);
+        }
 
-        IsDirty = true;
-        foreach (var item in changed)
-            NotifyIfChanged(item.Key, item.Previous);
+        Return(changed);
+        Return(emptyKeys);
     }
 
     /// <summary>
@@ -307,8 +319,8 @@ public class FlagResolver
             return;
         }
 
-        var changed = new List<(Enumeration Key, FlagDecision Previous)>();
-        var emptyKeys = new List<Enumeration>();
+        List<(Enumeration Key, FlagDecision Previous)> changed = RentChanged();
+        List<Enumeration> emptyKeys = RentEmptyKeys();
 
         foreach (var item in flags)
         {
@@ -330,6 +342,41 @@ public class FlagResolver
         IsDirty = false;
         foreach (var item in changed)
             NotifyIfChanged(item.Key, item.Previous);
+
+        Return(changed);
+        Return(emptyKeys);
+    }
+
+    /// <summary>
+    /// Берёт рабочий список. Пока он занят, поле пусто: обработчик события, который
+    /// снова пришёл в резолвер посреди обхода, получит свой список, а не этот же.
+    /// </summary>
+    private List<(Enumeration Key, FlagDecision Previous)> RentChanged()
+    {
+        List<(Enumeration Key, FlagDecision Previous)> list =
+            changedBuffer ?? new List<(Enumeration Key, FlagDecision Previous)>();
+        changedBuffer = null;
+        return list;
+    }
+
+    /// <inheritdoc cref="RentChanged"/>
+    private List<Enumeration> RentEmptyKeys()
+    {
+        List<Enumeration> list = emptyKeysBuffer ?? new List<Enumeration>();
+        emptyKeysBuffer = null;
+        return list;
+    }
+
+    private void Return(List<(Enumeration Key, FlagDecision Previous)> list)
+    {
+        list.Clear();
+        changedBuffer = list;
+    }
+
+    private void Return(List<Enumeration> list)
+    {
+        list.Clear();
+        emptyKeysBuffer = list;
     }
 
     private static void Evaluate(
