@@ -260,6 +260,15 @@ protected override MonoWindowTransition GetTransition() =>
 При открытии курсор становится видимым. Пользовательское состояние курсора восстанавливается после закрытия
 последнего видимого окна.
 
+### Замедление вместо паузы
+
+Режим времени окна задаёт `TimeModeWhenOpen` (`WindowTimeMode`): `Pause` — логическая пауза,
+`SlowTime` — множитель `SlowTimeScale` на глобальном слое `PRTimeScale` от имени окна
+(замедляет физику, игровое время и аниматоры; при закрытии снимается только свой),
+`None` — игра идёт. По умолчанию режим берётся из `Set Pause When Open`; окно, которому режим
+задают настройки, переопределяет свойство. Так делает `InventoryWindow`:
+`PRSDKSettings → InventorySettings → OpenTimeMode / SlowTimeScale`.
+
 ## Рекомендации
 
 - всегда вызывайте `base.Show(args)` и `base.Hide(isForceClose)` в переопределениях;

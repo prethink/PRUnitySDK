@@ -27,6 +27,25 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     [SerializeField] protected bool setPauseWhenOpen;
 
     /// <summary>
+    /// Окно наложило замедление на глобальный слой времени и должно его снять.
+    /// </summary>
+    private bool ownsSlowTime;
+
+    /// <summary>
+    /// Что делать со временем игры, пока окно открыто.
+    /// </summary>
+    /// <remarks>
+    /// По умолчанию — флаг префаба <c>setPauseWhenOpen</c>. Окно, которому режим задают
+    /// настройки, переопределяет свойство; флаг тогда не читается.
+    /// </remarks>
+    protected virtual WindowTimeMode TimeModeWhenOpen => setPauseWhenOpen ? WindowTimeMode.Pause : WindowTimeMode.None;
+
+    /// <summary>
+    /// Множитель времени для <see cref="WindowTimeMode.SlowTime"/>: 0,5 — вдвое медленнее.
+    /// </summary>
+    protected virtual float SlowTimeScale => 0.5f;
+
+    /// <summary>
     /// Показывает, активно ли сейчас содержимое окна.
     /// </summary>
     /// <remarks>
@@ -80,7 +99,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
             windowContainer.SetActive(false);
         }
 
-        if (!wasVisible && !ownsLogicPause && !ownsCursor)
+        if (!wasVisible && !ownsLogicPause && !ownsCursor && !ownsSlowTime)
             return;
 
         if (wasVisible && !isForceClose)
@@ -176,7 +195,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     {
         base.OnPauseStateChanged(args);
 
-        if (!setPauseWhenOpen || !IsVisible || args == null || object.ReferenceEquals(args.Executer, this))
+        if (TimeModeWhenOpen != WindowTimeMode.Pause || !IsVisible || args == null || object.ReferenceEquals(args.Executer, this))
             return;
 
         if (args.isLogicStateChange && PRUnitySDK.PauseManager.IsLogicPaused)
@@ -195,6 +214,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         PRUnitySDK.Trackers.MonoWindows.NotifyWindowShown(this);
         AcquireLogicPause();
+        AcquireSlowTime();
         ownsCursor = true;
         CursorManager.Instance.Show(this);
     }
@@ -202,6 +222,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     private void ReleaseWindowState()
     {
         ReleaseLogicPause();
+        ReleaseSlowTime();
         PRUnitySDK.Trackers.MonoWindows.NotifyWindowHidden(this);
 
         if (!ownsCursor)
@@ -213,7 +234,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     private void AcquireLogicPause()
     {
-        if (!setPauseWhenOpen || ownsLogicPause || PRUnitySDK.PauseManager.IsLogicPaused)
+        if (TimeModeWhenOpen != WindowTimeMode.Pause || ownsLogicPause || PRUnitySDK.PauseManager.IsLogicPaused)
             return;
 
         ownsLogicPause = true;
@@ -227,5 +248,31 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         ownsLogicPause = false;
         PRUnitySDK.PauseManager.SetLogicPaused(false, this);
+    }
+
+    /// <summary>
+    /// Замедляет мир, пока окно открыто.
+    /// </summary>
+    /// <remarks>
+    /// Множитель ложится на глобальный слой от имени окна: снимается ровно своё, а чужие
+    /// замедления (эффекты, отладка) остаются. Через этот слой замедляются физика,
+    /// игровое время и аниматоры.
+    /// </remarks>
+    private void AcquireSlowTime()
+    {
+        if (TimeModeWhenOpen != WindowTimeMode.SlowTime || ownsSlowTime)
+            return;
+
+        ownsSlowTime = true;
+        PRTimeScale.Instance.AddGlobalModifier(Mathf.Clamp01(SlowTimeScale), this);
+    }
+
+    private void ReleaseSlowTime()
+    {
+        if (!ownsSlowTime)
+            return;
+
+        ownsSlowTime = false;
+        PRTimeScale.Instance.RemoveModifiers(this);
     }
 }
