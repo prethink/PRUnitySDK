@@ -27,8 +27,13 @@ public class SoundManager : MonoBehaviour
              "и просто переставляется в новую позицию, когда освобождается - никаких " +
              "Instantiate/Destroy на каждый шаг, даже при частых шагах у многих игроков одновременно.")]
     [SerializeField] private int positionalEffectsPoolInitialSize = 8;
-    [SerializeField] private float positionalMinDistance = 1f;
-    [SerializeField] private float positionalMaxDistance = 25f;
+    [Tooltip("До этого расстояния от слушателя позиционный звук идёт на полной громкости. Слушатель стоит " +
+             "на камере, а камера от третьего лица — в нескольких метрах от персонажа: при меньшем значении " +
+             "тихим оказывается всё, что звучит рядом с самим игроком.")]
+    [SerializeField] private float positionalMinDistance = 6f;
+
+    [Tooltip("На этом расстоянии от слушателя позиционный звук затихает полностью.")]
+    [SerializeField] private float positionalMaxDistance = 30f;
 
     private readonly List<AudioSource> effectsPool = new();
     private readonly List<AudioSource> positionalEffectsPool = new();
@@ -104,7 +109,9 @@ public class SoundManager : MonoBehaviour
         source.playOnAwake = false;
         source.loop = false;
         source.spatialBlend = 1f; // полноценный 3D-звук
-        source.rolloffMode = AudioRolloffMode.Logarithmic;
+        // Линейное затухание: логарифмическое у дальней границы не доходит до нуля, и удары
+        // ботов с другого конца карты так и звучали бы тихим фоном.
+        source.rolloffMode = AudioRolloffMode.Linear;
         source.minDistance = positionalMinDistance;
         source.maxDistance = positionalMaxDistance;
         source.volume = effectsSource != null ? effectsSource.volume : 1f;

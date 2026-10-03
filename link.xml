@@ -29,6 +29,7 @@
     <type fullname="InputActionEnumerations" preserve="all" />
     <type fullname="InventoryActionEnumerations" preserve="all" />
     <type fullname="LayersEnumerations" preserve="all" />
+    <type fullname="LuckyBoxBotWinsTask" preserve="all" />
     <type fullname="MeleeWeaponTypeEnumerations" preserve="all" />
     <type fullname="MonoWindowKeyEnumerations" preserve="all" />
     <type fullname="NPCStatesEnumerations" preserve="all" />
