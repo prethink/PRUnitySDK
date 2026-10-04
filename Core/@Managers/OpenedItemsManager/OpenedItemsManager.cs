@@ -282,6 +282,31 @@ public class OpenedItemsManager : SingletonProviderBase<OpenedItemsManager>
         return true;
     }
 
+    /// <summary>
+    /// Забирает предмет насовсем: запись об открытии удаляется, и он снова считается неоткрытым.
+    /// </summary>
+    /// <remarks>
+    /// Для сброса прогресса, а не для траты: <see cref="TryRemoveItem"/> оставляет факт
+    /// открытия, и купленное осталось бы купленным. После закрытия предмет возвращается
+    /// в продажу и снова блокируется в интерфейсе.
+    /// </remarks>
+    /// <returns><see langword="false"/>, если предмет и так не был открыт.</returns>
+    public bool Close(IIdentifiable selectableItem, bool requiredSave = true)
+    {
+        if (selectableItem == null || string.IsNullOrWhiteSpace(selectableItem.Id))
+            return false;
+
+        List<ItemStack> items = GetItems();
+
+        if (items == null || items.RemoveAll(stack => stack != null && stack.HasItem(selectableItem.Id)) == 0)
+            return false;
+
+        if (requiredSave)
+            GameManager.Instance.SaveProjectData();
+
+        return true;
+    }
+
     #endregion
 
     #region Доступ к данным

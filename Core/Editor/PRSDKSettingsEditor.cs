@@ -43,31 +43,34 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        IReadOnlyList<SerializedProperty> properties =
-            PRSDKInspectorUtility.GetRootProperties(serializedSettings);
+        List<SectionGroup> groups = BuildGroups(PRSDKInspectorUtility.GetRootProperties(serializedSettings));
         int visibleSectionCount = 0;
         bool sectionWasReset = false;
 
-        foreach (SerializedProperty property in properties)
+        foreach (SectionGroup group in groups)
         {
-            if (HasExternalEditor(property))
+            visibleSectionCount += group.Sections.Count;
+
+            if (!DrawGroupHeader(group))
                 continue;
 
-            string sectionName = PRSDKInspectorUtility.GetSectionName(property);
-            if (!PRSDKInspectorUtility.MatchesSearch(sectionName, search))
-                continue;
-
-            visibleSectionCount++;
-
-            // Сброс меняет данные под руками: дальше по списку идут свойства, собранные
-            // до него. Кадр дорисовываем пустым и выходим, следующий нарисует новые.
-            if (DrawSection(property, sectionName))
+            foreach ((SerializedProperty property, string sectionName) in group.Sections)
             {
-                sectionWasReset = true;
-                break;
+                // Сброс меняет данные под руками: дальше по списку идут свойства, собранные
+                // до него. Кадр дорисовываем пустым и выходим, следующий нарисует новые.
+                if (DrawSection(property, sectionName))
+                {
+                    sectionWasReset = true;
+                    break;
+                }
+
+                EditorGUILayout.Space(2f);
             }
 
-            EditorGUILayout.Space(2f);
+            if (sectionWasReset)
+                break;
+
+            EditorGUILayout.Space(6f);
         }
 
         if (visibleSectionCount == 0)
@@ -79,6 +82,79 @@ public sealed class PRSDKSettingsEditor : EditorWindow
             return;
 
         serializedSettings.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// Разделы одной папки-источника: общей части SDK, закрытой части, проекта игры.
+    /// </summary>
+    private sealed class SectionGroup
+    {
+        public string Source;
+        public readonly List<(SerializedProperty Property, string Name)> Sections = new();
+    }
+
+    private const string GroupExpandedKeyPrefix = "PRSDKSettingsEditor.Group.";
+
+    private static GUIStyle groupHeaderStyle;
+
+    /// <summary>
+    /// Раскладывает видимые разделы по папкам, из которых они объявлены.
+    /// </summary>
+    /// <remarks>
+    /// Разделов десятки, и общая часть SDK в одном списке с закрытой и с полями самой игры
+    /// не читается: непонятно, что принадлежит чему и что уедет с обновлением какой части.
+    /// Поиск действует до группировки, поэтому группа без подходящих разделов не рисуется.
+    /// </remarks>
+    private List<SectionGroup> BuildGroups(IReadOnlyList<SerializedProperty> properties)
+    {
+        var groups = new List<SectionGroup>();
+
+        foreach (SerializedProperty property in properties)
+        {
+            if (HasExternalEditor(property))
+                continue;
+
+            string sectionName = PRSDKInspectorUtility.GetSectionName(property);
+            if (!PRSDKInspectorUtility.MatchesSearch(sectionName, search))
+                continue;
+
+            string source = PRSDKSettingsSources.GetSource(property);
+            SectionGroup group = groups.Find(item => item.Source == source);
+
+            if (group == null)
+            {
+                group = new SectionGroup { Source = source };
+                groups.Add(group);
+            }
+
+            group.Sections.Add((property, sectionName));
+        }
+
+        groups.Sort((left, right) => PRSDKSettingsSources.Compare(left.Source, right.Source));
+
+        return groups;
+    }
+
+    /// <summary>
+    /// Рисует заголовок группы: имя папки-источника и число разделов в ней.
+    /// </summary>
+    /// <returns>Группа развёрнута, её разделы нужно рисовать.</returns>
+    private bool DrawGroupHeader(SectionGroup group)
+    {
+        // Во время поиска группы раскрыты: свёрнутая спрятала бы найденное.
+        bool searching = !string.IsNullOrWhiteSpace(search);
+        string key = GroupExpandedKeyPrefix + group.Source;
+        bool expanded = searching || EditorPrefs.GetBool(key, true);
+
+        groupHeaderStyle ??= new GUIStyle(EditorStyles.foldoutHeader) { fontStyle = FontStyle.Bold };
+
+        bool next = EditorGUILayout.Foldout(
+            expanded, $"{group.Source}  ({group.Sections.Count})", true, groupHeaderStyle);
+
+        if (!searching && next != expanded)
+            EditorPrefs.SetBool(key, next);
+
+        return searching || next;
     }
 
     /// <summary>
@@ -173,8 +249,25 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     /// <returns><c>true</c>, если какой-то из разделов был сброшен.</returns>
     private bool DrawChildren(SerializedProperty parent, Type parentType, object parentValue)
     {
+        Dictionary<IPRSettingsFieldOwner, List<string>> moved = null;
+
         foreach (SerializedProperty child in PRSDKInspectorUtility.GetDirectChildren(parent))
         {
+            // Поле правит другое окно: здесь оно не рисуется, чтобы одно значение
+            // не меняли в двух местах. Вместо него останется строка со ссылкой.
+            IPRSettingsFieldOwner owner = PRSettingsFieldOwners.Find(parentType, child);
+
+            if (owner != null)
+            {
+                moved ??= new Dictionary<IPRSettingsFieldOwner, List<string>>();
+
+                if (!moved.TryGetValue(owner, out List<string> names))
+                    moved[owner] = names = new List<string>();
+
+                names.Add(PRSDKInspectorUtility.GetSectionName(child));
+                continue;
+            }
+
             Type childType = parentType != null
                 ? PRSDKInspectorUtility.GetFieldType(parentType, child)
                 : null;
@@ -189,7 +282,29 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                 return true;
         }
 
+        if (moved != null)
+            DrawMovedFields(moved);
+
         return false;
+    }
+
+    /// <summary>
+    /// Строка на месте полей, которые правит другое окно: что именно и где искать.
+    /// </summary>
+    private static void DrawMovedFields(Dictionary<IPRSettingsFieldOwner, List<string>> moved)
+    {
+        foreach (KeyValuePair<IPRSettingsFieldOwner, List<string>> pair in moved)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(
+                    $"{string.Join(", ", pair.Value)} — в окне «{pair.Key.WindowName}»",
+                    EditorStyles.wordWrappedMiniLabel);
+
+                if (GUILayout.Button("Открыть", EditorStyles.miniButton, GUILayout.Width(70f)))
+                    EditorApplication.ExecuteMenuItem(pair.Key.MenuPath);
+            }
+        }
     }
 
     /// <summary>

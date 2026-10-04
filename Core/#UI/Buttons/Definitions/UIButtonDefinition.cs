@@ -125,9 +125,27 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     public virtual bool CanInvoke() => (action != null || openWindow) && (action == null || action.CanExecute().IsSuccess);
 
     /// <summary>
+    /// Нажимает кнопку: выполняет её и сообщает о нажатии в шину.
+    /// </summary>
+    /// <remarks>
+    /// Событие <see cref="IUIButtonPressedEvent"/> уходит на каждое нажатие, в том числе
+    /// несработавшее: слушатель сам решает, считать ли его. Поэтому метод не виртуальный —
+    /// своё поведение наследник задаёт в <see cref="Execute"/>, а событие не теряется.
+    /// </remarks>
+    /// <returns>Кнопка сработала: действие выполнено и окно открыто.</returns>
+    public bool Invoke()
+    {
+        bool executed = Execute();
+
+        UIButtonEvents.RaisePressed(this, executed);
+
+        return executed;
+    }
+
+    /// <summary>
     /// Отправляет метрику допустимого нажатия, выполняет действие и открывает окно. Отказ действия не открывает окно.
     /// </summary>
-    public virtual bool Invoke()
+    protected virtual bool Execute()
     {
         if (!CanInvoke())
             return false;
