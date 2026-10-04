@@ -111,10 +111,18 @@ public partial class PRDebugEditor
 
     private void CaptureResources(ProjectData data)
     {
-        if (data.Resources == null)
+        if (data.Resources != null)
+            AddValues("Resources", "long", data.Resources);
+
+        GameStatistics statistics = data.Statistics;
+
+        if (statistics == null)
             return;
 
-        AddValues("Resources", "long", data.Resources);
+        AddValue("Statistics", nameof(GameStatistics.LaunchCount), "long", FormatSaveValue(statistics.LaunchCount));
+        AddValue("Statistics", nameof(GameStatistics.PlaytimeMinutes), "long", FormatSaveValue(statistics.PlaytimeMinutes));
+        AddValues("Statistics.Resources", "long", statistics.Resources);
+        AddValues("Statistics.Counters", "long", statistics.Counters);
     }
 
     private void CaptureRewards(ProjectData data)

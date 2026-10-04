@@ -49,6 +49,7 @@
     <type fullname="PlayerStateFlags" preserve="all" />
     <type fullname="PlayerStatsEnumeration" preserve="all" />
     <type fullname="PlaytimeTrackerTask" preserve="all" />
+    <type fullname="RatingScoreSubmitTask" preserve="all" />
     <type fullname="ResourceEnumerations" preserve="all" />
     <type fullname="StateId" preserve="all" />
     <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />

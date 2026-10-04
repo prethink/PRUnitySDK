@@ -75,7 +75,10 @@ public partial class ProjectData : ICloneable
 
         clone.ProjectProperties = (ProjectProperties)ProjectProperties.Clone();
         clone.Resources = new Dictionary<string, long>(Resources);
-        clone.OpenedItems = OpenedItems.ToList();
+
+        // Глубокая копия: количество меняется прямо в записи, и общие записи означали бы,
+        // что трата предмета попадает в снимок сохранения без самого сохранения.
+        clone.OpenedItems = OpenedItems.Select(stack => (ItemStack)stack?.Clone()).ToList();
 
         // Глубокая копия: у каждого игрока свой словарь выбранного, и общий список
         // ссылок означал бы, что правка в клоне меняет исходные данные.

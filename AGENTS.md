@@ -334,6 +334,11 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Статистика за всё время.** `StatisticsManager` (`PRUnitySDK.Managers.Statistics`, данные в
+  `ProjectData.Statistics`) считает запуски, время в игре и ресурсы, полученные за всё время
+  (`ResourceManager.GetResourceTotal`). Своё число модуль кладёт в `Counters`, а не в свойства проекта.
+  Учёт времени `PlaytimeTrackerTask` переехал из примеров в `Core/Statistics`.
+
 - **Ключи ввода одним списком.** `InputEnumerationProviderBase` — база набора ключей ввода;
   `InputActionEnumerations` собирает значения всех наследников (базовые раньше), `InputKeyReference` —
   ссылка на такой ключ с конструктором. Окно настроек показывает раздел с `DatabaseExternalEditor`

@@ -9,6 +9,7 @@
 | [GameManager](GameManager/README.md) | `PRUnitySDK.Managers.Game` | загрузка `ProjectData` и `GameSettings`, сохранение, autosave, сигнал готовности |
 | [ProjectPropertiesManager](ProjectPropertiesManager/README.md) | `PRUnitySDK.Managers.ProjectProperties` | типизированные произвольные свойства проекта |
 | [ResourceManager](../Items/Resources/README.md) | `PRUnitySDK.Managers.Resource` | числовые игровые ресурсы, изменение баланса и безопасное списание |
+| [StatisticsManager](../Statistics/README.md) | `PRUnitySDK.Managers.Statistics` | числа за всё время: запуски, время в игре, полученные ресурсы, счётчики модулей |
 | [SoundManager](SoundManager/README.md) | `PRUnitySDK.Managers.Sound` | музыка, UI-звуки, 2D/3D-эффекты и звуковые категории |
 | `AudioMixerManager` | `PRUnitySDK.Managers.AudioMixer` | пользовательский и системный mute; находится в модуле `SoundManager` |
 | [OpenedItemsManager](OpenedItemsManager/README.md) | `PRUnitySDK.Managers.OpenedItems` | что открыто и сколько его есть: `ProjectData.OpenedItems`, с делением по видам |

@@ -12,11 +12,21 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     /// <summary>
     /// Игровые настройки.
     /// </summary>
+    /// <remarks>
+    /// Скрыты от сериализации Unity: при перезагрузке домена редактор восстанавливает
+    /// и приватные поля, сам вызывая конструктор, а тот читает настройки SDK через
+    /// <c>Resources.Load</c> — во время сериализации это запрещено.
+    /// </remarks>
+    [field: NonSerialized]
     private GameSettings gameSettings { get; set; }
 
     /// <summary>
     /// Данные проекта.
     /// </summary>
+    /// <remarks>
+    /// Скрыты от сериализации Unity по той же причине: конструктор запускает хуки модулей.
+    /// </remarks>
+    [field: NonSerialized]
     private ProjectData projectData { get; set; }
 
     /// <summary>

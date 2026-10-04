@@ -10,7 +10,7 @@
 /// только он. Определение берут из каталога, когда оно нужно.
 /// </para>
 /// </remarks>
-public class ItemStack
+public class ItemStack : System.ICloneable
 {
     /// <summary>
     /// Система, открывшая предмет.
@@ -103,6 +103,25 @@ public class ItemStack
 
         Count -= count;
         return true;
+    }
+
+    /// <summary>
+    /// Независимая копия записи.
+    /// </summary>
+    /// <remarks>
+    /// Нужна снимку сохранения: количество меняется в самой записи, и без копии правка
+    /// в рабочих данных сразу оказывалась бы в том, что ждёт записи на диск.
+    /// </remarks>
+    public object Clone()
+    {
+        return new ItemStack()
+        {
+            Created = Created,
+            Category = Category,
+            ItemId = ItemId,
+            Count = Count,
+            TotalOpened = TotalOpened
+        };
     }
 
     public static ItemStack Create(string created, IIdentifiable item, int count = 1)

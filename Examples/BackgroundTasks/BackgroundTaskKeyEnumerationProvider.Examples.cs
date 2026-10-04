@@ -5,6 +5,5 @@
 /// </summary>
 public partial class BackgroundTaskKeyEnumerations
 {
-    public static readonly Enumeration PlaytimeTracker = new(nameof(PlaytimeTracker));
     public static readonly Enumeration NewDay = new(nameof(NewDay));
 }

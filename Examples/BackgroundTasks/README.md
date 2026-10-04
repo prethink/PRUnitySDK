@@ -1,39 +1,23 @@
 # Примеры фоновых задач
 
-Два рабочих примера к модулю [BackgroundTasks](../../Core/BackgroundTasks/README.md):
-по одному на каждый из основных контрактов.
+Рабочий пример к модулю [BackgroundTasks](../../Core/BackgroundTasks/README.md).
+Образец обычной `BackgroundTask` — учёт времени в игре, `PlaytimeTrackerTask`
+в [статистике](../../Core/Statistics/README.md): работа по игровому времени и пропуск запуска,
+пока сохранение не загружено.
 
 | Файл | Базовый тип | Что показывает |
 | --- | --- | --- |
-| `PlaytimeTrackerTask.cs` | `BackgroundTask` | Периодическая работа по игровому времени |
 | `NewDayWatcherTask.cs` | `WatcherTask<int>` | Опрос значения и реакция на его изменение |
 | `BackgroundTaskKeyEnumerationProvider.Examples.cs` | — | Объявление ключей `partial`-частью |
 
-## Обе задачи выключены
+## Задача выключена
 
-У обеих стоит `[AutoBackgroundTask(Enabled = false)]`, поэтому SDK их не регистрирует
+У неё стоит `[AutoBackgroundTask(Enabled = false)]`, поэтому SDK её не регистрирует
 и поведение проекта не меняется. Чтобы попробовать — уберите параметр `Enabled`
-либо зарегистрируйте задачу вручную:
+либо зарегистрируйте задачу вручную, как показано ниже.
 
-```csharp
-PRUnitySDK.Trackers.BackgroundTasks.Register(new PlaytimeTrackerTask());
-```
-
-После включения задачи видны во вкладке `Tasks` окна `PRUnitySDK/Windows/Debug Window`:
-там же можно запустить их вне расписания и посмотреть счётчики.
-
-## PlaytimeTrackerTask
-
-Раз в минуту прибавляет минуту к свойству `PlaytimeMinutesProperty`.
-
-Три приёма, которые стоит перенять:
-
-- **`UseGameTime => true`** — счётчик стоит на логической паузе и замедляется вместе
-  с игрой. Это «время игры», а не хронометр реального времени.
-- **`CanExecute()`** проверяет, что сохранение загружено. Пока данных нет, запуск
-  пропускается — это не ошибка, задача просто ждёт следующего окна.
-- **`SetValue(..., save: false)`** — на диск значение попадёт при ближайшем
-  автосохранении `GameManager`. Писать файл каждую минуту незачем.
+После включения задача видна во вкладке `Tasks` окна `PRUnitySDK/Windows/Debug Window`:
+там же можно запустить её вне расписания и посмотреть счётчики.
 
 ## NewDayWatcherTask
 

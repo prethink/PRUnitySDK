@@ -14,6 +14,23 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     }
 
     /// <summary>
+    /// Сколько ресурса получено за всё время. Траты это число не уменьшают.
+    /// </summary>
+    /// <remarks>
+    /// Счётчик лежит в статистике (<see cref="StatisticsManager"/>). У сохранения, сделанного
+    /// до его появления, отсчёт идёт от текущего остатка: прошлые траты восстановить нечем.
+    /// </remarks>
+    public long GetResourceTotal(Enumeration resourceType)
+    {
+        if (!TryGetResourceName(resourceType, out var resourceName))
+            return 0;
+
+        return StatisticsManager.Instance.TryGetResourceTotal(resourceName, out long total)
+            ? total
+            : System.Math.Max(0L, resources.GetValue(resourceName, 0));
+    }
+
+    /// <summary>
     /// Пытается получить сохранённое значение ресурса, не создавая новый ключ.
     /// </summary>
     public bool TryGetResource(Enumeration resourceType, out long value)
@@ -96,6 +113,11 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         if (!change.Changed)
             return;
 
+        long previousValue = change.HadPreviousValue ? change.PreviousValue : 0;
+
+        if (change.CurrentValue > previousValue)
+            StatisticsManager.Instance.AddResource(resourceName, previousValue, change.CurrentValue - previousValue);
+
         // requiredSave просит записать данные, но кулдаун при этом соблюдается:
         // внутри него вызов просто ничего не сделает и изменение уйдёт со следующим
         // сохранением. Обойти кулдаун можно только явно - ignoreSaveCooldown.
@@ -104,7 +126,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
 
         if (requiredNotify)
         {
-            ResourceEvents.RaiseResourceValueChange(new ResourceValueChangeEventArgs(resourceType, change.HadPreviousValue ? change.PreviousValue : 0, change.CurrentValue));
+            ResourceEvents.RaiseResourceValueChange(new ResourceValueChangeEventArgs(resourceType, previousValue, change.CurrentValue));
         }
     }
 
