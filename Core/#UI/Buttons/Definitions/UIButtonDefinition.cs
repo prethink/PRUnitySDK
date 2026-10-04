@@ -31,6 +31,9 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     [SerializeField] private KeyCode hotkey = KeyCode.None;
     [Tooltip("Показывать обозначение клавиши на кнопке. Саму клавишу это не отключает.")]
     [SerializeField] private bool showHotkey = true;
+    [Tooltip("Кнопка работает и на логической паузе: выделенная в обучении, во время катсцены. " +
+             "Открытое окно блокирует её всё равно.")]
+    [SerializeField] private bool ignorePause;
 
     [Header("Уведомление")]
     [Tooltip("Когда привлекать внимание. Пусто — без уведомления. AssetCondition позволяет выбрать общее условие-ассет.")]
@@ -90,6 +93,10 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     /// Показывать подсказку назначенной клавиши.
     /// </summary>
     public bool ShowHotkey => showHotkey && hotkey != KeyCode.None;
+    /// <summary>
+    /// Кнопка работает и на логической паузе.
+    /// </summary>
+    public bool IgnorePause => ignorePause;
     /// <summary>
     /// Условие индикатора внимания, проверяемое без контекста отдельного игрока.
     /// </summary>
