@@ -381,6 +381,10 @@ Partial-поля Settings и Database не требуют ручного доб�
 - Окно `PRUnitySDK/Windows/Debug Window` принимает вкладки модулей: реализация
   `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Вкладка с
   `AvailableInEditMode` видна и без Play Mode — для данных на диске.
+- Вкладка `Tools` окна отладки (`Core/Editor/Tools`): снимки окна Game (`PRScreenshotTool` —
+  кнопка, клавиша F9 во время игры, пункт меню `PRUnitySDK/Capture Screenshot`; файлы в
+  `Screenshots` рядом с `Assets`) и видимость интерфейса. Блок интерфейса, который можно
+  спрятать по одному, объявляет `IHudBlock` и встаёт на учёт в `PRUnitySDK.Trackers.HudBlocks`.
 - `ReservedItemsManager` — отвечает, достаётся ли предмет не покупкой; источники
   регистрируются сами атрибутом `[AutoReservedItemsProvider]`.
 - `ISaveable.TrySaveData` синхронный; собирается перед записью и при уходе объекта

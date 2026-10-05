@@ -13,7 +13,7 @@ public static class WebUtils
         if (cachedTexture.TryGetValue(url, out var texture))
         {
             callback?.Invoke();
-            image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0, 0));
+            SetSprite(image, texture);
         }
         else
         {
@@ -21,8 +21,9 @@ public static class WebUtils
             {
                 yield return webRequest.SendWebRequest();
 
-                if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
-                    webRequest.result == UnityWebRequest.Result.DataProcessingError)
+                // Любой неуспех, включая ответ сервера с ошибкой (404): текстуры в нём нет,
+                // и обращение к ней ниже упало бы.
+                if (webRequest.result != UnityWebRequest.Result.Success)
                 {
                     //if (ProjectBus.IsDebug)
                         //PRLog.WriteWarning(typeof(WebUtils), webRequest.error);
@@ -36,17 +37,31 @@ public static class WebUtils
                         if (cachedTexture.TryGetValue(url, out texture))
                         {
                             callback?.Invoke();
-                            image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0, 0));
+                            SetSprite(image, texture);
                         }
                         else
                         {
                             callback?.Invoke();
-                            image.sprite = Sprite.Create(handlerTexture.texture, new Rect(0, 0, handlerTexture.texture.width, handlerTexture.texture.height), new Vector2(0, 0));
+                            SetSprite(image, handlerTexture.texture);
                             cachedTexture[url] = handlerTexture.texture;
                         }
                     }
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Ставит текстуру в картинку, если та ещё существует.
+    /// </summary>
+    /// <remarks>
+    /// Картинку могли уничтожить, пока шла загрузка: окно закрыли, список перестроили.
+    /// </remarks>
+    private static void SetSprite(Image image, Texture2D texture)
+    {
+        if (image == null || texture == null)
+            return;
+
+        image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0, 0));
     }
 }
