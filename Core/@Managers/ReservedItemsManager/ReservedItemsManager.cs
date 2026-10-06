@@ -68,7 +68,10 @@ public class ReservedItemsManager : SingletonProviderBase<ReservedItemsManager>
 
         try
         {
-            assemblyTypes = typeof(IReservedItemsProvider).Assembly.GetTypes();
+            // Список, собранный при сборке билда, избавляет от перебора всей сборки; без него — перебор.
+            assemblyTypes = ReflectionTypeRegistry.TryGetTypes(typeof(AutoReservedItemsProviderAttribute), out IReadOnlyList<Type> listed)
+                ? listed.ToArray()
+                : typeof(IReservedItemsProvider).Assembly.GetTypes();
         }
         catch (ReflectionTypeLoadException exception)
         {

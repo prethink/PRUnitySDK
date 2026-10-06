@@ -278,6 +278,60 @@ public static class ReflectionExtension
     }
 
     /// <summary>
+    /// Запускает хуки стадии по одному и после каждого отдаёт имя выполненного метода.
+    /// </summary>
+    /// <remarks>
+    /// Для работы, которую растягивают по кадрам: вызывающий сам решает, после какого хука
+    /// отдать кадр. Порядок тот же, что у <see cref="RunMethodHooks(object, MethodHookStage)"/>.
+    /// Хук с параметрами пропускается с предупреждением: аргументов у пошагового запуска нет.
+    /// </remarks>
+    public static IEnumerable<string> RunMethodHooksStepwise(this object instance, MethodHookStage methodHookStage)
+    {
+        string stage = GetStageName(methodHookStage);
+
+        foreach (var hook in instance.GetMethodsHooks(stage))
+        {
+            if (hook.ParameterCount != 0)
+            {
+                PRLog.WriteWarning(instance, $"Hook '{hook.Method.DeclaringType?.Name}.{hook.Method.Name}' expects " +
+                    $"{hook.ParameterCount} argument(s) on stage '{stage}', but stepwise run passes none. Skipped.");
+                continue;
+            }
+
+            hook.Method.Invoke(instance, null);
+            yield return hook.Method.Name;
+        }
+    }
+
+    /// <summary>
+    /// Запускает статические хуки стадии по одному и после каждого отдаёт имя выполненного метода.
+    /// </summary>
+    public static IEnumerable<string> RunStaticMethodHooksStepwise(this Type type, MethodHookStage methodHookStage)
+    {
+        foreach (var hook in type.GetStaticMethodHooks(GetStageName(methodHookStage)))
+        {
+            hook.Method.Invoke(null, null);
+            yield return hook.Method.Name;
+        }
+    }
+
+    /// <summary>
+    /// Сколько хуков у стадии.
+    /// </summary>
+    public static int CountMethodHooks(this object instance, MethodHookStage methodHookStage)
+    {
+        return instance.GetMethodsHooks(GetStageName(methodHookStage)).Length;
+    }
+
+    /// <summary>
+    /// Сколько статических хуков у стадии.
+    /// </summary>
+    public static int CountStaticMethodHooks(this Type type, MethodHookStage methodHookStage)
+    {
+        return type.GetStaticMethodHooks(GetStageName(methodHookStage)).Length;
+    }
+
+    /// <summary>
     /// Вызывает первый подходящий статический обработчик переопределения свойства.
     /// </summary>
     public static void TryOverrideStaticProperty(this Type type, Type requiredType)
@@ -376,6 +430,14 @@ public static class ReflectionExtension
     public static List<Type> FindClassesImplementingInterface<T>()
     {
         var interfaceType = typeof(T);
+
+        // Список, собранный при сборке билда, избавляет от перебора всех сборок; без него — перебор.
+        if (ReflectionTypeRegistry.TryGetTypes(interfaceType, out IReadOnlyList<Type> listed))
+        {
+            return listed
+                .Where(type => interfaceType.IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+                .ToList();
+        }
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(assembly => assembly.GetTypes())

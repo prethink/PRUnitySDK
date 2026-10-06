@@ -25,6 +25,7 @@ using Newtonsoft.Json.Linq;
 /// }
 /// </code>
 /// </example>
+[ReflectionContract]
 public interface ISaveMigration
 {
     /// <summary>

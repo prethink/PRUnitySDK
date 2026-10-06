@@ -399,6 +399,9 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `DatabaseExternalEditor` — каталог с собственным окном не редактируется в окне базы.
 - `ReflectionPreserveGenerator` собирает `link.xml` для типов, создаваемых рефлексией:
   помечать их `[Preserve]` вручную не нужно.
+- Классы по контракту при запуске перебором сборки не ищут: `Assembly.GetTypes()` на слабом телефоне
+  стоит полторы секунды. Контракт помечают `[ReflectionContract]`, а классы берут через
+  `ReflectionTypeRegistry.TryGetTypes` с перебором как запасным путём ([Core/Reflection](Core/Reflection/README.md)).
 - Окно `Tools/Localization` собирает переводы по всему проекту и обменивается CSV.
 - Сущность описывается ассетом: `Entity` вешается на префаб без кода, вид (`EntityType`),
   имя и переводы берутся из `EntityMetadataBase`. `CommonEntity` и `ScriptableEntity`

@@ -60,11 +60,32 @@ public partial class PRManagerContainer
 
     public void Initialize()
     {
+        foreach (string step in InitializeSteps())
+        {
+        }
+    }
+
+    /// <summary>
+    /// Сколько шагов у <see cref="InitializeSteps"/>.
+    /// </summary>
+    public int InitializationStepCount => 1 + this.CountMethodHooks(MethodHookStage.PostOperation);
+
+    /// <summary>
+    /// Создаёт менеджеры по одному и после каждого отдаёт имя выполненного шага.
+    /// </summary>
+    /// <remarks>
+    /// Тот же порядок, что у <see cref="Initialize"/>; нужен загрузчику, который растягивает
+    /// сборку SDK по кадрам.
+    /// </remarks>
+    public System.Collections.Generic.IEnumerable<string> InitializeSteps()
+    {
         this.RunMethodHooks(MethodHookStage.PreOperation);
 
         ManagerContainer = MonoBehaviourUtils.CreateContainer("Managers");
+        yield return "Managers";
 
-        this.RunMethodHooks(MethodHookStage.PostOperation);
+        foreach (string step in this.RunMethodHooksStepwise(MethodHookStage.PostOperation))
+            yield return step;
     }
 
     [MethodHook(MethodHookStage.PostOperation, 10)]

@@ -14,6 +14,11 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
     private readonly HashSet<MonoWindowBase> shownWindows = new();
 
     /// <summary>
+    /// Окна, которые зарегистрированы описанием и ещё не созданы: ключ и фабрика.
+    /// </summary>
+    private readonly Dictionary<Enumeration, IMonoWindowFactory> lazyWindows = new();
+
+    /// <summary>
     /// Текущее видимое окно либо <see langword="null"/>.
     /// </summary>
     public MonoWindowBase CurrentWindow { get; private set; }
@@ -73,6 +78,64 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
     }
 
     /// <summary>
+    /// Регистрирует окно описанием: само окно создаётся при первом обращении по ключу.
+    /// </summary>
+    /// <remarks>
+    /// Окно, созданное при запуске, стоит времени запуска, даже если игрок его ни разу не откроет.
+    /// Описание ничего не стоит: префаб грузится и создаётся, когда окно понадобилось.
+    /// <para>
+    /// Подходит только окну, которому незачем жить закрытым. Окно, которое показывает себя само
+    /// или слушает события игры, пока закрыто, создают сразу — до первого показа его просто нет.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">Ключ окна; должен совпадать с <see cref="MonoWindowBase.Key"/> созданного.</param>
+    /// <param name="factory">Чем окно создаётся.</param>
+    /// <returns><see langword="false"/>, если ключ уже занят окном или другим описанием.</returns>
+    public bool RegisterLazy(Enumeration key, IMonoWindowFactory factory)
+    {
+        if (key == null || factory == null)
+            return false;
+
+        if (lazyWindows.ContainsKey(key) || elements.Any(x => x != null && x.Key == key))
+        {
+            PRLog.WriteWarning(typeof(MonoWindowsTracker), $"MonoWindow с ключом '{key}' уже зарегистрировано.");
+            return false;
+        }
+
+        lazyWindows.Add(key, factory);
+        return true;
+    }
+
+    /// <summary>
+    /// Находит окно по ключу; зарегистрированное описанием — создаёт.
+    /// </summary>
+    private MonoWindowBase FindOrCreate(Enumeration key)
+    {
+        MonoWindowBase window = elements.FirstOrDefault(x => x != null && x.Key == key);
+
+        if (window != null || !lazyWindows.TryGetValue(key, out IMonoWindowFactory factory))
+            return window;
+
+        // Описание снимается до создания: не вышло один раз — повторять на каждый вызов незачем.
+        lazyWindows.Remove(key);
+        window = factory.CreateWindow();
+
+        if (window == null)
+        {
+            PRLog.WriteError(typeof(MonoWindowsTracker), $"MonoWindow с ключом '{key}' не удалось создать.");
+            return null;
+        }
+
+        if (window.Key != key)
+        {
+            PRLog.WriteWarning(window,
+                $"MonoWindow зарегистрировано с ключом '{key}', а его собственный ключ — '{window.Key}'.");
+        }
+
+        return window;
+    }
+
+    /// <summary>
     /// Удаляет ранее зарегистрированное окно.
     /// </summary>
     public override bool Unregister(MonoWindowBase element)
@@ -115,7 +178,7 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
         if (key == null)
             return false;
 
-        var requiredWindow = elements.FirstOrDefault(x => x != null && x.Key == key);
+        var requiredWindow = FindOrCreate(key);
         if (requiredWindow == null)
             return false;
 
@@ -151,7 +214,7 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
         if (key == null)
             return false;
 
-        window = elements.FirstOrDefault(x => x != null && x.Key == key) as T;
+        window = FindOrCreate(key) as T;
         return window != null;
     }
 

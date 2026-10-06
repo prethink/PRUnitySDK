@@ -258,7 +258,10 @@ public static class GameRules
         Type[] assemblyTypes;
         try
         {
-            assemblyTypes = interfaceType.Assembly.GetTypes();
+            // Список, собранный при сборке билда, избавляет от перебора всей сборки; без него — перебор.
+            assemblyTypes = ReflectionTypeRegistry.TryGetTypes(interfaceType, out IReadOnlyList<Type> listed)
+                ? listed.ToArray()
+                : interfaceType.Assembly.GetTypes();
         }
         catch (System.Reflection.ReflectionTypeLoadException exception)
         {

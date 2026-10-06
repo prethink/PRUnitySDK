@@ -25,7 +25,7 @@ public sealed class HealthSound : MonoBehaviour
 
     [Tooltip("Ключ предела звуков удара. Одинаковый у нескольких объектов - общий предел на всех: так блоки " +
              "одного вида не звучат десятком ударов разом. Пусто - свой предел у каждого объекта. " +
-             "Сам предел задан в SoundManager; звук смерти им не ограничен.")]
+             "Сам предел задан в SoundManager; звук смерти идёт без ключа и с запасом голосов.")]
     [SerializeField] private string limitKey;
 
     private int soundKey;
@@ -93,11 +93,13 @@ public sealed class HealthSound : MonoBehaviour
         Vector3 position = outcome.HitPoint ?? outcome.VictimPosition ?? transform.position;
         Vector2 pitchRange = new(Mathf.Min(minPitch, maxPitch), Mathf.Max(minPitch, maxPitch));
 
-        // Смерть звучит мимо ключа: она случается раз и сообщает, что цель разбита, -
-        // её нельзя терять из-за того, что рядом ещё играют удары.
-        int key = outcome.Result == DamageResult.Killed ? 0 : soundKey;
+        // Смерть случается раз и сообщает, что цель разбита, - её нельзя терять из-за того, что рядом ещё
+        // играют удары. Поэтому она идёт мимо ключа и важным звуком: ключ снимает предел источника,
+        // а важность даёт запас сверх общего предела голосов - одного ключа мало, на телефоне все шесть
+        // голосов бывают заняты ударами по соседним целям.
+        bool killed = outcome.Result == DamageResult.Killed;
 
-        sound.PlaySoundEffectAtPoint(clip, position, pitchRange, volume, key);
+        sound.PlaySoundEffectAtPoint(clip, position, pitchRange, volume, killed ? 0 : soundKey, important: killed);
     }
 
     /// <summary>

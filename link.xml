@@ -15,6 +15,7 @@
     <type fullname="ConditionEnumerations" preserve="all" />
     <type fullname="ContainerTypeEnumerations" preserve="all" />
     <type fullname="DailyGiftReservedItems" preserve="all" />
+    <type fullname="DamageEffectHandler" preserve="all" />
     <type fullname="EntityDisposeEnumerations" preserve="all" />
     <type fullname="EntitySideEnumerations" preserve="all" />
     <type fullname="EntityTypeEnumerations" preserve="all" />
@@ -51,7 +52,9 @@
     <type fullname="PlaytimeTrackerTask" preserve="all" />
     <type fullname="RatingScoreSubmitTask" preserve="all" />
     <type fullname="ResourceEnumerations" preserve="all" />
+    <type fullname="SpawnPrefabEffectHandler" preserve="all" />
     <type fullname="StateId" preserve="all" />
+    <type fullname="StatusEffectHandler" preserve="all" />
     <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />
     <type fullname="UIButtonAttentionWatcher" preserve="all" />

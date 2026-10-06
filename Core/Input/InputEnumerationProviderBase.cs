@@ -8,6 +8,7 @@
 /// объявляет свой наследник; проект, которому нужны новые действия персонажа, наследуется
 /// от набора персонажа — базовые ключи придут вместе с новыми.
 /// </remarks>
+[ReflectionContract]
 public abstract class InputEnumerationProviderBase : EnumerationProviderBase
 {
     /// <inheritdoc />

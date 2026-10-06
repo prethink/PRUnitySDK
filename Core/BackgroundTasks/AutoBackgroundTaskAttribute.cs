@@ -15,6 +15,7 @@ using System;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+[ReflectionContract]
 public sealed class AutoBackgroundTaskAttribute : Attribute
 {
     /// <summary>

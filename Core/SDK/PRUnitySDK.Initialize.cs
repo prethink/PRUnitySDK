@@ -44,47 +44,128 @@ public partial class PRUnitySDK
     /// </summary>
     private static ReadySignal readySignal = new ReadySignal(typeof(PRUnitySDK));
 
+    private static readonly List<KeyValuePair<string, double>> initializationSteps = new();
+
     /// <summary>
-    /// Инициализация SDK.
+    /// Шаги сборки SDK в порядке выполнения и длительность каждого, миллисекунды.
+    /// </summary>
+    /// <remarks>
+    /// Покрывает всю сборку без пропусков, в отличие от <see cref="InitializationHistory"/>: туда
+    /// попадают только менеджеры и модули, а работа между ними — нет.
+    /// </remarks>
+    public static IReadOnlyList<KeyValuePair<string, double>> InitializationSteps => initializationSteps;
+
+    /// <summary>
+    /// Шаги сборки, которые есть всегда: правила, конвертеры, синглтоны, фабрики, фоновые задачи, готовность.
+    /// </summary>
+    private const int FixedStepCount = 6;
+
+    /// <summary>
+    /// Сколько шагов в сборке SDK: по нему считают долю пройденного.
+    /// </summary>
+    public static int InitializationStepCount =>
+        FixedStepCount
+        + typeof(PRUnitySDK).CountStaticMethodHooks(MethodHookStage.SDK)
+        + Managers.InitializationStepCount
+        + Windows.InitializationStepCount;
+
+    /// <summary>
+    /// Инициализация SDK одним вызовом.
     /// </summary>
     public static void InitializeSDK()
+    {
+        IEnumerator<string> steps = InitializeSDKSteps();
+
+        while (steps.MoveNext())
+        {
+        }
+    }
+
+    /// <summary>
+    /// Инициализация SDK по шагам: каждый <c>MoveNext</c> выполняет один шаг и отдаёт его имя.
+    /// </summary>
+    /// <remarks>
+    /// Для загрузчика, который растягивает сборку по кадрам, чтобы экран загрузки не замирал на всё
+    /// её время. Перечень и порядок шагов те же, что у <see cref="InitializeSDK"/>, — тот просто
+    /// проходит их подряд.
+    /// <para>
+    /// Готовым SDK становится только на последнем шаге. До него <see cref="IsInitialized"/> ложно,
+    /// общий цикл обновления SDK не идёт, а подписчики <see cref="ReadySignal"/> ничего не получают —
+    /// сколько бы кадров ни прошло между шагами.
+    /// </para>
+    /// </remarks>
+    public static IEnumerator<string> InitializeSDKSteps()
+    {
+        if (!IsStartInitialize)
+            initializationSteps.Clear();
+
+        IEnumerator<string> steps = RunInitialization();
+        var stopwatch = new System.Diagnostics.Stopwatch();
+
+        while (true)
+        {
+            stopwatch.Restart();
+
+            if (!steps.MoveNext())
+                yield break;
+
+            initializationSteps.Add(new KeyValuePair<string, double>(steps.Current, stopwatch.Elapsed.TotalMilliseconds));
+            yield return steps.Current;
+        }
+    }
+
+    private static IEnumerator<string> RunInitialization()
     {
         if (IsStartInitialize)
         {
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Initialization already started.");
-            return;
+            yield break;
         }
 
         IsStartInitialize = true;
         if (IsInitialized)
         {
             PRLog.WriteWarning(typeof(PRUnitySDK), $"Already is initialized.");
-            return;
+            yield break;
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-
         GameRules.Initialize();
+        yield return nameof(GameRules);
+
         InitializeConverters();
+        yield return "Converters";
+
         InitializeSingletons();
+        yield return "Singletons";
+
         RegisterFactories();
+        yield return "Factories";
 
-        typeof(PRUnitySDK).RunStaticMethodHooks(MethodHookStage.SDK);
+        foreach (string step in typeof(PRUnitySDK).RunStaticMethodHooksStepwise(MethodHookStage.SDK))
+            yield return step;
 
-        Managers.Initialize();
-        Windows.Initialize();
+        foreach (string step in Managers.InitializeSteps())
+            yield return step;
+
+        foreach (string step in Windows.InitializeSteps())
+            yield return step;
 
         // Задачи регистрируются после менеджеров, но до IsInitialized: трекер не выполняет
         // их, пока SDK не готов, поэтому первый запуск гарантированно придётся на
         // полностью инициализированный проект.
         Trackers.BackgroundTasks.RegisterAutoTasks();
+        yield return "BackgroundTasks";
 
         IsInitialized = true;
         EventBus.RaiseEvent<ISDKEvents>(x => x.OnInitialized());
         readySignal.SetReady();
         PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize SDK complete. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
         stopwatch.Stop();
+
+        // Отдельным шагом, чтобы в замер попали и подписчики готовности.
+        yield return "Ready";
     }
 
     private static void InitializeSingletons()

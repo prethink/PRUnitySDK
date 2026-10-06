@@ -73,6 +73,10 @@ public sealed class InputActionEnumerations : EnumerationProviderBase
 #if UNITY_EDITOR
         return UnityEditor.TypeCache.GetTypesDerivedFrom<InputEnumerationProviderBase>();
 #else
+        // Список, собранный при сборке билда, избавляет от перебора всех сборок; без него — перебор.
+        if (ReflectionTypeRegistry.TryGetTypes(typeof(InputEnumerationProviderBase), out IReadOnlyList<Type> listed))
+            return listed;
+
         var types = new List<Type>();
 
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())

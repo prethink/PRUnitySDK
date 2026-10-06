@@ -22,6 +22,12 @@ public abstract class MonoWindowFactoryBase<T> : IMonoWindowFactory
 
     private static T instance;
 
+    /// <inheritdoc />
+    public MonoWindowBase CreateWindow()
+    {
+        return CreateMonoWindow();
+    }
+
     public virtual T CreateMonoWindow()
     {
         if (IsSingleton && instance != null)

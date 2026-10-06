@@ -9,4 +9,13 @@ public interface IMonoWindowFactory : IMonoBehaviourFactory
     /// Если false, окно будет добавлено в основной контейнер окон.
     /// </summary>
     bool UseSharedCanvas { get; }
+
+    /// <summary>
+    /// Создаёт окно.
+    /// </summary>
+    /// <remarks>
+    /// Без типа окна: так его создаёт реестр, который знает только ключ и фабрику
+    /// (<see cref="MonoWindowsTracker.RegisterLazy"/>).
+    /// </remarks>
+    MonoWindowBase CreateWindow();
 }

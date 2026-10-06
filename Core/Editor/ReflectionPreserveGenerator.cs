@@ -118,6 +118,13 @@ public sealed class ReflectionPreserveGenerator : IPreprocessBuildWithReport
                 Add(byAssembly, type);
         }
 
+        // Классы из списка типов игра запрашивает по имени: вырезанный класс она бы не нашла.
+        foreach (List<Type> types in ReflectionTypeRegistryGenerator.Collect().Values)
+        {
+            foreach (Type type in types)
+                Add(byAssembly, type);
+        }
+
         return byAssembly;
     }
 

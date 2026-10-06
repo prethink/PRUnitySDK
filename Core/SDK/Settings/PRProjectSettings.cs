@@ -6,6 +6,16 @@ using UnityEngine;
 public partial class PRProjectSettings
 {
     [field: SerializeField] public ReleaseType ReleaseType { get; protected set; }
+
+    /// <summary>
+    /// Проект в отладочном режиме: <see cref="ReleaseType"/> — <see cref="global::ReleaseType.Debug"/>.
+    /// </summary>
+    /// <remarks>
+    /// По нему включается всё, что нужно разработчику и не должно попасть к игроку: служебные надписи
+    /// на экране, диагностика загрузки. В релизном режиме этого нет вовсе.
+    /// </remarks>
+    public bool IsDebug => ReleaseType == ReleaseType.Debug;
+
     [field: SerializeField, Range(0, 10)] public int DebugLogLevel { get; private set; }
     [field: SerializeField] public ResolveStrategy ResolveStrategy { get; protected set; }
     [field: SerializeField] public PRMonobehaviourHostSettings PRMonobehaviourHost { get; protected set; }

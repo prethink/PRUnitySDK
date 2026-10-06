@@ -68,12 +68,55 @@ public partial class PRWindowsContainer
 
     public void Initialize()
     {
+        foreach (string step in InitializeSteps())
+        {
+        }
+    }
+
+    /// <summary>
+    /// Сколько шагов у <see cref="InitializeSteps"/>.
+    /// </summary>
+    public int InitializationStepCount => 2 + this.CountMethodHooks(MethodHookStage.PostOperation);
+
+    /// <summary>
+    /// Создаёт окна по одному и после каждого отдаёт имя выполненного шага.
+    /// </summary>
+    /// <remarks>
+    /// Тот же порядок, что у <see cref="Initialize"/>; нужен загрузчику, который растягивает
+    /// сборку SDK по кадрам.
+    /// </remarks>
+    public System.Collections.Generic.IEnumerable<string> InitializeSteps()
+    {
         this.RunMethodHooks(MethodHookStage.PreOperation);
 
         InitializeWindows();
-        InitializeNotifiers();
+        yield return "Windows";
 
-        this.RunMethodHooks(MethodHookStage.PostOperation);
+        InitializeNotifiers();
+        yield return "Notifiers";
+
+        foreach (string step in this.RunMethodHooksStepwise(MethodHookStage.PostOperation))
+            yield return step;
+    }
+
+    /// <summary>
+    /// Регистрирует окно описанием: создаётся оно при первом открытии.
+    /// </summary>
+    /// <remarks>
+    /// Только для окна, которому незачем жить закрытым (<see cref="MonoWindowsTracker.RegisterLazy"/>).
+    /// </remarks>
+    private void RegisterLazyWindow(Enumeration key, IMonoWindowFactory factory)
+    {
+        PRUnitySDK.Trackers.MonoWindows.RegisterLazy(key, factory);
+    }
+
+    /// <summary>
+    /// Окно по ключу. Зарегистрированное описанием создаётся при первом обращении.
+    /// </summary>
+    private T GetLazyWindow<T>(Enumeration key)
+        where T : MonoWindowBase
+    {
+        return PRUnitySDK.Trackers.MonoWindows.TryGetWindow(key, out T window) ? window : null;
     }
 
     private readonly System.Collections.Generic.Dictionary<int, PRContainer> windowCanvases = new();

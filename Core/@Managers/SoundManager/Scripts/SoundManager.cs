@@ -35,35 +35,26 @@ public class SoundManager : MonoBehaviour
     [Tooltip("На этом расстоянии от слушателя позиционный звук затихает полностью.")]
     [SerializeField] private float positionalMaxDistance = 30f;
 
-    [Header("Предел одновременных позиционных эффектов")]
-    [Tooltip("Сколько позиционных эффектов звучит разом. Новый сверх предела не играется: десятки ударов " +
-             "в секунду сливаются в шум, а каждый голос стоит процессора. 0 - без предела.")]
-    [SerializeField, Min(0)] private int positionalVoiceLimit = 16;
+    /// <summary>
+    /// Пределы на случай, когда настроек проекта нет.
+    /// </summary>
+    private static readonly SoundLimitSettings DefaultLimits = new();
 
-    [Tooltip("Тот же предел на телефоне и планшете: там голосов заметно меньше, и они дороже. 0 - без предела.")]
-    [SerializeField, Min(0)] private int touchPositionalVoiceLimit = 6;
-
-    [Tooltip("Один и тот же клип не запускается позиционно чаще этого, секунды: два одинаковых звука " +
-             "в один кадр дают только громкость и щелчок. 0 - без ограничения.")]
-    [SerializeField, Min(0f)] private float positionalSameClipInterval = 0.03f;
-
-    [Tooltip("Тот же промежуток на телефоне и планшете. 0 - без ограничения.")]
-    [SerializeField, Min(0f)] private float touchPositionalSameClipInterval = 0.09f;
-
-    [Header("Предел звуков с одним ключом")]
-    [Tooltip("Сколько позиционных эффектов с одним ключом звучит разом. Ключ передаёт тот, кто играет звук: " +
-             "так ограничивается один шумный источник - скажем, удары по блокам одного вида, - а остальные звуки " +
-             "не страдают. 0 - без предела.")]
-    [SerializeField, Min(0)] private int keyVoiceLimit = 4;
-
-    [Tooltip("Тот же предел на телефоне и планшете. 0 - без предела.")]
-    [SerializeField, Min(0)] private int touchKeyVoiceLimit = 2;
-
-    [Tooltip("Звук с тем же ключом не запускается чаще этого, секунды. 0 - без ограничения.")]
-    [SerializeField, Min(0f)] private float keyInterval = 0.04f;
-
-    [Tooltip("Тот же промежуток на телефоне и планшете. 0 - без ограничения.")]
-    [SerializeField, Min(0f)] private float touchKeyInterval = 0.1f;
+    /// <summary>
+    /// Пределы позиционных звуков из настроек проекта.
+    /// </summary>
+    /// <remarks>
+    /// Не в полях менеджера: подбирать их приходится на устройстве, и лезть ради этого в префаб
+    /// или в код не нужно.
+    /// </remarks>
+    private static SoundLimitSettings Limits
+    {
+        get
+        {
+            PRSDKSettings settings = PRUnitySDK.Settings;
+            return settings != null && settings.SoundLimits != null ? settings.SoundLimits : DefaultLimits;
+        }
+    }
 
     /// <summary>
     /// Когда какой клип последний раз запускался позиционно, по реальному времени.
@@ -74,6 +65,17 @@ public class SoundManager : MonoBehaviour
     /// Когда звук с каким ключом последний раз запускался, по реальному времени.
     /// </summary>
     private readonly Dictionary<int, float> positionalKeyTimes = new();
+
+    /// <summary>
+    /// С какого числа записей чистится <see cref="positionalKeyTimes"/>.
+    /// </summary>
+    /// <remarks>
+    /// Ключом часто служит <c>GetInstanceID()</c> объекта, а объекты приходят и уходят: без чистки
+    /// словарь рос бы всю сессию. Запись старше промежутка уже ни на что не влияет.
+    /// </remarks>
+    private const int KeyTimesPruneThreshold = 256;
+
+    private readonly List<int> staleKeys = new();
 
     /// <summary>
     /// С каким ключом источник позиционного пула запускался последний раз; без записи или ноль - без ключа.
@@ -279,14 +281,19 @@ public class SoundManager : MonoBehaviour
     /// </remarks>
     /// <param name="clip">Клип, который собираются играть: одинаковые клипы прореживаются.</param>
     /// <param name="limitKey">Ключ источника шума; ноль - звук без ключа, для него действует только общий предел.</param>
+    /// <param name="important">
+    /// Важный звук: ему доступен запас голосов сверх общего предела. Одинаковые клипы прореживаются
+    /// и у важных - второй такой же звук в тот же миг ничего не добавляет.
+    /// </param>
     /// <param name="source">Свободный источник.</param>
     /// <returns><c>false</c>, если звук нужно пропустить.</returns>
-    private bool TryGetPositionalSource(AudioClip clip, int limitKey, out AudioSource source)
+    private bool TryGetPositionalSource(AudioClip clip, int limitKey, bool important, out AudioSource source)
     {
         source = null;
 
         bool touch = IsTouchDevice();
-        float clipInterval = touch ? touchPositionalSameClipInterval : positionalSameClipInterval;
+        SoundLimitSettings limits = Limits;
+        float clipInterval = limits.GetSameClipInterval(touch);
         float now = Time.unscaledTime;
 
         if (clip != null && clipInterval > 0f &&
@@ -297,15 +304,20 @@ public class SoundManager : MonoBehaviour
 
         if (keyed)
         {
-            float interval = touch ? touchKeyInterval : keyInterval;
+            float interval = limits.GetKeyInterval(touch);
 
             if (interval > 0f && positionalKeyTimes.TryGetValue(limitKey, out float lastKeyTime) &&
                 now - lastKeyTime < interval)
                 return false;
         }
 
-        int limit = touch ? touchPositionalVoiceLimit : positionalVoiceLimit;
-        int keyLimit = keyed ? (touch ? touchKeyVoiceLimit : keyVoiceLimit) : 0;
+        int limit = limits.GetVoiceLimit(touch);
+
+        // Ноль - «без предела», и запас его не меняет.
+        if (important && limit > 0)
+            limit += limits.GetImportantVoiceReserve(touch);
+
+        int keyLimit = keyed ? limits.GetKeyVoiceLimit(touch) : 0;
         int playing = 0;
         int playingWithKey = 0;
 
@@ -344,9 +356,32 @@ public class SoundManager : MonoBehaviour
             positionalClipTimes[clip] = now;
 
         if (keyed)
+        {
+            PruneKeyTimes(now, limits.GetKeyInterval(touch));
             positionalKeyTimes[limitKey] = now;
+        }
 
         return true;
+    }
+
+    /// <summary>
+    /// Убирает записи о ключах, которые давно не звучали.
+    /// </summary>
+    private void PruneKeyTimes(float now, float interval)
+    {
+        if (positionalKeyTimes.Count < KeyTimesPruneThreshold)
+            return;
+
+        staleKeys.Clear();
+
+        foreach (KeyValuePair<int, float> pair in positionalKeyTimes)
+        {
+            if (now - pair.Value >= interval)
+                staleKeys.Add(pair.Key);
+        }
+
+        foreach (int key in staleKeys)
+            positionalKeyTimes.Remove(key);
     }
 
     /// <summary>
@@ -433,10 +468,15 @@ public class SoundManager : MonoBehaviour
     /// Свой у объекта - его <c>GetInstanceID()</c>, общий у группы - <see cref="GetLimitKey"/>.
     /// Ноль - без ключа: действует только общий предел позиционных голосов.
     /// </param>
+    /// <param name="important">
+    /// Звук, который нельзя терять: смерть цели, награда. Ему доступен запас голосов сверх общего предела
+    /// (<see cref="SoundLimitSettings"/>), поэтому занятые ударами голоса его не глушат. Гарантии нет и тут:
+    /// кончился запас либо такой же клип только что прозвучал - звук пропускается.
+    /// </param>
     public void PlaySoundEffectAtPoint(AudioClip sound, Vector3 position, Vector2? randomPitch = null, float volume = 1f,
-        int limitKey = 0)
+        int limitKey = 0, bool important = false)
     {
-        if (IsMute() || sound == null || !TryGetPositionalSource(sound, limitKey, out AudioSource source))
+        if (IsMute() || sound == null || !TryGetPositionalSource(sound, limitKey, important, out AudioSource source))
             return;
 
         source.transform.position = position;
@@ -463,7 +503,7 @@ public class SoundManager : MonoBehaviour
 
     public void PlayClipAtPoint(AudioClip sound, Vector3 soundPosition, float volume)
     {
-        if (IsMute() || sound == null || !TryGetPositionalSource(sound, 0, out AudioSource source))
+        if (IsMute() || sound == null || !TryGetPositionalSource(sound, 0, false, out AudioSource source))
             return;
 
         source.transform.position = soundPosition;
@@ -517,7 +557,7 @@ public class SoundManager : MonoBehaviour
         {
             AudioClip positionalClip = audioCollection.AudioClips[UnityEngine.Random.Range(0, audioCollection.AudioClips.Count)];
 
-            if (!TryGetPositionalSource(positionalClip, 0, out AudioSource positionalSource))
+            if (!TryGetPositionalSource(positionalClip, 0, false, out AudioSource positionalSource))
                 return;
 
             positionalSource.transform.position = position.Value;

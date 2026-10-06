@@ -3,6 +3,7 @@
 /// <summary>
 /// Предоставляет набор правил для характеристик (stat rules).
 /// </summary>
+[ReflectionContract]
 public interface IStatRuleProvider 
 {
     /// <summary>

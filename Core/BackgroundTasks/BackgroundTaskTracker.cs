@@ -231,7 +231,10 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable
         Type[] assemblyTypes;
         try
         {
-            assemblyTypes = typeof(IBackgroundTask).Assembly.GetTypes();
+            // Список, собранный при сборке билда, избавляет от перебора всей сборки; без него — перебор.
+            assemblyTypes = ReflectionTypeRegistry.TryGetTypes(typeof(AutoBackgroundTaskAttribute), out IReadOnlyList<Type> listed)
+                ? listed.ToArray()
+                : typeof(IBackgroundTask).Assembly.GetTypes();
         }
         catch (ReflectionTypeLoadException exception)
         {
