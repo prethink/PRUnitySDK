@@ -166,6 +166,12 @@ vipManager.AddTime(TimeSpan.FromDays(7));   // продлит активный V
 
 ### Сервис
 
+Награду можно выдать навсегда: `TimeLimitedRewardService.SetPermanent(key)` (у наследника базы —
+`SetPermanent(name)`). Бессрочная — та же временная с предельной датой окончания
+(`PermanentEndTime`); узнать её можно через `TimeLimitedRewardService.IsPermanent(endTime)`.
+`AddTime` бессрочную не меняет. Тот, кто показывает срок игроку, должен проверять её сам:
+пересчёт предельной даты в местное время бросает исключение.
+
 `TimeLimitedRewardService` работает с ключами напрямую и умеет то, чего не было раньше:
 
 | Метод | Назначение |

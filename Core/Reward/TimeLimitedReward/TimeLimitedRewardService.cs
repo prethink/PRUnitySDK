@@ -17,6 +17,16 @@ public class TimeLimitedRewardService : SingletonProviderBase<TimeLimitedRewardS
 {
     #region Поля и свойства
 
+    /// <summary>
+    /// Момент окончания, которым помечена бессрочная награда.
+    /// </summary>
+    /// <remarks>
+    /// Отдельного признака «навсегда» нет: бессрочная награда — та же временная, только
+    /// срок у неё не наступит. Всё, что умеет проверять и перечислять награды, работает
+    /// с ней без правок.
+    /// </remarks>
+    public static readonly DateTime PermanentEndTime = DateTime.MaxValue;
+
     private readonly ProjectDataMap<string, DateTime> rewards;
 
     public TimeLimitedRewardService()
@@ -29,6 +39,18 @@ public class TimeLimitedRewardService : SingletonProviderBase<TimeLimitedRewardS
     #endregion
 
     #region Чтение
+
+    /// <summary>
+    /// Срок окончания означает «навсегда».
+    /// </summary>
+    /// <remarks>
+    /// По году, а не точным сравнением: сохранение может вернуть дату без последних долей
+    /// секунды, и награда перестала бы узнаваться как бессрочная.
+    /// </remarks>
+    public static bool IsPermanent(DateTime endTime)
+    {
+        return endTime.Year >= PermanentEndTime.Year;
+    }
 
     /// <summary>
     /// Действует ли награда сейчас.
@@ -112,6 +134,11 @@ public class TimeLimitedRewardService : SingletonProviderBase<TimeLimitedRewardS
         // Активная награда продлевается от своего конца, истёкшая - от текущего момента:
         // иначе давно закончившийся бустер вернул бы всё накопленное время.
         var wasActive = IsActive(key, out var currentEndTime);
+
+        // Бессрочную продлевать некуда, а сложение с предельной датой бросило бы исключение.
+        if (wasActive && IsPermanent(currentEndTime))
+            return currentEndTime;
+
         var endTime = (wasActive ? currentEndTime : PRUnitySDK.ServerTime.GetNow()).Add(addTime);
 
         rewards.SetValue(key, endTime);
@@ -144,6 +171,14 @@ public class TimeLimitedRewardService : SingletonProviderBase<TimeLimitedRewardS
 
         if (requiredNotify)
             TimeLimitedRewardEvents.RaiseChanged(key, endTime, wasActive);
+    }
+
+    /// <summary>
+    /// Выдать награду навсегда.
+    /// </summary>
+    public void SetPermanent(string key, bool save = true, bool requiredNotify = true)
+    {
+        SetEndTime(key, PermanentEndTime, save, requiredNotify);
     }
 
     /// <summary>

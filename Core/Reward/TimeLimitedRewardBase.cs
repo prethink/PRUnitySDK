@@ -74,6 +74,14 @@ public abstract class TimeLimitedRewardBase
     }
 
     /// <summary>
+    /// Выдаёт награду с указанным логическим именем навсегда.
+    /// </summary>
+    protected virtual void SetPermanent(string name)
+    {
+        TimeLimitedRewardService.Instance.SetPermanent(GetName(name));
+    }
+
+    /// <summary>
     /// Снимает награду с указанным логическим именем.
     /// </summary>
     protected virtual bool Remove(string name)

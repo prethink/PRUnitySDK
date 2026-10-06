@@ -18,6 +18,24 @@ public static class ConditionDescriptions
     private static readonly Dictionary<Type, Func<ICondition, ConditionDescription>> Custom = new();
 
     /// <summary>
+    /// Описание условия изменилось: тем, кто его показывает, пора перечитать подпись.
+    /// </summary>
+    /// <remarks>
+    /// Обычно подпись условия постоянна, и показывающие читают её один раз. Событие нужно
+    /// условию, чья подпись приходит позже или меняется, — например, цене, которую называет площадка.
+    /// </remarks>
+    public static event Action<ICondition> Changed;
+
+    /// <summary>
+    /// Сообщает, что описание условия изменилось.
+    /// </summary>
+    public static void NotifyChanged(ICondition condition)
+    {
+        if (condition != null)
+            Changed?.Invoke(condition);
+    }
+
+    /// <summary>
     /// Объявляет, как описывать условие своего типа.
     /// </summary>
     /// <remarks>
