@@ -366,6 +366,14 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
     /// <param name="sceneIndex">Индекс сцены в Build Settings.</param>
     public void LoadScene(int sceneIndex)
     {
+        LoadScene(() => SceneManager.LoadSceneAsync(sceneIndex));
+    }
+
+    /// <summary>
+    /// Грузит сцену заданным способом, сохраняя экран и прогресс до завершения загрузки.
+    /// </summary>
+    public void LoadScene(System.Func<AsyncOperation> loadScene)
+    {
         if (titleText != null)
             titleText.SetLocalization(settings.Title);
 
@@ -373,7 +381,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
             descriptionText.SetLocalization(settings.Description);
 
         Begin();
-        StartCoroutine(LoadRoutine(sceneIndex));
+        StartCoroutine(LoadRoutine(loadScene));
     }
 
     private void Begin()
@@ -392,7 +400,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
         ShowPageSpinner();
     }
 
-    private IEnumerator LoadRoutine(int sceneIndex)
+    private IEnumerator LoadRoutine(System.Func<AsyncOperation> loadScene)
     {
         // Экран должен попасть в кадр раньше, чем загрузка займёт главный поток: иначе игрок
         // увидит его уже после того, как ждать стало нечего.
@@ -400,7 +408,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
         yield return null;
 
         float from = Mathf.Max(targetProgress, StartProgress);
-        AsyncOperation load = SceneManager.LoadSceneAsync(sceneIndex);
+        AsyncOperation load = loadScene();
 
         while (!load.isDone)
         {

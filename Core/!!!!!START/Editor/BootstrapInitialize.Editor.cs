@@ -37,11 +37,30 @@ public static class PlayFromBootstrap
 
     private static void OnPlayModeChanged(PlayModeStateChange state)
     {
+        if (state == PlayModeStateChange.EnteredEditMode)
+        {
+            Bootstrap.EditorStartScenePath = string.Empty;
+            return;
+        }
+
         if (state != PlayModeStateChange.ExitingEditMode)
             return;
 
         // Берём сцену с индексом 0 из Build Settings
         var bootstrapPath = SceneUtility.GetScenePathByBuildIndex(0);
+
+        Bootstrap.EditorStartScenePath = string.Empty;
+
+        if (PRUnitySDK.Settings?.Bootstrap?.StartFromEditorScene == true)
+        {
+            var activeScene = SceneManager.GetActiveScene();
+
+            if (activeScene.IsValid() && !string.IsNullOrEmpty(activeScene.path) && activeScene.path != bootstrapPath)
+                Bootstrap.EditorStartScenePath = activeScene.path;
+            else
+                UnityEngine.Debug.LogWarning("[Bootstrap] Откройте сохранённую игровую сцену перед Play. " +
+                                             "Будет использован Game Scene Index.");
+        }
 
         // Устанавливаем её как стартовую
         EditorSceneManager.playModeStartScene =

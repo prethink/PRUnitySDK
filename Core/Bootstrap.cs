@@ -12,6 +12,17 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     /// </summary>
     private static readonly BootstrapSettings DefaultSettings = new();
 
+#if UNITY_EDITOR
+    /// <summary>
+    /// Путь активной сцены перед Play, сохранённый через перезагрузку домена редактора.
+    /// </summary>
+    public static string EditorStartScenePath
+    {
+        get => UnityEditor.SessionState.GetString("PRUnitySDK.Bootstrap.EditorStartScenePath", string.Empty);
+        set => UnityEditor.SessionState.SetString("PRUnitySDK.Bootstrap.EditorStartScenePath", value ?? string.Empty);
+    }
+#endif
+
     /// <summary>
     /// Настройки запуска из настроек проекта.
     /// </summary>
@@ -211,6 +222,25 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         // С экраном загрузки сцена грузится под ним; без него — как раньше, под затемнением.
         if (loadingScreen == null)
             loadingScreen = BootstrapLoadingScreen.TryCreate();
+
+#if UNITY_EDITOR
+        string editorScenePath = EditorStartScenePath;
+
+        if (Settings.StartFromEditorScene && !string.IsNullOrEmpty(editorScenePath))
+        {
+            var parameters = new UnityEngine.SceneManagement.LoadSceneParameters(
+                UnityEngine.SceneManagement.LoadSceneMode.Single);
+
+            if (loadingScreen != null)
+                loadingScreen.LoadScene(() => UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(
+                    editorScenePath, parameters));
+            else
+                SceneChanger.Instance.SceneChange(() => UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
+                    editorScenePath, parameters));
+
+            return;
+        }
+#endif
 
         int gameScene = Settings.GameSceneIndex;
 

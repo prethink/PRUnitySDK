@@ -39,12 +39,19 @@ public class SceneChanger : SingletonProviderBase<SceneChanger>
 
     public void SceneChange(int id)
     {
-        // adManager.PlayFullAd();
+        SceneChange(() => SceneManager.LoadScene(id));
+    }
+
+    /// <summary>
+    /// Выполняет загрузку сцены под настроенным затемнением.
+    /// </summary>
+    public void SceneChange(Action loadScene)
+    {
 
         if (GetSettings().UseFadeOnChange)
-            ScreenFade.Instance.FadeIn(() => StartScene(id));
+            ScreenFade.Instance.FadeIn(() => StartScene(loadScene));
         else
-            StartScene(id);
+            StartScene(loadScene);
     }
 
     private void StartSceneWithLoadingScreen(int id)
@@ -53,9 +60,9 @@ public class SceneChanger : SingletonProviderBase<SceneChanger>
         SceneManager.LoadScene(SceneIds.LOADING_SCENE_INDEX);
     }
 
-    private void StartScene(int id)
+    private void StartScene(Action loadScene)
     {
-        SceneManager.LoadScene(id);
+        loadScene();
 
         if (GetSettings().UseFadeOnChange)
             ScreenFade.Instance.FadeOut();

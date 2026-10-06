@@ -20,6 +20,11 @@ public sealed class BootstrapSettings
     [Tooltip("Индекс игровой сцены в Build Settings: на неё загрузчик переходит, когда SDK готов.")]
     private int gameSceneIndex = 1;
 
+    [SerializeField]
+    [Tooltip("Только в редакторе: после Bootstrap открыть сцену, активную перед нажатием Play. " +
+             "Выключено — открыть Game Scene Index. В билде всегда используется индекс.")]
+    private bool startFromEditorScene;
+
     [Header("Сборка SDK")]
     [SerializeField]
     [Tooltip("Собирать SDK порциями, пропуская между ними кадры: экран загрузки при этом виден с самого начала " +
@@ -57,6 +62,11 @@ public sealed class BootstrapSettings
     /// Индекс игровой сцены в Build Settings.
     /// </summary>
     public int GameSceneIndex => Mathf.Max(0, gameSceneIndex);
+
+    /// <summary>
+    /// После Bootstrap в редакторе открывается сцена, активная перед Play; в билде используется индекс.
+    /// </summary>
+    public bool StartFromEditorScene => startFromEditorScene;
 
     /// <summary>
     /// SDK собирается порциями с кадрами между ними.
