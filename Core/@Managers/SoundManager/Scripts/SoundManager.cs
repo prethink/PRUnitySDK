@@ -84,6 +84,7 @@ public class SoundManager : MonoBehaviour
 
     private readonly List<AudioSource> effectsPool = new();
     private readonly List<AudioSource> positionalEffectsPool = new();
+    private readonly List<AudioSource> unlimitedPositionalEffectsPool = new();
 
     private readonly Dictionary<Guid, AudioSource> loopingEffectSources = new();
     private readonly Dictionary<string, Dictionary<string, AudioSet>> soundPool = new(StringComparer.OrdinalIgnoreCase);
@@ -210,6 +211,12 @@ public class SoundManager : MonoBehaviour
                 source.volume = volume;
         }
 
+        foreach (var source in unlimitedPositionalEffectsPool)
+        {
+            if (source != null)
+                source.volume = volume;
+        }
+
         foreach (var effect in loopingEffectSources.Values)
         {
             if (effect != null)
@@ -268,6 +275,22 @@ public class SoundManager : MonoBehaviour
 
         var newSource = CreatePooledEffectSource();
         effectsPool.Add(newSource);
+        return newSource;
+    }
+
+    /// <summary>
+    /// Источник для эффектов, исключённых из лимитов и счётчиков обычных позиционных звуков.
+    /// </summary>
+    private AudioSource GetFreeUnlimitedPositionalSource()
+    {
+        foreach (var source in unlimitedPositionalEffectsPool)
+        {
+            if (source != null && !source.isPlaying)
+                return source;
+        }
+
+        var newSource = CreatePooledPositionalSource();
+        unlimitedPositionalEffectsPool.Add(newSource);
         return newSource;
     }
 
@@ -473,10 +496,20 @@ public class SoundManager : MonoBehaviour
     /// (<see cref="SoundLimitSettings"/>), поэтому занятые ударами голоса его не глушат. Гарантии нет и тут:
     /// кончился запас либо такой же клип только что прозвучал - звук пропускается.
     /// </param>
+    /// <param name="ignoreLimits">
+    /// Обходит все пределы и интервалы из SoundLimits. Звук играет в отдельном пуле и не занимает
+    /// голоса обычных эффектов; настройки громкости и отключение звука продолжают действовать.
+    /// </param>
     public void PlaySoundEffectAtPoint(AudioClip sound, Vector3 position, Vector2? randomPitch = null, float volume = 1f,
-        int limitKey = 0, bool important = false)
+        int limitKey = 0, bool important = false, bool ignoreLimits = false)
     {
-        if (IsMute() || sound == null || !TryGetPositionalSource(sound, limitKey, important, out AudioSource source))
+        if (IsMute() || sound == null)
+            return;
+
+        AudioSource source;
+        if (ignoreLimits)
+            source = GetFreeUnlimitedPositionalSource();
+        else if (!TryGetPositionalSource(sound, limitKey, important, out source))
             return;
 
         source.transform.position = position;
@@ -679,6 +712,12 @@ public class SoundManager : MonoBehaviour
         }
 
         foreach (var source in positionalEffectsPool)
+        {
+            if (source != null)
+                source.volume = 0;
+        }
+
+        foreach (var source in unlimitedPositionalEffectsPool)
         {
             if (source != null)
                 source.volume = 0;
