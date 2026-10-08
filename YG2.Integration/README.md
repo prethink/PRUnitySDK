@@ -12,7 +12,7 @@
 
 | Раздел | Что подменяет | Модуль YG2 |
 | --- | --- | --- |
-| `Bootstrap.YGPlugin` | SDK собирается после `YG2.onGetSDKData` | ядро плагина |
+| `Bootstrap.YGPlugin` | SDK собирается после `YG2.onGetSDKData`; о готовности игры (`GameReadyAPI`) площадке сообщается, когда убран экран загрузки, — `autoGRA` в настройках YG2 выключен | ядро плагина |
 | `DeviceInfo` | `DeviceInfoBase` | EnvirData |
 | `ServerTime` | `IServerTime` | ServerTime |
 | `Metrics` | `MetricBase` | Metrica |

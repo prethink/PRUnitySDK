@@ -14,6 +14,9 @@ public partial class Bootstrap
     {
         YG2.onGetSDKData += InitializeFromPlatform;
         //TODO:YG2.onDefaultSaves += InitializeSDK;
+
+        // Отписки нет намеренно: загрузчик исчезает вместе со своей сценой раньше сигнала.
+        GameShownSignal.SubscribeOnReady(ReportGameReady);
     }
 
     [MethodHook(MethodHookStage.PostOnDisable)]
@@ -30,6 +33,19 @@ public partial class Bootstrap
     {
         platformLanguageCode = YG2.lang;
         InitializeSDK();
+    }
+
+    /// <summary>
+    /// Сообщает площадке, что игра загружена и игрок может играть.
+    /// </summary>
+    /// <remarks>
+    /// Вручную, а не настройкой плагина <c>autoGRA</c> (она выключена): плагин сообщил бы о готовности
+    /// сразу после своего запуска, ещё до экрана загрузки. Модерация Яндекс Игр проверяет, что после
+    /// этого сообщения игрок уже не ждёт загрузку.
+    /// </remarks>
+    private static void ReportGameReady()
+    {
+        YG2.GameReadyAPI();
     }
 }
 #endif

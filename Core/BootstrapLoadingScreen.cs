@@ -364,15 +364,16 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
     /// Зовут, когда SDK готов: подписи с этого момента живые и следуют за языком игрока.
     /// </remarks>
     /// <param name="sceneIndex">Индекс сцены в Build Settings.</param>
-    public void LoadScene(int sceneIndex)
+    /// <param name="onShown">Вызывается, когда экран убран и игрок видит игру.</param>
+    public void LoadScene(int sceneIndex, System.Action onShown = null)
     {
-        LoadScene(() => SceneManager.LoadSceneAsync(sceneIndex));
+        LoadScene(() => SceneManager.LoadSceneAsync(sceneIndex), onShown);
     }
 
     /// <summary>
     /// Грузит сцену заданным способом, сохраняя экран и прогресс до завершения загрузки.
     /// </summary>
-    public void LoadScene(System.Func<AsyncOperation> loadScene)
+    public void LoadScene(System.Func<AsyncOperation> loadScene, System.Action onShown = null)
     {
         if (titleText != null)
             titleText.SetLocalization(settings.Title);
@@ -381,7 +382,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
             descriptionText.SetLocalization(settings.Description);
 
         Begin();
-        StartCoroutine(LoadRoutine(loadScene));
+        StartCoroutine(LoadRoutine(loadScene, onShown));
     }
 
     private void Begin()
@@ -400,7 +401,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
         ShowPageSpinner();
     }
 
-    private IEnumerator LoadRoutine(System.Func<AsyncOperation> loadScene)
+    private IEnumerator LoadRoutine(System.Func<AsyncOperation> loadScene, System.Action onShown)
     {
         // Экран должен попасть в кадр раньше, чем загрузка займёт главный поток: иначе игрок
         // увидит его уже после того, как ждать стало нечего.
@@ -436,6 +437,8 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
             yield return null;
         }
 
+        // Только теперь игрок может играть: до этого кадра экран ещё перехватывал нажатия.
+        onShown?.Invoke();
         Destroy(gameObject);
     }
 

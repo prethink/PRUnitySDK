@@ -82,6 +82,18 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     /// </remarks>
     public static IReadOnlyList<float> StageStartTimes => stageStartTimes;
 
+    private static readonly ReadySignal gameShownSignal = new("GameShown");
+
+    /// <summary>
+    /// Игра показана игроку: игровая сцена загружена, экран загрузки убран.
+    /// </summary>
+    /// <remarks>
+    /// Статический по той же причине, что и время стадий: загрузчик исчезает вместе со своей сценой
+    /// раньше, чем игра показана. Площадке о готовности игры сообщают по этому сигналу, а не по
+    /// готовности SDK: между ними ещё загрузка сцены под экраном.
+    /// </remarks>
+    public static IReadySignal GameShownSignal => gameShownSignal;
+
     #endregion
 
     #region MonoBehaviour
@@ -93,6 +105,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         BootstrapProbe.TryCreate();
 
         System.Array.Clear(stageStartTimes, 0, stageStartTimes.Length);
+        gameShownSignal.ResetReady();
         SetStage(BootstrapStage.WaitingPlatform);
 
         TryOverrideBootstrap();
@@ -223,6 +236,10 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         if (loadingScreen == null)
             loadingScreen = BootstrapLoadingScreen.TryCreate();
 
+        // С экраном игра показана, когда он убран; без него — как только загружена её сцена.
+        if (loadingScreen == null)
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnGameSceneLoaded;
+
 #if UNITY_EDITOR
         string editorScenePath = EditorStartScenePath;
 
@@ -233,7 +250,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
 
             if (loadingScreen != null)
                 loadingScreen.LoadScene(() => UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(
-                    editorScenePath, parameters));
+                    editorScenePath, parameters), gameShownSignal.SetReady);
             else
                 SceneChanger.Instance.SceneChange(() => UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
                     editorScenePath, parameters));
@@ -245,9 +262,16 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         int gameScene = Settings.GameSceneIndex;
 
         if (loadingScreen != null)
-            loadingScreen.LoadScene(gameScene);
+            loadingScreen.LoadScene(gameScene, gameShownSignal.SetReady);
         else
             SceneChanger.Instance.SceneChange(gameScene);
+    }
+
+    private static void OnGameSceneLoaded(
+        UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnGameSceneLoaded;
+        gameShownSignal.SetReady();
     }
 
     #endregion
