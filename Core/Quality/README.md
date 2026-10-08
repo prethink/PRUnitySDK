@@ -1,6 +1,6 @@
 # Quality
 
-Система качества предметов, похожая на системы редкости из CS, Dota и TF2.
+Система качества предметов. Ниже описан выбор случайного элемента по весам.
 
 ## Weighted random
 
@@ -26,8 +26,8 @@ bool selected = WeightUtils.TryGetRandomIndex(
 ```
 
 Методы возвращают `false`, если коллекция пуста, все веса равны нулю либо сумма весов
-превышает `ulong.MaxValue`. `GetRandomWeight` и `GetRandomWeightIndex` оставлены как
-строгие варианты и в этих случаях выбрасывают `InvalidOperationException`.
+превышает `ulong.MaxValue`. `GetRandomWeight` и `GetRandomWeightIndex` в этих случаях
+выбрасывают `InvalidOperationException`.
 
 Вероятность отдельного веса можно рассчитать через:
 

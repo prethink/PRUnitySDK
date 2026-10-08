@@ -62,9 +62,7 @@ flowchart TD
 partial-частью `PRUnitySDK` с `[MethodHook(MethodHookStage.SDK)]` и попадает в очередь
 по своему `Order` — до контейнеров менеджеров и окон, которые идут следующим шагом.
 
-Фоновые задачи регистрируются до `IsInitialized`, но выполняться начинают только после
-него: трекер сверяется с состоянием SDK на каждом проходе, поэтому первый запуск
-приходится на полностью готовый проект. См.
+Фоновые задачи регистрируются до `IsInitialized`, но запускаются только после него. См.
 [BackgroundTasks](../BackgroundTasks/README.md).
 
 ```csharp
@@ -93,21 +91,19 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 `RegisterService` поддерживается только стандартным `ServiceResolver`. Если resolver
 переопределён интеграцией, регистрация этим методом выбрасывает исключение.
 
-Модули SDK регистрируются через method hooks и `InitializeModuleSDK`. Повторная
-инициализация типа отслеживается в `InitializedTypes`.
+Модули SDK регистрируются через method hooks и `InitializeModuleSDK`. Повторный или рекурсивный
+вызов `InitializeType` / `InitializeManager` для одного типа не запускает initializer снова.
+Тип попадает в `InitializedTypes` только после успеха, поэтому после ошибки операцию можно повторить.
+Повторный запуск всего `InitializeSDK` после ошибки по-прежнему запрещён.
 
-Успешные операции сохраняются в `PRUnitySDK.InitializationHistory` в порядке запуска.
-Каждая запись содержит категорию (`Module`, `Manager`, `Singleton`, `Factory`,
+Успешные операции попадают в `PRUnitySDK.InitializationHistory` в порядке запуска.
+Запись содержит категорию (`Module`, `Manager`, `Singleton`, `Factory`,
 `MonoWindow`, `Notifier` или обычный `Type`), имя, тип контракта, фактический тип реализации и полное время операции в
-миллисекундах. Общие точки
-`InitializeModuleSDK`, `InitializeManager`, `InitializeType`, инициализация core-singleton
-и generic `RegisterFactory` добавляют записи автоматически. Caller возвращает созданный
-экземпляр, поэтому категория и фактическая реализация не указываются вручную. Данные отображаются на вкладке
-`Initialization` окна `PRUnitySDK/Windows/Debug Window` в Play Mode.
-
-`MonoWindowFactoryBase` и `NotifierFactoryBase` автоматически измеряют только первое
-фактическое создание singleton-экземпляра; возврат уже созданного объекта повторную запись
-не добавляет.
+миллисекундах. Записи добавляют `InitializeModuleSDK`, `InitializeManager`, `InitializeType`,
+инициализация core-singleton и generic `RegisterFactory`. `MonoWindowFactoryBase` и
+`NotifierFactoryBase` записывают только первое создание singleton-экземпляра; возврат уже
+созданного объекта записи не добавляет. Данные видны на вкладке `Initialization` окна
+`PRUnitySDK/Windows/Debug Window` в Play Mode.
 
 Например, при Yandex-интеграции модуль хранилища отображается с контрактом
 `IGameDataStorage` и реализацией `YandexGameDataStorager`.
@@ -124,10 +120,9 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 
 1. у активного проекта (`PRSDKProject` через указатель `PRSDKActiveProject`);
 2. если проект не выбран или этой части в нём нет — в `Resources` по
-   `PRUnitySDK.ResourcePaths.CorePath`, как было раньше.
+   `PRUnitySDK.ResourcePaths.CorePath`.
 
-Второй шаг оставлен намеренно: игра, не переходившая на проекты, продолжает работать
-без правок. Подробности о проектах — в [PRUnityData/README.md](../../../PRUnityData/README.md).
+Второй шаг оставлен намеренно: игра без перехода на проекты работает без правок. Подробности о проектах — в [PRUnityData/README.md](../../../PRUnityData/README.md).
 
 Если asset отсутствует:
 
@@ -155,7 +150,7 @@ Enemy enemy = PRUnitySDK.Instantiate(prefab, position, rotation, parent);
 ```
 
 Сейчас facade напрямую делегирует Unity и не добавляет pooling или дополнительную
-регистрацию. Он оставляет единую точку расширения на будущее.
+регистрацию.
 
 ## DataContainer
 
@@ -183,9 +178,3 @@ Enemy enemy = PRUnitySDK.Instantiate(prefab, position, rotation, parent);
   альтернативная ветка закомментирована.
 - Инициализация глобальна и не предоставляет штатного полного reset между Play-сессиями
   без domain reload.
-
-
-Повторный или рекурсивный вызов `InitializeType` / `InitializeManager` для одного типа
-не выполняет initializer ещё раз. Тип попадает в `InitializedTypes` только после успеха;
-исключение освобождает защиту от повторного входа, поэтому отдельную операцию можно повторить.
-Это не меняет запрет повторного запуска всего `InitializeSDK` после ошибки.

@@ -1,5 +1,7 @@
 # Модуль интеграции с YG2 plugin
 
+Модуль связывает PRUnitySDK с YG2 Plugin: устройство, серверное время, метрики, хранилище, флаги и локализация. Для каждого раздела нужен модуль YG2, указанный в его зависимостях.
+
 # Зависимости
 - PRUnitySDK.Core
 - YG2 Plugin - https://max-games.ru/plugin-yg/ | https://assetstore.unity.com/packages/tools/integration/plugin-your-games-unified-api-for-webgl-and-mobile-stores-302343

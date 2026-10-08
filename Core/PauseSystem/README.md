@@ -25,10 +25,9 @@ bool isPaused = pause.IsLogicPaused;
 pause.SetLogicPaused(false, this, isUserAction: true);
 ```
 
-Параметр `executer` сохраняется в `PauseStateEventArgs` и позволяет определить источник
-изменения. Текущая реализация хранит по одному `bool` на каждый вид паузы: это не стек
-запросов. Если две системы установили один вид паузы, снятие паузы одной системой снимет
-его для обеих.
+Параметр `executer` сохраняется в `PauseStateEventArgs` и показывает источник изменения.
+Каждый вид паузы хранит один `bool`, а не стек запросов: если две системы включили один вид
+паузы, снятие одной снимет его для обеих.
 
 ## Получение уведомлений
 
@@ -101,8 +100,7 @@ var deltaTime = PRTime.Instance.RealDeltaTime * PRTimeScale.Instance.Resolve(lay
 animator.Update(deltaTime);
 ```
 
-`PRMonoBehaviour` не вызывает `PRUpdate` во время логической паузы, поэтому анимация
-останавливается сама — снимок скорости не нужен, и затирать нечего.
+На логической паузе анимация останавливается сама: `PRMonoBehaviour` не вызывает `PRUpdate`.
 
 Настройки компонента:
 
@@ -119,11 +117,9 @@ animator.Update(deltaTime);
 
 ### Физика и частицы на паузе
 
-PRMonoBehaviourHost переводит Physics.simulationMode в Script и вызывает
-Physics.Simulate(GameFixedDeltaTime). Логическая пауза обнуляет игровой шаг
-и отключает PRFixedUpdate, поэтому физика под управлением хоста не продвигается.
-Time.timeScale для этого не меняется. RigidbodyTimeScaleDriverBase добавляет
-разницу между темпом отдельного слоя и общим шагом физики.
+Физика под управлением `PRMonoBehaviourHost` на логической паузе не продвигается: пауза
+обнуляет игровой шаг и отключает `PRFixedUpdate`. `Time.timeScale` при этом не меняется.
+`RigidbodyTimeScaleDriverBase` добавляет разницу между темпом слоя и общим шагом физики.
 
 ParticleTimeScaleDriver отключает автоматическое продвижение ParticleSystem
 и вызывает Simulate по PRTime.GameDeltaTime. На каждой дочерней системе нужен

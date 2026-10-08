@@ -43,10 +43,7 @@ IEnumerable<Modifier> modifiers = this.CollectPartialResult<Modifier>(context);
 
 ## Числа без переполнения
 
-`decimal` на переполнении не заворачивается, как целые, а бросает `OverflowException`.
-Для счёта, который копится без предела — опыт, ресурсы, — это означает, что одно
-начисление способно уронить игру, поэтому такой счёт складывают и умножают через
-`NumberExtensions`:
+`decimal` на переполнении бросает `OverflowException`. Счёт, который копится без предела (опыт, ресурсы), складывайте и умножайте через `NumberExtensions`:
 
 ```csharp
 decimal total = current.AddSafe(reward);          // упрётся в decimal.MaxValue
@@ -55,9 +52,7 @@ decimal score = raw.ClampToPositive();            // минус отбрасыв
 long shown = score.ClampToLong();                 // дробная часть отбрасывается
 ```
 
-`AddSafe` и `MultiplySafe` возвращают границу `decimal`, а не бросают исключение: счёт,
-доросший до предела, останавливается, и игрок этого не замечает. Падение на начислении
-заметили бы все.
+`AddSafe` и `MultiplySafe` при переполнении возвращают границу `decimal`, а не бросают исключение: счёт останавливается на пределе, и игрок этого не замечает.
 
 ## Особенности
 

@@ -10,13 +10,7 @@ GameManager game = PRUnitySDK.Managers.Game;
 
 ## Инициализация
 
-`InitializeGameManager()` можно вызывать повторно: после завершённой инициализации метод ничего не делает. Менеджер:
-
-1. запоминает текущий `SynchronizationContext`;
-2. получает `PRUnitySDK.GameDataStorage` и запускает `TryLoad()`;
-3. после `gameDataStorage.ReadySignal` забирает `ProjectData` и `GameSettings`;
-4. для первого запуска применяет значения из `PRUnitySDK.Settings.Default`;
-5. запускает autosave, публикует `GameplayEvents.RaiseGameReady()` и переводит собственный `ReadySignal` в готовое состояние.
+`InitializeGameManager()` можно вызывать повторно: после завершённой инициализации метод ничего не делает. Менеджер получает `PRUnitySDK.GameDataStorage`, запускает `TryLoad()` и после `gameDataStorage.ReadySignal` забирает `ProjectData` и `GameSettings`. Для первого запуска он берёт значения из `PRUnitySDK.Settings.Default`. Затем запускает autosave, публикует `GameplayEvents.RaiseGameReady()` и переводит собственный `ReadySignal` в готовое состояние.
 
 Наличие `PRUnitySDK.Managers.Game` ещё не означает, что сохранённые данные загружены. Код, читающий данные, должен дождаться `ReadySignal`:
 
@@ -40,22 +34,17 @@ PRUnitySDK.Managers.Game.ReadySignal.SubscribeOnReady(() =>
   объект попадает в лог, но не отменяет сохранение остальных;
 - на главном потоке публикует `RaiseBeforeSaveEvent`, обновляет storage, вызывает `Save()` и затем `RaiseSaveEvent`.
 
-Метод имеет сигнатуру `async void`, поэтому вызывающий код не может дождаться его завершения или получить исключение как `Task`. Исключения внутри сохранения логируются через `Debug.LogException`.
+Метод имеет сигнатуру `async void`: дождаться его завершения нельзя. Исключения логируются через `Debug.LogException`.
 
-`SaveProjectData(bool ignoreCooldown)` идёт полным путём — тем же `StartSaveTask()`, — потому
-что часть состояния живёт не в `ProjectData`, а в объектах сцены и попадает туда только
-через `ISaveable.TrySaveData()`. Запись без сбора кладёт на диск копию без них
-и вдобавок сдвигает cooldown, из-за чего автосохранение, которое собрало бы состояние,
-откладывается.
+`SaveProjectData(bool ignoreCooldown)` тоже идёт через `StartSaveTask()`. Часть состояния живёт в объектах сцены и попадает в сохранение только через `ISaveable.TrySaveData()`. Запись без сбора такого состояния теряет его и сдвигает cooldown.
 
-`SaveGameSettingsData()` по-прежнему передаёт в storage только настройки: они ни от каких
-объектов сцены не зависят.
+`SaveGameSettingsData()` передаёт в storage только настройки: от объектов сцены они не зависят.
 
 Все три пути обновляют диагностику менеджера. `SaveState` принимает значения `NotStarted`, `Saving`, `Succeeded` и `Failed`; `HasLoadedSave` сообщает, был ли при запуске успешно загружен существующий save. Стандартные storage сохраняют дату создания в `PRSaveData.SaveDate`, а дату записи — в `UpdateDate`, поэтому `SaveCreationTimeUtc` и `LastSaveTimeUtc` восстанавливаются после перезапуска. Для custom storage метаданные доступны через необязательный `IGameDataStorageSaveInfo`.
 
-`CanStartSave()` проверяет параллельное сохранение и `SaveCooldownSeconds`, не изменяя состояние таймера. `SaveCooldownRemainingSeconds` отсчитывается от последней успешной save-операции и позволяет показать оставшееся время в UI. Обычный `StartSaveTask()` использует ту же проверку; overload с `isUserExecuter: true` по-прежнему явно обходит cooldown. Одновременные операции отображаются как `Saving`, пока не завершится последняя из них. Для платформенного storage `Succeeded` означает отсутствие синхронной ошибки при передаче данных, а не подтверждение удалённой cloud-записи: текущий `IGameDataStorage` не предоставляет такой callback.
+`CanStartSave()` проверяет параллельное сохранение и `SaveCooldownSeconds`, не меняя таймер. `SaveCooldownRemainingSeconds` отсчитывается от последней успешной save-операции и подходит для UI. Обычный `StartSaveTask()` использует ту же проверку; overload с `isUserExecuter: true` обходит cooldown. Пока выполняется хотя бы одна операция, `SaveState` равен `Saving`. Для платформенного storage `Succeeded` означает отсутствие синхронной ошибки при передаче данных, а не подтверждение cloud-записи: `IGameDataStorage` такого callback не даёт.
 
-Autosave включается настройкой `GameStorage.EnabledAutoSave` и ждёт `AutoSaveSeconds` через `WaitForSeconds`.
+Autosave включается настройкой `GameStorage.EnabledAutoSave` и ждёт `AutoSaveSeconds`.
 
 ## Публичный API
 

@@ -55,8 +55,7 @@ Unity OnTriggerEnter
 └── registeredLink.InvokeOnTriggerEnter(...)
 ```
 
-Получатели должны наследоваться от `PRMonoBehaviour`. Делегирование проходит через
-публичные invoke-методы базового класса, поэтому сохраняются его проверки паузы и
+Получатели должны наследоваться от `PRMonoBehaviour`: так работают его проверки паузы и
 `DisableMethodsAttribute`.
 
 ## CollisionProxy
@@ -67,7 +66,7 @@ Unity OnTriggerEnter
 - `OnCollisionStayEvent`;
 - `OnCollisionEnterExitEvent` — событие выхода из столкновения.
 
-Последнее имя исторически содержит лишнее `Enter`; при переименовании следует использовать
+Имя `OnCollisionEnterExitEvent` содержит лишнее `Enter`. При переименовании используйте
 `FormerlySerializedAs`, чтобы сохранить UnityEvent-ссылки в prefab'ах и сценах.
 
 ## PointerProxy
