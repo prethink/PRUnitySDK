@@ -437,7 +437,11 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
             yield return null;
         }
 
-        // Только теперь игрок может играть: до этого кадра экран ещё перехватывал нажатия.
+        // Только теперь игрок может играть. Нажатия экран отпускает сам: Destroy сработает
+        // лишь в конце кадра, а сигнал уходит сейчас.
+        if (group != null)
+            group.blocksRaycasts = false;
+
         onShown?.Invoke();
         Destroy(gameObject);
     }

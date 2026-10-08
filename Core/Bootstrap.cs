@@ -236,10 +236,6 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         if (loadingScreen == null)
             loadingScreen = BootstrapLoadingScreen.TryCreate();
 
-        // С экраном игра показана, когда он убран; без него — как только загружена её сцена.
-        if (loadingScreen == null)
-            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnGameSceneLoaded;
-
 #if UNITY_EDITOR
         string editorScenePath = EditorStartScenePath;
 
@@ -253,7 +249,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
                     editorScenePath, parameters), gameShownSignal.SetReady);
             else
                 SceneChanger.Instance.SceneChange(() => UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
-                    editorScenePath, parameters));
+                    editorScenePath, parameters), gameShownSignal.SetReady);
 
             return;
         }
@@ -264,14 +260,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         if (loadingScreen != null)
             loadingScreen.LoadScene(gameScene, gameShownSignal.SetReady);
         else
-            SceneChanger.Instance.SceneChange(gameScene);
-    }
-
-    private static void OnGameSceneLoaded(
-        UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
-    {
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnGameSceneLoaded;
-        gameShownSignal.SetReady();
+            SceneChanger.Instance.SceneChange(gameScene, gameShownSignal.SetReady);
     }
 
     #endregion
