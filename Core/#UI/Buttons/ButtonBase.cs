@@ -89,7 +89,7 @@ public class ButtonBase : PRMonoBehaviour
         if (string.IsNullOrEmpty(metricKey))
             return;
 
-        PRUnitySDK.Metric.Send($"button", "click", metricKey);
+        PRUnitySDK.Metric?.Send("button", "click", metricKey);
     }
 
     /// <summary>

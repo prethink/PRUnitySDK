@@ -16,7 +16,11 @@ public class LangAction : ActionBase
 
     protected override ActionResult Action()
     {
-        PRUnitySDK.LanguageManager.SwitchLang(LocalizationUtils.GetLanguageCode(lang));
+        string code = LocalizationUtils.GetLanguageCode(lang);
+        PRUnitySDK.LanguageManager.SwitchLang(code);
+
+        // Только выбор игрока: язык, который площадка подставила при запуске, сюда не попадает.
+        PRUnitySDK.Metric?.SendBranch("settings", "language", code);
         return ActionResult.Success;
     }
 

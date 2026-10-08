@@ -27,7 +27,18 @@ public class YandexServerTime : IServerTime
     /// </summary>
     private const double ResyncSeconds = 60d;
 
-    private readonly Stopwatch sinceSync = new();
+    /// <summary>
+    /// Через сколько повторить сверку, пока площадка не ответила ни разу, секунды.
+    /// </summary>
+    /// <remarks>
+    /// Короткий: до первой сверки время берётся с часов устройства, а их игрок переводит сам.
+    /// </remarks>
+    private const double RetrySeconds = 1d;
+
+    /// <summary>
+    /// Время с последней попытки сверки — удачной или нет.
+    /// </summary>
+    private readonly Stopwatch sinceAttempt = new();
     private DateTime syncedTime;
     private bool synced;
 
@@ -36,12 +47,14 @@ public class YandexServerTime : IServerTime
         if (PRUnitySDK.Settings.Project.ReleaseType != ReleaseType.Release)
             return DateTime.Now;
 
-        if (!synced || sinceSync.Elapsed.TotalSeconds >= ResyncSeconds)
+        double interval = synced ? ResyncSeconds : RetrySeconds;
+
+        if (!sinceAttempt.IsRunning || sinceAttempt.Elapsed.TotalSeconds >= interval)
             Sync();
 
         // Площадка ещё не ответила: часы устройства в той же шкале, что и её время, — в UTC.
         // Местное время здесь сдвинуло бы дату на часовой пояс игрока.
-        return synced ? syncedTime + sinceSync.Elapsed : DateTime.UtcNow;
+        return synced ? syncedTime + sinceAttempt.Elapsed : DateTime.UtcNow;
     }
 
     /// <summary>
@@ -73,16 +86,16 @@ public class YandexServerTime : IServerTime
         {
             // Уже сверенное время продолжает идти по секундомеру; следующая попытка — через минуту.
             if (synced)
-            {
-                syncedTime += sinceSync.Elapsed;
-                sinceSync.Restart();
-            }
+                syncedTime += sinceAttempt.Elapsed;
 
+            // Без первой сверки секундомер только откладывает повтор: иначе каждый запрос времени
+            // обращался бы к площадке заново, а таймеры в интерфейсе спрашивают его каждый кадр.
+            sinceAttempt.Restart();
             return;
         }
 
         syncedTime = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).DateTime;
-        sinceSync.Restart();
+        sinceAttempt.Restart();
         synced = true;
     }
 }

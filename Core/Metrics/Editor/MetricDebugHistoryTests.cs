@@ -36,7 +36,7 @@ public class MetricDebugHistoryTests
         Assert.AreEqual(3, metric.Calls);
         Assert.AreEqual(3, entries.Length);
         Assert.AreEqual("{}", entries[0].ParametersJson);
-        Assert.AreEqual("5", (string)JObject.Parse(entries[1].ParametersJson)["level"]);
+        Assert.AreEqual("5", (string)JObject.Parse(entries[1].ParametersJson)["path"]["level"]);
         Assert.AreEqual("race", (string)JObject.Parse(entries[2].ParametersJson)["mode"]);
         Assert.IsTrue(entries.All(entry => !entry.Ignored));
     }

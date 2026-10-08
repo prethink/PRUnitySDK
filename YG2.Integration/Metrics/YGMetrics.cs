@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using YG;
 
 /// <summary>
@@ -79,9 +80,44 @@ public class YGMetrics : MetricBase
             : GoalPrefix + eventName;
     }
 
+    /// <summary>
+    /// Готовит ключ к сериализатору плагина: тот пишет ключ в JSON как есть, без экранирования.
+    /// </summary>
+    /// <remarks>
+    /// Ключами бывают названия из ассетов (кейс в <c>case_open</c>), и кавычка в названии ломала бы
+    /// JSON: JS-часть плагина такую цель не отправляет вовсе. В журнале редактора ключ виден
+    /// уже экранированным.
+    /// </remarks>
+    private static string EscapeKey(string key)
+    {
+        return string.IsNullOrEmpty(key) ? key : Clean(key).Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
+
+    /// <summary>
+    /// Заменяет управляющие символы пробелами: перенос строки внутри строки плагин не экранирует.
+    /// </summary>
+    private static string Clean(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        StringBuilder builder = null;
+
+        for (int index = 0; index < text.Length; index++)
+        {
+            if (!char.IsControl(text[index]))
+                continue;
+
+            builder ??= new StringBuilder(text);
+            builder[index] = ' ';
+        }
+
+        return builder != null ? builder.ToString() : text;
+    }
+
     private static void Add(Dictionary<string, object> tree, object key, object value)
     {
-        string name = key?.ToString();
+        string name = EscapeKey(key?.ToString());
         object normalized = Normalize(value);
 
         if (!string.IsNullOrEmpty(name) && normalized != null)
@@ -95,7 +131,9 @@ public class YGMetrics : MetricBase
         {
             case null:
                 return null;
-            case string or bool or int or float or double:
+            case string text:
+                return Clean(text);
+            case bool or int or float or double:
                 return value;
             case Enum enumValue:
                 return enumValue.ToString();
