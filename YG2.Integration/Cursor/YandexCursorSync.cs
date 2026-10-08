@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿#if !PRSDK_DISABLE_YG2
+using System.Threading;
 using UnityEngine;
 using YG;
 
@@ -53,3 +54,4 @@ public static class YandexCursorSync
         CursorManager.Instance.Reapply();
     }
 }
+#endif

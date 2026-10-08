@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 namespace YG
 {
     public partial class SavesYG
@@ -6,3 +7,4 @@ namespace YG
         public PRSaveData PRSaveData;
     }
 }
+#endif

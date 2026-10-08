@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using YG;
 
 public class YandexDeviceInfo : DeviceInfoBase
@@ -27,3 +28,4 @@ public class YandexDeviceInfo : DeviceInfoBase
         return YG2.envir.isTV;
     }
 }
+#endif

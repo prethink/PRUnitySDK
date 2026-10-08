@@ -3,8 +3,8 @@ using System.Linq;
 using UnityEditor;
 
 /// <summary>
-/// Проверка модулей: манифесты, обёртки файлов, отключённые обязательные модули
-/// и включённые модули с отключёнными зависимостями.
+/// Проверка модулей: манифесты, обёртки файлов, отключённые обязательные модули,
+/// включённые модули с отключёнными зависимостями, слоты и сторонние плагины.
 /// </summary>
 public sealed class PRModuleValidator : IProjectValidator
 {
@@ -24,8 +24,35 @@ public sealed class PRModuleValidator : IProjectValidator
                 group.First().Manifest);
         }
 
+        var crowdedSlots = modules
+            .Where(module => module.Slot.Length > 0 && !disabled.Contains(module.Id))
+            .GroupBy(module => module.Slot, System.StringComparer.OrdinalIgnoreCase)
+            .Where(slot => slot.Count() > 1);
+
+        foreach (IGrouping<string, PRModuleInfo> slot in crowdedSlots)
+        {
+            yield return new ProjectValidationIssue(MessageType.Error,
+                $"В слоте «{slot.Key}» включено несколько модулей: {string.Join(", ", slot.Select(module => module.DisplayName))}. " +
+                "Оставьте один в окне модулей.", slot.First().Manifest);
+        }
+
+        foreach (PRModulePart part in PRModuleCatalog.FindOrphanParts(modules))
+        {
+            yield return new ProjectValidationIssue(MessageType.Warning,
+                $"У части модуля {part.FolderPath} не задан модуль: её скрипты не принадлежат никому.", part);
+        }
+
         foreach (PRModuleInfo module in modules)
         {
+            string pluginFolder = module.Manifest.PluginFolder;
+
+            if (pluginFolder.Length > 0 && !disabled.Contains(module.Id) && !AssetDatabase.IsValidFolder(pluginFolder))
+            {
+                yield return new ProjectValidationIssue(MessageType.Error,
+                    $"Модуль {module.DisplayName} включён, а плагина {pluginFolder} нет в проекте. " +
+                    "Установите плагин или отключите модуль в окне модулей.", module.Manifest);
+            }
+
             if (!PRModuleManifest.IsValidId(module.Id))
             {
                 yield return new ProjectValidationIssue(MessageType.Error,

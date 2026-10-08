@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Yan definition", menuName = "PRUnitySDK/Create/Definition/Resources/Yan currency")]
@@ -7,3 +8,4 @@ public class YandexCurrencyDefinition : ResourceItemDefinitionBase
 
     public override string Id => Yan.Value;
 }
+#endif

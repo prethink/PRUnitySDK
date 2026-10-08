@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using YG;
 
 /// <summary>
@@ -21,3 +22,4 @@ public class YandexRemoteFlags : IRemoteFlags
         return defaults.TryGetString(name, out value);
     }
 }
+#endif

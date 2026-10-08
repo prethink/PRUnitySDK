@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using YG;
 
 public partial class Bootstrap
@@ -31,3 +32,4 @@ public partial class Bootstrap
         InitializeSDK();
     }
 }
+#endif

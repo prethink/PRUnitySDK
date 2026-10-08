@@ -23,7 +23,8 @@ public static class PRModuleCatalog
     /// Собирает все модули проекта.
     /// </summary>
     /// <remarks>
-    /// Скрипт принадлежит модулю с самой глубокой папкой, в которой он лежит.
+    /// Скрипт принадлежит модулю с самой глубокой папкой, в которой он лежит;
+    /// папки, объявленные через <see cref="PRModulePart"/>, считаются наравне с основной.
     /// Пустой идентификатор в манифесте заполняется по имени папки и сохраняется.
     /// </remarks>
     public static List<PRModuleInfo> Load()
@@ -51,6 +52,7 @@ public static class PRModuleCatalog
         foreach (PRModuleInfo module in modules)
             module.Parent = modules.FirstOrDefault(other => other != module && IsInside(module.Folder, other.Folder));
 
+        AttachParts(modules);
         CollectScripts(modules);
         LinkDependencies(modules);
 
@@ -65,14 +67,30 @@ public static class PRModuleCatalog
     public static PRModuleInfo FindOwner(IEnumerable<PRModuleInfo> modules, string assetPath)
     {
         PRModuleInfo owner = null;
+        int ownerFolderLength = -1;
 
         foreach (PRModuleInfo module in modules)
         {
-            if (IsInside(assetPath, module.Folder) && (owner == null || module.Folder.Length > owner.Folder.Length))
+            foreach (string folder in module.AllFolders)
+            {
+                if (!IsInside(assetPath, folder) || folder.Length <= ownerFolderLength)
+                    continue;
+
                 owner = module;
+                ownerFolderLength = folder.Length;
+            }
         }
 
         return owner;
+    }
+
+    /// <summary>
+    /// Части модулей, у которых не задан модуль или его манифеста нет в проекте.
+    /// </summary>
+    public static List<PRModulePart> FindOrphanParts(IEnumerable<PRModuleInfo> modules)
+    {
+        var manifests = new HashSet<PRModuleManifest>(modules.Select(module => module.Manifest));
+        return LoadParts().Where(part => part.Module == null || !manifests.Contains(part.Module)).ToList();
     }
 
     /// <summary>
@@ -112,13 +130,43 @@ public static class PRModuleCatalog
         }
     }
 
+    private static List<PRModulePart> LoadParts()
+    {
+        return AssetDatabase.FindAssets("t:" + nameof(PRModulePart))
+            .Select(guid => AssetDatabase.LoadAssetAtPath<PRModulePart>(AssetDatabase.GUIDToAssetPath(guid)))
+            .Where(part => part != null)
+            .ToList();
+    }
+
+    private static void AttachParts(List<PRModuleInfo> modules)
+    {
+        var byManifest = modules.ToDictionary(module => module.Manifest);
+
+        foreach (PRModulePart part in LoadParts())
+        {
+            string folder = part.FolderPath;
+
+            if (part.Module == null || string.IsNullOrEmpty(folder) || !byManifest.TryGetValue(part.Module, out PRModuleInfo module))
+                continue;
+
+            if (folder != module.Folder && !module.PartFolders.Contains(folder))
+                module.PartFolders.Add(folder);
+        }
+
+        foreach (PRModuleInfo module in modules)
+            module.PartFolders.Sort(StringComparer.OrdinalIgnoreCase);
+    }
+
     private static void CollectScripts(List<PRModuleInfo> modules)
     {
         foreach (PRModuleInfo module in modules)
         {
-            foreach (string script in EnumerateScripts(module.Folder))
+            // Часть может лежать внутри основной папки своего же модуля: один файл дважды не считается.
+            var seen = new HashSet<string>();
+
+            foreach (string script in module.AllFolders.SelectMany(EnumerateScripts))
             {
-                if (FindOwner(modules, script) != module)
+                if (!seen.Add(script) || FindOwner(modules, script) != module)
                     continue;
 
                 module.Scripts.Add(script);

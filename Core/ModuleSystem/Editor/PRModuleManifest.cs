@@ -38,6 +38,16 @@ public sealed class PRModuleManifest : ScriptableObject
     [Tooltip("Модули, без которых этот не компилируется. Модуль в папке другого модуля зависит от него и без этого списка.")]
     [SerializeField] private List<PRModuleManifest> dependencies = new();
 
+    [Header("Интеграция")]
+    [Tooltip("Слот интеграции, например «Площадка». Из модулей с одним слотом включён не больше чем один. Пусто — модуль ни с кем не конкурирует.")]
+    [SerializeField] private string slot;
+
+    [Tooltip("Папка стороннего плагина, без которого модуль не компилируется, например Assets/PluginYourGames. Пусто — плагин не нужен.")]
+    [SerializeField] private string pluginFolder;
+
+    [Tooltip("Текстовый файл плагина со списком его установленных частей, по одной в строке. Окно модулей показывает его в карточке модуля.")]
+    [SerializeField] private string pluginModulesFile;
+
     /// <summary>
     /// Идентификатор модуля: заглавные латинские буквы, цифры и подчёркивание.
     /// </summary>
@@ -67,6 +77,21 @@ public sealed class PRModuleManifest : ScriptableObject
     /// Явно указанные зависимости. Элементы бывают <c>null</c>, если ссылка потеряна.
     /// </summary>
     public IReadOnlyList<PRModuleManifest> Dependencies => dependencies;
+
+    /// <summary>
+    /// Слот взаимоисключения: из модулей с одним слотом включён не больше чем один. Пустая строка — слота нет.
+    /// </summary>
+    public string Slot => string.IsNullOrWhiteSpace(slot) ? string.Empty : slot.Trim();
+
+    /// <summary>
+    /// Папка стороннего плагина, нужного модулю; пустая строка — плагин не нужен.
+    /// </summary>
+    public string PluginFolder => string.IsNullOrWhiteSpace(pluginFolder) ? string.Empty : pluginFolder.Trim().TrimEnd('/');
+
+    /// <summary>
+    /// Файл плагина со списком его установленных частей; пустая строка — списка нет.
+    /// </summary>
+    public string PluginModulesFile => string.IsNullOrWhiteSpace(pluginModulesFile) ? string.Empty : pluginModulesFile.Trim();
 
     /// <summary>
     /// Define-символ, который вырезает модуль из сборки.

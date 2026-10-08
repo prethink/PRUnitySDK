@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using System;
 using System.Diagnostics;
 using YG;
@@ -85,3 +86,4 @@ public class YandexServerTime : IServerTime
         synced = true;
     }
 }
+#endif

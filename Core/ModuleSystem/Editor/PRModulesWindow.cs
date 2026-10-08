@@ -11,12 +11,18 @@ using UnityEngine;
 /// <remarks>
 /// Галки копятся до кнопки «Применить»: каждая смена define-символов пересобирает
 /// весь проект, поэтому переключать модули по одному накладно.
+/// Модули группы <see cref="PRModuleGroup.Integrations"/> идут отдельной вкладкой;
+/// те из них, у кого общий слот, выбираются переключателем — включён один или ни одного.
 /// </remarks>
 public sealed class PRModulesWindow : ExtendedEditorWindow
 {
     private const string MenuPath = "PRUnitySDK/Модули";
 
     private const string CoreFolder = "Assets/PRUnitySDK/Core";
+
+    private const int IntegrationsTab = 1;
+
+    private static readonly string[] TabTitles = { "Модули", "Интеграции" };
 
     private List<PRModuleInfo> modules = new();
 
@@ -30,13 +36,22 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
     private List<string> coreParts = new();
 
+    private Dictionary<PRModuleInfo, List<string>> pluginModules = new();
+
+    private HashSet<PRModuleInfo> missingPlugins = new();
+
     private readonly HashSet<string> collapsedSections = new();
 
     private string search = string.Empty;
 
+    // Сериализуется, чтобы после «Применить» и пересборки окно осталось на той же вкладке.
+    [SerializeField] private int tab;
+
     private Vector2 scroll;
 
     private GUIStyle wrappedMiniLabel;
+
+    private GUIStyle radioLabel;
 
     [MenuItem(MenuPath, false, 1)]
     private static void Open()
@@ -79,24 +94,49 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                 .OrderBy(name => name.TrimStart('#', '@', '!'), StringComparer.OrdinalIgnoreCase)
                 .ToList()
             : new List<string>();
+
+        pluginModules = modules
+            .Where(module => File.Exists(module.Manifest.PluginModulesFile))
+            .ToDictionary(module => module, module => ReadPluginModules(module.Manifest.PluginModulesFile));
+
+        missingPlugins = new HashSet<PRModuleInfo>(modules.Where(module =>
+            module.Manifest.PluginFolder.Length > 0 && !AssetDatabase.IsValidFolder(module.Manifest.PluginFolder)));
+    }
+
+    private static List<string> ReadPluginModules(string path)
+    {
+        return File.ReadAllLines(path)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0)
+            .ToList();
     }
 
     private void OnGUI()
     {
         wrappedMiniLabel ??= new GUIStyle(EditorStyles.miniLabel) { wordWrap = true };
+        radioLabel ??= new GUIStyle(EditorStyles.radioButton) { fontStyle = FontStyle.Bold };
 
         CreateHorizontalToolBar(DrawToolbar);
+        tab = GUILayout.Toolbar(tab, TabTitles);
         DrawProjectWarnings();
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
 
+        if (tab == IntegrationsTab)
+            DrawIntegrations();
+        else
+            DrawLayers();
+
+        EditorGUILayout.EndScrollView();
+    }
+
+    private void DrawLayers()
+    {
         DrawLayer(PRModuleLayer.Public, "Публичная часть", DrawCore);
         DrawLayer(PRModuleLayer.Private, "Приватная часть", null);
 
-        if (modules.Any(module => module.Layer == PRModuleLayer.Project))
+        if (modules.Any(module => module.Layer == PRModuleLayer.Project && module.Manifest.Group != PRModuleGroup.Integrations))
             DrawLayer(PRModuleLayer.Project, "Проект", null);
-
-        EditorGUILayout.EndScrollView();
     }
 
     private void DrawToolbar()
@@ -159,6 +199,9 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         foreach (PRModuleGroup group in Enum.GetValues(typeof(PRModuleGroup)))
         {
+            if (group == PRModuleGroup.Integrations)
+                continue;
+
             var groupModules = modules
                 .Where(module => module.Layer == layer && module.Manifest.Group == group && MatchesSearch(module))
                 .ToList();
@@ -175,6 +218,86 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         EditorGUI.indentLevel--;
         EditorGUILayout.Space();
+    }
+
+    private void DrawIntegrations()
+    {
+        var integrations = modules.Where(module => module.Manifest.Group == PRModuleGroup.Integrations).ToList();
+
+        if (integrations.Count == 0)
+        {
+            EditorGUILayout.HelpBox(
+                "Интеграций в проекте нет. Интеграция — модуль, у которого в манифесте выбрана группа «Интеграции».",
+                MessageType.Info);
+            return;
+        }
+
+        var slots = integrations
+            .Where(module => module.Slot.Length > 0)
+            .GroupBy(module => module.Slot, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(slot => slot.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (IGrouping<string, PRModuleInfo> slot in slots)
+            DrawSlot(slot.Key, slot.ToList());
+
+        var withoutSlot = integrations.Where(module => module.Slot.Length == 0 && MatchesSearch(module)).ToList();
+        if (withoutSlot.Count == 0)
+            return;
+
+        if (!DrawSectionHeader("Integrations/NoSlot", $"Без слота ({withoutSlot.Count})", EditorStyles.foldoutHeader))
+            return;
+
+        foreach (PRModuleInfo module in withoutSlot)
+            DrawModule(module);
+    }
+
+    private void DrawSlot(string slot, List<PRModuleInfo> slotModules)
+    {
+        if (!DrawSectionHeader("Slot/" + slot, $"{slot} — включается один модуль", EditorStyles.foldoutHeader))
+            return;
+
+        var enabledModules = slotModules.Where(module => !pendingDisabled.Contains(module.Id)).ToList();
+
+        if (enabledModules.Count > 1)
+        {
+            EditorGUILayout.HelpBox(
+                $"В слоте «{slot}» включено несколько модулей: {JoinNames(enabledModules)}. Оставьте один.",
+                MessageType.Error);
+        }
+
+        bool nothingEnabled = enabledModules.Count == 0;
+
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        EditorGUILayout.BeginHorizontal();
+
+        if (DrawSwitch("Не подключено", nothingEnabled, true) && !nothingEnabled)
+        {
+            foreach (PRModuleInfo module in enabledModules)
+            {
+                if (!TryDisable(module))
+                    break;
+            }
+        }
+
+        GUILayout.FlexibleSpace();
+        EditorGUILayout.EndHorizontal();
+        EditorGUILayout.LabelField("Модули слота в сборку не входят, SDK работает на своих реализациях по умолчанию.", wrappedMiniLabel);
+        EditorGUILayout.EndVertical();
+
+        foreach (PRModuleInfo module in slotModules.Where(MatchesSearch))
+            DrawModule(module, true);
+
+        EditorGUILayout.Space();
+    }
+
+    private bool DrawSwitch(string label, bool value, bool radio)
+    {
+        if (!radio)
+            return EditorGUILayout.ToggleLeft(label, value, EditorStyles.boldLabel);
+
+        // GUILayout отступ EditorGUI.indentLevel не учитывает.
+        GUILayout.Space(EditorGUI.indentLevel * 15f);
+        return GUILayout.Toggle(value, " " + label, radioLabel);
     }
 
     private void DrawCore()
@@ -203,7 +326,7 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         return next;
     }
 
-    private void DrawModule(PRModuleInfo module)
+    private void DrawModule(PRModuleInfo module, bool radio = false)
     {
         bool enabled = !pendingDisabled.Contains(module.Id);
 
@@ -212,8 +335,10 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         using (new EditorGUI.DisabledScope(module.IsRequired && enabled))
         {
-            bool next = EditorGUILayout.ToggleLeft(module.DisplayName, enabled, EditorStyles.boldLabel);
-            if (next != enabled)
+            bool next = DrawSwitch(module.DisplayName, enabled, radio);
+
+            // Переключатель слота снимается выбором другого модуля или «Не подключено», а не повторным нажатием.
+            if (next != enabled && (next || !radio))
                 SetEnabled(module, next);
         }
 
@@ -231,6 +356,9 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         string info = $"{module.Id} · {module.Folder} · скриптов: {module.Scripts.Count}";
         EditorGUILayout.LabelField(info, wrappedMiniLabel);
 
+        if (module.PartFolders.Count > 0)
+            EditorGUILayout.LabelField("Ещё папки: " + string.Join(", ", module.PartFolders), wrappedMiniLabel);
+
         if (!string.IsNullOrWhiteSpace(module.Manifest.Description))
             EditorGUILayout.LabelField(module.Manifest.Description, wrappedMiniLabel);
 
@@ -240,8 +368,32 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         if (module.Dependents.Count > 0)
             EditorGUILayout.LabelField("Нужен для: " + JoinNames(module.Dependents), wrappedMiniLabel);
 
+        DrawPlugin(module);
         DrawModuleProblems(module, enabled);
         EditorGUILayout.EndVertical();
+    }
+
+    private void DrawPlugin(PRModuleInfo module)
+    {
+        string folder = module.Manifest.PluginFolder;
+        if (folder.Length > 0)
+        {
+            string state = missingPlugins.Contains(module) ? "не найден" : "есть в проекте";
+            EditorGUILayout.LabelField($"Плагин: {folder} — {state}", wrappedMiniLabel);
+        }
+
+        if (!pluginModules.TryGetValue(module, out List<string> parts))
+            return;
+
+        if (!DrawSectionHeader("Plugin/" + module.Folder, $"Модули плагина ({parts.Count})", EditorStyles.foldout))
+            return;
+
+        EditorGUI.indentLevel++;
+
+        foreach (string part in parts)
+            EditorGUILayout.LabelField(part, EditorStyles.miniLabel);
+
+        EditorGUI.indentLevel--;
     }
 
     private void DrawModuleProblems(PRModuleInfo module, bool enabled)
@@ -257,6 +409,13 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         if (module.IsRequired && !enabled)
             EditorGUILayout.HelpBox("Модуль обязательный, но отключён. Включите его.", MessageType.Error);
+
+        if (enabled && missingPlugins.Contains(module))
+        {
+            EditorGUILayout.HelpBox(
+                "Плагина нет в проекте, а модуль включён: проект не соберётся. Установите плагин или отключите модуль.",
+                MessageType.Error);
+        }
 
         if (module.UnguardedScripts.Count == 0)
             return;
@@ -287,24 +446,46 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
     private void SetEnabled(PRModuleInfo module, bool enable)
     {
         if (enable)
+            TryEnable(module);
+        else
+            TryDisable(module);
+    }
+
+    private bool TryEnable(PRModuleInfo module)
+    {
+        var disabledDependencies = PRModuleCatalog.CollectDependencies(module)
+            .Where(dependency => pendingDisabled.Contains(dependency.Id))
+            .ToList();
+
+        if (disabledDependencies.Count > 0 && !EditorUtility.DisplayDialog(
+                "Нужны зависимости",
+                $"«{module.DisplayName}» не компилируется без: {JoinNames(disabledDependencies)}.\n\nВключить их тоже?",
+                "Включить", "Отмена"))
+            return false;
+
+        // Соседи по слоту отключаются без вопроса: выбор одного модуля слота и есть отказ от остальных.
+        foreach (PRModuleInfo rival in GetSlotRivals(module).Where(rival => !pendingDisabled.Contains(rival.Id)).ToList())
         {
-            var disabledDependencies = PRModuleCatalog.CollectDependencies(module)
-                .Where(dependency => pendingDisabled.Contains(dependency.Id))
-                .ToList();
-
-            if (disabledDependencies.Count > 0 && !EditorUtility.DisplayDialog(
-                    "Нужны зависимости",
-                    $"«{module.DisplayName}» не компилируется без: {JoinNames(disabledDependencies)}.\n\nВключить их тоже?",
-                    "Включить", "Отмена"))
-                return;
-
-            foreach (PRModuleInfo dependency in disabledDependencies)
-                pendingDisabled.Remove(dependency.Id);
-
-            pendingDisabled.Remove(module.Id);
-            return;
+            if (!TryDisable(rival))
+                return false;
         }
 
+        foreach (PRModuleInfo dependency in disabledDependencies)
+            pendingDisabled.Remove(dependency.Id);
+
+        pendingDisabled.Remove(module.Id);
+        return true;
+    }
+
+    private IEnumerable<PRModuleInfo> GetSlotRivals(PRModuleInfo module)
+    {
+        return module.Slot.Length == 0
+            ? Enumerable.Empty<PRModuleInfo>()
+            : modules.Where(other => other != module && string.Equals(other.Slot, module.Slot, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool TryDisable(PRModuleInfo module)
+    {
         var blockers = module.Dependents.Where(dependent => !pendingDisabled.Contains(dependent.Id)).ToList();
         if (blockers.Count > 0)
         {
@@ -312,13 +493,13 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                 "Нельзя отключить",
                 $"«{module.DisplayName}» нужен включённым модулям: {JoinNames(blockers)}.\n\nСначала отключите их.",
                 "Понятно");
-            return;
+            return false;
         }
 
         if (!PRModuleManifest.IsValidId(module.Id) || duplicateIds.Contains(module.Id))
         {
             EditorUtility.DisplayDialog("Нельзя отключить", "Сначала исправьте идентификатор в манифесте.", "Понятно");
-            return;
+            return false;
         }
 
         if (module.UnguardedScripts.Count > 0)
@@ -328,13 +509,14 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                     $"У «{module.DisplayName}» файлов без обёртки: {module.UnguardedScripts.Count}. " +
                     "Они останутся в сборке и сломают компиляцию.\n\nОбернуть их сейчас?",
                     "Обернуть", "Отмена"))
-                return;
+                return false;
 
             if (!WrapScripts(module))
-                return;
+                return false;
         }
 
         pendingDisabled.Add(module.Id);
+        return true;
     }
 
     private bool WrapScripts(PRModuleInfo module)
@@ -360,6 +542,20 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         if (toDisable.Any(module => module.UnguardedScripts.Count > 0))
         {
             EditorUtility.DisplayDialog("Нельзя применить", "У отключаемых модулей остались файлы без обёртки.", "Понятно");
+            return;
+        }
+
+        IGrouping<string, PRModuleInfo> crowdedSlot = modules
+            .Where(module => module.Slot.Length > 0 && !pendingDisabled.Contains(module.Id))
+            .GroupBy(module => module.Slot, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(slot => slot.Count() > 1);
+
+        if (crowdedSlot != null)
+        {
+            EditorUtility.DisplayDialog(
+                "Нельзя применить",
+                $"В слоте «{crowdedSlot.Key}» включено несколько модулей: {JoinNames(crowdedSlot)}. Оставьте один.",
+                "Понятно");
             return;
         }
 
@@ -407,6 +603,7 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
             PRModuleGroup.Windows => "Окна",
             PRModuleGroup.Components => "Компоненты",
             PRModuleGroup.Entities => "Сущности",
+            PRModuleGroup.Integrations => "Интеграции",
             _ => "Прочее"
         };
     }

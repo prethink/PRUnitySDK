@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !PRSDK_DISABLE_YG2
+using System;
 using System.Diagnostics;
 using YG;
 
@@ -114,3 +115,4 @@ public class YandexGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
 
     #endregion
 }
+#endif

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !PRSDK_DISABLE_YG2
+using System;
 using YG;
 
 public class YGLanguageManager : ILanguageManager
@@ -56,3 +57,4 @@ public class YGLanguageManager : ILanguageManager
 
     #endregion
 }
+#endif

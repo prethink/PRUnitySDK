@@ -26,7 +26,26 @@ public sealed class PRModuleInfo
     public PRModuleInfo Parent { get; internal set; }
 
     /// <summary>
-    /// Скрипты модуля без тех, что принадлежат вложенным модулям.
+    /// Дополнительные папки модуля, объявленные ассетами <see cref="PRModulePart"/>.
+    /// </summary>
+    public List<string> PartFolders { get; } = new();
+
+    /// <summary>
+    /// Все папки модуля: основная и дополнительные.
+    /// </summary>
+    public IEnumerable<string> AllFolders
+    {
+        get
+        {
+            yield return Folder;
+
+            foreach (string folder in PartFolders)
+                yield return folder;
+        }
+    }
+
+    /// <summary>
+    /// Скрипты модуля из всех его папок без тех, что принадлежат вложенным модулям.
     /// </summary>
     public List<string> Scripts { get; } = new();
 
@@ -64,6 +83,11 @@ public sealed class PRModuleInfo
     /// Модуль нельзя отключить.
     /// </summary>
     public bool IsRequired => Manifest.IsRequired;
+
+    /// <summary>
+    /// Слот взаимоисключения; пустая строка — слота нет.
+    /// </summary>
+    public string Slot => Manifest.Slot;
 
     public PRModuleInfo(PRModuleManifest manifest, string folder, PRModuleLayer layer)
     {

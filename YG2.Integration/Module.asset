@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ff488cb145690c47904a8af995e4fa4, type: 3}
+  m_Name: Module
+  m_EditorClassIdentifier:
+  id: YG2
+  displayName: "Яндекс Игры (YG2)"
+  description: "Плагин YG2: устройство, время площадки, метрика, облачное сохранение, флаги, язык, имя игрока; в приватной части — реклама, покупки, рейтинг и призраки."
+  group: 5
+  isRequired: 0
+  dependencies: []
+  slot: "Площадка"
+  pluginFolder: Assets/PluginYourGames
+  pluginModulesFile: Assets/PluginYourGames/Editor/ModulesListYG2.txt

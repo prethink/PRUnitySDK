@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using YG;
 
 public class YandexPlayerNameService : PlayerNameServiceBase
@@ -20,3 +21,4 @@ public class YandexPlayerNameService : PlayerNameServiceBase
         return !string.IsNullOrWhiteSpace(name) && name != UnauthorizedName && name != InfoYG.ANONYMOUS;
     }
 }
+#endif

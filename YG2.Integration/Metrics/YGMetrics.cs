@@ -1,3 +1,4 @@
+#if !PRSDK_DISABLE_YG2
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -134,3 +135,4 @@ public class YGMetrics : MetricBase
 
     #endregion
 }
+#endif
