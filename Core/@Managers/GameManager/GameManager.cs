@@ -36,6 +36,16 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     private IGameDataStorage gameDataStorage { get; set; }
 
+    /// <summary>
+    /// Кулдаун записи важных, но частых событий, секунды.
+    /// </summary>
+    /// <remarks>
+    /// Площадка принимает ограниченное число записей: у Яндекса это 100 запросов за 5 минут,
+    /// дальше запись отклоняется — в том числе запись покупки. Раз в пять секунд — не больше
+    /// 60 записей за те же 5 минут, остальное остаётся покупкам и подаркам.
+    /// </remarks>
+    public const long FrequentSaveCooldownSeconds = 5;
+
     private bool isInitialize;
     private bool isSaving;
     private long saveCooldownCounter;
@@ -325,6 +335,30 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         // и вдобавок сдвигает кулдаун — автосохранение, которое собрало бы состояние,
         // откладывается, и при следующем запуске холдеры оказываются пустыми.
         StartSaveTask(ignoreCooldown);
+    }
+
+    /// <summary>
+    /// Сохраняет проектные данные с укороченным кулдауном.
+    /// </summary>
+    /// <remarks>
+    /// Для событий, которые жалко терять, но которые идут пачками: новый уровень, награда
+    /// платформы. Обычная запись в кулдауне отбрасывается, а полный обход им не подходит —
+    /// на каждое событие ушла бы своя запись, и предел площадки кончился бы за минуту.
+    /// <para>
+    /// Отсчёт общий с остальными сохранениями, от последней успешной записи: сколько бы
+    /// источников ни звало метод, записей выходит не больше одной
+    /// за <see cref="FrequentSaveCooldownSeconds"/>. Кулдаун из настроек короче — действует он.
+    /// </para>
+    /// </remarks>
+    public void SaveFrequentProjectData()
+    {
+        long cooldownSeconds = Math.Min(FrequentSaveCooldownSeconds, GetStorageSettings().SaveCooldownSeconds);
+        long elapsedSeconds = PRTime.Instance.CurrentRealSecond - saveCooldownCounter;
+
+        if (elapsedSeconds < cooldownSeconds)
+            return;
+
+        StartSaveTask(true);
     }
 
     /// <summary>

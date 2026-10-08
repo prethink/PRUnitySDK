@@ -38,6 +38,8 @@ PRUnitySDK.Managers.Game.ReadySignal.SubscribeOnReady(() =>
 
 `SaveProjectData(bool ignoreCooldown)` тоже идёт через `StartSaveTask()`. Часть состояния живёт в объектах сцены и попадает в сохранение только через `ISaveable.TrySaveData()`. Запись без сбора такого состояния теряет его и сдвигает cooldown.
 
+`SaveFrequentProjectData()` — тот же полный путь с укороченным cooldown (`FrequentSaveCooldownSeconds`, 5 секунд от последней успешной записи). Нужен событиям, которые жалко терять, но которые идут пачками: новый уровень, награда платформы. Обычный вызов в cooldown отбрасывается, а `ignoreCooldown: true` на каждое такое событие упирается в предел площадки (у Яндекса `player.setData` — 100 запросов за 5 минут). Разовые действия игрока — покупка, подарок — по-прежнему пишутся через `SaveProjectData(true)`.
+
 `SaveGameSettingsData()` передаёт в storage только настройки: от объектов сцены они не зависят.
 
 Все три пути обновляют диагностику менеджера. `SaveState` принимает значения `NotStarted`, `Saving`, `Succeeded` и `Failed`; `HasLoadedSave` сообщает, был ли при запуске успешно загружен существующий save. Стандартные storage сохраняют дату создания в `PRSaveData.SaveDate`, а дату записи — в `UpdateDate`, поэтому `SaveCreationTimeUtc` и `LastSaveTimeUtc` восстанавливаются после перезапуска. Для custom storage метаданные доступны через необязательный `IGameDataStorageSaveInfo`.
