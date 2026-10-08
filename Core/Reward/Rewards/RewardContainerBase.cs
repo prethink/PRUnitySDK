@@ -14,6 +14,14 @@ public abstract class RewardContainerBase : RewardBase
     private SerializedDictionary<LangType, string> localization = new();
     [SerializeField, Min(1)] private int previewCount = 20;
 
+    [SerializeField]
+    [Tooltip("Гарант редкой награды: шанс редкого растёт с каждым открытием без него. Счётчик у контейнера свой.")]
+    private RewardPitySettings pity = new();
+
+    [SerializeField]
+    [Tooltip("Показывать игроку шанс каждой награды в окне, которое разыгрывает контейнер.")]
+    private bool showChances;
+
     /// <summary>
     /// Стабильный идентификатор контейнера.
     /// </summary>
@@ -44,5 +52,58 @@ public abstract class RewardContainerBase : RewardBase
             configuredReward => configuredReward != null &&
                                 configuredReward != this &&
                                 configuredReward.IsConfigured);
+    }
+
+    /// <summary>
+    /// Настройки гаранта редкой награды.
+    /// </summary>
+    public RewardPitySettings Pity => pity;
+
+    /// <summary>
+    /// Выбирает награду, которая достанется игроку: по весам с учётом гаранта.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="TryRoll"/>: тот разыгрывает и карточки-попутчики в ленте кейса,
+    /// и выигрыши ботов, а им гарант не положен. Счётчик метод не двигает — это делает
+    /// <see cref="RegisterRoll"/>, когда награда действительно выдана.
+    /// </remarks>
+    public bool TryRollWithPity(out RewardBase reward)
+    {
+        return RewardPity.TryRoll(
+            Rewards,
+            configuredReward => configuredReward != null &&
+                                configuredReward != this &&
+                                configuredReward.IsConfigured,
+            pity,
+            RewardPity.GetMisses(id),
+            out reward);
+    }
+
+    /// <summary>
+    /// Показывать ли игроку шанс каждой награды.
+    /// </summary>
+    public bool ShowChances => showChances;
+
+    /// <summary>
+    /// Шанс награды в следующем открытии, от нуля до единицы, с учётом гаранта.
+    /// </summary>
+    public double GetChance(RewardBase reward)
+    {
+        return RewardPity.GetChance(
+            Rewards,
+            configuredReward => configuredReward != null &&
+                                configuredReward != this &&
+                                configuredReward.IsConfigured,
+            pity,
+            RewardPity.GetMisses(id),
+            reward);
+    }
+
+    /// <summary>
+    /// Учитывает выданную награду в счётчике гаранта.
+    /// </summary>
+    public void RegisterRoll(RewardBase reward, bool save = true)
+    {
+        RewardPity.Register(pity, id, reward, save);
     }
 }

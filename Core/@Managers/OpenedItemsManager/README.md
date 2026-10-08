@@ -82,6 +82,32 @@ PRUnitySDK.Managers.OpenedItems.Add(typeof(RewardSystem), keyDefinition, count: 
 затем увеличивает и текущее количество, и общее полученное. При `requiredSave: true`
 вызывается `GameManager.SaveProjectData()`.
 
+## Событие открытия
+
+Когда предмет открыт впервые, менеджер поднимает в шине `IItemOpenedEvent`:
+
+```csharp
+public class UnlockCounter : IItemOpenedEvent
+{
+    public void OnItemOpened(ItemStack item)
+    {
+        // item.ItemId - что открыто, item.Category - вид, item.Created - откуда взялось
+    }
+}
+```
+
+Событие одно на все источники: покупка, награда и находка открывают предмет через этот менеджер.
+Приходит после отметки и до записи сохранения — то, что подписчик изменил в данных, уезжает той же записью.
+
+| Что произошло | Событие |
+| --- | --- |
+| предмет открыт впервые (`Open` или первый `Add`) | да |
+| выдано ещё несколько штук уже открытого | нет: изменилось количество, а не факт открытия |
+| предмет потрачен до нуля и выдан снова | нет: запись об открытии осталась |
+| предмет закрыт через `Close` и открыт снова | да |
+
+Закрытие событием не сопровождается.
+
 ## Трата
 
 ```csharp
@@ -110,6 +136,7 @@ bool spent = PRUnitySDK.Managers.OpenedItems.TryRemoveItem(keyDefinition, count:
 | --- | --- |
 | `ProjectData` и [GameDataStorage](../../GameDataStorage/README.md) | хранение списка открытого |
 | [GameManager](../GameManager/README.md) | запись на диск после изменения |
+| `EventBus` | событие об открытии предмета |
 
 Кто зависит от него: всё, что выдаёт игроку вещи, — награды, покупки, находки. Сам
 менеджер о них не знает: источник приходит строкой в поле `Created`.

@@ -15,11 +15,26 @@ using YG;
 /// </remarks>
 public class YGMetrics : MetricBase
 {
+    /// <summary>
+    /// Приставка идентификатора цели: в Метрику событие <c>level_up</c> уходит как <c>_level_up</c>.
+    /// </summary>
+    /// <remarks>
+    /// Цели в интерфейсе Яндекс Метрики заводят условием «идентификатор содержит». Без приставки
+    /// условие «содержит level_up» цепляет и любую цель, в чьём имени эта строка стоит посередине;
+    /// с подчёркиванием в начале имя игры отличимо, и одной записью ловится вся её группа.
+    /// <para>
+    /// Ставится здесь, в одном месте, а не в каждом вызове: код игры называет события как раньше.
+    /// </para>
+    /// </remarks>
+    public const string GoalPrefix = "_";
+
     #region Базовый класс
 
     /// <inheritdoc />
     public override void Send(string eventName)
     {
+        eventName = GetGoalId(eventName);
+
         YG2.MetricaSend(eventName);
         ReportSend(eventName);
     }
@@ -27,6 +42,8 @@ public class YGMetrics : MetricBase
     /// <inheritdoc />
     public override void Send(string eventName, IReadOnlyDictionary<string, object> eventParams)
     {
+        eventName = GetGoalId(eventName);
+
         Dictionary<string, object> tree = new();
 
         if (eventParams != null)
@@ -47,6 +64,19 @@ public class YGMetrics : MetricBase
     #endregion
 
     #region Методы
+
+    /// <summary>
+    /// Идентификатор цели в Метрике: имя события с приставкой.
+    /// </summary>
+    /// <remarks>
+    /// Имя, уже начинающееся с приставки, не трогается: второй раз она не добавляется.
+    /// </remarks>
+    private static string GetGoalId(string eventName)
+    {
+        return string.IsNullOrEmpty(eventName) || eventName.StartsWith(GoalPrefix, StringComparison.Ordinal)
+            ? eventName
+            : GoalPrefix + eventName;
+    }
 
     private static void Add(Dictionary<string, object> tree, object key, object value)
     {

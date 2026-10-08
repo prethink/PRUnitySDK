@@ -94,6 +94,38 @@ public class SoundManager : MonoBehaviour
     private bool isInit;
     private Coroutine musicWatcherCoroutine;
 
+    /// <summary>
+    /// Плейлист повторяется без конца. Выключено — после последнего трека музыка замолкает.
+    /// </summary>
+    private bool backgroundMusicLoop = true;
+
+    /// <summary>
+    /// Треки ставятся в случайном порядке.
+    /// </summary>
+    private bool backgroundMusicShuffle;
+
+    /// <summary>
+    /// Плейлист без повтора доигран либо музыку остановили: наблюдатель следующий трек не ставит.
+    /// </summary>
+    private bool backgroundMusicStopped = true;
+
+    /// <summary>
+    /// Сколько треков плейлиста без повтора уже отыграло.
+    /// </summary>
+    private int backgroundMusicPlayed;
+
+    /// <summary>
+    /// Громкость музыки относительно выбранной игроком: задаётся в настройках проекта.
+    /// </summary>
+    private static float MusicVolumeScale
+    {
+        get
+        {
+            PRSDKSettings settings = PRUnitySDK.Settings;
+            return settings != null && settings.BackgroundMusic != null ? settings.BackgroundMusic.Volume : 1f;
+        }
+    }
+
     #endregion
 
     #region MonoBehaviour
@@ -114,13 +146,33 @@ public class SoundManager : MonoBehaviour
     {
         StartCoroutine(UpdateSettings());
 
-        backgroundMusic.Clear();
-        backgroundMusic.AddRange(PRUnitySDK.Database.Sounds.BackgroundMusic.Select(x => x.Value));
-
         PrewarmEffectsPool();
-        PlayBackgroundMusic();
+        StartConfiguredBackgroundMusic();
 
         isInit = true;
+    }
+
+    /// <summary>
+    /// Запускает музыку, заданную настройками проекта.
+    /// </summary>
+    /// <remarks>
+    /// Треки берутся из настроек (<see cref="BackgroundMusicSettings"/>); пустой список там
+    /// означает прежнее место — список в базе звуков, чтобы проект, настроенный до появления
+    /// раздела, не остался без музыки.
+    /// </remarks>
+    private void StartConfiguredBackgroundMusic()
+    {
+        PRSDKSettings settings = PRUnitySDK.Settings;
+        BackgroundMusicSettings music = settings != null ? settings.BackgroundMusic : null;
+
+        if (music != null && !music.Enabled)
+            return;
+
+        IEnumerable<AudioClip> tracks = music != null && music.Tracks.Count > 0
+            ? music.Tracks
+            : PRUnitySDK.Database.Sounds.BackgroundMusic.Select(x => x.Value);
+
+        PlayBackgroundMusic(tracks, music == null || music.Loop, music != null && music.Shuffle);
     }
 
     /// <summary>Создаёт стартовый набор источников для пула эффектов заранее,
@@ -189,7 +241,7 @@ public class SoundManager : MonoBehaviour
             return;
         }
 
-        musicSource.volume = currentSettings.OffMusic ? 0 : Mathf.Clamp(currentSettings.MusicVolume, 0, masterVolume);
+        musicSource.volume = GetMusicVolume(currentSettings);
         uiSource.volume = Mathf.Clamp(currentSettings.UIVolume, 0, masterVolume);
         UpdateEffectVolume(Mathf.Clamp(currentSettings.EffectVolume, 0, masterVolume));
     }
@@ -629,11 +681,16 @@ public class SoundManager : MonoBehaviour
 
     #region Фоновая музыка
 
+    /// <summary>
+    /// Запускает текущий трек плейлиста заново.
+    /// </summary>
     public void PlayBackgroundMusic()
     {
         if (backgroundMusic.Count == 0)
             return;
 
+        backgroundMusicStopped = false;
+        backgroundMusicPlayed = 0;
         PlayCurrentTrack();
 
         // Persistent-наблюдатель запускается один раз, а не при каждом PlayBackgroundMusic -
@@ -642,14 +699,89 @@ public class SoundManager : MonoBehaviour
             musicWatcherCoroutine = StartCoroutine(MusicPlaylistWatcher());
     }
 
+    /// <summary>
+    /// Заменяет плейлист и запускает его с начала.
+    /// </summary>
+    /// <remarks>
+    /// Для музыки, которую выбирает игра, а не настройки проекта: своя композиция у сцены,
+    /// у босса, у меню. Пустой список музыку останавливает.
+    /// </remarks>
+    /// <param name="tracks">Треки по порядку; пустые записи пропускаются.</param>
+    /// <param name="loop">Повторять без конца. Выключено — плейлист играет один раз и замолкает.</param>
+    /// <param name="shuffle">Случайный порядок; один и тот же трек дважды подряд не ставится.</param>
+    public void PlayBackgroundMusic(IEnumerable<AudioClip> tracks, bool loop = true, bool shuffle = false)
+    {
+        backgroundMusic.Clear();
+
+        if (tracks != null)
+            backgroundMusic.AddRange(tracks.Where(track => track != null));
+
+        backgroundMusicLoop = loop;
+        backgroundMusicShuffle = shuffle;
+
+        if (backgroundMusic.Count == 0)
+        {
+            StopBackgroundMusic();
+            return;
+        }
+
+        currentIndexPlayBackgroundMusic = shuffle ? UnityEngine.Random.Range(0, backgroundMusic.Count) : 0;
+        PlayBackgroundMusic();
+    }
+
+    /// <summary>
+    /// Останавливает фоновую музыку. Плейлист остаётся: <see cref="PlayBackgroundMusic()"/> запустит его снова.
+    /// </summary>
+    public void StopBackgroundMusic()
+    {
+        backgroundMusicStopped = true;
+
+        if (musicSource != null)
+            musicSource.Stop();
+    }
+
     private void PlayCurrentTrack()
     {
         musicSource.clip = backgroundMusic[currentIndexPlayBackgroundMusic];
+        musicSource.volume = GetMusicVolume(PRUnitySDK.Managers.Game.GetGameSettings());
 
-        var settings = PRUnitySDK.Managers.Game.GetGameSettings();
-        musicSource.volume = (settings.OffSound || settings.OffMusic) ? 0 : Mathf.Clamp(settings.MusicVolume, 0, settings.MasterVolume);
-        musicSource.loop = false; // зацикливаем ПЛЕЙЛИСТ целиком через watcher, а не один трек
+        // Один трек с повтором зацикливает сам источник: так стык конца с началом без щели.
+        // Несколько треков зацикливает наблюдатель - ПЛЕЙЛИСТ целиком, а не один трек.
+        musicSource.loop = backgroundMusicLoop && backgroundMusic.Count == 1;
         musicSource.Play();
+    }
+
+    /// <summary>
+    /// Громкость музыкального источника: выбор игрока, умноженный на громкость из настроек проекта.
+    /// </summary>
+    private static float GetMusicVolume(GameSettings settings)
+    {
+        if (settings.OffSound || settings.OffMusic || AudioMixerManager.IsMute)
+            return 0f;
+
+        return Mathf.Clamp(settings.MusicVolume, 0, settings.MasterVolume) * MusicVolumeScale;
+    }
+
+    /// <summary>
+    /// Выбирает следующий трек; <see langword="false"/> — плейлист без повтора доигран.
+    /// </summary>
+    private bool TryAdvanceTrack()
+    {
+        backgroundMusicPlayed++;
+
+        if (!backgroundMusicLoop && backgroundMusicPlayed >= backgroundMusic.Count)
+            return false;
+
+        if (!backgroundMusicShuffle || backgroundMusic.Count < 2)
+        {
+            currentIndexPlayBackgroundMusic = (currentIndexPlayBackgroundMusic + 1) % backgroundMusic.Count;
+            return true;
+        }
+
+        // Случайный из остальных: сдвиг от единицы до числа треков без одного никогда не возвращает текущий.
+        int shift = UnityEngine.Random.Range(1, backgroundMusic.Count);
+        currentIndexPlayBackgroundMusic = (currentIndexPlayBackgroundMusic + shift) % backgroundMusic.Count;
+        return true;
     }
 
     /// <summary>
@@ -665,7 +797,7 @@ public class SoundManager : MonoBehaviour
         {
             yield return null;
 
-            if (backgroundMusic.Count == 0)
+            if (backgroundMusic.Count == 0 || backgroundMusicStopped)
                 continue;
 
             if (PRUnitySDK.PauseManager.IsLogicPaused)
@@ -674,7 +806,13 @@ public class SoundManager : MonoBehaviour
             if (musicSource.isPlaying)
                 continue;
 
-            currentIndexPlayBackgroundMusic = (currentIndexPlayBackgroundMusic + 1) % backgroundMusic.Count;
+            // Плейлист без повтора доигран: музыка молчит, пока её не запустят снова.
+            if (!TryAdvanceTrack())
+            {
+                backgroundMusicStopped = true;
+                continue;
+            }
+
             PlayCurrentTrack();
         }
     }
@@ -731,7 +869,7 @@ public class SoundManager : MonoBehaviour
     {
         var settings = PRUnitySDK.Managers.Game.GetGameSettings();
         UpdateEffectVolume(settings.EffectVolume);
-        musicSource.volume = settings.MusicVolume;
+        musicSource.volume = GetMusicVolume(settings);
         uiSource.volume = settings.UIVolume;
     }
 

@@ -250,7 +250,16 @@ public class OpenedItemsManager : SingletonProviderBase<OpenedItemsManager>
             stack.Category = ItemStack.ResolveCategory(selectableItem);
         }
 
+        bool firstTime = !stack.IsOpened;
+
         stack.Add(count);
+
+        // До сохранения: то, что подписчик изменил по открытию, уезжает той же записью.
+        if (firstTime)
+        {
+            ItemStack opened = stack;
+            EventBus.RaiseEvent<IItemOpenedEvent>(x => x.OnItemOpened(opened));
+        }
 
         if (requiredSave)
             GameManager.Instance.SaveProjectData();
