@@ -58,6 +58,16 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     private bool frequentSavePending;
     private Coroutine deferredFrequentSave;
     private long saveCooldownCounter;
+
+    /// <summary>
+    /// Момент последней успешной записи по настоящим часам.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="saveCooldownCounter"/>: тот считает секунды <see cref="PRTime"/>,
+    /// а они на логической паузе стоят. Частая запись ждёт настоящее время и на паузе тоже.
+    /// Ноль — в этом запуске ещё не записывали.
+    /// </remarks>
+    private long lastSaveTimestamp;
     private SynchronizationContext synchronizationContext;
     private readonly object saveDiagnosticsLock = new();
     private int activeSaveOperationCount;
@@ -398,10 +408,24 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
             : FrequentSaveCooldownSeconds;
     }
 
-    private long GetFrequentSaveRemaining()
+    /// <summary>
+    /// Сколько секунд настоящего времени осталось до частой записи.
+    /// </summary>
+    /// <remarks>
+    /// Считается по настоящим часам, а не по <see cref="PRTime"/>: на логической паузе секунды
+    /// <see cref="PRTime"/> стоят, остаток не убывал бы, и отложенная запись ждала бы снятия
+    /// паузы. Ожидание в <see cref="SaveWhenFrequentCooldownEnds"/> идёт по тому же времени.
+    /// </remarks>
+    private float GetFrequentSaveRemaining()
     {
-        long elapsedSeconds = PRTime.Instance.CurrentRealSecond - saveCooldownCounter;
-        return GetFrequentSaveCooldown() - elapsedSeconds;
+        // В этом запуске ещё не записывали: ограничивать нечего.
+        if (lastSaveTimestamp == 0)
+            return 0f;
+
+        long elapsedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - lastSaveTimestamp;
+        double elapsedSeconds = elapsedTicks / (double)System.Diagnostics.Stopwatch.Frequency;
+
+        return (float)(GetFrequentSaveCooldown() - elapsedSeconds);
     }
 
     /// <summary>
@@ -422,9 +446,9 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
                 continue;
             }
 
-            long remaining = GetFrequentSaveRemaining();
+            float remaining = GetFrequentSaveRemaining();
 
-            if (remaining > 0)
+            if (remaining > 0f)
             {
                 yield return new WaitForSecondsRealtime(remaining);
                 continue;
@@ -488,6 +512,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
                 saveCreationTimeUtc = saveInfo.creationTimeUtc ?? saveCreationTimeUtc;
                 lastSaveTimeUtc = saveInfo.updateTimeUtc ?? ToUtc(PRUnitySDK.ServerTime.GetNow());
                 saveCooldownCounter = PRTime.Instance.CurrentRealSecond;
+                lastSaveTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
             }
             else
                 activeSaveOperationFailed = true;
