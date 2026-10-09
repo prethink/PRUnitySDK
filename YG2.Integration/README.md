@@ -21,6 +21,7 @@
 | `Translate` | `ILanguageManager` | Localization |
 | `PlayerNameService` | `PlayerNameServiceBase` | Authorization |
 | `Cursor` | возвращает курсор `CursorManager` после паузы площадки | ядро плагина |
+| `Focus` | снимает паузу по фокусу (`PauseManager.SetFocusPaused`), когда площадка вернула игру из своей паузы: после окна оплаты и рекламы фокус браузера возвращается только с нажатием игрока | ядро плагина |
 | `Review` | `IReviewService`, см. `Core/Review/README.md` | Review |
 | `Payments` | валюта площадки `Yan` | — |
 

@@ -48,6 +48,15 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     private bool isInitialize;
     private bool isSaving;
+
+    /// <summary>
+    /// Частая запись попала в кулдаун и ждёт своей очереди.
+    /// </summary>
+    /// <remarks>
+    /// Снимается любой удачной полной записью: она уносит и то, ради чего запись просили.
+    /// </remarks>
+    private bool frequentSavePending;
+    private Coroutine deferredFrequentSave;
     private long saveCooldownCounter;
     private SynchronizationContext synchronizationContext;
     private readonly object saveDiagnosticsLock = new();
@@ -263,6 +272,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
             gameDataStorage.UpdateGameSettings(gameSettings);
             gameDataStorage.Save();
             succeeded = true;
+            frequentSavePending = false;
 
             GameplayEvents.RaiseSaveEvent();
         }
@@ -346,19 +356,87 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     /// на каждое событие ушла бы своя запись, и предел площадки кончился бы за минуту.
     /// <para>
     /// Отсчёт общий с остальными сохранениями, от последней успешной записи: сколько бы
-    /// источников ни звало метод, записей выходит не больше одной
-    /// за <see cref="FrequentSaveCooldownSeconds"/>. Кулдаун из настроек короче — действует он.
+    /// источников ни звало метод, записей выходит не больше одной за кулдаун
+    /// (<see cref="FrequentSaveCooldownSeconds"/>, см. <see cref="GetFrequentSaveCooldown"/>).
+    /// </para>
+    /// <para>
+    /// Запрос внутри кулдауна не теряется, а откладывается: запись выполнится, как только
+    /// кулдаун истечёт. Иначе уровень, взятый через две секунды после прошлой записи, ждал
+    /// бы автосохранения, а оно бывает и раз в три минуты.
     /// </para>
     /// </remarks>
     public void SaveFrequentProjectData()
     {
-        long cooldownSeconds = Math.Min(FrequentSaveCooldownSeconds, GetStorageSettings().SaveCooldownSeconds);
-        long elapsedSeconds = PRTime.Instance.CurrentRealSecond - saveCooldownCounter;
-
-        if (elapsedSeconds < cooldownSeconds)
+        // Запись уже идёт: данные она возьмёт позже, вместе с только что изменённым.
+        if (isSaving)
             return;
 
-        StartSaveTask(true);
+        if (GetFrequentSaveRemaining() <= 0)
+        {
+            StartSaveTask(true);
+            return;
+        }
+
+        frequentSavePending = true;
+        deferredFrequentSave ??= StartCoroutine(SaveWhenFrequentCooldownEnds());
+    }
+
+    /// <summary>
+    /// Кулдаун частой записи, секунды.
+    /// </summary>
+    /// <remarks>
+    /// Положительный кулдаун из настроек короче — действует он: проект сам разрешил писать чаще.
+    /// Ноль в настройках означает «обычный кулдаун выключен», а не «писать на каждое событие»:
+    /// предел площадки от настроек проекта не зависит, и частая запись ограничена всегда.
+    /// </remarks>
+    private long GetFrequentSaveCooldown()
+    {
+        long configured = GetStorageSettings().SaveCooldownSeconds;
+
+        return configured > 0
+            ? Math.Min(FrequentSaveCooldownSeconds, configured)
+            : FrequentSaveCooldownSeconds;
+    }
+
+    private long GetFrequentSaveRemaining()
+    {
+        long elapsedSeconds = PRTime.Instance.CurrentRealSecond - saveCooldownCounter;
+        return GetFrequentSaveCooldown() - elapsedSeconds;
+    }
+
+    /// <summary>
+    /// Дожидается конца кулдауна и выполняет отложенную частую запись.
+    /// </summary>
+    /// <remarks>
+    /// Ждёт настоящее время: игра могла встать на паузу окном, а запись всё равно нужна.
+    /// Остаток пересчитывается после каждого ожидания — пока запрос ждал, записать могло
+    /// что-то другое: тогда запрос уже выполнен либо кулдаун начался заново.
+    /// </remarks>
+    private IEnumerator SaveWhenFrequentCooldownEnds()
+    {
+        while (frequentSavePending)
+        {
+            if (isSaving)
+            {
+                yield return null;
+                continue;
+            }
+
+            long remaining = GetFrequentSaveRemaining();
+
+            if (remaining > 0)
+            {
+                yield return new WaitForSecondsRealtime(remaining);
+                continue;
+            }
+
+            // Флаг снимается здесь, а не только по удаче: неудачная запись не должна
+            // превращать ожидание в повтор каждую секунду. Следующий запрос заведёт его снова.
+            frequentSavePending = false;
+            StartSaveTask(true);
+        }
+
+        deferredFrequentSave = null;
     }
 
     /// <summary>
