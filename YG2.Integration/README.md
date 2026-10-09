@@ -21,7 +21,7 @@
 | `Translate` | `ILanguageManager` | Localization |
 | `PlayerNameService` | `PlayerNameServiceBase` | Authorization |
 | `Cursor` | возвращает курсор `CursorManager` после паузы площадки | ядро плагина |
-| `Focus` | снимает паузу по фокусу (`PauseManager.SetFocusPaused`), когда площадка вернула игру из своей паузы: после окна оплаты и рекламы фокус браузера возвращается только с нажатием игрока | ядро плагина |
+| `Focus` | возвращает фокус браузера во фрейм игры (`window.focus()` и холст, несколько попыток — `Plugins/YandexFocus.jslib`), когда площадка сняла свою паузу: после окна оплаты и рекламы игра без фокуса стоит до нажатия игрока. Паузу по фокусу сам не снимает — её снимет `GameManager`, когда фокус вернётся | ядро плагина |
 | `Review` | `IReviewService`, см. `Core/Review/README.md` | Review |
 | `Payments` | валюта площадки `Yan` | — |
 
