@@ -21,6 +21,7 @@
 | `Translate` | `ILanguageManager` | Localization |
 | `PlayerNameService` | `PlayerNameServiceBase` | Authorization |
 | `Cursor` | возвращает курсор `CursorManager` после паузы площадки | ядро плагина |
+| `Review` | `IReviewService`, см. `Core/Review/README.md` | Review |
 | `Payments` | валюта площадки `Yan` | — |
 
 ## Как использовать
@@ -45,6 +46,7 @@
 | флаги | `LocalRemoteFlags` |
 | язык | `LanguageManager` |
 | имя игрока, устройство | `LocalPlayerNameService`, `LocalDeviceInfo` |
+| оценка игры | `UnavailableReviewService`: спросить некого |
 
 Сам плагин при отключённой интеграции можно оставить в проекте или удалить: проект собирается в обоих
 случаях. Без плагина интеграцию нужно держать отключённой. Каждый новый `.cs` в этой папке оборачивается

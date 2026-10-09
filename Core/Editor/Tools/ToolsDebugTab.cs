@@ -103,10 +103,55 @@ public sealed class ToolsDebugTab : IPRDebugTab
             }
         }
 
-        if (GUILayout.Button("Capture", GUILayout.Height(26f)))
+        using (new EditorGUILayout.HorizontalScope())
         {
-            // За пределами отрисовки: снимок просит кадр, а посреди OnGUI это ломает разметку.
-            EditorApplication.delayCall += () => PRScreenshotTool.Capture();
+            bool allLanguages = EditorGUILayout.ToggleLeft(
+                new GUIContent("All languages", "В Play Mode снимок делается на каждом языке по очереди: игра " +
+                    "переключает язык, ждёт и снимает. После серии язык возвращается. Код языка — в конце имени файла."),
+                PRScreenshotTool.AllLanguages, GUILayout.Width(150f));
+
+            if (allLanguages != PRScreenshotTool.AllLanguages)
+                PRScreenshotTool.AllLanguages = allLanguages;
+
+            using (new EditorGUI.DisabledScope(!allLanguages && !PRScreenshotTool.MobileVersion))
+            {
+                float labelWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = 58f;
+
+                float delay = EditorGUILayout.Slider(
+                    new GUIContent("Delay, s", "Пауза между сменой языка или вида и снимком: за неё интерфейс успевает перестроиться."),
+                    PRScreenshotTool.LanguageDelay,
+                    PRScreenshotTool.MinLanguageDelay,
+                    PRScreenshotTool.MaxLanguageDelay);
+
+                EditorGUIUtility.labelWidth = labelWidth;
+
+                if (!Mathf.Approximately(delay, PRScreenshotTool.LanguageDelay))
+                    PRScreenshotTool.LanguageDelay = delay;
+            }
+        }
+
+        using (new EditorGUI.DisabledScope(!PRScreenshotTool.HasMobileMode))
+        {
+            bool mobileVersion = EditorGUILayout.ToggleLeft(
+                new GUIContent("Mobile version", "В Play Mode к снимку добавляется второй — с мобильным управлением на экране. " +
+                    "Вместе с All languages выходит по снимку на язык для компьютера и для телефона. " +
+                    "Вид (pc / mobile) — в имени файла."),
+                PRScreenshotTool.MobileVersion);
+
+            if (mobileVersion != PRScreenshotTool.MobileVersion)
+                PRScreenshotTool.MobileVersion = mobileVersion;
+        }
+
+        using (new EditorGUI.DisabledScope(PRScreenshotTool.IsCapturingSeries))
+        {
+            string caption = PRScreenshotTool.IsCapturingSeries ? "Capturing series…" : "Capture";
+
+            if (GUILayout.Button(caption, GUILayout.Height(26f)))
+            {
+                // За пределами отрисовки: снимок просит кадр, а посреди OnGUI это ломает разметку.
+                EditorApplication.delayCall += () => PRScreenshotTool.Capture();
+            }
         }
 
         if (!context.IsPlaying)

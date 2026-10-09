@@ -334,6 +334,10 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Оценка игры.** `PRUnitySDK.Review` (`IReviewService`, `Core/Review`): `CanRequest`, `TryRequest()`, событие
+  `Completed(bool)`. По умолчанию `UnavailableReviewService`; на Яндексе — `YandexReviewService` поверх модуля YG2
+  `Review` (файлы под `#if Review_yg`). Спросить можно раз за сессию, итог приходит не всегда.
+
 - **Запись частых событий.** `GameManager.SaveFrequentProjectData()` сохраняет мимо обычного кулдауна, но не чаще
   раза в 5 секунд от последней успешной записи — общий счёт на все источники. Для уровня, награды платформы и подобного;
   `SaveProjectData(true)` на событие, идущее пачками, выбирает предел записей площадки. Подробности —
@@ -425,7 +429,9 @@ Partial-поля Settings и Database не требуют ручного доб�
   `AvailableInEditMode` видна и без Play Mode — для данных на диске.
 - Вкладка `Tools` окна отладки (`Core/Editor/Tools`): снимки окна Game (`PRScreenshotTool` —
   кнопка, клавиша F9 во время игры, пункт меню `PRUnitySDK/Capture Screenshot`; файлы в
-  `Screenshots` рядом с `Assets`) и видимость интерфейса. Блок интерфейса, который можно
+  `Screenshots` рядом с `Assets`; галка `All languages` в Play Mode снимает серию по всем `LangType`
+  с паузой после смены языка и кодом языка в имени файла; галка `Mobile version` добавляет те же кадры
+  с мобильным видом — его включает реализация `IPRScreenshotMobileMode`, найденная в проекте) и видимость интерфейса. Блок интерфейса, который можно
   спрятать по одному, объявляет `IHudBlock` и встаёт на учёт в `PRUnitySDK.Trackers.HudBlocks`.
 - `ReservedItemsManager` — отвечает, достаётся ли предмет не покупкой; источники
   регистрируются сами атрибутом `[AutoReservedItemsProvider]`.
