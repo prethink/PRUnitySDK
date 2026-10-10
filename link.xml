@@ -29,6 +29,7 @@
     <type fullname="HotbarInputEnumerations" preserve="all" />
     <type fullname="InputActionEnumerations" preserve="all" />
     <type fullname="InventoryActionEnumerations" preserve="all" />
+    <type fullname="InventoryCategoryEnumerations" preserve="all" />
     <type fullname="LayersEnumerations" preserve="all" />
     <type fullname="LuckyBoxBotWinsTask" preserve="all" />
     <type fullname="MeleeWeaponTypeEnumerations" preserve="all" />

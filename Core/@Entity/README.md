@@ -123,28 +123,59 @@ public class PickaxeEntity : EntityDefinition<PickaxeDefinition>, IEntityInstanc
 
     public long Level => Instance.Get(PickaxeInstanceKeys.Level, 1);
 
-    public void ResetInstance()
+    public EntityInstanceData CreateInstance()
     {
-        Instance = EntityInstanceData.Create(Definition.Id);
+        return EntityInstanceData.Create(Definition.Id);
     }
 
-    public void BindInstance(EntityInstanceData data)
+    public void SetInstance(EntityInstanceData data)
     {
         Instance = data;
+        RecalculateStats();   // всё, что выводится из записи, считается здесь
     }
 }
 ```
 
-`EntityBase` зовёт `ResetInstance()` перед каждой `InitializeEntity()`: при создании, выдаче
-из пула и возврате спрятанной сущности. Поэтому в `InitializeEntity()` запись уже есть,
-а сущность из пула не приходит с уровнем прошлой жизни.
+### Когда ставится запись
 
-Сохранённую запись подставляют после выдачи сущности:
+Запись ставится одним методом — `SetInstance`. `EntityBase` зовёт его перед каждой
+`InitializeEntity()` при создании сущности и выдаче из пула, поэтому в `InitializeEntity()`
+запись уже есть, а сущность из пула не приходит с уровнем прошлой жизни.
+
+Сущность с сохранённой записью создают через `EntityInstanceSpawn`:
 
 ```csharp
-var entity = PRUnitySDK.Managers.ObjectPool.ShowEntity(definition.Prefab, parent);
-entity.BindInstance((EntityInstanceData)saved.Clone());
+var entity = EntityInstanceSpawn.Create(
+    (EntityInstanceData)saved.Clone(),
+    () => PRUnitySDK.Managers.ObjectPool.ShowEntity(definition.Prefab, parent));
 ```
+
+Тогда база поставит именно эту запись вместо новой, и `InitializeEntity()` посчитает всё
+по сохранённым значениям. Создавать сущность внутри функции можно как угодно: пулом
+или `Instantiate`.
+
+`SetInstance` можно позвать и у живой сущности, но `InitializeEntity()` к этому времени
+уже прошла. Поэтому всё, что сущность выводит из записи — характеристики, вид, подписи, —
+пересчитывают в `SetInstance`, а не в `InitializeEntity()`.
+
+Сущность, возвращённая из спрятанных (`RestoreHideEntities`), остаётся тем же экземпляром:
+`InitializeEntity()` проходит заново, а запись и `InstanceId` не меняются.
+
+### Кто владеет записью
+
+У записи один владелец. Отдавая запись сущности, инвентарь убирает её у себя; подбирая
+сущность, забирает запись обратно. Два места, которые правят один и тот же объект записи,
+дают предмет, существующий дважды.
+
+| Нужно | Чем |
+| --- | --- |
+| Отдать запись сущности или контейнеру | сам объект записи, прежний владелец о нём забывает |
+| Сохранить состояние | `Clone()` — снимок того же экземпляра, `InstanceId` прежний |
+| Сделать второй такой же предмет | `Duplicate()` — новая запись с новым `InstanceId` |
+
+Коллекцию записей в `ProjectData` при клонировании (`MethodHookStage.Cloning`) копируют
+глубоко, через `Clone()` каждой записи: иначе снимок, ждущий записи на диск, меняется
+вместе с живыми предметами.
 
 Контейнер (подставка, инвентарь) хранит запись целиком и не знает, какие в ней значения.
 Новое свойство экземпляра добавляется ключом у сущности, данные контейнера не меняются.

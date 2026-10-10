@@ -39,9 +39,13 @@ public class EntityInstanceData : StateValues, ICloneable
         };
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Снимок записи: тот же экземпляр на момент вызова.
+    /// </summary>
     /// <remarks>
-    /// Копия остаётся тем же экземпляром: идентификатор не меняется.
+    /// Идентификатор не меняется, поэтому снимок годится для сохранения и не годится
+    /// как второй предмет: два предмета с одним идентификатором инвентарь сочтёт одним.
+    /// Для второго предмета есть <see cref="Duplicate"/>.
     /// </remarks>
     public object Clone()
     {
@@ -54,5 +58,16 @@ public class EntityInstanceData : StateValues, ICloneable
         CopyValuesTo(clone);
 
         return clone;
+    }
+
+    /// <summary>
+    /// Запись ещё одного, самостоятельного экземпляра с теми же значениями.
+    /// </summary>
+    public EntityInstanceData Duplicate()
+    {
+        EntityInstanceData copy = Create(DefinitionId);
+        CopyValuesTo(copy);
+
+        return copy;
     }
 }

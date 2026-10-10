@@ -2,9 +2,15 @@
 /// Сущность с данными экземпляра: уровнем, улучшениями, прочностью.
 /// </summary>
 /// <remarks>
-/// <see cref="EntityBase"/> зовёт <see cref="ResetInstance"/> перед каждой
-/// <c>InitializeEntity</c>, поэтому сущность из пула не приходит с данными прошлой жизни.
-/// Сохранённую запись подставляют уже после выдачи сущности, через <see cref="BindInstance"/>.
+/// Запись ставится одним методом — <see cref="SetInstance"/>. <see cref="EntityBase"/> зовёт
+/// его перед каждой <c>InitializeEntity</c>: с записью, переданной через
+/// <see cref="EntityInstanceSpawn"/>, а без неё — с новой. Поэтому сущность из пула
+/// не приходит с данными прошлой жизни.
+/// <para>
+/// У записи один владелец. Сущность, получив запись, работает с этим самым объектом;
+/// тот, кто её отдал, перестаёт ею пользоваться. Сохранение хранит снимки
+/// (<see cref="EntityInstanceData.Clone"/>), а не записи живых сущностей.
+/// </para>
 /// </remarks>
 public interface IEntityInstance
 {
@@ -14,13 +20,18 @@ public interface IEntityInstance
     EntityInstanceData Instance { get; }
 
     /// <summary>
-    /// Заводит запись нового экземпляра взамен прежней.
+    /// Запись нового экземпляра, с которой сущность начинает жизнь, если готовой нет.
     /// </summary>
-    void ResetInstance();
+    EntityInstanceData CreateInstance();
 
     /// <summary>
-    /// Подставляет готовую запись: из сохранения, инвентаря или от другой сущности.
+    /// Ставит запись: новую при появлении сущности либо готовую — из сохранения,
+    /// инвентаря или от другой сущности.
     /// </summary>
+    /// <remarks>
+    /// Всё, что сущность выводит из записи, пересчитывают здесь. Запись, поставленную
+    /// уже живой сущности, <c>InitializeEntity</c> не увидит: она прошла раньше.
+    /// </remarks>
     /// <param name="data">Запись экземпляра.</param>
-    void BindInstance(EntityInstanceData data);
+    void SetInstance(EntityInstanceData data);
 }
