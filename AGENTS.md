@@ -539,6 +539,10 @@ EditMode-тесты на NUnit лежат **рядом с модулем**, в �
 Каждый файл тестов обёрнут в `#if PRSDK_TESTS`. SDK подключают и проекты без пакета
 Test Framework: без обёртки тесты там не собрались бы и остановили всю компиляцию.
 
+Компонент, который тест вешает на объект через `AddComponent`, лежит в папке `Testing` рядом с модулем,
+вне `Editor`, и тоже обёрнут в `#if PRSDK_TESTS`. Скрипт из `Editor` на объект не вешается: `AddComponent`
+вернёт `null`, и тест упадёт на первом обращении к компоненту. Тестовый `ScriptableObject` остаётся в `Editor`.
+
 Запуск: добавить `PRSDK_TESTS` в `Project Settings → Player → Scripting Define Symbols`,
 затем `Window → General → Test Runner → EditMode → Run All`. После прогона символ можно убрать.
 
@@ -554,3 +558,4 @@ Test Framework: без обёртки тесты там не собрались 
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceDataTests` | запись экземпляра: цикл сохранения, снимок, самостоятельная копия, событие изменения |
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceSpawnTests` | передача записи при создании: одна сущность, дочерние и соседние, вложенные вызовы, чужое определение |
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceLifeTests` | запись на настоящей сущности: выключенный объект, вложенная сущность, повторная выдача из пула, занятый экземпляр; сущность для них — в `EntityInstance/Testing` (компонент из `Editor` на объект не вешается) |
+| `Core/@Entity/EntityManager/Editor/EntityTrackerSearchTests` | поиск сущностей по флагам, типу и описанию, общий учёт в трекерах сущностей и игроков, здоровье игрока; сущности для них — в `EntityManager/Testing` |

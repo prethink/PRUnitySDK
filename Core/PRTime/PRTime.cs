@@ -85,6 +85,25 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         Reset();
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Смена паузы начинает отсчёт кадра заново. Пауза по потере фокуса обычно совпадает
+    /// с остановкой кадров: окно свернули, вкладку скрыли. <see cref="Update"/> в это время
+    /// не идёт и отметку времени не двигает, поэтому первый кадр после возвращения считал бы
+    /// шагом весь простой — и всё, что движется игровым временем, прыгало бы вперёд.
+    /// <para>
+    /// Отдельно слушать фокус и сворачивание приложения не нужно: <c>GameManager</c> переводит
+    /// их в паузу SDK, и сюда они приходят этим же событием.
+    /// </para>
+    /// </remarks>
+    public override void OnPauseStateChanged(PauseStateEventArgs args)
+    {
+        base.OnPauseStateChanged(args);
+
+        // Следующий кадр отсчитывает время от этого момента, а не от прошлого кадра.
+        LastRawTime = Time.realtimeSinceStartup;
+    }
+
     private void Update()
     {
         if (!PRUnitySDK.IsInitialized)
