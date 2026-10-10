@@ -35,7 +35,15 @@ public class StateValues
     /// </summary>
     public void Set<T>(EnumerationType<T> key, T value)
     {
-        GetOrCreateValues<T>()[GetName(key)] = value;
+        string name = GetName(key);
+        Dictionary<string, T> values = GetOrCreateValues<T>();
+
+        // То же значение изменением не считается: подписчикам пересчитывать нечего.
+        if (values.TryGetValue(name, out T current) && EqualityComparer<T>.Default.Equals(current, value))
+            return;
+
+        values[name] = value;
+        OnValuesChanged();
     }
 
     /// <summary>
@@ -67,7 +75,13 @@ public class StateValues
     public bool Remove<T>(EnumerationType<T> key)
     {
         Dictionary<string, T> values = GetValues<T>();
-        return values != null && values.Remove(GetName(key));
+
+        if (values == null || !values.Remove(GetName(key)))
+            return false;
+
+        OnValuesChanged();
+
+        return true;
     }
 
     /// <summary>
@@ -80,6 +94,17 @@ public class StateValues
         target.BoolValues = Copy(BoolValues);
         target.StringValues = Copy(StringValues);
         target.DateTimeValues = Copy(DateTimeValues);
+    }
+
+    /// <summary>
+    /// Значение записали или забыли.
+    /// </summary>
+    /// <remarks>
+    /// Точка для наследника, который сообщает об изменениях. Загрузка из сохранения
+    /// и <see cref="CopyValuesTo"/> пишут в словари напрямую и сюда не приходят.
+    /// </remarks>
+    protected virtual void OnValuesChanged()
+    {
     }
 
     /// <summary>

@@ -338,7 +338,10 @@ Partial-поля Settings и Database не требуют ручного доб�
   запись с постоянным `InstanceId`, `DefinitionId` и значениями по ключам `EnumerationType<T>`. Реализуют только
   сущности, у которых есть своё состояние (уровень, улучшения). Запись ставится одним методом `SetInstance`
   до `InitializeEntity`; сущность с сохранённой записью создают через `EntityInstanceSpawn.Create`. У записи
-  один владелец: `Clone()` — снимок для сохранения, `Duplicate()` — второй предмет с новым `InstanceId`. Значения по ключам вынесены в `StateValues`
+  один владелец: `Clone()` — снимок для сохранения, `Duplicate()` — второй предмет с новым `InstanceId`.
+  `EntityInstanceSpawn` отдаёт запись ровно одной сущности — той, что вернула функция создания;
+  `EntityInstanceOwners.Find` отвечает, живёт ли экземпляр на сцене; `EntityInstanceData.Changed` сообщает
+  об изменении значения. Отдельного менеджера экземпляров нет намеренно. Значения по ключам вынесены в `StateValues`
   (`Core/GameDataStorage`), от него же наследует `SceneObjectState`. Описание — в README сущностей.
 
 - **Оценка игры.** `PRUnitySDK.Review` (`IReviewService`, `Core/Review`): `CanRequest`, `TryRequest()`, событие
@@ -548,4 +551,5 @@ Test Framework: без обёртки тесты там не собрались 
 | `Core/@Entity/Sides/Editor/EntitySidesTests` | свой-чужой: урон, враг, команды, friendly fire, матрица, стороны |
 | `Core/RemoteFlags/Editor/RemoteFlagsTests` | разбор флагов проекта |
 | `Core/GameDataStorage/Editor/SaveDataVersioningTests` | версия сохранения: шаги преобразования, новое сохранение, сохранение новее сборки |
-| `Core/@Entity/EntityInstance/Editor/EntityInstanceDataTests` | запись экземпляра: цикл сохранения, снимок, самостоятельная копия |
+| `Core/@Entity/EntityInstance/Editor/EntityInstanceDataTests` | запись экземпляра: цикл сохранения, снимок, самостоятельная копия, событие изменения |
+| `Core/@Entity/EntityInstance/Editor/EntityInstanceSpawnTests` | передача записи при создании: одна сущность, дочерние и соседние, вложенные вызовы |

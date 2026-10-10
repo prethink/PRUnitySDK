@@ -418,7 +418,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         {
             EntityInstanceData fresh = instance.CreateInstance();
 
-            instance.SetInstance(EntityInstanceSpawn.Take(fresh?.DefinitionId) ?? fresh);
+            instance.SetInstance(EntityInstanceSpawn.Take(fresh?.DefinitionId, instance) ?? fresh);
         }
 
         InitializeEntity();

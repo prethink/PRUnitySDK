@@ -53,5 +53,52 @@ public class EntityInstanceDataTests
         Assert.AreEqual(3L, record.Get(Level));
         Assert.AreEqual(5L, copy.Get(Level));
     }
+
+    [Test]
+    public void Changed_IsRaisedOnlyWhenValueChanges()
+    {
+        EntityInstanceData record = EntityInstanceData.Create("definition");
+        int raised = 0;
+        record.Changed += () => raised++;
+
+        record.Set(Level, 2L);
+        record.Set(Level, 2L);
+        record.Set(Level, 3L);
+        record.Remove(Level);
+        record.Remove(Level);
+
+        Assert.AreEqual(3, raised);
+    }
+
+    [Test]
+    public void Changed_DoesNotPassToCopies()
+    {
+        EntityInstanceData record = EntityInstanceData.Create("definition");
+        int raised = 0;
+        record.Changed += () => raised++;
+
+        ((EntityInstanceData)record.Clone()).Set(Level, 2L);
+        record.Duplicate().Set(Level, 2L);
+
+        Assert.AreEqual(0, raised);
+    }
+
+    [Test]
+    public void IsValid_NeedsBothIdentifiers()
+    {
+        Assert.IsTrue(EntityInstanceData.Create("definition").IsValid());
+        Assert.IsFalse(EntityInstanceData.Create(null).IsValid());
+        Assert.IsFalse(new EntityInstanceData { DefinitionId = "definition" }.IsValid());
+    }
+
+    [Test]
+    public void Fits_ComparesDefinition()
+    {
+        EntityInstanceData record = EntityInstanceData.Create("definition");
+
+        Assert.IsTrue(record.Fits("definition"));
+        Assert.IsFalse(record.Fits("another"));
+        Assert.IsFalse(record.Fits(null));
+    }
 }
 #endif

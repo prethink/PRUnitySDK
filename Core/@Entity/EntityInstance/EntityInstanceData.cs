@@ -6,7 +6,8 @@ using System;
 /// <remarks>
 /// Живёт без игрового объекта, поэтому её сохраняют, кладут в инвентарь и отдают
 /// сущности, созданной заново. Свои значения сущность хранит по ключам
-/// <see cref="EnumerationType{T}"/>.
+/// <see cref="EnumerationType{T}"/>. Сюда идёт постоянное: уровень, улучшения, прочность.
+/// То, что верно только сейчас — «в руках», «идёт откат», — остаётся в самой сущности.
 /// <para>
 /// <c>IIdentifiable</c> не реализует намеренно: конвертер сохранения пишет от таких
 /// объектов один <c>Id</c>, и значения записи пропали бы.
@@ -27,6 +28,15 @@ public class EntityInstanceData : StateValues, ICloneable
     public string DefinitionId;
 
     /// <summary>
+    /// Значение записи изменилось.
+    /// </summary>
+    /// <remarks>
+    /// Подписывается владелец записи, чтобы пересчитать то, что из неё выводит. Подписчики
+    /// не сохраняются и в копии не переходят. Загрузка из сохранения событие не поднимает.
+    /// </remarks>
+    public event Action Changed;
+
+    /// <summary>
     /// Запись нового экземпляра.
     /// </summary>
     /// <param name="definitionId">Идентификатор определения сущности.</param>
@@ -37,6 +47,22 @@ public class EntityInstanceData : StateValues, ICloneable
             InstanceId = Guid.NewGuid().ToString("D"),
             DefinitionId = definitionId
         };
+    }
+
+    /// <summary>
+    /// У записи есть оба идентификатора. Запись без них из сохранения не восстановить.
+    /// </summary>
+    public bool IsValid()
+    {
+        return !string.IsNullOrEmpty(InstanceId) && !string.IsNullOrEmpty(DefinitionId);
+    }
+
+    /// <summary>
+    /// Запись относится к сущности этого определения.
+    /// </summary>
+    public bool Fits(string definitionId)
+    {
+        return !string.IsNullOrEmpty(definitionId) && DefinitionId == definitionId;
     }
 
     /// <summary>
@@ -69,5 +95,11 @@ public class EntityInstanceData : StateValues, ICloneable
         CopyValuesTo(copy);
 
         return copy;
+    }
+
+    /// <inheritdoc />
+    protected override void OnValuesChanged()
+    {
+        Changed?.Invoke();
     }
 }

@@ -44,15 +44,30 @@ public abstract class ContainerEntityBase : RuntimeEntityBase
 
     protected void TryHandleCollision(GameObject obj)
     {
-        if (obj.TryGetComponentInChildren<PlayerBase>(out var player))
-        {
-            if (!CanPickup(player))
-                return;
+        if (!TryFindPlayer(obj, out PlayerBase player) || !CanPickup(player))
+            return;
 
-            isTaken = TryPickup(player);
-            if (isTaken)
-                DestroyEntity();
-        }
+        isTaken = TryPickup(player);
+        if (isTaken)
+            DestroyEntity();
+    }
+
+    /// <summary>
+    /// Игрок, которому принадлежит задетый объект.
+    /// </summary>
+    /// <remarks>
+    /// Сущность игрока не всегда лежит на объекте с коллайдером или под ним: у составного
+    /// игрока она стоит на корне, а коллайдер — на теле ниже. С тела на сущность ведёт
+    /// <see cref="EntityLinkBase"/>; без этой ветки такого игрока контейнер не замечал.
+    /// </remarks>
+    protected virtual bool TryFindPlayer(GameObject obj, out PlayerBase player)
+    {
+        if (obj.TryGetComponentInChildren(out player))
+            return true;
+
+        player = obj.TryGetComponent(out EntityLinkBase link) ? link.Entity as PlayerBase : null;
+
+        return player != null;
     }
 
     protected abstract bool TryPickup(PlayerBase player);
