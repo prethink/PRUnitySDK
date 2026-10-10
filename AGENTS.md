@@ -334,6 +334,12 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Данные экземпляра сущности.** `IEntityInstance` + `EntityInstanceData` (`Core/@Entity/EntityInstance`):
+  запись с постоянным `InstanceId`, `DefinitionId` и значениями по ключам `EnumerationType<T>`. Реализуют только
+  сущности, у которых есть своё состояние (уровень, улучшения). `EntityBase` сбрасывает запись перед каждой
+  `InitializeEntity`, сохранённую подставляют через `BindInstance`. Значения по ключам вынесены в `StateValues`
+  (`Core/GameDataStorage`), от него же наследует `SceneObjectState`. Описание — в README сущностей.
+
 - **Оценка игры.** `PRUnitySDK.Review` (`IReviewService`, `Core/Review`): `CanRequest`, `TryRequest()`, событие
   `Completed(bool)`. По умолчанию `UnavailableReviewService`; на Яндексе — `YandexReviewService` поверх модуля YG2
   `Review` (файлы под `#if Review_yg`). Спросить можно раз за сессию, итог приходит не всегда.

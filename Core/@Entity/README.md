@@ -15,6 +15,7 @@
 | `EntityBase/` | `EntityBase` и три варианта под разные способы задать описание |
 | `EntityMetadata/` | Вид, имя, иконка, локализация, качество и механизм переопределения |
 | `EntityManager/` | `EntityTracker` — глобальный реестр сущностей, выдача Id, статистика |
+| `EntityInstance/` | Данные экземпляра: запись `EntityInstanceData` и интерфейс `IEntityInstance` |
 | [`EntityStats/`](EntityStats/README.md) | Базовые характеристики, персональные модификаторы и расчёт итоговых |
 | `EntityContainer/` | Подбираемые контейнеры: ресурс, действие |
 | `Player/` | `IPlayer`, `PlayerBase`, `PlayerTracker`, команды |
@@ -96,6 +97,61 @@ public override void OnReadyScene()
 
 Подробности о том, в какой именно реестр попадает сущность и как ведут себя
 идентификаторы, — в разделе [Реестры](#реестры).
+
+## Данные экземпляра
+
+Описание и определение отвечают на вопрос «что это за сущность» и общие для всех её копий.
+Уровень, улучшения, прочность принадлежат одному экземпляру. Их хранит запись
+`EntityInstanceData`, а сущность, которой она нужна, реализует `IEntityInstance`.
+Остальных сущностей это не касается.
+
+| Член записи | Что хранит |
+| --- | --- |
+| `InstanceId` | Идентификатор экземпляра. Сохраняется между запусками, в отличие от `IEntity.Id` |
+| `DefinitionId` | Идентификатор определения, по которому сущность создают заново |
+| `Set` / `Get` / `TryGet` | Свои значения по ключам `EnumerationType<T>` |
+
+```csharp
+public static class PickaxeInstanceKeys
+{
+    public static readonly EnumerationType<long> Level = new(nameof(Level));
+}
+
+public class PickaxeEntity : EntityDefinition<PickaxeDefinition>, IEntityInstance
+{
+    public EntityInstanceData Instance { get; private set; }
+
+    public long Level => Instance.Get(PickaxeInstanceKeys.Level, 1);
+
+    public void ResetInstance()
+    {
+        Instance = EntityInstanceData.Create(Definition.Id);
+    }
+
+    public void BindInstance(EntityInstanceData data)
+    {
+        Instance = data;
+    }
+}
+```
+
+`EntityBase` зовёт `ResetInstance()` перед каждой `InitializeEntity()`: при создании, выдаче
+из пула и возврате спрятанной сущности. Поэтому в `InitializeEntity()` запись уже есть,
+а сущность из пула не приходит с уровнем прошлой жизни.
+
+Сохранённую запись подставляют после выдачи сущности:
+
+```csharp
+var entity = PRUnitySDK.Managers.ObjectPool.ShowEntity(definition.Prefab, parent);
+entity.BindInstance((EntityInstanceData)saved.Clone());
+```
+
+Контейнер (подставка, инвентарь) хранит запись целиком и не знает, какие в ней значения.
+Новое свойство экземпляра добавляется ключом у сущности, данные контейнера не меняются.
+
+Запись сериализуется в `ProjectData` как есть. Поддерживаются `long`, `float`, `bool`,
+`string` и `DateTime`. `IIdentifiable` запись не реализует: конвертер сохранения пишет
+от таких объектов один `Id`.
 
 ## EntityMetadata
 

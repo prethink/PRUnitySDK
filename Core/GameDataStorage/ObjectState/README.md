@@ -322,6 +322,7 @@ label.SetLocalization(LevelLabels.Collected,
 | `SaveableObjectStateSwitchBase` | основа переключателей: ссылка на состояние, методы и события |
 | `SaveableObjectStateTriggerSwitch` | готовый повод переключить — вход игрока в триггер |
 | `SceneObjectState` | сама запись: активность и значения по типизированным ключам |
+| `../StateValues` | общая основа записей со значениями по ключам; на ней же стоит `EntityInstanceData` |
 | `SaveableIdSource` | откуда берётся ключ: свой или с цели |
 | `ObjectStateTracker` | учёт состояний: срез по сцене и по проекту |
 | `ObjectStateProgress` | сколько показано, спрятано и всего |

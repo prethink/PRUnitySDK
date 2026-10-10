@@ -5,7 +5,12 @@ public class ResourceItemDefinition : ResourceItemDefinitionBase
 {
     [field: SerializeField] public EnumerationReference<ResourceEnumerations> CurrencyType { get; private set; } = new();
 
-    public override string Id => CurrencyType.ToString();
+    /// <inheritdoc />
+    /// <remarks>
+    /// Идентификатор ресурса — ключ его типа. Именно <c>Value</c>: у ссылки нет своего
+    /// <c>ToString</c>, и он отдал бы имя класса, одинаковое у всех ресурсов.
+    /// </remarks>
+    public override string Id => EnumerationReference<ResourceEnumerations>.ToValue(CurrencyType);
 
     /// <summary>
     /// Пытается получить runtime-тип ресурса из сериализованной ссылки definition.

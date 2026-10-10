@@ -295,7 +295,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         InitializeEntityMetadata();
         ApplyDescriptionOverrides();
         CaptureStartTransform();
-        InitializeEntity();
+        BeginEntityLife();
     }
 
     /// <summary>
@@ -398,6 +398,20 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         if (isFirstPool)
             return;
 
+        BeginEntityLife();
+    }
+
+    /// <summary>
+    /// Новое появление сущности на сцене: создание, выдача из пула, возврат спрятанной.
+    /// </summary>
+    /// <remarks>
+    /// Данные экземпляра сбрасываются до инициализации: она их уже читает.
+    /// </remarks>
+    private void BeginEntityLife()
+    {
+        if (this is IEntityInstance instance)
+            instance.ResetInstance();
+
         InitializeEntity();
     }
 
@@ -446,7 +460,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
             EntityGameObject.SetActive(true);
 
         RestoreStartTransform();
-        InitializeEntity();
+        BeginEntityLife();
     }
 
     private void ClearWireVisual()
