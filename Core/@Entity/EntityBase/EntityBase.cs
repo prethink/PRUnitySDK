@@ -295,7 +295,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         InitializeEntityMetadata();
         ApplyDescriptionOverrides();
         CaptureStartTransform();
-        BeginEntityLife(newInstance: true);
+        BeginEntityLife(newInstance: true, keepAssignedInstance: true);
     }
 
     /// <summary>
@@ -412,16 +412,45 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// Сущность появляется заново. Возвращённая из спрятанных остаётся тем же экземпляром
     /// и запись не меняет: иначе она теряла бы уровень и получала новый идентификатор.
     /// </param>
-    private void BeginEntityLife(bool newInstance)
+    /// <param name="keepAssignedInstance">
+    /// Первое появление объекта (<c>Awake</c>). Запись, поставленная до него, остаётся:
+    /// объект, созданный выключенным, получает запись раньше, чем просыпается, и замена
+    /// её новой стёрла бы сохранённые данные. У объекта из пула такой записи быть не может —
+    /// там лежит запись прошлой жизни, и её заменяют всегда.
+    /// </param>
+    private void BeginEntityLife(bool newInstance, bool keepAssignedInstance = false)
     {
         if (newInstance && this is IEntityInstance instance)
         {
-            EntityInstanceData fresh = instance.CreateInstance();
+            bool assigned = keepAssignedInstance && instance.Instance != null;
 
-            instance.SetInstance(EntityInstanceSpawn.Take(fresh?.DefinitionId, instance) ?? fresh);
+            if (!assigned)
+            {
+                EntityInstanceData fresh = instance.CreateInstance();
+                bool nested = IsNestedInstance(fresh?.DefinitionId);
+
+                instance.SetInstance(EntityInstanceSpawn.Take(fresh?.DefinitionId, instance, nested) ?? fresh);
+            }
         }
 
         InitializeEntity();
+    }
+
+    /// <summary>
+    /// Сущность вложена в другую сущность того же определения.
+    /// </summary>
+    /// <remarks>
+    /// Запись, переданную при создании, такая сущность не берёт: она предназначена внешней.
+    /// Проверяется только пока идёт создание с записью, в остальное время ответ не нужен.
+    /// </remarks>
+    private bool IsNestedInstance(string definitionId)
+    {
+        if (!EntityInstanceSpawn.IsCreating || transform.parent == null)
+            return false;
+
+        IEntityInstance outer = transform.parent.GetComponentInParent<IEntityInstance>(true);
+
+        return outer != null && outer.CreateInstance()?.DefinitionId == definitionId;
     }
 
     protected virtual void InitializeEntity()

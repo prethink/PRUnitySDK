@@ -552,4 +552,5 @@ Test Framework: без обёртки тесты там не собрались 
 | `Core/RemoteFlags/Editor/RemoteFlagsTests` | разбор флагов проекта |
 | `Core/GameDataStorage/Editor/SaveDataVersioningTests` | версия сохранения: шаги преобразования, новое сохранение, сохранение новее сборки |
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceDataTests` | запись экземпляра: цикл сохранения, снимок, самостоятельная копия, событие изменения |
-| `Core/@Entity/EntityInstance/Editor/EntityInstanceSpawnTests` | передача записи при создании: одна сущность, дочерние и соседние, вложенные вызовы |
+| `Core/@Entity/EntityInstance/Editor/EntityInstanceSpawnTests` | передача записи при создании: одна сущность, дочерние и соседние, вложенные вызовы, чужое определение |
+| `Core/@Entity/EntityInstance/Editor/EntityInstanceLifeTests` | запись на настоящей сущности: выключенный объект, вложенная сущность, повторная выдача из пула, занятый экземпляр; сущность для них — в `EntityInstance/Testing` (компонент из `Editor` на объект не вешается) |

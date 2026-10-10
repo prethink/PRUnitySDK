@@ -8,9 +8,16 @@ using System;
 /// характеристики по сохранённым значениям, а не по значениям нового экземпляра.
 /// Сущность создаётся как обычно — пулом или <c>Instantiate</c> — внутри переданной функции.
 /// <para>
-/// Запись достаётся ровно одной сущности — той, которую вернула функция. Если раньше её
-/// забрала другая (вложенная того же определения, соседняя из пула), та получает новую
-/// запись, а эта переходит вернувшейся.
+/// Запись достаётся ровно одной сущности — той, которую вернула функция. Вложенная сущность
+/// того же определения запись не берёт вовсе. Если её всё же забрала другая (соседняя из
+/// пула), та получает новую запись, а эта переходит вернувшейся — но обе к этому времени
+/// уже прошли <c>InitializeEntity</c> не со своей записью, поэтому о таком случае пишется
+/// предупреждение.
+/// </para>
+/// <para>
+/// Создание отменяется, если экземпляр уже живёт на сцене: второй предмет с тем же
+/// идентификатором появляться не должен, а новый предмет — это осознанное действие игры
+/// (<see cref="EntityInstanceData.Duplicate"/>), а не способ замять ошибку.
 /// </para>
 /// </remarks>
 public static class EntityInstanceSpawn
@@ -27,10 +34,20 @@ public static class EntityInstanceSpawn
     private static Request current;
 
     /// <summary>
+    /// Идёт создание сущности с записью: кто-то сейчас внутри <see cref="Create{T}"/>.
+    /// </summary>
+    public static bool IsCreating => current != null;
+
+    /// <summary>
     /// Создаёт сущность и отдаёт ей запись во владение.
     /// </summary>
     /// <param name="record">Запись экземпляра; после вызова ею пользуется только сущность.</param>
     /// <param name="create">Как создать сущность: выдать из пула или инстанцировать префаб.</param>
+    /// <returns>
+    /// Созданная сущность. <c>null</c>, если экземпляр уже живёт на сцене: функция создания
+    /// в этом случае не вызывается. Сущность другого определения возвращается без записи —
+    /// проверить это можно сравнением её <c>Instance</c> с переданной записью.
+    /// </returns>
     public static T Create<T>(EntityInstanceData record, Func<T> create)
         where T : class
     {
@@ -41,13 +58,14 @@ public static class EntityInstanceSpawn
             return create();
 
         // Экземпляр уже живёт на сцене: вторая сущность с той же записью стала бы его двойником.
-        // Игру это не останавливает, но предмет раздваивается — ошибка в коде передачи.
+        // Копию с новым идентификатором не делаем — так ошибка передачи превращалась бы
+        // в лишний предмет у игрока.
         if (EntityInstanceOwners.Find(record.InstanceId) != null)
         {
             PRLog.WriteError(typeof(EntityInstanceSpawn),
-                $"Экземпляр {record.InstanceId} уже принадлежит сущности на сцене: новая сущность получит его копию с другим идентификатором.");
+                $"Экземпляр {record.InstanceId} ('{record.DefinitionId}') уже принадлежит сущности на сцене: вторая сущность не создана.");
 
-            record = record.Duplicate();
+            return null;
         }
 
         // Прежняя передача возвращается: создание одной сущности может вызвать создание другой.
@@ -69,12 +87,31 @@ public static class EntityInstanceSpawn
         var owner = entity as IEntityInstance;
 
         if (request.Taker != null && !ReferenceEquals(request.Taker, owner))
+        {
             request.Taker.SetInstance(request.Taker.CreateInstance());
 
+            PRLog.WriteWarning(typeof(EntityInstanceSpawn),
+                $"Запись экземпляра {record.InstanceId} при создании забрала не та сущность, что вернулась из функции. " +
+                "Запись возвращена нужной, но обе уже прошли InitializeEntity не со своей записью: " +
+                "всё, что выводится из записи, должно пересчитываться в SetInstance.");
+        }
+
+        if (owner == null || ReferenceEquals(owner.Instance, record))
+            return entity;
+
         // Сущность не начинала жизнь внутри create (объект создан выключенным) либо запись
-        // у неё перехватили: ставится следом, уже после InitializeEntity.
-        if (owner != null && !ReferenceEquals(owner.Instance, record))
-            owner.SetInstance(record);
+        // у неё перехватили: ставится следом. Но только своей: запись кирки питомцу не нужна.
+        string ownerDefinition = owner.CreateInstance()?.DefinitionId;
+
+        if (!record.Fits(ownerDefinition))
+        {
+            PRLog.WriteError(typeof(EntityInstanceSpawn),
+                $"Запись экземпляра {record.InstanceId} относится к '{record.DefinitionId}', а создана сущность '{ownerDefinition}': запись ей не передана.");
+
+            return entity;
+        }
+
+        owner.SetInstance(record);
 
         return entity;
     }
@@ -89,12 +126,19 @@ public static class EntityInstanceSpawn
     /// </remarks>
     /// <param name="definitionId">Определение сущности, которая спрашивает.</param>
     /// <param name="taker">Сама сущность.</param>
+    /// <param name="nested">
+    /// Сущность вложена в другую того же определения. Такая запись не берёт: она предназначена
+    /// внешней, а порядок пробуждения внутри префаба Unity не обещает.
+    /// </param>
     /// <returns>Запись либо <c>null</c>, если её нет, она чужая или уже отдана.</returns>
-    public static EntityInstanceData Take(string definitionId, IEntityInstance taker)
+    public static EntityInstanceData Take(string definitionId, IEntityInstance taker, bool nested = false)
     {
         Request request = current;
 
-        if (request == null || request.Taker != null || taker == null || request.Record.DefinitionId != definitionId)
+        if (request == null || request.Taker != null || taker == null || nested)
+            return null;
+
+        if (!request.Record.Fits(definitionId))
             return null;
 
         request.Taker = taker;

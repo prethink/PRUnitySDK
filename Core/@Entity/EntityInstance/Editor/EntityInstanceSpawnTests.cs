@@ -1,5 +1,6 @@
 #if PRSDK_TESTS
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 /// <summary>
 /// Передача записи создаваемой сущности: запись получает ровно одна сущность — та, что вернулась.
@@ -44,9 +45,17 @@ public class EntityInstanceSpawnTests
         Assert.AreSame(record, entity.Instance);
     }
 
+    /// <remarks>
+    /// Итоговая принадлежность верна, но инициализацию обе сущности прошли не со своей
+    /// записью: об этом пишется предупреждение, а пересчёт — обязанность SetInstance.
+    /// Случай вложенной сущности, где этого можно избежать, проверяют
+    /// <see cref="NestedEntity_DoesNotTakeRecord"/> и EntityInstanceLifeTests.
+    /// </remarks>
     [Test]
     public void RecordTakenByAnotherEntity_ReturnsToCreatedOne()
     {
+        LogAssert.ignoreFailingMessages = true;
+
         EntityInstanceData record = EntityInstanceData.Create(Definition);
         var sibling = new FakeEntity(Definition);
         var entity = new FakeEntity(Definition);
@@ -62,6 +71,40 @@ public class EntityInstanceSpawnTests
         Assert.AreSame(record, entity.Instance);
         Assert.AreNotSame(record, sibling.Instance);
         Assert.AreNotEqual(record.InstanceId, sibling.Instance.InstanceId);
+    }
+
+    [Test]
+    public void NestedEntity_DoesNotTakeRecord()
+    {
+        EntityInstanceData record = EntityInstanceData.Create(Definition);
+        var inner = new FakeEntity(Definition);
+        var outer = new FakeEntity(Definition);
+
+        EntityInstanceSpawn.Create(record, () =>
+        {
+            // Вложенная сущность того же определения просыпается раньше внешней.
+            inner.BeginLife(nested: true);
+            outer.BeginLife();
+            return outer;
+        });
+
+        Assert.AreSame(record, outer.Instance);
+        Assert.AreSame(record, outer.InstanceSeenByInitialization);
+        Assert.AreNotSame(record, inner.InstanceSeenByInitialization);
+    }
+
+    [Test]
+    public void EntityOfAnotherDefinitionReturned_DoesNotGetRecord()
+    {
+        LogAssert.ignoreFailingMessages = true;
+
+        EntityInstanceData record = EntityInstanceData.Create(Definition);
+        var pet = new FakeEntity("pet");
+
+        FakeEntity returned = EntityInstanceSpawn.Create(record, () => pet);
+
+        Assert.AreSame(pet, returned);
+        Assert.AreNotSame(record, pet.Instance);
     }
 
     [Test]
@@ -153,11 +196,11 @@ public class EntityInstanceSpawnTests
             Instance = data;
         }
 
-        public void BeginLife()
+        public void BeginLife(bool nested = false)
         {
             EntityInstanceData fresh = CreateInstance();
 
-            SetInstance(EntityInstanceSpawn.Take(fresh.DefinitionId, this) ?? fresh);
+            SetInstance(EntityInstanceSpawn.Take(fresh.DefinitionId, this, nested) ?? fresh);
             InstanceSeenByInitialization = Instance;
         }
     }
