@@ -109,6 +109,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         if (!TryGetResourceName(resourceType, out var resourceName))
             return;
 
+        value = System.Math.Max(0, value);
         var change = resources.SetValue(resourceName, value);
         if (!change.Changed)
             return;
@@ -157,7 +158,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     public void AddResourceValue(Enumeration resourceType, long addValue, bool requiredNotify = true, bool requiredSave = false, bool ignoreSaveCooldown = false)
     {
         long startValue = GetResource(resourceType);
-        var targetValue = startValue + addValue;
+        long targetValue = ((decimal)startValue + addValue).ClampToLong();
         SetOrUpdateResource(resourceType, targetValue, requiredNotify, requiredSave, ignoreSaveCooldown);
     }
 
