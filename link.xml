@@ -37,6 +37,8 @@
     <type fullname="NPCStatesEnumerations" preserve="all" />
     <type fullname="NewDayWatcherTask" preserve="all" />
     <type fullname="NotifiersKeyEnumerations" preserve="all" />
+    <type fullname="NpcSignalEnumerations" preserve="all" />
+    <type fullname="NpcStateEnumerations" preserve="all" />
     <type fullname="ObjectStateGroupEnumerations" preserve="all" />
     <type fullname="PRTimeScaleEnumerations" preserve="all" />
     <type fullname="PetStatesEnumerations" preserve="all" />
