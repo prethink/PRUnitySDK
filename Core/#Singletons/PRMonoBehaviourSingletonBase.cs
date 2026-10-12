@@ -10,6 +10,11 @@ public abstract class PRMonoBehaviourSingletonBase<T> : PRMonoBehaviour
     protected static T instance;
 
     /// <summary>
+    /// Экземпляр уже есть. В отличие от <see cref="Instance"/> ничего не создаёт.
+    /// </summary>
+    public static bool HasInstance => instance != null;
+
+    /// <summary>
     /// Singleton instance.
     /// </summary>
     public static T Instance
@@ -20,6 +25,13 @@ public abstract class PRMonoBehaviourSingletonBase<T> : PRMonoBehaviour
                 return instance;
 
             instance = FindObjectOfType<T>();
+
+            // Обработчики на закрытии подняли бы новый объект, и он пережил бы сцену.
+            if (instance == null && ApplicationLifetime.IsQuitting)
+            {
+                PRLog.WriteDebug(typeof(T), $"{typeof(T).Name} запрошен при закрытии приложения: не создаётся.");
+                return null;
+            }
 
             if (instance == null)
             {

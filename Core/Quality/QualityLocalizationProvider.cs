@@ -25,6 +25,9 @@ public class QualityLocalizationProvider : ILocalizationProvider
             QualityType.Legendary => Legendary,
             QualityType.Ancient => Ancient,
             QualityType.Godlike => Godlike,
+            QualityType.Cosmic => Cosmic,
+            QualityType.Secret => Secret,
+            QualityType.Rainbow => Rainbow,
             _ => Unknown
         };
     }
@@ -91,6 +94,30 @@ public class QualityLocalizationProvider : ILocalizationProvider
             { LangType.Russian, "Божественный" },
             { LangType.English, "Godlike" },
             { LangType.Turkey, "Tanrısal" }
+        };
+
+    private static readonly IReadOnlyDictionary<LangType, string> Cosmic =
+        new Dictionary<LangType, string>
+        {
+            { LangType.Russian, "Космический" },
+            { LangType.English, "Cosmic" },
+            { LangType.Turkey, "Kozmik" }
+        };
+
+    private static readonly IReadOnlyDictionary<LangType, string> Secret =
+        new Dictionary<LangType, string>
+        {
+            { LangType.Russian, "Секретный" },
+            { LangType.English, "Secret" },
+            { LangType.Turkey, "Gizli" }
+        };
+
+    private static readonly IReadOnlyDictionary<LangType, string> Rainbow =
+        new Dictionary<LangType, string>
+        {
+            { LangType.Russian, "Радужный" },
+            { LangType.English, "Rainbow" },
+            { LangType.Turkey, "Gökkuşağı" }
         };
 
     private static readonly IReadOnlyDictionary<LangType, string> Unknown =

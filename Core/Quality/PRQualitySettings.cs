@@ -84,5 +84,38 @@ public class PRQualitySettings
     [field: SerializeField] public long GodlikeLevel { get; protected set; } = 70;
 
     #endregion
+
+    // Вес новых качеств по умолчанию ноль: общий розыгрыш качества в уже выпущенных играх
+    // не должен начать выдавать их сам. Игра с расширенной шкалой задаёт вес явно.
+
+    #region Cosmic
+
+    [field: SerializeField, Header("Cosmic")] public ulong CosmicWeight { get; protected set; }
+
+    [field: SerializeField] public Color CosmicColor { get; protected set; }
+
+    [field: SerializeField] public long CosmicLevel { get; protected set; } = 80;
+
+    #endregion
+
+    #region Secret
+
+    [field: SerializeField, Header("Secret")] public ulong SecretWeight { get; protected set; }
+
+    [field: SerializeField] public Color SecretColor { get; protected set; }
+
+    [field: SerializeField] public long SecretLevel { get; protected set; } = 90;
+
+    #endregion
+
+    #region Rainbow
+
+    [field: SerializeField, Header("Rainbow")] public ulong RainbowWeight { get; protected set; }
+
+    [field: SerializeField] public Color RainbowColor { get; protected set; }
+
+    [field: SerializeField] public long RainbowLevel { get; protected set; } = 100;
+
+    #endregion
 }
 

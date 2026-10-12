@@ -176,7 +176,7 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
 
     public virtual PlayerInputState GetInput()
     {
-        return InputTranslator.Instance.GetPlayer(InputGuid);
+        return InputTranslator.Instance?.GetPlayer(InputGuid);
     }
 
     protected ReadySignal readySignal;

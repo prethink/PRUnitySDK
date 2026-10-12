@@ -14,7 +14,8 @@ using UnityEditor;
 /// <para>
 /// Папкой-источником считается первая после <c>Assets</c>: <c>PRUnitySDK</c>,
 /// <c>PRUnitySDKPrivate</c>, папка игры. Имена нигде не зашиты — новая часть SDK или
-/// проект появятся в окне отдельной группой сами.
+/// проект появятся в окне отдельной группой сами. Раздел с <see cref="SettingsGroupAttribute"/>
+/// встаёт в названную группу независимо от папки: так настройки игр собраны в «Games».
 /// </para>
 /// <para>
 /// Таблица строится один раз на загрузку домена: правка скриптов домен перезагружает,
@@ -52,6 +53,14 @@ internal static class PRSDKSettingsSources
     public static string GetSource(SerializedProperty rootProperty)
     {
         EnsureBuilt();
+
+        // Явная группа на типе раздела главнее папки: так настройки игр собираются в «Games».
+        System.Reflection.FieldInfo field = rootProperty != null
+            ? typeof(PRSDKSettings).GetField(rootProperty.name,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+            : null;
+        if (field != null && Attribute.GetCustomAttribute(field.FieldType, typeof(SettingsGroupAttribute)) is SettingsGroupAttribute group)
+            return group.Name;
 
         return rootProperty != null && sourceByMember.TryGetValue(GetMemberName(rootProperty.name), out string source)
             ? source

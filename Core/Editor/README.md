@@ -287,6 +287,27 @@ public class PRQualitySettings
 
 Заголовок раздела с флагом включения подсвечивается зелёным, пока флаг поднят. Флаг — поле с именем `Enabled`, `IsEnabled`, `Active` или `IsActive`. Список имён закрытый: поле вроде `ShowNames` не учитывается. Выключенные разделы не подсвечиваются.
 
+### Настройки отдельных игр
+
+Разделы группируются по папке, где объявлено поле (`PRUnitySDK`, `PRUnitySDKPrivate`). Настройки конкретной
+игры лежат рядом с её кодом, но собраны в отдельной группе `Games`: класс раздела помечают
+`[SettingsGroup(SettingsGroupAttribute.Games)]`, и игра становится в ней своим разделом.
+
+```csharp
+[Serializable]
+[SettingsGroup(SettingsGroupAttribute.Games)]
+[SettingsDescription("StealEgg: музыка погони и иконки подсказок.")]
+public sealed class StealEggSettings { ... }
+
+public partial class PRSDKSettings
+{
+    [field: SerializeField] public StealEggSettings StealEgg { get; private set; } = new();
+}
+```
+
+Сейчас в группе `StealEgg` и `PickBox`. Числа режима (цены, каталог) по-прежнему живут в ассетах на сцене —
+в разделе игры только то, что настраивают руками: музыка, иконки, флаги.
+
 ### Вложенные разделы
 
 Описание и кнопка сброса есть не только у разделов верхнего уровня. Поле, чей тип помечен `SettingsDescription`, окно рисует таким же разделом — со своим foldout, описанием и сбросом. Так устроены подразделы опыта: `Bar`, `Popup`, `Pickup`, `Background`, `Booster`.

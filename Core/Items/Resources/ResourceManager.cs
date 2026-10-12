@@ -6,6 +6,11 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
 {
     private readonly ProjectDataMap<string, long> resources;
 
+    /// <summary>
+    /// Ресурсы, значение которых читается у другой системы, по имени типа.
+    /// </summary>
+    private readonly Dictionary<string, IResourceValueSource> valueSources = new();
+
     public ResourceManager()
     {
         resources = new ProjectDataMap<string, long>(
@@ -25,6 +30,9 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         if (!TryGetResourceName(resourceType, out var resourceName))
             return 0;
 
+        if (valueSources.TryGetValue(resourceName, out IResourceValueSource source))
+            return source.GetValue();
+
         return StatisticsManager.Instance.TryGetResourceTotal(resourceName, out long total)
             ? total
             : System.Math.Max(0L, resources.GetValue(resourceName, 0));
@@ -36,8 +44,17 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     public bool TryGetResource(Enumeration resourceType, out long value)
     {
         value = 0;
-        return TryGetResourceName(resourceType, out var resourceName)
-            && resources.TryGetValue(resourceName, out value);
+
+        if (!TryGetResourceName(resourceType, out var resourceName))
+            return false;
+
+        if (valueSources.TryGetValue(resourceName, out IResourceValueSource source))
+        {
+            value = source.GetValue();
+            return true;
+        }
+
+        return resources.TryGetValue(resourceName, out value);
     }
 
     /// <summary>
@@ -55,9 +72,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// </summary>
     public long GetResource(Enumeration resourceType, long fallback = 0)
     {
-        return TryGetResourceName(resourceType, out var resourceName)
-            ? resources.GetValue(resourceName, fallback)
-            : fallback;
+        return TryGetResource(resourceType, out long value) ? value : fallback;
     }
 
     /// <summary>
@@ -81,6 +96,9 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     {
         if (!TryGetResourceName(resourceType, out var resourceName))
             return 0;
+
+        if (valueSources.TryGetValue(resourceName, out IResourceValueSource source))
+            return source.GetValue();
 
         return resources.GetOrCreateValue(resourceName, 0).CurrentValue;
     }
@@ -106,7 +124,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// <param name="ignoreSaveCooldown">Записать данные не дожидаясь кулдауна сохранения.</param>
     public void SetOrUpdateResource(Enumeration resourceType, long value, bool requiredNotify = true, bool requiredSave = false, bool ignoreSaveCooldown = false)
     {
-        if (!TryGetResourceName(resourceType, out var resourceName))
+        if (!TryGetResourceName(resourceType, out var resourceName) || IsReadOnly(resourceName))
             return;
 
         value = System.Math.Max(0, value);
@@ -183,7 +201,7 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
         bool requiredSave = false,
         bool ignoreSaveCooldown = false)
     {
-        if (!TryGetResourceName(resourceType, out _))
+        if (!TryGetResourceName(resourceType, out var resourceName) || IsReadOnly(resourceName))
             return false;
 
         if (amount < 0)
@@ -295,6 +313,52 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
             return long.MinValue;
 
         return (long)System.Math.Round(value, System.MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// Берёт значение ресурса у другой системы вместо сохранения — например, у опыта.
+    /// </summary>
+    /// <remarks>
+    /// Сохранённое значение такого ресурса не читается и не меняется: правда о нём одна,
+    /// у источника. Шапка, всплывающие начисления и прочие подписчики узнают об изменениях
+    /// обычным событием ресурса, если источник сообщает о них.
+    /// </remarks>
+    public void SetValueSource(Enumeration resourceType, IResourceValueSource source)
+    {
+        if (source == null || !TryGetResourceName(resourceType, out var resourceName))
+            return;
+
+        long previous = GetResource(resourceType);
+        valueSources[resourceName] = source;
+        NotifyValueSourceChanged(resourceType, previous, source.GetValue());
+    }
+
+    /// <summary>
+    /// Возвращает ресурс сохранению, если источник ставил этот же владелец.
+    /// </summary>
+    public void RemoveValueSource(Enumeration resourceType, IResourceValueSource source)
+    {
+        if (TryGetResourceName(resourceType, out var resourceName) &&
+            valueSources.TryGetValue(resourceName, out IResourceValueSource current) && ReferenceEquals(current, source))
+            valueSources.Remove(resourceName);
+    }
+
+    /// <summary>
+    /// Рассылает изменение ресурса, значение которого ведёт источник.
+    /// </summary>
+    public void NotifyValueSourceChanged(Enumeration resourceType, long previousValue, long currentValue)
+    {
+        if (previousValue != currentValue)
+            ResourceEvents.RaiseResourceValueChange(new ResourceValueChangeEventArgs(resourceType, previousValue, currentValue));
+    }
+
+    private bool IsReadOnly(string resourceName)
+    {
+        if (!valueSources.ContainsKey(resourceName))
+            return false;
+
+        PRLog.WriteWarning(this, $"Ресурс '{resourceName}' читается у другой системы: записать или списать его нельзя.");
+        return true;
     }
 
     private static ProjectData GetProjectData()

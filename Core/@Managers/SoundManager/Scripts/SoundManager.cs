@@ -115,6 +115,28 @@ public class SoundManager : MonoBehaviour
     private int backgroundMusicPlayed;
 
     /// <summary>
+    /// Временные подмены музыки по порядку постановки: звучит последняя.
+    /// </summary>
+    private readonly List<(object owner, AudioClip clip)> musicOverrides = new();
+
+    /// <summary>
+    /// Трек плейлиста и место в нём, где музыку прервала первая подмена.
+    /// </summary>
+    private AudioClip resumeClip;
+    private float resumeTime;
+
+    /// <summary>
+    /// Доля громкости музыки на время затухания при смене подмены; в остальное время 1.
+    /// </summary>
+    private float musicFade = 1f;
+    private Coroutine musicFadeCoroutine;
+
+    /// <summary>
+    /// Длительность затухания и проявления музыки при подмене, реальные секунды.
+    /// </summary>
+    private const float MusicOverrideFadeSeconds = 0.35f;
+
+    /// <summary>
     /// Громкость музыки относительно выбранной игроком: задаётся в настройках проекта.
     /// </summary>
     private static float MusicVolumeScale
@@ -241,7 +263,7 @@ public class SoundManager : MonoBehaviour
             return;
         }
 
-        musicSource.volume = GetMusicVolume(currentSettings);
+        musicSource.volume = GetMusicVolume(currentSettings) * musicFade;
         uiSource.volume = Mathf.Clamp(currentSettings.UIVolume, 0, masterVolume);
         UpdateEffectVolume(Mathf.Clamp(currentSettings.EffectVolume, 0, masterVolume));
     }
@@ -691,7 +713,15 @@ public class SoundManager : MonoBehaviour
 
         backgroundMusicStopped = false;
         backgroundMusicPlayed = 0;
-        PlayCurrentTrack();
+
+        // Под подменой плейлист только запоминается: заиграет, когда подмену снимут.
+        if (musicOverrides.Count > 0)
+        {
+            resumeClip = null;
+            resumeTime = 0f;
+        }
+        else
+            PlayCurrentTrack();
 
         // Persistent-наблюдатель запускается один раз, а не при каждом PlayBackgroundMusic -
         // сам крутится вечно и переключает треки по мере естественного завершения.
@@ -736,14 +766,151 @@ public class SoundManager : MonoBehaviour
     {
         backgroundMusicStopped = true;
 
-        if (musicSource != null)
+        if (musicSource != null && musicOverrides.Count == 0)
             musicSource.Stop();
+    }
+
+    /// <summary>
+    /// Временно ставит вместо фоновой музыки свой трек — например, погоню, пока игрок убегает.
+    /// </summary>
+    /// <remarks>
+    /// Плейлист на это время замирает и потом продолжается с того же места. Подмен может быть
+    /// несколько — у каждого владельца своя; звучит поставленная последней, снятие одной
+    /// возвращает предыдущую. Повторный вызов того же владельца меняет его трек.
+    /// Смена идёт коротким затуханием по реальному времени: замедление и пауза его не тянут.
+    /// </remarks>
+    /// <param name="owner">Кто ставит подмену; он же её снимает.</param>
+    /// <param name="clip">Трек подмены, играет по кругу; <see langword="null"/> снимает подмену владельца.</param>
+    public void SetMusicOverride(object owner, AudioClip clip)
+    {
+        if (owner == null)
+            return;
+
+        if (clip == null)
+        {
+            ClearMusicOverride(owner);
+            return;
+        }
+
+        AudioClip before = CurrentOverrideClip;
+
+        if (musicOverrides.Count == 0 && musicSource != null && musicSource.clip != null && !backgroundMusicStopped)
+        {
+            resumeClip = musicSource.clip;
+            resumeTime = musicSource.time;
+        }
+
+        musicOverrides.RemoveAll(entry => ReferenceEquals(entry.owner, owner));
+        musicOverrides.Add((owner, clip));
+
+        if (CurrentOverrideClip != before)
+            SwitchMusic(PlayOverrideTrack);
+    }
+
+    /// <summary>
+    /// Снимает подмену владельца: звучит предыдущая подмена или снова фоновая музыка.
+    /// </summary>
+    /// <param name="owner">Тот, кто ставил подмену.</param>
+    public void ClearMusicOverride(object owner)
+    {
+        if (owner == null || musicOverrides.RemoveAll(entry => ReferenceEquals(entry.owner, owner)) == 0)
+            return;
+
+        SwitchMusic(musicOverrides.Count > 0 ? PlayOverrideTrack : ResumeBackgroundMusic);
+    }
+
+    /// <summary>
+    /// Звучит ли сейчас подмена фоновой музыки.
+    /// </summary>
+    public bool HasMusicOverride => musicOverrides.Count > 0;
+
+    private AudioClip CurrentOverrideClip => musicOverrides.Count > 0 ? musicOverrides[musicOverrides.Count - 1].clip : null;
+
+    private void PlayOverrideTrack()
+    {
+        musicSource.clip = CurrentOverrideClip;
+        musicSource.loop = true;
+        musicSource.time = 0f;
+        musicSource.Play();
+    }
+
+    /// <summary>
+    /// Возвращает плейлист туда, где его прервала подмена; сменённый за это время плейлист — с начала.
+    /// </summary>
+    private void ResumeBackgroundMusic()
+    {
+        if (backgroundMusic.Count == 0 || backgroundMusicStopped)
+        {
+            musicSource.Stop();
+            return;
+        }
+
+        int index = resumeClip != null ? backgroundMusic.IndexOf(resumeClip) : -1;
+        if (index >= 0)
+            currentIndexPlayBackgroundMusic = index;
+
+        PlayCurrentTrack();
+
+        if (index >= 0 && resumeTime < musicSource.clip.length)
+            musicSource.time = resumeTime;
+
+        resumeClip = null;
+    }
+
+    /// <summary>
+    /// Гасит музыку, меняет трек и проявляет её снова.
+    /// </summary>
+    private void SwitchMusic(Action swap)
+    {
+        if (musicSource == null)
+            return;
+
+        if (musicFadeCoroutine != null)
+            StopCoroutine(musicFadeCoroutine);
+
+        if (!isActiveAndEnabled)
+        {
+            musicFade = 1f;
+            swap();
+            return;
+        }
+
+        musicFadeCoroutine = StartCoroutine(SwitchMusicRoutine(swap));
+    }
+
+    private IEnumerator SwitchMusicRoutine(Action swap)
+    {
+        float from = musicFade;
+
+        for (float time = 0f; time < MusicOverrideFadeSeconds; time += Time.unscaledDeltaTime)
+        {
+            SetMusicFade(Mathf.Lerp(from, 0f, time / MusicOverrideFadeSeconds));
+            yield return null;
+        }
+
+        SetMusicFade(0f);
+        swap();
+
+        for (float time = 0f; time < MusicOverrideFadeSeconds; time += Time.unscaledDeltaTime)
+        {
+            SetMusicFade(time / MusicOverrideFadeSeconds);
+            yield return null;
+        }
+
+        SetMusicFade(1f);
+        musicFadeCoroutine = null;
+    }
+
+    private void SetMusicFade(float value)
+    {
+        musicFade = value;
+        musicSource.volume = GetMusicVolume(PRUnitySDK.Managers.Game.GetGameSettings()) * musicFade;
     }
 
     private void PlayCurrentTrack()
     {
         musicSource.clip = backgroundMusic[currentIndexPlayBackgroundMusic];
-        musicSource.volume = GetMusicVolume(PRUnitySDK.Managers.Game.GetGameSettings());
+        musicSource.volume = GetMusicVolume(PRUnitySDK.Managers.Game.GetGameSettings()) * musicFade;
 
         // Один трек с повтором зацикливает сам источник: так стык конца с началом без щели.
         // Несколько треков зацикливает наблюдатель - ПЛЕЙЛИСТ целиком, а не один трек.
@@ -798,6 +965,10 @@ public class SoundManager : MonoBehaviour
             yield return null;
 
             if (backgroundMusic.Count == 0 || backgroundMusicStopped)
+                continue;
+
+            // Подмена играет по кругу сама; плейлист ждёт, пока её снимут.
+            if (musicOverrides.Count > 0)
                 continue;
 
             if (PRUnitySDK.PauseManager.IsLogicPaused)
@@ -869,7 +1040,7 @@ public class SoundManager : MonoBehaviour
     {
         var settings = PRUnitySDK.Managers.Game.GetGameSettings();
         UpdateEffectVolume(settings.EffectVolume);
-        musicSource.volume = GetMusicVolume(settings);
+        musicSource.volume = GetMusicVolume(settings) * musicFade;
         uiSource.volume = settings.UIVolume;
     }
 
