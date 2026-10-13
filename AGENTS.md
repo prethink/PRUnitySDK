@@ -445,7 +445,9 @@ Partial-поля Settings и Database не требуют ручного доб�
   смерти `Death Clips`; смерть через `Kill()` тоже звучит.
 - Окно `PRUnitySDK/Windows/Debug Window` принимает вкладки модулей: реализация
   `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Вкладка с
-  `AvailableInEditMode` видна и без Play Mode — для данных на диске.
+  `AvailableInEditMode` видна и без Play Mode — для данных на диске. Вкладка отдельной игры
+  проекта — `IPRDebugGameTab` (та же `IPRDebugTab`): окно ставит такие в самый низ списка под
+  разделителем, видны всегда, о незапущенной игре вкладка пишет сама (образец — `StealEggDebugTab`).
 - Вкладка `Tools` окна отладки (`Core/Editor/Tools`): снимки окна Game (`PRScreenshotTool` —
   кнопка, клавиша F9 во время игры, пункт меню `PRUnitySDK/Capture Screenshot`; файлы в
   `Screenshots` рядом с `Assets`; галка `All languages` в Play Mode снимает серию по всем `LangType`

@@ -24,6 +24,10 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// <remarks>
     /// Счётчик лежит в статистике (<see cref="StatisticsManager"/>). У сохранения, сделанного
     /// до его появления, отсчёт идёт от текущего остатка: прошлые траты восстановить нечем.
+    /// <para>
+    /// У ресурса с источником (<see cref="SetValueSource"/>) статистики нет, и возвращается текущее
+    /// значение источника. Итогом за всё время оно будет, только если не убывает — как накопленный опыт.
+    /// </para>
     /// </remarks>
     public long GetResourceTotal(Enumeration resourceType)
     {
@@ -260,12 +264,16 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     public void AddResourceValueSmooth(Enumeration resourceType, long addValue, float duration, bool requiredNotify = true, bool requiredSave = false, bool ignoreSaveCooldown = false)
     {
         long startValue = GetOrCreateResource(resourceType);
-        var targetValue = startValue + addValue;
+        long targetValue = ((decimal)startValue + addValue).ClampToLong();
         GameManager.Instance.StartCoroutine(SmoothUpdateCoroutine(resourceType, targetValue, duration, requiredNotify, requiredSave, ignoreSaveCooldown));
     }
 
     private IEnumerator SmoothUpdateCoroutine(Enumeration resourceType, long targetValue, float duration, bool requiredNotify, bool requiredSave, bool ignoreSaveCooldown)
     {
+        // Ресурс с источником не пишется: без этой проверки предупреждение повторялось бы каждый кадр.
+        if (!TryGetResourceName(resourceType, out var resourceName) || IsReadOnly(resourceName))
+            yield break;
+
         long startValue = GetOrCreateResource(resourceType);
 
         if (startValue == targetValue)
@@ -304,7 +312,8 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// </summary>
     private static long InterpolateValue(long start, long target, float progress)
     {
-        var value = start + (target - start) * (double)progress;
+        // Разность — тоже в double: в long она переполняется, если концы далеко друг от друга.
+        var value = start + ((double)target - start) * progress;
 
         if (value >= long.MaxValue)
             return long.MaxValue;
@@ -336,11 +345,19 @@ public class ResourceManager : SingletonProviderBase<ResourceManager>
     /// <summary>
     /// Возвращает ресурс сохранению, если источник ставил этот же владелец.
     /// </summary>
+    /// <remarks>
+    /// Подписчики получают событие: значение на экране было значением источника, и без события
+    /// шапка показывала бы его и после отключения.
+    /// </remarks>
     public void RemoveValueSource(Enumeration resourceType, IResourceValueSource source)
     {
-        if (TryGetResourceName(resourceType, out var resourceName) &&
-            valueSources.TryGetValue(resourceName, out IResourceValueSource current) && ReferenceEquals(current, source))
-            valueSources.Remove(resourceName);
+        if (!TryGetResourceName(resourceType, out var resourceName) ||
+            !valueSources.TryGetValue(resourceName, out IResourceValueSource current) || !ReferenceEquals(current, source))
+            return;
+
+        long previous = current.GetValue();
+        valueSources.Remove(resourceName);
+        NotifyValueSourceChanged(resourceType, previous, GetResource(resourceType));
     }
 
     /// <summary>

@@ -813,7 +813,13 @@ public class SoundManager : MonoBehaviour
     /// <param name="owner">Тот, кто ставил подмену.</param>
     public void ClearMusicOverride(object owner)
     {
+        AudioClip before = CurrentOverrideClip;
+
         if (owner == null || musicOverrides.RemoveAll(entry => ReferenceEquals(entry.owner, owner)) == 0)
+            return;
+
+        // Снята не звучащая подмена (или под ней тот же трек) — играет то же, перезапускать нечего.
+        if (musicOverrides.Count > 0 && CurrentOverrideClip == before)
             return;
 
         SwitchMusic(musicOverrides.Count > 0 ? PlayOverrideTrack : ResumeBackgroundMusic);

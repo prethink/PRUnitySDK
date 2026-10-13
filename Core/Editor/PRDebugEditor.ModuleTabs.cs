@@ -78,12 +78,21 @@ public partial class PRDebugEditor
     }
 
     /// <summary>
-    /// Вкладки модулей для общего списка в Play Mode.
+    /// Вкладки модулей для общего списка в Play Mode; вкладки игр (<see cref="IPRDebugGameTab"/>) — в конце.
     /// </summary>
     private IEnumerable<(string name, Action draw)> GetModuleTabEntries()
     {
-        return moduleTabs.Select(tab => (SafeTitle(tab), (Action)(() => DrawModuleTab(tab))));
+        IEnumerable<(string name, Action draw)> modules = moduleTabs.Where(tab => tab is not IPRDebugGameTab).Select(ToEntry);
+        IPRDebugTab[] games = moduleTabs.Where(tab => tab is IPRDebugGameTab).ToArray();
+
+        if (games.Length == 0)
+            return modules;
+
+        // Пустая строка в списке Unity рисуется разделителем и не выбирается: игры отделены от разделов SDK.
+        return modules.Append((string.Empty, () => { })).Concat(games.Select(ToEntry));
     }
+
+    private (string name, Action draw) ToEntry(IPRDebugTab tab) => (SafeTitle(tab), () => DrawModuleTab(tab));
 
     /// <summary>
     /// Вкладки, которым есть что показать без игры.

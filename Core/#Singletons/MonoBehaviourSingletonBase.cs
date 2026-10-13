@@ -30,6 +30,13 @@ public abstract class MonoBehaviourSingletonBase<T> : MonoBehaviour
 
             instance = FindObjectOfType<T>();
 
+            // Обработчики на закрытии подняли бы новый объект, и он пережил бы сцену.
+            if (instance == null && ApplicationLifetime.IsQuitting)
+            {
+                PRLog.WriteDebug(typeof(T), $"{typeof(T).Name} запрошен при закрытии приложения: не создаётся.");
+                return null;
+            }
+
             if (instance == null)
             {
                 instance = CustomFactory != null
