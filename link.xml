@@ -58,6 +58,7 @@
     <type fullname="SpawnPrefabEffectHandler" preserve="all" />
     <type fullname="StateId" preserve="all" />
     <type fullname="StatusEffectHandler" preserve="all" />
+    <type fullname="StealEggGameEventEnumerations" preserve="all" />
     <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />
     <type fullname="UIButtonAttentionWatcher" preserve="all" />

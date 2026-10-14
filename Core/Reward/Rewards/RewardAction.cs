@@ -4,12 +4,26 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Reward action", menuName = "PRUnitySDK/Reward/Reward action")]
-public class RewardAction : RewardBase
+public class RewardAction : RewardBase, IRewardAmountLabel
 {
     [SerializeField] private string id = Guid.NewGuid().ToString();
     [SerializeField, SpritePreview(140)] protected Sprite icon;
     [field: SerializeField] public ActionBase Action { get; protected set; }
     [field: SerializeField, SerializedDictionary("Lang", "Value")] public SerializedDictionary<LangType, string> localization { get; private set; }
+
+    [Tooltip("Короткая подпись для сектора колеса и карточки подарка: «×2 10м». Пусто — показывается название.")]
+    [SerializeField, SerializedDictionary("Lang", "Value")] private SerializedDictionary<LangType, string> amountLocalization = new();
+
+    [NonSerialized] private LocalizationProvider amountLabel;
+
+    /// <inheritdoc />
+    public ILocalizationProvider AmountLabel =>
+        amountLocalization == null || amountLocalization.Count == 0
+            ? null
+            : amountLabel ??= new LocalizationProvider($"RewardAction_{id}_amount", amountLocalization);
+
+    /// <inheritdoc />
+    public Func<string[]> AmountArgs => null;
 
     public override Sprite Icon => icon;
 

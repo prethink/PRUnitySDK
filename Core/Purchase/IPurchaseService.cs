@@ -9,6 +9,15 @@ using UnityEngine.UI;
 public interface IPurchaseService
 {
     /// <summary>
+    /// Площадка вообще умеет покупки за реальные деньги.
+    /// </summary>
+    /// <remarks>
+    /// Не то же, что доступность продукта: каталог может ещё грузиться. Это — бывают ли покупки на площадке
+    /// в принципе. Где нет — магазина за деньги быть не должно: купить в нём нечего.
+    /// </remarks>
+    bool IsSupported { get; }
+
+    /// <summary>
     /// Вызывается после успешной покупки продукта.
     /// </summary>
     event Action<string> PurchaseSucceeded;

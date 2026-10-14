@@ -18,6 +18,9 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     [SerializeField, Min(0f)] private float decorationSize = 1f;
     [SerializeField] private Color color = new(0.18f, 0.65f, 1f, 1f);
     [SerializeField] private bool showButton = true;
+    [Tooltip("Когда показывать кнопку. Пусто — всегда. Проверяется, когда площадка и данные готовы: например, магазин " +
+             "за деньги — только где площадка умеет покупки (PurchasesSupportedCondition).")]
+    [SerializeReference, ReferenceSelector] private ICondition visibleCondition;
     [SerializeField] private bool showDescription = true;
     [SerializeField] private LocalizationControl description = new();
 
@@ -101,6 +104,14 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     /// Условие индикатора внимания, проверяемое без контекста отдельного игрока.
     /// </summary>
     public ICondition AttentionCondition => attentionCondition;
+    /// <summary>
+    /// Условие показа кнопки, проверяемое без контекста отдельного игрока; <c>null</c> — показывается всегда.
+    /// </summary>
+    /// <remarks>
+    /// Для того, что зависит от площадки: магазина за деньги там, где нет покупок, и кнопок за рекламу там,
+    /// где нет роликов за награду. Невидимая кнопка не нажимается и горячей клавишей.
+    /// </remarks>
+    public ICondition VisibleCondition => visibleCondition;
     /// <summary>
     /// Период опроса условия в секундах реального времени.
     /// </summary>
