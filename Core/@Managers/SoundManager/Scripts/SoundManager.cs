@@ -683,7 +683,7 @@ public class SoundManager : MonoBehaviour
                 musicSource.Stop();
                 musicSource.loop = false;
                 musicSource.clip = audioCollection.AudioClips[UnityEngine.Random.Range(0, audioCollection.AudioClips.Count)];
-                musicSource.Play();
+                PlayMusicSource();
                 break;
 
             case SoundType.UI:
@@ -837,7 +837,7 @@ public class SoundManager : MonoBehaviour
         musicSource.clip = CurrentOverrideClip;
         musicSource.loop = true;
         musicSource.time = 0f;
-        musicSource.Play();
+        PlayMusicSource();
     }
 
     /// <summary>
@@ -921,7 +921,7 @@ public class SoundManager : MonoBehaviour
         // Один трек с повтором зацикливает сам источник: так стык конца с началом без щели.
         // Несколько треков зацикливает наблюдатель - ПЛЕЙЛИСТ целиком, а не один трек.
         musicSource.loop = backgroundMusicLoop && backgroundMusic.Count == 1;
-        musicSource.Play();
+        PlayMusicSource();
     }
 
     /// <summary>
@@ -992,6 +992,23 @@ public class SoundManager : MonoBehaviour
 
             PlayCurrentTrack();
         }
+    }
+
+    /// <summary>
+    /// Запускает музыкальный источник, не нарушая паузу музыки.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Update"/> ставит источник на паузу только при смене <see cref="IPauseManager.IsMusicPaused"/>,
+    /// а <see cref="AudioSource.Play()"/> звучит и на паузе: трек, сменённый во время рекламы (подмена после
+    /// затухания по реальному времени, музыкальный звук), заиграл бы поверх неё. Запущенный на паузе трек
+    /// сразу замирает, а снятие паузы его продолжает.
+    /// </remarks>
+    private void PlayMusicSource()
+    {
+        musicSource.Play();
+
+        if (PRUnitySDK.PauseManager.IsMusicPaused)
+            musicSource.Pause();
     }
 
     private bool wasMusicPausedLastFrame;
