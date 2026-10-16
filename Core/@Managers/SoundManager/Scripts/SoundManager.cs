@@ -959,7 +959,7 @@ public class SoundManager : MonoBehaviour
 
     /// <summary>
     /// Следит за естественным завершением текущего трека и переключает на следующий.
-    /// КРИТИЧНО: во время логической паузы (PRUnitySDK.PauseManager.IsLogicPaused)
+    /// КРИТИЧНО: во время паузы музыки (PRUnitySDK.PauseManager.IsMusicPaused)
     /// проверка пропускается - раньше (в исходной версии) пауза, останавливающая
     /// AudioSource, приводила к ложному "трек закончился" и он перезапускался с
     /// начала. Явный Pause()/UnPause() синхронизирован с тем же флагом в Update().
@@ -977,7 +977,7 @@ public class SoundManager : MonoBehaviour
             if (musicOverrides.Count > 0)
                 continue;
 
-            if (PRUnitySDK.PauseManager.IsLogicPaused)
+            if (PRUnitySDK.PauseManager.IsMusicPaused)
                 continue;
 
             if (musicSource.isPlaying)
@@ -994,16 +994,23 @@ public class SoundManager : MonoBehaviour
         }
     }
 
-    private bool wasLogicPausedLastFrame;
+    private bool wasMusicPausedLastFrame;
 
+    /// <summary>
+    /// Ставит музыку на паузу только при глобальной паузе (реклама, потеря фокуса) и явной паузе музыки.
+    /// </summary>
+    /// <remarks>
+    /// Логическая пауза (открытое окно, туториал, катсцена) музыку не трогает: игра стоит,
+    /// а фон продолжает звучать.
+    /// </remarks>
     private void Update()
     {
-        bool isPaused = PRUnitySDK.PauseManager.IsLogicPaused;
+        bool isPaused = PRUnitySDK.PauseManager.IsMusicPaused;
 
-        if (isPaused == wasLogicPausedLastFrame)
+        if (isPaused == wasMusicPausedLastFrame)
             return;
 
-        wasLogicPausedLastFrame = isPaused;
+        wasMusicPausedLastFrame = isPaused;
 
         if (isPaused)
             musicSource.Pause();

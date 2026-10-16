@@ -18,6 +18,9 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     [SerializeField, Min(0f)] private float decorationSize = 1f;
     [SerializeField] private Color color = new(0.18f, 0.65f, 1f, 1f);
     [SerializeField] private bool showButton = true;
+    [Tooltip("Сколько ячеек панели занимает кнопка вдоль линии: 2 — вдвое шире (при выкладке столбиком — вдвое выше). " +
+             "Больше, чем ячеек в линии, не бывает: лишнее обрезается.")]
+    [SerializeField, Min(1)] private int cellSpan = 1;
     [Tooltip("Когда показывать кнопку. Пусто — всегда. Проверяется, когда площадка и данные готовы: например, магазин " +
              "за деньги — только где площадка умеет покупки (PurchasesSupportedCondition).")]
     [SerializeReference, ReferenceSelector] private ICondition visibleCondition;
@@ -112,6 +115,10 @@ public class UIButtonDefinition : ScriptableObject, IIconProvider, ILocalization
     /// где нет роликов за награду. Невидимая кнопка не нажимается и горячей клавишей.
     /// </remarks>
     public ICondition VisibleCondition => visibleCondition;
+    /// <summary>
+    /// Сколько ячеек линии панели занимает кнопка; не меньше одной.
+    /// </summary>
+    public int CellSpan => Mathf.Max(1, cellSpan);
     /// <summary>
     /// Период опроса условия в секундах реального времени.
     /// </summary>

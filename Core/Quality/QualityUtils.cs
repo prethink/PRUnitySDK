@@ -79,7 +79,8 @@ public static class QualityUtils
         QualityType.Legendary => new Color(1.00f, 0.65f, 0.10f),
         QualityType.Ancient => new Color(0.85f, 0.25f, 0.15f),
         QualityType.Godlike => new Color(1.00f, 0.85f, 0.25f),
-        QualityType.Cosmic => new Color(0.55f, 0.20f, 0.85f),
+        // Голубой, а не фиолетовый: фиолетовый уже у мифического, и соседние ранги StealEgg сливались.
+        QualityType.Cosmic => new Color(0.20f, 0.70f, 1.00f),
         QualityType.Secret => new Color(0.95f, 0.95f, 0.95f),
         QualityType.Rainbow => new Color(0.45f, 0.90f, 0.90f),
         _ => Color.white
