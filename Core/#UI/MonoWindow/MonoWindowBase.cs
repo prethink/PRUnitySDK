@@ -10,6 +10,16 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     private Coroutine layoutRoutine;
 
     /// <summary>
+    /// Хуки <see cref="HiddenStage"/> уже отработали после последнего показа.
+    /// </summary>
+    /// <remarks>
+    /// Стадию зовут и <see cref="Hide"/>, и <see cref="OnDisable"/>: у окна без контейнера закрытие
+    /// выключает сам объект, а закрытое окно выключается ещё раз вместе со сценой. Флаг держит
+    /// один вызов на показ. Не показанному окну закрывать нечего — поэтому изначально <c>true</c>.
+    /// </remarks>
+    private bool hiddenHooksDone = true;
+
+    /// <summary>
     /// Уникальный ключ окна в <see cref="MonoWindowsTracker"/>.
     /// </summary>
     public abstract Enumeration Key { get; }
@@ -27,6 +37,9 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     /// <summary>
     /// Стадия хуков: окно скрывается или выключается. Здесь закрывают то, что живёт вместе с окном.
     /// </summary>
+    /// <remarks>
+    /// Срабатывает один раз на каждый показ, что бы ни закрыло окно первым: <see cref="Hide"/> или выключение объекта.
+    /// </remarks>
     public const string HiddenStage = "MonoWindowHidden";
 
     [Header("Заголовок")]
@@ -99,6 +112,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
         isShown = true;
+        hiddenHooksDone = false;
 
         if (wasHidden)
             PlayShowTransition();
@@ -134,7 +148,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         if (wasVisible && !isForceClose)
             GameManager.Instance.StartSaveTask();
 
-        this.RunMethodHooks(HiddenStage);
+        RunHiddenHooks();
 
         if (wasVisible && (isForceClose || !TryPlayHideTransition()))
         {
@@ -169,11 +183,20 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     protected override void OnDisable()
     {
         exitButton?.onClick.RemoveListener(ExitButtonAction);
-        this.RunMethodHooks(HiddenStage);
+        RunHiddenHooks();
 
         layoutRoutine = null;
         ReleaseWindowState();
         base.OnDisable();
+    }
+
+    private void RunHiddenHooks()
+    {
+        if (hiddenHooksDone)
+            return;
+
+        hiddenHooksDone = true;
+        this.RunMethodHooks(HiddenStage);
     }
 
     /// <summary>
@@ -203,8 +226,10 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
         layoutRoutine = null;
 
+        // Окно могли закрыть в том же кадре: контейнер ещё виден, пока играет переход, а хуки закрытия
+        // уже отработали — готовить к показу уходящее окно нельзя.
         GameObject windowContainer = GetContainer();
-        if (windowContainer == null || !windowContainer.activeInHierarchy)
+        if (!isShown || isHiding || windowContainer == null || !windowContainer.activeInHierarchy)
             yield break;
 
         windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
