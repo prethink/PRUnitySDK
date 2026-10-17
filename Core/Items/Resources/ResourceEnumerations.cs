@@ -1,6 +1,6 @@
 public partial class ResourceEnumerations : EnumerationProviderBase
 {
-    public static Enumeration Coin          = new Enumeration(nameof(Coin));
+    public static Enumeration Cash          = new Enumeration(nameof(Cash));
     public static Enumeration Crystal       = new Enumeration(nameof(Crystal));
 
     /// <inheritdoc />

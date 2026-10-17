@@ -14,6 +14,21 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     /// </summary>
     public abstract Enumeration Key { get; }
 
+    /// <summary>
+    /// Стадия хуков: окно показано, и его раскладка собрана в конце кадра.
+    /// </summary>
+    /// <remarks>
+    /// К этому моменту окна, которые собирают шапку кодом, уже завели свой крестик
+    /// (<see cref="exitButton"/>), поэтому к нему можно пристраиваться. Хуки — защищённые методы
+    /// с <c>[MethodHook(LayoutReadyStage)]</c>; так справка ставит кнопку «?».
+    /// </remarks>
+    public const string LayoutReadyStage = "MonoWindowLayoutReady";
+
+    /// <summary>
+    /// Стадия хуков: окно скрывается или выключается. Здесь закрывают то, что живёт вместе с окном.
+    /// </summary>
+    public const string HiddenStage = "MonoWindowHidden";
+
     [Header("Заголовок")]
     [SerializeField] protected GameObject container;
     [SerializeField] protected RectTransform header;
@@ -23,6 +38,20 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
 
     [Header("Тело")]
     [SerializeField] protected RectTransform body;
+
+    [Header("Справка")]
+    [SerializeField, Tooltip("Описание окна для кнопки «?» рядом с крестиком. Пусто — кнопки нет. " +
+                             "Окно может задать описание кодом, переопределив HelpText.")]
+    protected LocalizationControl helpText = new();
+
+    /// <summary>
+    /// Описание окна для справки; <c>null</c> — справки нет.
+    /// </summary>
+    /// <remarks>
+    /// По умолчанию — поле префаба <see cref="helpText"/>, если в нём есть хоть одна строка.
+    /// Окна, собранные кодом, переопределяют свойство и отдают свой провайдер.
+    /// </remarks>
+    public virtual ILocalizationProvider HelpText => helpText.OrFallback(null);
 
     [SerializeField] protected bool setPauseWhenOpen;
 
@@ -105,6 +134,8 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         if (wasVisible && !isForceClose)
             GameManager.Instance.StartSaveTask();
 
+        this.RunMethodHooks(HiddenStage);
+
         if (wasVisible && (isForceClose || !TryPlayHideTransition()))
         {
             StopTransition();
@@ -138,6 +169,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     protected override void OnDisable()
     {
         exitButton?.onClick.RemoveListener(ExitButtonAction);
+        this.RunMethodHooks(HiddenStage);
 
         layoutRoutine = null;
         ReleaseWindowState();
@@ -172,8 +204,11 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         layoutRoutine = null;
 
         GameObject windowContainer = GetContainer();
-        if (windowContainer != null && windowContainer.activeInHierarchy)
-            windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
+        if (windowContainer == null || !windowContainer.activeInHierarchy)
+            yield break;
+
+        windowContainer.RefreshLayoutGroupsImmediateAndRecursive();
+        this.RunMethodHooks(LayoutReadyStage);
     }
 
     protected override void RegisterEventsOnCreated()

@@ -24,6 +24,10 @@ public class ButtonBase : PRMonoBehaviour
     {
         base.InitializationComponents();
         button = GetComponentInChildren<Button>();
+
+        // Свой звук нажатия заменяет общий щелчок (UIClickSoundPlayer), а не звучит вместе с ним.
+        if (clickSound != null && button != null)
+            button.gameObject.GetOrAddComponent<UIClickSoundMute>();
     }
 
     public virtual bool CanExecute()
@@ -96,7 +100,7 @@ public class ButtonBase : PRMonoBehaviour
     /// Играет звук нажатия, если он задан на самой кнопке.
     /// </summary>
     /// <remarks>
-    /// Общего звука кнопки у SDK нет: каждая кнопка звучит своим клипом или молчит.
+    /// Без своего клипа кнопка звучит общим щелчком (<see cref="UIClickSoundPlayer"/>).
     /// </remarks>
     public void ClickSound()
     {
