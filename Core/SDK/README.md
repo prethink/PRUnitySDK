@@ -143,7 +143,10 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 
 ## Instantiate facade
 
-`PRUnitySDK.Instantiate()` повторяет основные перегрузки `UnityEngine.Object.Instantiate`:
+`PRUnitySDK.Instantiate()` повторяет основные перегрузки `UnityEngine.Object.Instantiate`.
+Перегрузки с `InstantiateParameters` доступны только в Unity 6 и новее.
+
+Пример:
 
 ```csharp
 Enemy enemy = PRUnitySDK.Instantiate(prefab, position, rotation, parent);

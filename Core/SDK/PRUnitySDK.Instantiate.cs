@@ -8,6 +8,7 @@ public partial class PRUnitySDK
         return Object.Instantiate(original);
     }
 
+#if UNITY_6000_0_OR_NEWER
     public static T Instantiate<T>(
         T original,
         InstantiateParameters parameters)
@@ -15,6 +16,7 @@ public partial class PRUnitySDK
     {
         return Object.Instantiate(original, parameters);
     }
+#endif
 
     public static T Instantiate<T>(
         T original,
@@ -42,6 +44,7 @@ public partial class PRUnitySDK
         return Object.Instantiate(original, position, rotation);
     }
 
+#if UNITY_6000_0_OR_NEWER
     public static T Instantiate<T>(
         T original,
         Vector3 position,
@@ -51,6 +54,7 @@ public partial class PRUnitySDK
     {
         return Object.Instantiate(original, position, rotation, parameters);
     }
+#endif
 
     public static T Instantiate<T>(
         T original,
