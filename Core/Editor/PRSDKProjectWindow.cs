@@ -155,6 +155,16 @@ public sealed class PRSDKProjectWindow : EditorWindow
                         Activate(project);
                 }
 
+                using (new EditorGUI.DisabledScope(!project.IsComplete))
+                {
+                    if (GUILayout.Button(new GUIContent("Копия", "Новый проект со своими копиями базы и настроек этого."),
+                            GUILayout.Width(70f)))
+                    {
+                        Duplicate(project);
+                        GUIUtility.ExitGUI();
+                    }
+                }
+
                 // Последний проект удалить нельзя: без него игра вернётся к загрузке
                 // из Resources, где данных уже нет — они переехали в папку проекта.
                 using (new EditorGUI.DisabledScope(projects.Length <= 1))
@@ -191,6 +201,69 @@ public sealed class PRSDKProjectWindow : EditorWindow
 
         Debug.Log($"[PRUnitySDK] Активный проект: {project.Title}.");
         Reload();
+    }
+
+    /// <summary>
+    /// Копирует проект вместе с базой и настройками.
+    /// </summary>
+    /// <remarks>
+    /// Так из одного проекта получают проект для новой игры. Копируются только два ассета данных:
+    /// предметы, награды и прочие записи базы — ссылки, и копия ссылается на те же ассеты. Общее
+    /// остаётся общим, а лишнее убирают из базы копии.
+    /// </remarks>
+    private void Duplicate(PRSDKProject source)
+    {
+        string sourcePath = AssetDatabase.GetAssetPath(source);
+
+        string path = EditorUtility.SaveFilePanelInProject(
+            "Копия проекта",
+            source.Title + " копия",
+            "asset",
+            "Где хранить проект. База и настройки лягут рядом, в папку с именем проекта.",
+            Path.GetDirectoryName(sourcePath));
+
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        string projectName = Path.GetFileNameWithoutExtension(path);
+        string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
+        string folder = $"{parent}/{projectName}";
+
+        if (!AssetDatabase.IsValidFolder(folder))
+            AssetDatabase.CreateFolder(parent, projectName);
+
+        PRSDKDatabase database = CopyData(source.Database, folder);
+        PRSDKSettings settings = CopyData(source.Settings, folder);
+
+        if (database == null || settings == null)
+        {
+            EditorUtility.DisplayDialog("Копия проекта", $"Не удалось скопировать данные в {folder}. Подробности — в консоли.", "Понятно");
+            return;
+        }
+
+        var project = CreateInstance<PRSDKProject>();
+        AssetDatabase.CreateAsset(project, path);
+        project.SetContent(database, settings);
+        project.SetInfo(string.Empty, source.Description);
+        AssetDatabase.SaveAssets();
+
+        Debug.Log($"[PRUnitySDK] Проект «{source.Title}» скопирован: {path}, данные — {folder}.");
+        Reload();
+        EditorGUIUtility.PingObject(project);
+    }
+
+    private static T CopyData<T>(T asset, string folder) where T : ScriptableObject
+    {
+        string from = AssetDatabase.GetAssetPath(asset);
+        string to = AssetDatabase.GenerateUniqueAssetPath($"{folder}/{typeof(T).Name}.asset");
+
+        if (!AssetDatabase.CopyAsset(from, to))
+        {
+            Debug.LogError($"[PRUnitySDK] Не скопирован {from} → {to}.");
+            return null;
+        }
+
+        return AssetDatabase.LoadAssetAtPath<T>(to);
     }
 
     /// <summary>

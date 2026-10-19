@@ -19,6 +19,12 @@ using GamePush;
 /// решает <see cref="GameManager"/> со своим кулдауном; автосинхронизацию плагина не включаем,
 /// чтобы не было второго расписания.
 /// </para>
+/// <para>
+/// Событие сохранения игры приходит, когда данные отданы плагину, а не когда сервер их принял. Кому нужно
+/// подтверждение облака — списанию покупок, — тот ждёт <see cref="SyncFinished"/>: синхронизации нумеруются
+/// (<see cref="RequestedSyncs"/>), и номер в событии — сколько их завершилось. Площадка завершает их по порядку.
+/// Все вызовы синхронизации игрока поэтому идут через <see cref="Sync"/>: чужой вызов мимо счётчика сдвинул бы номера.
+/// </para>
 /// </remarks>
 public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
 {
@@ -31,6 +37,26 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
 
     private PRSaveData saveData;
 
+    /// <summary>
+    /// Хранилище запущенной игры; <c>null</c>, пока его не создали.
+    /// </summary>
+    public static GamePushGameDataStorager Current { get; private set; }
+
+    /// <summary>
+    /// Сколько синхронизаций с сервером запрошено.
+    /// </summary>
+    public static int RequestedSyncs { get; private set; }
+
+    /// <summary>
+    /// Сколько синхронизаций завершилось — успешно или нет.
+    /// </summary>
+    public static int FinishedSyncs { get; private set; }
+
+    /// <summary>
+    /// Синхронизация завершилась: её номер по порядку и успех.
+    /// </summary>
+    public static event Action<int, bool> SyncFinished;
+
     public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
         ? null
         : saveData.SaveDate;
@@ -42,6 +68,38 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
             : CreationDate;
 
     #endregion
+
+    public GamePushGameDataStorager()
+    {
+        if (Current != null)
+        {
+            GP_Player.OnSyncComplete -= HandleSyncComplete;
+            GP_Player.OnSyncError -= HandleSyncError;
+        }
+
+        Current = this;
+        GP_Player.OnSyncComplete += HandleSyncComplete;
+        GP_Player.OnSyncError += HandleSyncError;
+    }
+
+    /// <summary>
+    /// Отправляет данные игрока на сервер и считает синхронизацию.
+    /// </summary>
+    public static void Sync()
+    {
+        RequestedSyncs++;
+        GP_Player.Sync();
+    }
+
+    private static void HandleSyncComplete() => Finish(true);
+
+    private static void HandleSyncError() => Finish(false);
+
+    private static void Finish(bool success)
+    {
+        FinishedSyncs++;
+        SyncFinished?.Invoke(FinishedSyncs, success);
+    }
 
     #region IGameDataStorage
 
@@ -80,7 +138,7 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
         }
 
         GP_Player.Set(SaveFieldKey, SaveDataVersioning.Serialize(saveData));
-        GP_Player.Sync();
+        Sync();
 
         stopwatch.Stop();
         PRLog.WriteDebug(this, $"Save end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");

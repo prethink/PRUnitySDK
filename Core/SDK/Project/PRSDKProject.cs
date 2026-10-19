@@ -89,5 +89,15 @@ public class PRSDKProject : ScriptableObject
         settings = newSettings;
         UnityEditor.EditorUtility.SetDirty(this);
     }
+
+    /// <summary>
+    /// Задаёт название и заметку.
+    /// </summary>
+    public void SetInfo(string newTitle, string newDescription)
+    {
+        title = newTitle;
+        description = newDescription;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
 #endif
 }
