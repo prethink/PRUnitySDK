@@ -158,7 +158,7 @@ graph TD
 
 ## Требования
 
-- Unity 2022.3 LTS или новее;
+- Unity 2023.2 или новее (TextMeshPro из `com.unity.ugui` 2.0);
 - [Newtonsoft Json for Unity](https://docs.unity3d.com/Packages/com.unity.nuget.newtonsoft-json@latest);
 - [DOTween](https://dotween.demigiant.com/) для tween-расширений и модуля `DOTweenEffects`.
 
@@ -484,7 +484,7 @@ private static void UsePlatformServerTime() => ServerTime = new PlatformServerTi
 [AutoBackgroundTask]
 public class PlaytimeTrackerTask : BackgroundTask
 {
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.PlaytimeTracker;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.PlaytimeTracker;
     public override float RepeatSeconds => 60f;
 
     protected override void OnExecute() { }
@@ -521,8 +521,8 @@ public class PlaytimeTrackerTask : BackgroundTask
 | Что добавить | Как |
 | --- | --- |
 | Поле в сохранение | `partial class ProjectData` + `[MethodHook(Cloning)]` |
-| Новое окно | `partial class MonoWindowKeyEnumerationProvider` + `partial class PRWindowsContainer` |
-| Фоновая задача | наследник `BackgroundTask` + `[AutoBackgroundTask]` + ключ `partial`-частью `BackgroundTaskKeyEnumerationProvider` |
+| Новое окно | `partial class MonoWindowKeyEnumerations` + `partial class PRWindowsContainer` |
+| Фоновая задача | наследник `BackgroundTask` + `[AutoBackgroundTask]` + ключ `partial`-частью `BackgroundTaskKeyEnumerations` |
 | Путь к ресурсам модуля | `partial class ResourcePaths` |
 | Новый ключ, тип, слой | наследник `EnumerationProviderBase` или `partial`-часть существующего |
 
@@ -534,11 +534,13 @@ public class PlaytimeTrackerTask : BackgroundTask
 ```text
 PRUnitySDK/
 ├── Core/                       # Ядро, сервисы, базовые модели и инструменты
+├── Core.Data/                  # Данные ядра отдельно от логики: GameRules, данные сущностей
 ├── Modules/                    # Опциональные игровые модули
 ├── Examples/                   # Примеры использования
 ├── Resources/                  # Runtime-ресурсы фреймворка (данные игры — в PRUnityData)
 ├── Utils/                      # Дополнительные утилиты
-└── YG2.Integration/            # Интеграция с YG2
+├── Plugins/                    # Сторонние плагины (SerializedCollections)
+└── *.Integration/              # Интеграции площадок: YG2, GamePush и другие
 ```
 
 ## Дополнительная документация
@@ -578,16 +580,23 @@ PRUnitySDK/
 - [PRManagerContainer](Core/@Managers/PRManagerContainer/README.md) — hook-порядок создания runtime-менеджеров
 - [SoundManager](Core/@Managers/SoundManager/README.md) — музыка, UI-звуки, позиционные эффекты и наборы `AudioSet`
 - [CursorManager](Core/@Managers/CursorManager/README.md) — запросы Show/Hide курсора с приоритетом последнего обращения
+- [Statistics](Core/Statistics/README.md) — числа об игроке за всё время: заходы, время в игре, полученные ресурсы
 
 ### Модели, сервисы и утилиты
 
-- [Entity](Core/@Entity/README.md) — сущности игрового мира: идентификаторы, описание, реестр, время жизни и пул
+- [Entity](Core/@Entity/README.md) — сущности игрового мира: идентификаторы, описание, реестр и пул
 - [EntityStats](Core/@Entity/EntityStats/README.md) — характеристики сущности: базовые значения, персональные модификаторы и расчёт итоговых
 - [Ввод](Core/Input/README.md) — состояние ввода игрока или бота и его маршрутизация по `InputGuid`
 - [Фабрики MonoBehaviour](Core/Factories/README.md) — обычные prefab, singleton-компоненты, MonoWindow и Notifier
 - [Trackers](Core/Trackers/README.md) — игроки, сущности, камеры и UI-реестры
 - [MonoWindow](Core/%23UI/MonoWindow/README.md) — модальные runtime-окна, фабрики и параметры открытия
+- [UIButtonDefinition](Core/%23UI/Buttons/Definitions/README.md) — описание экранной кнопки: иконка, подпись, действие, условие показа
+- [Звук нажатия](Core/%23UI/ClickSound/README.md) — один общий щелчок на всё, что нажимают в интерфейсе
 - [Reward](Core/Reward/README.md) — модели наград, экземплярный сервис выдачи и проектные обработчики
+- [Purchase](Core/Purchase/README.md) — контракт покупок за реальные деньги `IPurchaseService`
+- [Metrics](Core/Metrics/README.md) — отправка событий метрики через адаптер площадки
+- [RemoteFlags](Core/RemoteFlags/README.md) — значения, которые площадка меняет без пересборки: A/B-тесты, цены
+- [Review](Core/Review/README.md) — оценка игры на площадке (`IReviewService`)
 - [Wallet](Core/Wallet/README.md) — баланс, начисление и списание валюты поверх `ResourceManager`
 - [Enumeration](Core/Models/Enumeration/README.md) — расширяемый строковый идентификатор вместо `enum`
 - [Services](Core/Services/README.md) — `NameService` и сервис имени текущего игрока
@@ -601,15 +610,18 @@ PRUnitySDK/
 - [Proxies](Core/Proxies/README.md) — переадресация Unity-callback'ов с дочерних объектов родительским компонентам
 - [Property modifiers](Core/PropertyContainer/README.md) — динамические характеристики, персональные модификаторы и `GameRules`
 - [GameRules](Core/GameRules/README.md) — глобальные границы характеристик, применяемые последними
+- [Reflection](Core/Reflection/README.md) — список типов, которые SDK находит по контракту, вместо перебора сборки при запуске
 
 ### Модули и интеграции
 
-- [Modules](Modules/README.md) — опциональные игровые модули: `StateManager`
+- [Modules](Modules/README.md) — оглавление модулей публичного SDK
+- [ModuleSystem](Core/ModuleSystem/README.md) — модули и интеграции, которые вырезаются из сборки, окно *PRUnitySDK → Модули*
 - [DamageSystem](Modules/@DamageSystem/README.md) — создание, модификация и применение урона через хуки; правила урона игры (`DamageRules`) из настроек проекта, со сцены и из кода
 - [GameSessions](Modules/GameSessions/README.md) — сессия карты и раунды с режимами и правилами; одиночная игра и локальный мультиплеер
 - [HitBox](Modules/HitBox/README.md) — связь физических коллайдеров с `DamageSystem`
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
 - [YG2 Integration](YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
+- [GamePush Integration](GamePush.Integration/README.md) — те же контракты на плагине GamePush
 
 ## Текущие ограничения
 

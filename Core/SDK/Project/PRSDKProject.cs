@@ -78,6 +78,23 @@ public class PRSDKProject : ScriptableObject
 
 #if UNITY_EDITOR
     /// <summary>
+    /// Состав или описание проекта изменили в редакторе: инспектором, Undo или <see cref="SetContent"/>.
+    /// </summary>
+    /// <remarks>
+    /// Приходит отложенно, после проверки значений, как и <see cref="PRSDKActiveProject.EditedInEditor"/>. Слушает
+    /// редакторский наблюдатель: заменённые в активном проекте база или настройки требуют сброса синглтона.
+    /// </remarks>
+    public static event System.Action EditedInEditor;
+
+    private void OnValidate()
+    {
+        UnityEditor.EditorApplication.delayCall -= RaiseEdited;
+        UnityEditor.EditorApplication.delayCall += RaiseEdited;
+    }
+
+    private static void RaiseEdited() => EditedInEditor?.Invoke();
+
+    /// <summary>
     /// Задаёт состав проекта.
     /// </summary>
     /// <remarks>
@@ -88,6 +105,7 @@ public class PRSDKProject : ScriptableObject
         database = newDatabase;
         settings = newSettings;
         UnityEditor.EditorUtility.SetDirty(this);
+        OnValidate();
     }
 
     /// <summary>

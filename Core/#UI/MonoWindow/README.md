@@ -6,7 +6,7 @@
 - `MonoWindowsTracker` — реестра окон и единой точки переключения;
 - `MonoWindowFactoryBase<T>` — фабрики prefab из `Resources`;
 - `MonoWindowArgs` — параметров, передаваемых при открытии;
-- `MonoWindowKeyEnumerationProvider` — набора уникальных ключей.
+- `MonoWindowKeyEnumerations` — набора уникальных ключей.
 
 Одновременно отображается только одно окно. Открывать окна рекомендуется через
 `PRUnitySDK.Trackers.MonoWindows`, хотя прямой вызов `Show()` также закроет остальные зарегистрированные окна.
@@ -16,7 +16,7 @@
 Ключи объявляются в partial-классе провайдера:
 
 ```csharp
-public partial class MonoWindowKeyEnumerationProvider
+public partial class MonoWindowKeyEnumerations
 {
     public static readonly Enumeration Inventory = new(nameof(Inventory));
 }
@@ -30,7 +30,7 @@ public partial class MonoWindowKeyEnumerationProvider
 ```csharp
 public sealed class InventoryWindow : MonoWindowBase
 {
-    public override Enumeration Key => MonoWindowKeyEnumerationProvider.Inventory;
+    public override Enumeration Key => MonoWindowKeyEnumerations.Inventory;
 
     public override void Show(MonoWindowArgs args)
     {
@@ -116,7 +116,7 @@ PRUnitySDK.Windows.ShowHud();
 
 ```csharp
 bool shown = PRUnitySDK.Trackers.MonoWindows.TryShowWindow(
-    MonoWindowKeyEnumerationProvider.Inventory);
+    MonoWindowKeyEnumerations.Inventory);
 ```
 
 Окно с типизированными данными и идентификатором исполнителя:
@@ -128,7 +128,7 @@ var args = new MonoWindowArgs<InventoryWindowData>(inventoryData)
 };
 
 bool shown = PRUnitySDK.Trackers.MonoWindows.TryShowWindow(
-    MonoWindowKeyEnumerationProvider.Inventory,
+    MonoWindowKeyEnumerations.Inventory,
     args);
 ```
 
@@ -174,7 +174,7 @@ bool isWindowOpen = PRUnitySDK.IsWindowOpen;
 
 ```csharp
 EventBus.RaiseEvent<IMonoWindowEvents>(events =>
-    events.TryShowWindow(MonoWindowKeyEnumerationProvider.Inventory.Value));
+    events.TryShowWindow(MonoWindowKeyEnumerations.Inventory.Value));
 ```
 
 Для обычного игрового кода предпочтителен прямой вызов трекера, поскольку он позволяет проверить результат
@@ -259,6 +259,19 @@ protected override MonoWindowTransition GetTransition() =>
 `None` — игра идёт. По умолчанию режим берётся из `Set Pause When Open`; окно, которому режим
 задают настройки, переопределяет свойство. Так делает `InventoryWindow`:
 `PRSDKSettings → InventorySettings → OpenTimeMode / SlowTimeScale`.
+
+## Стадии хуков и справка
+
+К жизни окна можно пристраиваться защищёнными методами с `[MethodHook(...)]`:
+
+| Стадия | Когда |
+| --- | --- |
+| `MonoWindowBase.LayoutReadyStage` | окно показано, раскладка собрана в конце кадра — крестик (`exitButton`) уже есть |
+| `MonoWindowBase.HiddenStage` | окно скрывается или выключается; один раз на показ, что бы ни закрыло его первым |
+
+Так справка ставит кнопку «?»: текст окна — `HelpText` (поле `helpText` в инспекторе или переопределение
+свойства), пусто — кнопки нет. Сама справка — в проектном слое:
+[Windows/MonoWindows/Help](../../../../PRUnitySDKPrivate/Windows/MonoWindows/Help/README.md).
 
 ## Рекомендации
 

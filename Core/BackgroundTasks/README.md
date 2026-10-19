@@ -33,7 +33,7 @@
 | `WatcherTask<T>` | Наблюдатель, не привязанный к сцене |
 | `WatcherTaskBehaviour<T>` | Наблюдатель-компонент на объекте сцены |
 | `AutoBackgroundTaskAttribute` | Помечает задачу для автоматической регистрации |
-| `BackgroundTaskKeyEnumerationProvider` | Ключи задач; расширяется `partial`-частью |
+| `BackgroundTaskKeyEnumerations` | Ключи задач; расширяется `partial`-частью |
 | `BackgroundTaskStatus` | Состояние задачи в цикле выполнения |
 | `BackgroundTaskTracker` | Реестр задач и единый цикл их выполнения |
 | `BackgroundTaskService` | Singleton-доступ к трекеру |
@@ -76,7 +76,7 @@ public class SpawnerHealthTask : BackgroundTaskBehaviour
 {
     [SerializeField] private Spawner spawner;
 
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.SpawnerHealth;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.SpawnerHealth;
 
     public override bool CanExecute() => spawner != null && spawner.IsActive;
 
@@ -100,12 +100,12 @@ public class SpawnerHealthTask : BackgroundTaskBehaviour
 ## Ключи
 
 Ключ задачи — `Enumeration`, как у окон, статов и слоёв времени. Ключи объявляются
-`partial`-частью `BackgroundTaskKeyEnumerationProvider` рядом со своим модулем — общий
+`partial`-частью `BackgroundTaskKeyEnumerations` рядом со своим модулем — общий
 файл SDK править не нужно:
 
 ```csharp
 // Modules/Economy/BackgroundTaskKeyEnumerationProvider.Economy.cs
-public partial class BackgroundTaskKeyEnumerationProvider
+public partial class BackgroundTaskKeyEnumerations
 {
     public static readonly Enumeration AutoSave = new(nameof(AutoSave));
     public static readonly Enumeration OfflineIncome = new(nameof(OfflineIncome));
@@ -119,7 +119,7 @@ public partial class BackgroundTaskKeyEnumerationProvider
 ```csharp
 public class AutoSaveTask : BackgroundTask
 {
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.AutoSave;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.AutoSave;
 
     public override float RepeatSeconds => 120f;
 
@@ -177,7 +177,7 @@ public class AutoSaveTask : BackgroundTask { /* ... */ }
 [AutoBackgroundTask]
 public class OfflineIncomeTask : BackgroundTask
 {
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.OfflineIncome;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.OfflineIncome;
     public override float RepeatSeconds => 30f;
     public override bool StartPaused => true;      // стартует не с SDK, а с игрой
 
@@ -189,12 +189,12 @@ public class OfflineIncomeTask : BackgroundTask
 var tracker = PRUnitySDK.Trackers.BackgroundTasks;
 
 // Когда тип задачи известен - доступны её собственные методы.
-tracker.TryGet(BackgroundTaskKeyEnumerationProvider.OfflineIncome, out OfflineIncomeTask task);
+tracker.TryGet(BackgroundTaskKeyEnumerations.OfflineIncome, out OfflineIncomeTask task);
 task.Resume();   // например, при входе в матч
 task.Pause();    // при выходе
 
 // Когда тип неизвестен - управление идёт через мост.
-tracker.TryGet(BackgroundTaskKeyEnumerationProvider.OfflineIncome, out IBackgroundTask any);
+tracker.TryGet(BackgroundTaskKeyEnumerations.OfflineIncome, out IBackgroundTask any);
 any.Runtime.Resume();
 ```
 
@@ -211,7 +211,7 @@ any.Runtime.Resume();
 ```csharp
 public class ServerDayTask : WatcherTask<int>
 {
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.ServerDay;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.ServerDay;
 
     public override float RepeatSeconds => 60f;
 
@@ -241,7 +241,7 @@ public class ArenaPlayerCountTask : WatcherTaskBehaviour<int>
 {
     [SerializeField] private Arena arena;
 
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.ArenaPlayers;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.ArenaPlayers;
 
     public override bool CanExecute() => arena != null;
 
@@ -263,7 +263,7 @@ arenaTask.Changed += count => hud.SetPlayers(count);
 ```csharp
 public class WelcomeGiftTask : BackgroundTask
 {
-    public override Enumeration Key => BackgroundTaskKeyEnumerationProvider.WelcomeGift;
+    public override Enumeration Key => BackgroundTaskKeyEnumerations.WelcomeGift;
 
     public override float RepeatSeconds => 0f;
     public override float InitialDelaySeconds => 30f;
@@ -325,8 +325,8 @@ task.Runtime.Failed += exception => PRLog.WriteWarning(this, exception.Message);
 ```csharp
 var tasks = PRUnitySDK.Trackers.BackgroundTasks;
 
-tasks.TryGet(BackgroundTaskKeyEnumerationProvider.ServerDay, out ServerDayTask day);  // поиск с приведением типа
-tasks.ForceExecute(BackgroundTaskKeyEnumerationProvider.ServerDay);                  // запуск вне расписания
+tasks.TryGet(BackgroundTaskKeyEnumerations.ServerDay, out ServerDayTask day);  // поиск с приведением типа
+tasks.ForceExecute(BackgroundTaskKeyEnumerations.ServerDay);                  // запуск вне расписания
 tasks.GetFaulted();                                     // что отвалилось
 tasks.GetByStatus(BackgroundTaskStatus.Skipped);        // что простаивает
 ```

@@ -42,6 +42,10 @@ name.SetLocalization(itemDefinition);
 Число или имя подставляются аргументами, а перевод пишется форматом целиком:
 
 ```csharp
+// в классе подписей модуля
+public static readonly LocalizationProvider PriceWithDiscount = new("shop_price_discount",
+    "Price: {0}\nDiscount: {1}", "Цена: {0}\nСкидка: {1}", "Fiyat: {0}\nİndirim: {1}");
+
 info.SetLocalization(ShopLabels.PriceWithDiscount, new[] { price, discount });
 ```
 

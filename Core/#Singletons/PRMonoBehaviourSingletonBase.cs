@@ -24,7 +24,7 @@ public abstract class PRMonoBehaviourSingletonBase<T> : PRMonoBehaviour
             if (instance != null)
                 return instance;
 
-            instance = FindObjectOfType<T>();
+            instance = FindFirstObjectByType<T>();
 
             // Обработчики на закрытии подняли бы новый объект, и он пережил бы сцену.
             if (instance == null && ApplicationLifetime.IsQuitting)

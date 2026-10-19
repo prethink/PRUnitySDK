@@ -639,7 +639,7 @@ public partial class PRDebugEditor
                 flagResolvers.Add(new FlagResolverRow($"Global / Scene {index++}", null, resolver.GetDebugSnapshot()));
         }
 
-        foreach (var component in FindObjectsOfType<FlagResolverMono>())
+        foreach (var component in FindObjectsByType<FlagResolverMono>(FindObjectsSortMode.InstanceID))
             flagResolvers.Add(new FlagResolverRow(component.name, component.gameObject, component.Link.GetDebugSnapshot()));
     }
 

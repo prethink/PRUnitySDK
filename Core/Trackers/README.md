@@ -80,8 +80,7 @@ long byMetadata = PRUnitySDK.Trackers.Entities.GetEntitiesCount(
     metadata, EntitySearchFlags.NotInPool);
 ```
 
-`ClearRound()` удаляет сущности с временем жизни `Round`, `ClearSession()` — сначала
-сущности сессии, затем раунда, а `Clear()` уничтожает все сущности.
+`Clear()` уничтожает все сущности трекера (`FullDestroy = true`, мимо пула).
 
 Поиск принимает EntityType, IEntityMetadata или generic CLR-тип. Флаги состояния задаются
 маской EntitySearchFlags. Hide, HideWire и HideWirePolygons выбирают конкретные способы

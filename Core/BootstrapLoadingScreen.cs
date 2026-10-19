@@ -298,7 +298,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
         text.color = color;
         text.alignment = TextAlignmentOptions.Center;
         text.raycastTarget = false;
-        text.enableWordWrapping = wrap;
+        text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         text.overflowMode = TextOverflowModes.Overflow;
 
         // Длинный перевод сжимается, а не вылезает за экран.

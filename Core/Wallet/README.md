@@ -24,12 +24,12 @@ WalletBase / WalletResources → WalletService → ResourceManager → ProjectDa
 Singleton, работает с валютой как с `Enumeration`:
 
 ```csharp
-long coins = WalletService.Instance.GetBalance(ResourceEnumerationProvider.Coin);
+long coins = WalletService.Instance.GetBalance(ResourceEnumerations.Cash);
 
-WalletService.Instance.Add(ResourceEnumerationProvider.Coin, 100);
+WalletService.Instance.Add(ResourceEnumerations.Cash, 100);
 
-if (WalletService.Instance.CanBuy(ResourceEnumerationProvider.Coin, 250))
-    WalletService.Instance.Buy(ResourceEnumerationProvider.Coin, 250);
+if (WalletService.Instance.CanBuy(ResourceEnumerations.Cash, 250))
+    WalletService.Instance.Buy(ResourceEnumerations.Cash, 250);
 ```
 
 `Buy` атомарен: он проверяет баланс и списывает за один вызов, возвращая `false`, если
@@ -62,7 +62,7 @@ if (wallet.CanBuy(priceResource, price))
 ```csharp
 public class CoinWallet : WalletBase
 {
-    public override Enumeration Currency => ResourceEnumerationProvider.Coin;
+    public override Enumeration Currency => ResourceEnumerations.Cash;
 }
 
 // далее
@@ -107,7 +107,7 @@ wallet.Buy(currency, price, ignoreSaveCooldown: true);
   событиями ресурсов; подписываться нужно на них.
 - **`WalletBase` без наследников** — путь не проверен на реальном коде.
 - **Валюта — это обычный ресурс.** Никакой защиты от того, что «валютой» окажется
-  служебный счётчик, нет; корректность связки задаёт `ResourceEnumerationProvider`.
+  служебный счётчик, нет; корректность связки задаёт `ResourceEnumerations`.
 
 ## Смотрите также
 

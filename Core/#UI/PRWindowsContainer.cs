@@ -207,7 +207,7 @@ public partial class PRWindowsContainer
     /// </remarks>
     private void EnsureEventSystem()
     {
-        if (EventSystem.current != null || Object.FindObjectOfType<EventSystem>() != null)
+        if (EventSystem.current != null || Object.FindFirstObjectByType<EventSystem>() != null)
             return;
 
         PRContainer eventSystem = MonoBehaviourUtils.CreateContainer("Windows.EventSystem");

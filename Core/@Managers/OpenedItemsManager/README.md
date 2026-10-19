@@ -139,7 +139,9 @@ bool spent = PRUnitySDK.Managers.OpenedItems.TryRemoveItem(keyDefinition, count:
 ```csharp
 public class YandexCurrencyDefinition : ResourceItemDefinitionBase
 {
-    public override string Id => ResourceEnumerationProvider.Yan.Value;   // "Yan"
+    public static Enumeration Yan = new Enumeration(nameof(Yan));
+
+    public override string Id => Yan.Value;   // "Yan"
 }
 ```
 

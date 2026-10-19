@@ -42,6 +42,7 @@
     <type fullname="EggDatabase" preserve="all" />
     <type fullname="EntityBase">
       <method name="AttachContainerShine" />
+      <method name="AttachStealEggVariantLook" />
       <method name="CreateHudPlates" />
     </type>
     <type fullname="EntityDisposeEnumerations" preserve="all" />

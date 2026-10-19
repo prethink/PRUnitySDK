@@ -14,16 +14,16 @@ ResourceManager resources = PRUnitySDK.Managers.Resource;
 ## Чтение и изменение
 
 ```csharp
-long coins = resources.GetResource(ResourceEnumerationProvider.Coin);
+long coins = resources.GetResource(ResourceEnumerations.Cash);
 
 resources.SetOrUpdateResource(
-    ResourceEnumerationProvider.Coin,
+    ResourceEnumerations.Cash,
     100,
     requiredNotify: true,
     requiredSave: true);
 
 resources.AddResourceValue(
-    ResourceEnumerationProvider.Coin,
+    ResourceEnumerations.Cash,
     25,
     requiredNotify: true,
     requiredSave: false);
@@ -38,7 +38,7 @@ resources.AddResourceValue(
 ## Получено за всё время
 
 ```csharp
-long earned = resources.GetResourceTotal(ResourceEnumerationProvider.Coin);
+long earned = resources.GetResourceTotal(ResourceEnumerations.Cash);
 ```
 
 Менеджер сам считает, сколько каждого ресурса игрок получил за всё время: любой рост значения прибавляется к счётчику, траты его не уменьшают. Счётчики лежат в [статистике](../../Statistics/README.md) (`ProjectData.Statistics.Resources`) под теми же ключами, что и остатки, и сохраняются вместе с ними. Событий у счётчика нет.
@@ -102,7 +102,7 @@ resourceManager.TrySpendResource(
 
 ```csharp
 bool purchased = resources.TrySpendResource(
-    ResourceEnumerationProvider.Coin,
+    ResourceEnumerations.Cash,
     amount: 50,
     requiredNotify: true,
     requiredSave: true);
@@ -129,7 +129,7 @@ public class CoinsView : MonoBehaviour, IResourceValueChangedEvent
 {
     public void OnResourceValueChanged(ResourceValueChangeEventArgs args)
     {
-        if (args.ResourceType != ResourceEnumerationProvider.Coins)
+        if (args.ResourceType != ResourceEnumerations.Cash)
             return;
 
         label.text = args.CurrentValue.ToString();
@@ -152,6 +152,23 @@ public class CoinsView : MonoBehaviour, IResourceValueChangedEvent
 `Delta` намеренно nullable: ноль означает «значение не изменилось», а `null` — «предыдущее значение неизвестно».
 
 Сначала при необходимости выполняется `SaveProjectData()`, затем публикуется событие.
+
+## Значение из другой системы
+
+Ресурс может показывать значение, которое ведёт не сохранение, а другая система, — например, опыт в шапке
+(`ExperienceResourceSource` в `@ProgressionModule`). Источник реализует `IResourceValueSource.GetValue()`:
+
+```csharp
+resources.SetValueSource(resourceType, source);     // значение берётся у источника
+resources.NotifyValueSourceChanged(resourceType, previous, current); // источник сообщает об изменении
+resources.RemoveValueSource(resourceType, source);  // вернуть ресурс сохранению
+```
+
+Сохранённое значение такого ресурса не читается и не меняется: правда о нём одна, у источника. Записать или списать
+его нельзя. Подписчики (шапка, всплывающие начисления) узнают об изменениях обычным событием ресурса, если источник
+о них сообщает; `RemoveValueSource` тоже рассылает событие. Снять источник может только тот, кто его ставил.
+`GetResourceTotal` у такого ресурса — текущее значение источника, поэтому подключайте так значения, которые
+не убывают, или не стройте на них рейтинг заработка.
 
 ## Универсальное хранилище
 

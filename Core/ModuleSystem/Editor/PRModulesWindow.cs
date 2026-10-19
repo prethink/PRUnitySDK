@@ -253,28 +253,75 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
             return;
         }
 
-        var slots = integrations
+        // Сначала платформы по имени, интеграции для любой платформы — последними.
+        var platforms = integrations
+            .GroupBy(module => module.Manifest.Platform, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(platform => platform.Key.Length == 0)
+            .ThenBy(platform => platform.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (IGrouping<string, PRModuleInfo> platform in platforms)
+            DrawPlatform(platform.Key, platform.ToList());
+    }
+
+    /// <summary>
+    /// Интеграции одной платформы сборки: её слоты и модули без слота.
+    /// </summary>
+    private void DrawPlatform(string platform, List<PRModuleInfo> platformModules)
+    {
+        string title = platform.Length == 0 ? "Любая платформа" : GetPlatformTitle(platform);
+        if (!DrawSectionHeader("Platform/" + platform, title, EditorStyles.foldoutHeader))
+            return;
+
+        BuildTarget active = EditorUserBuildSettings.activeBuildTarget;
+        if (platform.Length > 0 && !platformModules[0].Manifest.SupportsPlatform(active))
+        {
+            bool anyEnabled = platformModules.Any(module => !pendingDisabled.Contains(module.Id));
+            EditorGUILayout.HelpBox(
+                $"Активная платформа сборки — {active}. Эти интеграции работают только в {platform}" +
+                (anyEnabled ? ": включённая не попадёт в сборку как надо, переключите платформу (File → Build Settings)." : "."),
+                anyEnabled ? MessageType.Warning : MessageType.Info);
+        }
+
+        EditorGUI.indentLevel++;
+
+        var slots = platformModules
             .Where(module => module.Slot.Length > 0)
             .GroupBy(module => module.Slot, StringComparer.OrdinalIgnoreCase)
             .OrderBy(slot => slot.Key, StringComparer.OrdinalIgnoreCase);
 
         foreach (IGrouping<string, PRModuleInfo> slot in slots)
-            DrawSlot(slot.Key, slot.ToList());
+            DrawSlot(platform + "/" + slot.Key, slot.Key, slot.ToList());
 
-        var withoutSlot = integrations.Where(module => module.Slot.Length == 0 && MatchesSearch(module)).ToList();
-        if (withoutSlot.Count == 0)
-            return;
+        var withoutSlot = platformModules.Where(module => module.Slot.Length == 0 && MatchesSearch(module)).ToList();
+        if (withoutSlot.Count > 0 && DrawSectionHeader($"Integrations/{platform}/NoSlot", $"Без слота ({withoutSlot.Count})", EditorStyles.foldout))
+        {
+            foreach (PRModuleInfo module in withoutSlot)
+                DrawModule(module);
+        }
 
-        if (!DrawSectionHeader("Integrations/NoSlot", $"Без слота ({withoutSlot.Count})", EditorStyles.foldoutHeader))
-            return;
-
-        foreach (PRModuleInfo module in withoutSlot)
-            DrawModule(module);
+        EditorGUI.indentLevel--;
+        EditorGUILayout.Space();
     }
 
-    private void DrawSlot(string slot, List<PRModuleInfo> slotModules)
+    /// <summary>
+    /// Заголовок группы платформы: для браузера — с пояснением, что это площадки веб-игр.
+    /// </summary>
+    private static string GetPlatformTitle(string platform)
     {
-        if (!DrawSectionHeader("Slot/" + slot, $"{slot} — включается один модуль", EditorStyles.foldoutHeader))
+        if (string.Equals(platform, BuildTarget.WebGL.ToString(), StringComparison.OrdinalIgnoreCase))
+            return "WebGL — браузерные площадки";
+
+        if (string.Equals(platform, BuildTarget.Android.ToString(), StringComparison.OrdinalIgnoreCase))
+            return "Android — магазины и мобильная реклама";
+
+        return platform.IndexOf("Standalone", StringComparison.OrdinalIgnoreCase) >= 0
+            ? "PC — Windows, Linux, macOS"
+            : platform;
+    }
+
+    private void DrawSlot(string key, string slot, List<PRModuleInfo> slotModules)
+    {
+        if (!DrawSectionHeader("Slot/" + key, $"{slot} — включается один модуль", EditorStyles.foldout))
             return;
 
         var enabledModules = slotModules.Where(module => !pendingDisabled.Contains(module.Id)).ToList();
@@ -374,7 +421,8 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         EditorGUILayout.EndHorizontal();
 
-        string info = $"{module.Id} · {module.Folder} · скриптов: {module.Scripts.Count}";
+        string platformInfo = module.Manifest.Platform.Length > 0 ? " · " + module.Manifest.Platform : string.Empty;
+        string info = $"{module.Id}{platformInfo} · {module.Folder} · скриптов: {module.Scripts.Count}";
         EditorGUILayout.LabelField(info, wrappedMiniLabel);
 
         if (module.PartFolders.Count > 0)
@@ -513,7 +561,7 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
     {
         return module.Slot.Length == 0
             ? Enumerable.Empty<PRModuleInfo>()
-            : modules.Where(other => other != module && string.Equals(other.Slot, module.Slot, StringComparison.OrdinalIgnoreCase));
+            : modules.Where(other => other != module && string.Equals(other.SlotKey, module.SlotKey, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool TryDisable(PRModuleInfo module)
@@ -579,7 +627,7 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         IGrouping<string, PRModuleInfo> crowdedSlot = modules
             .Where(module => module.Slot.Length > 0 && !pendingDisabled.Contains(module.Id))
-            .GroupBy(module => module.Slot, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(module => module.SlotKey, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(slot => slot.Count() > 1);
 
         if (crowdedSlot != null)

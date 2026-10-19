@@ -18,6 +18,7 @@ MonoBehaviour:
   group: 5
   isRequired: 0
   dependencies: []
+  platform: WebGL
   slot: "Площадка"
   pluginFolder: Assets/PluginYourGames
   pluginModulesFile: Assets/PluginYourGames/Editor/ModulesListYG2.txt

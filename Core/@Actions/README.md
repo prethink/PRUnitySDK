@@ -128,7 +128,7 @@ public class GiveCoinsAction : InlineActionBase
 
     protected override ActionResult Action()
     {
-        WalletService.Instance.Add(ResourceEnumerationProvider.Coin, amount);
+        WalletService.Instance.Add(ResourceEnumerations.Cash, amount);
         return ActionResult.Success;
     }
 }
@@ -158,7 +158,7 @@ public class GiveCoinsAction : InlineActionBase
 ```text
 PRUnitySDK/Actions/Inline action
 └── Стартовый бонус
-    └── AddResourceInlineAction  (Coin, 100)
+    └── AddResourceInlineAction  (Cash, 100)
 ```
 
 **`InlineActionPipeline`** — несколько действий по порядку.
@@ -166,7 +166,7 @@ PRUnitySDK/Actions/Inline action
 ```text
 PRUnitySDK/Actions/Inline action pipeline
 └── Награда за вход
-    ├── AddResourceInlineAction  (Coin, 100)
+    ├── AddResourceInlineAction  (Cash, 100)
     ├── OpenUrlInlineAction      (...)
     └── ...
 ```
@@ -280,6 +280,6 @@ if (result.IsFailed)
 
 Где повтор недопустим (награды, промокоды, покупки), «выдано ли» спрашивают через `HasApplied`:
 это успех или частичное выполнение. Так отвечает и `RewardAction.InvokeAction()`, и обработчик
-action-наград в `PRUnitySDK.RewardGrant`.
+action-наград `RewardActionGrantHandler` (`Core/Reward/GrantService`).
 
 Переопределения `CanExecute()` и `Action()` возвращают `ActionResult`; после эффекта верните успех.

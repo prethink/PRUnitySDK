@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <link rel="stylesheet" href="TemplateData/style.css">
+
+  <style>
+    canvas:focus {
+      outline: none;
+    }
+
+    html, body {
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      height: 100%;
+    }
+  </style>
+
+  <!--
+    VK Bridge (VK Games: ВКонтакте и Одноклассники). VKWebAppInit уходит сразу, до загрузки Unity: площадка ждёт его
+    не дольше 30 секунд. window.prVKBridgeInit — обещание этого вызова; остальное игра спросит сама (VKBridge.jslib).
+    Версия библиотеки закреплена: обновлять вместе с проверкой игры.
+  -->
+  <script src="https://unpkg.com/@vkontakte/vk-bridge@3.0.2/dist/browser.min.js"></script>
+  <script>
+    if (window.vkBridge) {
+      window.prVKBridgeInit = window.vkBridge.send("VKWebAppInit", {});
+      window.prVKBridgeInit.catch(function (error) { console.warn("VKWebAppInit: " + JSON.stringify(error)); });
+    } else {
+      console.warn("vkBridge is not loaded");
+    }
+  </script>
+</head>
+
+<body>
+  <div id="unity-container" class="unity-desktop">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+  </div>
+  <div id="loading-cover" style="display:none;">
+    <div id="unity-loading-bar">
+      <div id="unity-logo"><img src="logo.png"></div>
+      <div id="unity-progress-bar-empty" style="display: none;">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    const buildUrl = "Build";
+    const loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    const config = {
+#if typeof DATA_FILENAME != "undefined"
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+#else
+      primaryDataUrls: {{{ JSON.stringify(global.PRIMARY_DATA_FILES) }}},
+      secondaryDataUrls: {{{ JSON.stringify(global.SECONDARY_DATA_FILES) }}},
+#endif
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "{{{ COMPANY_NAME }}}",
+      productName: "{{{ PRODUCT_NAME }}}",
+      productVersion: "{{{ PRODUCT_VERSION }}}",
+    };
+
+    const container = document.querySelector("#unity-container");
+    const canvas = document.querySelector("#unity-canvas");
+    const loadingCover = document.querySelector("#loading-cover");
+    const progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
+    const progressBarFull = document.querySelector("#unity-progress-bar-full");
+    const spinner = document.querySelector(".spinner");
+
+    canvas.style.background = "url('background.jpg') center / cover";
+
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
+      container.className = "unity-mobile";
+
+    loadingCover.style.display = "";
+
+    // Меню правого клика мешает управлению.
+    document.addEventListener("contextmenu", (event) => event.preventDefault());
+
+    // Клик по странице возвращает фокус игре: без него не работает клавиатура.
+    function focusGame() {
+      window.focus();
+      canvas.focus();
+    }
+
+    window.addEventListener("pointerdown", focusGame);
+    window.addEventListener("touchstart", focusGame);
+
+    const unityLoader = document.createElement("script");
+    unityLoader.src = loaderUrl;
+    unityLoader.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        spinner.style.display = "none";
+        progressBarEmpty.style.display = "";
+        progressBarFull.style.width = `${100 * progress}%`;
+      }).then((unityInstance) => {
+        window.unityInstance = unityInstance;
+        loadingCover.style.display = "none";
+      }).catch((message) => {
+        console.error(message);
+      });
+    };
+    document.body.appendChild(unityLoader);
+  </script>
+</body>
+
+</html>

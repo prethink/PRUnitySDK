@@ -60,7 +60,7 @@
 - каталог definitions — partial `PRSDKDatabase`;
 - конфигурация — partial `PRSDKSettings`;
 - сохраняемые данные — partial ProjectData с существующими стадиями `Cloning` и `Initializing`;
-- периодическая работа вне сцены — наследник `BackgroundTask` с `[AutoBackgroundTask]` и ключ partial-частью `BackgroundTaskKeyEnumerationProvider`.
+- периодическая работа вне сцены — наследник `BackgroundTask` с `[AutoBackgroundTask]` и ключ partial-частью `BackgroundTaskKeyEnumerations`.
 
 ### Сервис через partial PRUnitySDK
 
@@ -181,7 +181,7 @@ public partial class PRManagerContainer
 1. Класс окна на основе подходящего `MonoWindowBase`.
 2. Args, если окно принимает данные.
 3. Factory и prefab в `Resources/PRUnitySDK/Prefabs/Windows/...`.
-4. Уникальный ключ в partial `MonoWindowKeyEnumerationProvider`.
+4. Уникальный ключ в partial `MonoWindowKeyEnumerations`.
 5. Partial-регистрация:
 
 ```csharp
@@ -260,7 +260,7 @@ public sealed class ExampleDatabase : Database<ExampleDefinition>
 
 Использование: `PRUnitySDK.Database.Examples.Data`.
 
-Если нужны разные коллекции, создайте отдельный `[Serializable]` database-класс с приватными `[SerializeField]` списками и read-only API по образцу `RewardDatabase`.
+Если нужны разные коллекции, создайте отдельный `[Serializable]` database-класс с приватными `[SerializeField]` списками и read-only API по образцу `SoundDatabase`.
 
 - Database хранит definitions/config assets, но не изменяемый прогресс игрока.
 - Возвращайте `IReadOnlyList`, `IReadOnlyCollection` или `IEnumerable`, а не изменяемый список.
@@ -287,11 +287,11 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Продаваемые предметы
 
-`SellableItemDefinition` (`Core/Items`) добавляет предмету условия покупки — `ShopTerms`: валюту, цену, идентификатор товара за реальные деньги и ограничения.
+Определения предметов (`ItemDefinitionBase` и наследники в `Core/Items`) условий покупки не несут. Что продаётся и почём — отдельный ассет-товар `ShopOfferBase` с условиями `ShopTerms` (валюта, цена, идентификатор товара за реальные деньги, ограничения) в `PRUnitySDKPrivate/Modules/Shop`.
 
-- Наследуйте его для того, что попадает в витрину. `ObjectDefinitionBase<T>`, `TextureDefinition` и цвета уже наследуют.
-- Ресурсы и валюты идут веткой `ResourceItemDefinitionBase` и полей магазина не имеют — купить валюту за валюту нельзя, и в инспекторе такие поля только мешают.
-- Само поведение покупки (`ShopService`, владение, результаты) живёт в `PRUnitySDKPrivate/Modules/Shop`. Публичный SDK описывает условия, но не проводит сделку.
+- Определение описывает вещь и одинаково для всех игр, а товар — предложение конкретной игры: его состав переключается вместе с набором базы.
+- Поэтому у ресурсов и валют (`ResourceItemDefinitionBase`) полей «за сколько купить» нет вовсе — купить валюту за валюту нельзя.
+- Сделку (`ShopService`, результаты) проводит `PRUnitySDKPrivate/Modules/Shop`; публичный SDK хранит только владение — `OpenedItemsManager`, см. ниже.
 
 ## Открытые предметы и владение
 
@@ -302,7 +302,7 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `Add` — для расходуемого: ключей, билетов, патронов.
 - `IsOpenedItem` отвечает «открывался ли когда-либо» и не зависит от текущего количества: потратив последний ключ, игрок не перестаёт знать о ключах.
 - У записи две независимые пометки: `Category` (что за предмет) и `Created` (какая система выдала). Не путайте их — шапка остаётся шапкой, придя из награды.
-- `Id` — произвольная строка. У предметов каталогов это GUID, у ресурса — ключ `Enumeration` (`Coin`, `Yan`), у проектного типа что угодно. Сравнивайте идентификаторы как строки; `Guid.TryParse` в проверке отсечёт всё, кроме одного вида предметов, и не сообщит об этом.
+- `Id` — произвольная строка. У предметов каталогов это GUID, у ресурса — ключ `Enumeration` (`Cash`, `Yan`), у проектного типа что угодно. Сравнивайте идентификаторы как строки; `Guid.TryParse` в проверке отсечёт всё, кроме одного вида предметов, и не сообщит об этом.
 
 
 Прежде чем заводить новое поле в `ProjectData` для «что открыто», проверьте, не решает ли задачу `OpenedItemsManager`.

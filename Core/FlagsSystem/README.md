@@ -198,13 +198,13 @@ global Resolve/Get
 Глобальное влияние:
 
 ```csharp
-PRUnitySDK.Managers.Flags.Deny(GameFlagsEnumerationProvider.UseGravity, source);
+PRUnitySDK.Managers.Flags.Deny(GameFlagsEnumerations.UseGravity, source);
 
 bool useGravity = PRUnitySDK.Managers.Flags.Get(
-    GameFlagsEnumerationProvider.UseGravity,
+    GameFlagsEnumerations.UseGravity,
     defaultValue: true);
 
-PRUnitySDK.Managers.Flags.Remove(GameFlagsEnumerationProvider.UseGravity, source);
+PRUnitySDK.Managers.Flags.Remove(GameFlagsEnumerations.UseGravity, source);
 ```
 
 Полный project resolver доступен через `Global`:

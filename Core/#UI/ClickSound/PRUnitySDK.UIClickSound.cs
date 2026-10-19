@@ -17,7 +17,7 @@ public partial class PRUnitySDK
     [MethodHook(MethodHookStage.SDK, PRIORITY_UI_CLICK_SOUND)]
     private static void InitializeUIClickSound()
     {
-        if (Object.FindObjectOfType<UIClickSoundPlayer>(true) != null)
+        if (Object.FindFirstObjectByType<UIClickSoundPlayer>(FindObjectsInactive.Include) != null)
             return;
 
         var host = new GameObject(nameof(UIClickSoundPlayer));

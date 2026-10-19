@@ -8,6 +8,11 @@ using UnityEditor;
 /// Прячет и возвращает папки сторонних плагинов и ставит шаблон WebGL включённого модуля.
 /// </summary>
 /// <remarks>
+/// Шаблон WebGL модуль может держать у себя (<see cref="PRModuleManifest.WebGLTemplateSource"/>): Unity берёт шаблоны
+/// только из <c>Assets/WebGLTemplates</c>, поэтому «Применить» и сборка WebGL копируют исходник туда. Копия —
+/// производная: правится исходник в модуле, копия при расхождении перезаписывается.
+/// </remarks>
+/// <remarks>
 /// Плагин площадки попадает в сборку и без кода модуля: его <c>.jslib</c> и <c>.jspre</c> встраиваются
 /// в страницу, автозапуск поднимает SDK площадки, обработчики сборки правят результат. Две площадки
 /// в одном проекте поэтому мешают друг другу, даже когда код одной вырезан символом. Папку плагина
@@ -90,6 +95,10 @@ public static class PRModulePlugins
                 : $"спрятать плагин {module.Manifest.PluginFolder} → {Path.GetFileName(module.Manifest.PluginFolder)}{HiddenSuffix}");
         }
 
+        foreach (PRModuleInfo module in list.Where(module => !disabledIds.Contains(module.Id)))
+            if (IsTemplateOutdated(module.Manifest))
+                changes.Add($"обновить шаблон {module.Manifest.WebGLTemplateFolder} из {module.Manifest.WebGLTemplateSource}");
+
         string template = FindTemplate(list, disabledIds);
         if (template != null && PlayerSettings.WebGL.template != template)
             changes.Add($"шаблон WebGL {PlayerSettings.WebGL.template} → {template}");
@@ -144,11 +153,93 @@ public static class PRModulePlugins
                 errors.Add($"{module.DisplayName}: {error}");
         }
 
+        errors.AddRange(SyncTemplates(list, disabledIds));
+
         string template = FindTemplate(list, disabledIds);
         if (template != null && PlayerSettings.WebGL.template != template)
             PlayerSettings.WebGL.template = template;
 
         return errors;
+    }
+
+    /// <summary>
+    /// Копия шаблона в <c>Assets/WebGLTemplates</c> расходится с исходником модуля или её нет.
+    /// </summary>
+    public static bool IsTemplateOutdated(PRModuleManifest manifest)
+    {
+        string source = manifest.WebGLTemplateSource;
+        string target = manifest.WebGLTemplateFolder;
+
+        if (target.Length == 0 || !Directory.Exists(source))
+            return false;
+
+        if (!Directory.Exists(target))
+            return true;
+
+        List<string> sourceFiles = TemplateFiles(source);
+        List<string> targetFiles = TemplateFiles(target);
+
+        return !sourceFiles.SequenceEqual(targetFiles, StringComparer.OrdinalIgnoreCase)
+               || sourceFiles.Any(file => !File.ReadAllBytes(Path.Combine(source, file)).SequenceEqual(File.ReadAllBytes(Path.Combine(target, file))));
+    }
+
+    /// <summary>
+    /// Копирует исходники шаблонов включённых модулей в <c>Assets/WebGLTemplates</c>.
+    /// </summary>
+    /// <remarks>
+    /// Лишние файлы копии удаляются вместе с их <c>.meta</c>; <c>.meta</c> остальных Unity сохраняет.
+    /// </remarks>
+    /// <returns>Ошибки; пусто — всё скопировано.</returns>
+    public static List<string> SyncTemplates(IEnumerable<PRModuleInfo> modules, ICollection<string> disabledIds)
+    {
+        var errors = new List<string>();
+
+        foreach (PRModuleInfo module in modules.Where(module => !disabledIds.Contains(module.Id)))
+        {
+            PRModuleManifest manifest = module.Manifest;
+            if (!IsTemplateOutdated(manifest))
+                continue;
+
+            string source = manifest.WebGLTemplateSource;
+            string target = manifest.WebGLTemplateFolder;
+
+            try
+            {
+                List<string> sourceFiles = TemplateFiles(source);
+
+                foreach (string file in sourceFiles)
+                {
+                    string to = Path.Combine(target, file);
+                    Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+                    File.Copy(Path.Combine(source, file), to, true);
+                }
+
+                var keep = new HashSet<string>(sourceFiles, StringComparer.OrdinalIgnoreCase);
+                foreach (string file in TemplateFiles(target).Where(file => !keep.Contains(file)))
+                {
+                    File.Delete(Path.Combine(target, file));
+                    File.Delete(Path.Combine(target, file) + ".meta");
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                errors.Add($"{module.DisplayName}: шаблон {source} не скопирован в {target} ({exception.Message})");
+            }
+        }
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Файлы шаблона без <c>.meta</c>, пути относительно папки, по порядку.
+    /// </summary>
+    private static List<string> TemplateFiles(string folder)
+    {
+        return Directory.GetFiles(folder, "*", SearchOption.AllDirectories)
+            .Where(path => !path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+            .Select(path => Path.GetRelativePath(folder, path).Replace(Path.DirectorySeparatorChar, '/'))
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static bool TryMove(string from, string to, out string error)

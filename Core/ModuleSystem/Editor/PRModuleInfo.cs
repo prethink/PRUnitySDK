@@ -89,6 +89,12 @@ public sealed class PRModuleInfo
     /// </summary>
     public string Slot => Manifest.Slot;
 
+    /// <summary>
+    /// Слот вместе с платформой: «Магазин» на Android и «Магазин» на PC — разные слоты, их модули друг другу не мешают.
+    /// Пустая строка — слота нет.
+    /// </summary>
+    public string SlotKey => Slot.Length == 0 ? string.Empty : Manifest.Platform + "/" + Slot;
+
     public PRModuleInfo(PRModuleManifest manifest, string folder, PRModuleLayer layer)
     {
         Manifest = manifest;

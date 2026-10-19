@@ -466,21 +466,6 @@ EntityType сравнивается как `Enumeration`; CLR-тип в generic-
 EditMode-тесты поиска и синхронизации реестров находятся в
 `EntityManager/Editor/EntityTrackerSearchTests.cs` и включаются символом `PRSDK_TESTS`.
 
-## Время жизни
-
-Задаётся полем `LifeTime` в инспекторе:
-
-| Значение | Когда уничтожается |
-| --- | --- |
-| `Infinity` | Никогда автоматически |
-| `Scene` | Со сменой сцены |
-| `Session` | По `ClearSession()` |
-| `Round` | По `ClearRound()` |
-
-`ClearSession()` чистит сущности сессии, а затем вызывает `ClearRound()`. Обе операции
-уничтожают объект с `FullDestroy = true`, то есть игнорируют настройку пула. Вызывать их
-нужно у обоих трекеров, если игроки тоже должны быть очищены.
-
 ## Уничтожение и пул
 
 ```csharp
@@ -655,7 +640,7 @@ PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
   ссылку на ассет, а `EntityDescription` собирается один раз при инициализации сущности:
   подменить описание в рантайме через `SetEntityMetadata()` можно лишь до её регистрации.
 - **Сущность без описания попадает в вид `Unknown`.** `EntityBase<TMetadata>` берёт вид
-  из ассета, и незаполненная ссылка даёт не ошибку, а `EntityTypeEnumerationProvider.Unknown`:
+  из ассета, и незаполненная ссылка даёт не ошибку, а `EntityTypeEnumerations.Unknown`:
   Раздел «Описание» в инспекторе сущности предупреждает об этом сразу.
 - **`EntityManager` — пустой класс.** Наследник `SingletonProviderBase`, не содержит ничего
   и никем не используется; фактический реестр — `EntityTracker`, доступный через

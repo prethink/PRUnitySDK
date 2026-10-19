@@ -178,7 +178,7 @@ public sealed class UiScaleEffect : DoTweenScaleMonoBehaviour
 {
     public override Enumeration GetTimeScaleLayer()
     {
-        return PRTimeScaleEnumerationProvider.UI;
+        return PRTimeScaleEnumerations.UI;
     }
 }
 ```
@@ -194,7 +194,7 @@ Tween tween = transform
 
 Guid tweenId = PRUnitySDK.Trackers.DoTween.Register(
     tween,
-    layer: PRTimeScaleEnumerationProvider.Player,
+    layer: PRTimeScaleEnumerations.Player,
     reactionOnPause: true);
 ```
 
@@ -220,7 +220,7 @@ PRUnitySDK.Trackers.DoTween.Kill(tweenId);
 movementTweenId = PRUnitySDK.Trackers.DoTween.RegisterOrReplace(
     movementTweenId,
     transform.DOMove(targetPosition, duration),
-    PRTimeScaleEnumerationProvider.Player);
+    PRTimeScaleEnumerations.Player);
 ```
 
 Предыдущий tween с этим `Guid` будет убит и заменён новым.

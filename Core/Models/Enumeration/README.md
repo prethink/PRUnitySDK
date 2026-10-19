@@ -7,7 +7,7 @@
 Значения группируются в provider:
 
 ```csharp
-public sealed class ResourceEnumerationProvider : EnumerationProviderBase
+public sealed class ResourceEnumerations : EnumerationProviderBase
 {
     public static readonly Enumeration Coin = new(nameof(Coin));
     public static readonly Enumeration Crystal = new(nameof(Crystal));
@@ -33,7 +33,7 @@ public static readonly Enumeration<bool> InvertVertical = new(nameof(InvertVerti
 
 ```csharp
 [SerializeField]
-private EnumerationReference<ResourceEnumerationProvider> currencyType;
+private EnumerationReference<ResourceEnumerations> currencyType;
 ```
 
 В asset сохраняется строка. Runtime-значение можно получить через:
@@ -146,7 +146,7 @@ string name = EnumerationReference<ObjectStateGroupEnumerations>.ToValue(field);
 
 ```csharp
 IReadOnlyList<Enumeration> options =
-    typeof(ResourceEnumerationProvider).GetEnumerations(includeInherited: true);
+    typeof(ResourceEnumerations).GetEnumerations(includeInherited: true);
 ```
 
 `Enumeration.GetOrCreate(value)` возвращает общий runtime-экземпляр для строки. Пустая строка возвращает `null`; конструктор `Enumeration` не принимает `null`, пустые строки и пробелы.

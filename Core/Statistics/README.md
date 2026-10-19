@@ -9,7 +9,7 @@ StatisticsManager statistics = PRUnitySDK.Managers.Statistics;
 
 long launches = statistics.LaunchCount;
 long minutes = statistics.PlaytimeMinutes;
-long coinsEarned = PRUnitySDK.Managers.Resource.GetResourceTotal(ResourceEnumerations.Coin);
+long coinsEarned = PRUnitySDK.Managers.Resource.GetResourceTotal(ResourceEnumerations.Cash);
 ```
 
 Читать и менять статистику можно после `GameManager.ReadySignal`: до загрузки сохранения

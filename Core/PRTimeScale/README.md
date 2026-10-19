@@ -6,7 +6,7 @@
 
 ## Стандартные слои
 
-`PRTimeScaleEnumerationProvider` объявляет:
+`PRTimeScaleEnumerations` объявляет:
 
 - `Global`;
 - `Player`;
@@ -26,7 +26,7 @@
 
 ```csharp
 PRTimeScale.Instance.SetGlobalTimeScale(0.5f);
-PRTimeScale.Instance.SetTimeScale(PRTimeScaleEnumerationProvider.Player, 0.8f);
+PRTimeScale.Instance.SetTimeScale(PRTimeScaleEnumerations.Player, 0.8f);
 ```
 
 После изменения публикуется `IOnPRTimeScaleChange`:
@@ -48,7 +48,7 @@ public class TimeScaleListener : MonoBehaviour, IOnPRTimeScaleChange
 
 ```csharp
 float playerScale = PRTimeScale.Instance.Resolve(
-    PRTimeScaleEnumerationProvider.Player);
+    PRTimeScaleEnumerations.Player);
 ```
 
 Результат зависит от `PRUnitySDK.Settings.Project.TimeScaleCombineMode`:
@@ -60,7 +60,7 @@ float playerScale = PRTimeScale.Instance.Resolve(
 | `Min` | Минимальное из global и layer |
 | `OverrideGlobal` | Значение layer без global |
 
-`Resolve()` без аргумента и `Resolve(PRTimeScaleEnumerationProvider.Global)` возвращают
+`Resolve()` без аргумента и `Resolve(PRTimeScaleEnumerations.Global)` возвращают
 само значение глобального scale. Глобальный слой не комбинируется сам с собой: при значении
 `0.5f` результат остаётся `0.5f`, а не `0.25f`. Режим комбинирования применяется только к
 дополнительным слоям. Незарегистрированный слой не роняет игру: `Resolve` пишет
@@ -78,7 +78,7 @@ float playerScale = PRTimeScale.Instance.Resolve(
 
 ```csharp
 var handle = PRTimeScale.Instance.AddModifier(
-    PRTimeScaleEnumerationProvider.Player,
+    PRTimeScaleEnumerations.Player,
     value: 0.5f,
     owner: this,
     duration: 8f);                                   // 0 - бессрочный
@@ -131,7 +131,7 @@ PRTimeScale.Instance.Reset();
 public class NPCUnit : MonoBehaviour, ITimeScaleLayer
 {
     public Enumeration GetTimeScaleLayer()
-        => PRTimeScaleEnumerationProvider.NPC;
+        => PRTimeScaleEnumerations.NPC;
 }
 ```
 
@@ -168,7 +168,7 @@ player.AddComponent<EntityTimeScaleDriver>();
 
 // объект без сущности: слой задаётся явно
 var driver = crate.AddComponent<RigidbodyTimeScaleDriver>();
-driver.SetTimeScaleLayer(PRTimeScaleEnumerationProvider.Global);
+driver.SetTimeScaleLayer(PRTimeScaleEnumerations.Global);
 ```
 
 Для сущностей предпочтителен `EntityTimeScaleDriver`: он берёт слой у сущности, поэтому

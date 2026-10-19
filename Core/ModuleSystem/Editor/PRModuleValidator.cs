@@ -26,7 +26,7 @@ public sealed class PRModuleValidator : IProjectValidator
 
         var crowdedSlots = modules
             .Where(module => module.Slot.Length > 0 && !disabled.Contains(module.Id))
-            .GroupBy(module => module.Slot, System.StringComparer.OrdinalIgnoreCase)
+            .GroupBy(module => module.SlotKey, System.StringComparer.OrdinalIgnoreCase)
             .Where(slot => slot.Count() > 1);
 
         foreach (IGrouping<string, PRModuleInfo> slot in crowdedSlots)

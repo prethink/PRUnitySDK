@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ff488cb145690c47904a8af995e4fa4, type: 3}
+  m_Name: Module
+  m_EditorClassIdentifier:
+  id: STEAM
+  displayName: "Steam"
+  description: "Steamworks.NET: сохранение в Steam Cloud и на диске, имя и язык из Steam, пауза на оверлее; в приватной части — достижения и лидерборды. Только PC."
+  group: 5
+  isRequired: 0
+  dependencies: []
+  platform: StandaloneWindows64, StandaloneWindows, StandaloneLinux64, StandaloneOSX
+  slot: "Магазин"
+  pluginFolder: Assets/com.rlabrecque.steamworks.net
+  pluginModulesFile:
+  hidePluginWhenDisabled: 0
+  webGLTemplate:
+  webGLTemplateSource:

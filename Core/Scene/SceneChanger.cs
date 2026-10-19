@@ -7,7 +7,6 @@ public class SceneChanger : SingletonProviderBase<SceneChanger>
     public static bool IsReady { get; private set; } = true;
 
     public event Action OnSceneReady;
-    public event Action OnScenePrepared;
 
     //public static void Register(IScenePreloader element)
     //{

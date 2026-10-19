@@ -103,7 +103,7 @@ public sealed class BootstrapProbe : MonoBehaviour
         // Раскладка IMGUI не нужна: рисуется одна надпись по готовым координатам.
         useGUILayout = false;
 
-        bootstrap = FindObjectOfType<Bootstrap>();
+        bootstrap = FindFirstObjectByType<Bootstrap>();
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         if (showOnScreen)

@@ -153,6 +153,11 @@ AllCondition
 есть реестр:
 
 ```csharp
+public partial class ConditionEnumerations
+{
+    public static readonly Enumeration TutorialFinished = new(nameof(TutorialFinished));
+}
+
 // при готовности SDK
 ConditionRegistry.Instance.Register(
     ConditionEnumerations.TutorialFinished,

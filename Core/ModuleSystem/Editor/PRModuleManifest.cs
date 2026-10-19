@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
@@ -39,6 +40,11 @@ public sealed class PRModuleManifest : ScriptableObject
     [SerializeField] private List<PRModuleManifest> dependencies = new();
 
     [Header("Интеграция")]
+    [Tooltip("Платформы сборки интеграции — имена BuildTarget через запятую, например WebGL или " +
+             "StandaloneWindows64, StandaloneLinux64, StandaloneOSX. Окно модулей группирует по ним интеграции и предупреждает, " +
+             "если включённая не подходит к активной платформе. Пусто — любая платформа.")]
+    [SerializeField] private string platform;
+
     [Tooltip("Слот интеграции, например «Площадка». Из модулей с одним слотом включён не больше чем один. Пусто — модуль ни с кем не конкурирует.")]
     [SerializeField] private string slot;
 
@@ -54,6 +60,11 @@ public sealed class PRModuleManifest : ScriptableObject
 
     [Tooltip("Шаблон страницы WebGL, который окно модулей ставит, когда модуль включён, например PROJECT:YandexGames. Пусто — шаблон не меняется.")]
     [SerializeField] private string webGLTemplate;
+
+    [Tooltip("Папка с исходником шаблона WebGL внутри модуля, например Assets/PRUnitySDK/VK.Integration/WebGLTemplate~. " +
+             "«~» в имени прячет её от Unity. «Применить» и сборка WebGL копируют её в Assets/WebGLTemplates под именем из " +
+             "Web GL Template (PROJECT:Имя): Unity берёт шаблоны только оттуда. Пусто — шаблон лежит в Assets/WebGLTemplates сам.")]
+    [SerializeField] private string webGLTemplateSource;
 
     /// <summary>
     /// Идентификатор модуля: заглавные латинские буквы, цифры и подчёркивание.
@@ -91,6 +102,17 @@ public sealed class PRModuleManifest : ScriptableObject
     public string Slot => string.IsNullOrWhiteSpace(slot) ? string.Empty : slot.Trim();
 
     /// <summary>
+    /// Платформы сборки интеграции (имена <see cref="BuildTarget"/> через запятую); пустая строка — любая.
+    /// </summary>
+    public string Platform => string.IsNullOrWhiteSpace(platform) ? string.Empty : platform.Trim();
+
+    /// <summary>
+    /// Интеграция подходит к платформе сборки.
+    /// </summary>
+    public bool SupportsPlatform(BuildTarget target) =>
+        Platform.Length == 0 || Platform.Split(',').Any(name => string.Equals(name.Trim(), target.ToString(), System.StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
     /// Папка стороннего плагина, нужного модулю; пустая строка — плагин не нужен.
     /// </summary>
     public string PluginFolder => string.IsNullOrWhiteSpace(pluginFolder) ? string.Empty : pluginFolder.Trim().TrimEnd('/');
@@ -109,6 +131,29 @@ public sealed class PRModuleManifest : ScriptableObject
     /// Шаблон WebGL включённого модуля; пустая строка — шаблон модулю не важен.
     /// </summary>
     public string WebGLTemplate => string.IsNullOrWhiteSpace(webGLTemplate) ? string.Empty : webGLTemplate.Trim();
+
+    /// <summary>
+    /// Папка исходника шаблона WebGL; пустая строка — исходника в модуле нет.
+    /// </summary>
+    public string WebGLTemplateSource => string.IsNullOrWhiteSpace(webGLTemplateSource) ? string.Empty : webGLTemplateSource.Trim().TrimEnd('/');
+
+    /// <summary>
+    /// Куда копируется исходник шаблона: <c>Assets/WebGLTemplates/Имя</c> для <c>PROJECT:Имя</c>; пустая строка —
+    /// копировать некуда (нет исходника или шаблон не из проекта).
+    /// </summary>
+    public string WebGLTemplateFolder
+    {
+        get
+        {
+            const string projectPrefix = "PROJECT:";
+            string template = WebGLTemplate;
+
+            if (WebGLTemplateSource.Length == 0 || !template.StartsWith(projectPrefix, System.StringComparison.Ordinal))
+                return string.Empty;
+
+            return "Assets/WebGLTemplates/" + template.Substring(projectPrefix.Length);
+        }
+    }
 
     /// <summary>
     /// Define-символ, который вырезает модуль из сборки.
