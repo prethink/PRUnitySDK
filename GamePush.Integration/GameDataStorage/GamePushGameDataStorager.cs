@@ -25,7 +25,10 @@ using GamePush;
 /// вызов он пришёл, поэтому синхронизация идёт по одной: пока идёт текущая, новые запросы склеиваются в следующую,
 /// и каждый ответ относится ровно к своей. Номер, с которым уйдут последние данные, — <see cref="DataSyncNumber"/>.
 /// Все вызовы синхронизации игрока поэтому идут через <see cref="Sync"/>: вызов мимо очереди спутал бы ответы.
-/// Ответа нет дольше <see cref="SyncTimeoutSeconds"/> — синхронизация считается сорвавшейся.
+/// Ответа нет дольше <see cref="SyncTimeoutSeconds"/> — синхронизация считается сорвавшейся; это проверяет сторож,
+/// не дожидаясь следующего сохранения. После тайм-аута ответ мог опоздать и прийти на следующую синхронизацию, а различить
+/// их нельзя: до конца сессии подтверждения недостоверны (<see cref="ConfirmationsTrusted"/>). Кому нужна гарантия
+/// (списание покупок), тот после этого подтверждениям не верит.
 /// </para>
 /// </remarks>
 public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
@@ -64,10 +67,28 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     /// </summary>
     public static event Action<int, bool> SyncFinished;
 
+    /// <summary>
+    /// Ответам площадки можно верить: в этой сессии не было тайм-аута, и опоздавший ответ не мог прийти не на свою синхронизацию.
+    /// </summary>
+    public static bool ConfirmationsTrusted { get; private set; } = true;
+
     private static int startedSyncs;
     private static bool syncInFlight;
     private static bool syncQueued;
     private static float syncStartedAt;
+    private static UnityEngine.Coroutine watchdog;
+
+    // Без перезагрузки домена статика пережила бы прошлый запуск игры в редакторе.
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        Current = null;
+        DataSyncNumber = FinishedSyncs = startedSyncs = 0;
+        syncInFlight = syncQueued = false;
+        ConfirmationsTrusted = true;
+        watchdog = null;
+        SyncFinished = null;
+    }
 
     public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
         ? null
@@ -109,8 +130,8 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
                 return DataSyncNumber = startedSyncs + 1;
             }
 
-            // Ответа нет слишком долго — считаем синхронизацию сорвавшейся и не ждём её больше.
-            Finish(false);
+            // Сторож не успел (нет хоста корутин) — тайм-аут здесь.
+            TimeOut();
             if (syncInFlight)
                 return DataSyncNumber = startedSyncs;
         }
@@ -125,6 +146,38 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
         syncInFlight = true;
         syncStartedAt = UnityEngine.Time.realtimeSinceStartup;
         GP_Player.Sync();
+        StartWatchdog(startedSyncs);
+    }
+
+    /// <summary>
+    /// Ждёт ответа синхронизации и, если его нет, засчитывает её сорвавшейся — сам, без следующего сохранения.
+    /// </summary>
+    private static void StartWatchdog(int number)
+    {
+        GameManager host = PRUnitySDK.Managers != null ? PRUnitySDK.Managers.Game : null;
+        if (host == null)
+            return;
+
+        if (watchdog != null)
+            host.StopCoroutine(watchdog);
+        watchdog = host.StartCoroutine(Watch(number));
+    }
+
+    private static System.Collections.IEnumerator Watch(int number)
+    {
+        yield return new UnityEngine.WaitForSecondsRealtime(SyncTimeoutSeconds);
+        watchdog = null;
+        if (syncInFlight && startedSyncs == number)
+            TimeOut();
+    }
+
+    private static void TimeOut()
+    {
+        ConfirmationsTrusted = false;
+        PRLog.WriteWarning(typeof(GamePushGameDataStorager),
+            $"Синхронизация №{startedSyncs} без ответа {SyncTimeoutSeconds:0} с: считается сорвавшейся, подтверждениям облака " +
+            "до конца сессии не верим.");
+        Finish(false);
     }
 
     private static void HandleSyncComplete() => Finish(true);

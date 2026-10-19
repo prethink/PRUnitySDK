@@ -2099,6 +2099,10 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                     DestroyImmediate(editor);
             selectedAssetEditors.Clear();
             gridViewStates.Clear();
+            selectedAssets.Clear();
+            selections.Clear();
+            selectionAnchors.Clear();
+            activeSectionKey = null;
             pendingPreset = null;
         }
     }

@@ -43,6 +43,23 @@ public class PRSDKActiveProject : ScriptableObjectSingleton<PRSDKActiveProject>
 
 #if UNITY_EDITOR
     /// <summary>
+    /// Указатель изменили в редакторе: инспектором, Undo или <see cref="SetProject"/>.
+    /// </summary>
+    /// <remarks>
+    /// Приходит отложенно, после проверки значений: синглтоны базы и настроек сбрасывать посреди неё нельзя.
+    /// Слушает редакторский наблюдатель — он сбрасывает кеш синглтонов и перерисовывает окна.
+    /// </remarks>
+    public static event System.Action EditedInEditor;
+
+    private void OnValidate()
+    {
+        UnityEditor.EditorApplication.delayCall -= RaiseEdited;
+        UnityEditor.EditorApplication.delayCall += RaiseEdited;
+    }
+
+    private static void RaiseEdited() => EditedInEditor?.Invoke();
+
+    /// <summary>
     /// Делает проект текущим.
     /// </summary>
     public void SetProject(PRSDKProject value)
