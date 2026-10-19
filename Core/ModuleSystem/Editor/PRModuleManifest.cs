@@ -48,6 +48,13 @@ public sealed class PRModuleManifest : ScriptableObject
     [Tooltip("Текстовый файл плагина со списком его установленных частей, по одной в строке. Окно модулей показывает его в карточке модуля.")]
     [SerializeField] private string pluginModulesFile;
 
+    [Tooltip("Прятать папку плагина, пока модуль отключён: окно модулей переименует её в «Имя~», и Unity перестанет её видеть. " +
+             "Нужно плагинам, которые попадают в сборку и без кода модуля: jslib, jspre, автозапуск, обработчики сборки.")]
+    [SerializeField] private bool hidePluginWhenDisabled;
+
+    [Tooltip("Шаблон страницы WebGL, который окно модулей ставит, когда модуль включён, например PROJECT:YandexGames. Пусто — шаблон не меняется.")]
+    [SerializeField] private string webGLTemplate;
+
     /// <summary>
     /// Идентификатор модуля: заглавные латинские буквы, цифры и подчёркивание.
     /// </summary>
@@ -92,6 +99,16 @@ public sealed class PRModuleManifest : ScriptableObject
     /// Файл плагина со списком его установленных частей; пустая строка — списка нет.
     /// </summary>
     public string PluginModulesFile => string.IsNullOrWhiteSpace(pluginModulesFile) ? string.Empty : pluginModulesFile.Trim();
+
+    /// <summary>
+    /// Папку плагина прячут, пока модуль отключён, см. <see cref="PRModulePlugins"/>.
+    /// </summary>
+    public bool HidePluginWhenDisabled => hidePluginWhenDisabled && PluginFolder.Length > 0;
+
+    /// <summary>
+    /// Шаблон WebGL включённого модуля; пустая строка — шаблон модулю не важен.
+    /// </summary>
+    public string WebGLTemplate => string.IsNullOrWhiteSpace(webGLTemplate) ? string.Empty : webGLTemplate.Trim();
 
     /// <summary>
     /// Define-символ, который вырезает модуль из сборки.

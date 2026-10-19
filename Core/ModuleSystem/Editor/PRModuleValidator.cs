@@ -45,12 +45,27 @@ public sealed class PRModuleValidator : IProjectValidator
         foreach (PRModuleInfo module in modules)
         {
             string pluginFolder = module.Manifest.PluginFolder;
+            bool enabled = !disabled.Contains(module.Id);
+            PRPluginState pluginState = PRModulePlugins.GetState(module.Manifest);
 
-            if (pluginFolder.Length > 0 && !disabled.Contains(module.Id) && !AssetDatabase.IsValidFolder(pluginFolder))
+            if (enabled && pluginState == PRPluginState.Hidden)
+            {
+                yield return new ProjectValidationIssue(MessageType.Error,
+                    $"Модуль {module.DisplayName} включён, а плагин {pluginFolder} спрятан (папка с «~»). " +
+                    "Нажмите «Применить» в окне модулей или переименуйте папку обратно.", module.Manifest);
+            }
+            else if (enabled && pluginState == PRPluginState.Missing)
             {
                 yield return new ProjectValidationIssue(MessageType.Error,
                     $"Модуль {module.DisplayName} включён, а плагина {pluginFolder} нет в проекте. " +
                     "Установите плагин или отключите модуль в окне модулей.", module.Manifest);
+            }
+            else if (!PRModulePlugins.IsPluginInPlace(module.Manifest, enabled))
+            {
+                // Код модуля вырезан, но плагин площадки встраивается в страницу и запускается сам.
+                yield return new ProjectValidationIssue(MessageType.Warning,
+                    $"Модуль {module.DisplayName} отключён, а его плагин {pluginFolder} остался в проекте и попадёт в сборку. " +
+                    "Нажмите «Применить» в окне модулей.", module.Manifest);
             }
 
             if (!PRModuleManifest.IsValidId(module.Id))

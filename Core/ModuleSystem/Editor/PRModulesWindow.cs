@@ -40,6 +40,11 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
     private HashSet<PRModuleInfo> missingPlugins = new();
 
+    /// <summary>
+    /// Что не так с плагинами и шаблоном при применённом наборе: их правили руками или модуль только что получил флаг.
+    /// </summary>
+    private List<string> pluginMismatches = new();
+
     private readonly HashSet<string> collapsedSections = new();
 
     private string search = string.Empty;
@@ -99,8 +104,16 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
             .Where(module => File.Exists(module.Manifest.PluginModulesFile))
             .ToDictionary(module => module, module => ReadPluginModules(module.Manifest.PluginModulesFile));
 
+        // Спрятанный плагин отсутствующим не считается, если модуль умеет его возвращать: это сделает «Применить».
         missingPlugins = new HashSet<PRModuleInfo>(modules.Where(module =>
-            module.Manifest.PluginFolder.Length > 0 && !AssetDatabase.IsValidFolder(module.Manifest.PluginFolder)));
+            PRModulePlugins.GetState(module.Manifest) switch
+            {
+                PRPluginState.Missing => true,
+                PRPluginState.Hidden => !module.Manifest.HidePluginWhenDisabled,
+                _ => false
+            }));
+
+        pluginMismatches = PRModulePlugins.DescribeChanges(modules, appliedDisabled);
     }
 
     private static List<string> ReadPluginModules(string path)
@@ -153,7 +166,7 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                 pendingDisabled = new HashSet<string>(appliedDisabled);
         }
 
-        using (new EditorGUI.DisabledScope(changes == 0 && mismatchedTargets.Count == 0))
+        using (new EditorGUI.DisabledScope(changes == 0 && mismatchedTargets.Count == 0 && pluginMismatches.Count == 0))
         {
             string title = changes > 0 ? $"Применить ({changes})" : "Применить";
             if (GUILayout.Button(title, EditorStyles.toolbarButton, GUILayout.Width(100f)))
@@ -171,6 +184,14 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
             EditorGUILayout.HelpBox(
                 $"На платформах {string.Join(", ", mismatchedTargets)} отключены другие модули, чем на текущей. " +
                 "«Применить» запишет текущий набор во все платформы.",
+                MessageType.Warning);
+        }
+
+        if (pluginMismatches.Count > 0)
+        {
+            EditorGUILayout.HelpBox(
+                "Плагины и шаблон WebGL не соответствуют включённым модулям. «Применить» исправит: " +
+                string.Join("; ", pluginMismatches) + ".",
                 MessageType.Warning);
         }
 
@@ -378,7 +399,15 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         string folder = module.Manifest.PluginFolder;
         if (folder.Length > 0)
         {
-            string state = missingPlugins.Contains(module) ? "не найден" : "есть в проекте";
+            string state = PRModulePlugins.GetState(module.Manifest) switch
+            {
+                PRPluginState.Visible => "есть в проекте",
+                PRPluginState.Hidden => $"спрятан в {folder}{PRModulePlugins.HiddenSuffix}",
+                _ => "не найден"
+            };
+
+            if (module.Manifest.HidePluginWhenDisabled)
+                state += ", прячется, пока модуль отключён";
             EditorGUILayout.LabelField($"Плагин: {folder} — {state}", wrappedMiniLabel);
         }
 
@@ -409,6 +438,9 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         if (module.IsRequired && !enabled)
             EditorGUILayout.HelpBox("Модуль обязательный, но отключён. Включите его.", MessageType.Error);
+
+        if (enabled && module.Manifest.HidePluginWhenDisabled && PRModulePlugins.GetState(module.Manifest) == PRPluginState.Hidden)
+            EditorGUILayout.HelpBox("Плагин спрятан. «Применить» вернёт его на место.", MessageType.Info);
 
         if (enabled && missingPlugins.Contains(module))
         {
@@ -573,14 +605,44 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                 "• его данные в сохранениях игроков пропадут при первом сохранении.\n";
         }
 
+        List<string> pluginChanges = PRModulePlugins.DescribeChanges(modules, pendingDisabled);
+        if (pluginChanges.Count > 0)
+            message += "\nПлагины и шаблон: " + string.Join("; ", pluginChanges) + ".\n";
+
         message += "\nПосле применения проект пересоберётся.";
 
         if (!EditorUtility.DisplayDialog("Применить модули", message, "Применить", "Отмена"))
             return;
 
         AssetDatabase.SaveAssets();
+
+        // Сначала вернуть плагины включаемых модулей: без плагина модуль не соберётся, и символы тогда не пишутся.
+        List<string> showErrors = PRModulePlugins.ShowEnabled(modules, pendingDisabled);
+        if (showErrors.Count > 0)
+        {
+            AssetDatabase.Refresh();
+            Reload(true);
+            EditorUtility.DisplayDialog(
+                "Плагин не вернулся",
+                "Модули не переключены: без плагина включаемый модуль не соберётся.\n\n" + string.Join("\n\n", showErrors),
+                "Понятно");
+            return;
+        }
+
         PRModuleDefines.WriteDisabledIds(pendingDisabled);
+
+        // Плагин, который не удалось спрятать, сборке не мешает, но попадёт в страницу: об этом надо сказать.
+        List<string> hideErrors = PRModulePlugins.HideDisabledAndSetTemplate(modules, pendingDisabled);
+        AssetDatabase.Refresh();
         Reload(true);
+
+        if (hideErrors.Count > 0)
+        {
+            EditorUtility.DisplayDialog(
+                "Плагин не спрятан",
+                "Модули переключены, но эти плагины остались в проекте и попадут в сборку:\n\n" + string.Join("\n\n", hideErrors),
+                "Понятно");
+        }
     }
 
     private bool MatchesSearch(PRModuleInfo module)
