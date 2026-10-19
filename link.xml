@@ -5,68 +5,283 @@
   <assembly fullname="Assembly-CSharp">
     <type fullname="AbilityEnumerations" preserve="all" />
     <type fullname="AbilityStatusEnumerations" preserve="all" />
+    <type fullname="AchievementDatabase" preserve="all" />
+    <type fullname="AchievementProperties" preserve="all" />
     <type fullname="AchievementReservedItems" preserve="all" />
+    <type fullname="ActionDatabase" preserve="all" />
+    <type fullname="ActionItemDatabase" preserve="all" />
+    <type fullname="AnimationControl">
+      <method name="ApplyPauseToOverrideAnimation" />
+    </type>
     <type fullname="BackgroundExperienceSourceTask" preserve="all" />
+    <type fullname="BackgroundTask" preserve="all" />
     <type fullname="BackgroundTaskKeyEnumerations" preserve="all" />
+    <type fullname="Bootstrap">
+      <method name="OnDisableYG" />
+      <method name="OnEnableYG" />
+    </type>
+    <type fullname="BotWinSimulationSettings" preserve="all" />
+    <type fullname="BotWinSimulationTaskBase" preserve="all" />
+    <type fullname="BrainrotDatabase" preserve="all" />
+    <type fullname="BrainrotHolderData" preserve="all" />
+    <type fullname="BrainrotSaveProperties" preserve="all" />
     <type fullname="ButtonFamilyEnumerations" preserve="all" />
+    <type fullname="CameraTracker">
+      <method name="ApplyPlayerCamerasActive" />
+    </type>
     <type fullname="CaseBotWinsTask" preserve="all" />
+    <type fullname="CaseDatabase" preserve="all" />
     <type fullname="CaseReservedItems" preserve="all" />
     <type fullname="CharacterEnumerations" preserve="all" />
     <type fullname="ConditionEnumerations" preserve="all" />
     <type fullname="ContainerTypeEnumerations" preserve="all" />
+    <type fullname="DailyGiftDatabase" preserve="all" />
     <type fullname="DailyGiftReservedItems" preserve="all" />
     <type fullname="DamageEffectHandler" preserve="all" />
+    <type fullname="Database`1" preserve="all" />
+    <type fullname="EggDatabase" preserve="all" />
+    <type fullname="EntityBase">
+      <method name="AttachContainerShine" />
+      <method name="CreateHudPlates" />
+    </type>
     <type fullname="EntityDisposeEnumerations" preserve="all" />
+    <type fullname="EntityInstanceData" preserve="all" />
     <type fullname="EntitySideEnumerations" preserve="all" />
     <type fullname="EntityTypeEnumerations" preserve="all" />
+    <type fullname="EnumerationProviderBase" preserve="all" />
+    <type fullname="FlagsProviderBase" preserve="all" />
+    <type fullname="FreeGiftDatabase" preserve="all" />
     <type fullname="FreeGiftReservedItems" preserve="all" />
     <type fullname="GameEventEnumerations" preserve="all" />
+    <type fullname="GameEventHistory" preserve="all" />
     <type fullname="GameFlagsEnumerations" preserve="all" />
+    <type fullname="GameSettings" preserve="all" />
     <type fullname="GameSettingsEnumerations" preserve="all" />
     <type fullname="GameSignalEnumerations" preserve="all" />
+    <type fullname="GameStatistics" preserve="all" />
     <type fullname="GhostActionEnumerations" preserve="all" />
+    <type fullname="GhostRecordingSerializer/RecordingData" preserve="all" />
     <type fullname="GizmoEnumerations" preserve="all" />
+    <type fullname="GlassesDatabase" preserve="all" />
+    <type fullname="HandsEffectDatabase" preserve="all" />
+    <type fullname="HashSetConverter`1" preserve="all" />
+    <type fullname="HatDatabase" preserve="all" />
+    <type fullname="HealthComponent">
+      <method name="AddDamageEffectsOnStart" />
+      <method name="AddInvulnerabilityOnStart" />
+      <method name="BindHealthBarOnStart" />
+    </type>
+    <type fullname="HotbarData" preserve="all" />
     <type fullname="HotbarInputEnumerations" preserve="all" />
+    <type fullname="IIdentifiableItemConverter" preserve="all" />
     <type fullname="InputActionEnumerations" preserve="all" />
+    <type fullname="InputEnumerationProviderBase" preserve="all" />
     <type fullname="InteractionActionEnumerations" preserve="all" />
     <type fullname="InventoryActionEnumerations" preserve="all" />
     <type fullname="InventoryCategoryEnumerations" preserve="all" />
+    <type fullname="InventoryData" preserve="all" />
+    <type fullname="ItemSetDatabase" preserve="all" />
+    <type fullname="ItemStack" preserve="all" />
+    <type fullname="KeyDatabase" preserve="all" />
     <type fullname="LayersEnumerations" preserve="all" />
+    <type fullname="LocalizationDatabase" preserve="all" />
+    <type fullname="LootBoxDatabase" preserve="all" />
     <type fullname="LuckyBoxBotWinsTask" preserve="all" />
+    <type fullname="MaskDatabase" preserve="all" />
     <type fullname="MeleeWeaponTypeEnumerations" preserve="all" />
+    <type fullname="MonoWindowBase">
+      <method name="CloseHelp" />
+      <method name="EnsureHelpButton" />
+    </type>
     <type fullname="MonoWindowKeyEnumerations" preserve="all" />
     <type fullname="NPCStatesEnumerations" preserve="all" />
     <type fullname="NewDayWatcherTask" preserve="all" />
     <type fullname="NotifiersKeyEnumerations" preserve="all" />
+    <type fullname="NpcDatabase" preserve="all" />
     <type fullname="NpcSignalEnumerations" preserve="all" />
     <type fullname="NpcStateEnumerations" preserve="all" />
+    <type fullname="ObbyColorDatabase" preserve="all" />
+    <type fullname="ObbyData" preserve="all" />
+    <type fullname="ObbyEyesDatabase" preserve="all" />
+    <type fullname="ObbyMouthDatabase" preserve="all" />
+    <type fullname="ObbySkinDataBase" preserve="all" />
     <type fullname="ObjectStateGroupEnumerations" preserve="all" />
+    <type fullname="PRManagerContainer">
+      <method name="InitializeAchievementEvents" />
+      <method name="InitializeAdManager" />
+      <method name="InitializeAdManagerOverrideYG" />
+      <method name="InitializeAudioMixerManager" />
+      <method name="InitializeBoosterManager" />
+      <method name="InitializeDamageMultiplier" />
+      <method name="InitializeEmotes" />
+      <method name="InitializeExperienceBoosterManager" />
+      <method name="InitializeFlagsManager" />
+      <method name="InitializeGameManager" />
+      <method name="InitializeGameMetrics" />
+      <method name="InitializeLevelUpNotification" />
+      <method name="InitializeObjectPollManager" />
+      <method name="InitializeOpenItemManager" />
+      <method name="InitializePlayerDeathSound" />
+      <method name="InitializePlayerDeathWatcher" />
+      <method name="InitializePlayerFootDust" />
+      <method name="InitializeProjectPropertiesManager" />
+      <method name="InitializePurchaseService" />
+      <method name="InitializePurchaseServiceOverrideYG" />
+      <method name="InitializeRatingScores" />
+      <method name="InitializeRebirth" />
+      <method name="InitializeReservedItemsManager" />
+      <method name="InitializeResourceManager" />
+      <method name="InitializeSelectedItemsManager" />
+      <method name="InitializeShopLevelUnlock" />
+      <method name="InitializeShopPurchases" />
+      <method name="InitializeSoundManager" />
+      <method name="InitializeStatisticsManager" />
+      <method name="InitializeTrails" />
+      <method name="InitializeTutorial" />
+      <method name="InitializeVipManager" />
+      <method name="InitializeXPManager" />
+    </type>
+    <type fullname="PRSDKDatabase" preserve="all" />
+    <type fullname="PRSDKSettings">
+      <method name="SetDefaultGameStorageSettings" />
+    </type>
+    <type fullname="PRSaveData" preserve="all" />
     <type fullname="PRTimeScaleEnumerations" preserve="all" />
+    <type fullname="PRUnitySDK">
+      <method name="InitializeBackgroundExperience" />
+      <method name="InitializeBrainrotRewardGrantHandler" />
+      <method name="InitializeDamageRules" />
+      <method name="InitializeDeviceInfo" />
+      <method name="InitializeDeviceInfoOverrideYG" />
+      <method name="InitializeEggInventory" />
+      <method name="InitializeEntitySides" />
+      <method name="InitializeGameDataStorage" />
+      <method name="InitializeGameDataStorageOverrideYG" />
+      <method name="InitializeGameEventAnnouncer" />
+      <method name="InitializeGameEvents" />
+      <method name="InitializeGameSessions" />
+      <method name="InitializeGhosts" />
+      <method name="InitializeGhostsOverrideYG" />
+      <method name="InitializeInventorySystem" />
+      <method name="InitializeLanguageManager" />
+      <method name="InitializeLocalization" />
+      <method name="InitializeMetrics" />
+      <method name="InitializeMetricsOverrideYG" />
+      <method name="InitializePlayerNameService" />
+      <method name="InitializePlayerNameServiceOverrideYG" />
+      <method name="InitializePromoCodes" />
+      <method name="InitializeRatingSystem" />
+      <method name="InitializeRatingSystemOverrideYG" />
+      <method name="InitializeRemoteFlags" />
+      <method name="InitializeRemoteFlagsOverrideYG" />
+      <method name="InitializeResolver" />
+      <method name="InitializeReview" />
+      <method name="InitializeReviewOverrideYG" />
+      <method name="InitializeRewardGrantService" />
+      <method name="InitializeServerTime" />
+      <method name="InitializeServerTimeOverrideYG" />
+      <method name="InitializeUIClickSound" />
+      <method name="InitializeUIJuice" />
+      <method name="OverrideTranslateYG" />
+    </type>
+    <type fullname="PRWindowsContainer">
+      <method name="InitializeAchievementNotifier" />
+      <method name="InitializeAchievementWindow" />
+      <method name="InitializeBrainrotInfoWindow" />
+      <method name="InitializeCaseWindow" />
+      <method name="InitializeConfirmWindow" />
+      <method name="InitializeDailyGiftWindow" />
+      <method name="InitializeDashboardMessages" />
+      <method name="InitializeEmoteWheel" />
+      <method name="InitializeExperienceShopWindow" />
+      <method name="InitializeFreeGiftWindow" />
+      <method name="InitializeObbyCustomizationWindow" />
+      <method name="InitializePetInfoWindow" />
+      <method name="InitializePetShopWindow" />
+      <method name="InitializePromoCodeWindow" />
+      <method name="InitializePurchaseWindow" />
+      <method name="InitializeRebirthWindow" />
+      <method name="InitializeReviewGiftWindow" />
+      <method name="InitializeRewardForPointWindow" />
+      <method name="InitializeRewardNotifier" />
+      <method name="InitializeScreenPopup" />
+      <method name="InitializeSettingsWindow" />
+      <method name="InitializeShopWindow" />
+      <method name="InitializeStealEggBaseWindows" />
+      <method name="InitializeStealEggFusionWindow" />
+      <method name="InitializeStealEggPetIndexWindow" />
+      <method name="InitializeStealEggSellWindow" />
+      <method name="InitializeToastMessageNotifier" />
+      <method name="InitializeTrailShopWindow" />
+      <method name="InitializeTrailsWindow" />
+      <method name="InitializeWheelOfFortuneWindow" />
+      <method name="InitializeXPPickup" />
+      <method name="InitializeXPScreenPopup" />
+    </type>
+    <type fullname="PetDatabase" preserve="all" />
+    <type fullname="PetSaveProperties" preserve="all" />
     <type fullname="PetStatesEnumerations" preserve="all" />
-    <type fullname="PickBoxs+LuckyBoxBotWinsTask" preserve="all" />
+    <type fullname="PickBoxs/LuckyBoxBotWinsTask" preserve="all" />
     <type fullname="PlayerBotStatesEnumerations" preserve="all" />
     <type fullname="PlayerCameraEnumerations" preserve="all" />
     <type fullname="PlayerEventEnumerations" preserve="all" />
     <type fullname="PlayerFlags" preserve="all" />
     <type fullname="PlayerInputEnumerations" preserve="all" />
     <type fullname="PlayerRules" preserve="all" />
+    <type fullname="PlayerSelectedData" preserve="all" />
     <type fullname="PlayerStateEnumerations" preserve="all" />
     <type fullname="PlayerStateFlags" preserve="all" />
     <type fullname="PlayerStatsEnumeration" preserve="all" />
+    <type fullname="PlayerTracker">
+      <method name="InstallPlayerWeapons" />
+      <method name="RaisePlayerJoinGameEvent" />
+      <method name="RaisePlayerLeftGameEvent" />
+    </type>
     <type fullname="PlaytimeTrackerTask" preserve="all" />
+    <type fullname="ProjectData" preserve="all" />
+    <type fullname="ProjectProperties" preserve="all" />
+    <type fullname="PromoCodeSaveData" preserve="all" />
+    <type fullname="PromoCodeUsage" preserve="all" />
+    <type fullname="QualityCaseDatabase" preserve="all" />
     <type fullname="RatingScoreSubmitTask" preserve="all" />
     <type fullname="ResourceEnumerations" preserve="all" />
+    <type fullname="ReviewLootContainer">
+      <method name="CreateCaption" />
+    </type>
+    <type fullname="RewardForPointDatabase" preserve="all" />
+    <type fullname="RewardForPointProperties" preserve="all" />
+    <type fullname="RewardPitySettings" preserve="all" />
+    <type fullname="RewardTeleportPlatformEntity">
+      <method name="CreateRewardPlate" />
+    </type>
+    <type fullname="SceneObjectState" preserve="all" />
+    <type fullname="SelectableItemConverter" preserve="all" />
+    <type fullname="ShopDatabase" preserve="all" />
+    <type fullname="SoundDatabase" preserve="all" />
     <type fullname="SpawnPrefabEffectHandler" preserve="all" />
+    <type fullname="SpineEffectDatabase" preserve="all" />
+    <type fullname="SpriteDatabase" preserve="all" />
     <type fullname="StateId" preserve="all" />
+    <type fullname="StateValues" preserve="all" />
     <type fullname="StatusEffectHandler" preserve="all" />
+    <type fullname="StealEggData" preserve="all" />
     <type fullname="StealEggGameEventEnumerations" preserve="all" />
     <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />
+    <type fullname="TrailDatabase" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />
+    <type fullname="TriggerMonoWindow">
+      <method name="ResolveLocalPlayerExecutor" />
+    </type>
+    <type fullname="TutorialSaveProperties" preserve="all" />
     <type fullname="UIButtonAttentionWatcher" preserve="all" />
     <type fullname="UIButtonTimerWatcher" preserve="all" />
     <type fullname="UICommandEnumerations" preserve="all" />
+    <type fullname="VacuumDatabase" preserve="all" />
+    <type fullname="WatcherTask`1" preserve="all" />
+    <type fullname="WeaponDataBase" preserve="all" />
     <type fullname="WeaponFlags" preserve="all" />
     <type fullname="WheelOfFortuneBotWinsTask" preserve="all" />
+    <type fullname="WheelOfFortuneDatabase" preserve="all" />
     <type fullname="WheelOfFortuneReservedItems" preserve="all" />
   </assembly>
 </linker>

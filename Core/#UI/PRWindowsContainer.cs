@@ -1,4 +1,3 @@
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -153,13 +152,13 @@ public partial class PRWindowsContainer
 
         // Canvas сам становится элементом постоянного интерфейса: прячет его тот же трекер,
         // что и полосы над сущностями, и состояние не расходится на два выключателя.
-        HudCanvas.AddComponent<HudCanvasElement>();
+        HudCanvas.gameObject.AddComponent<HudCanvasElement>();
 
         SharedCanvas   = CreateScreenCanvas("Windows.SharedCanvas", WindowsSortingOrder);
 
         // Над окнами, но под уведомлениями; прячется тем же трекером, что и остальной HUD.
         PriorityHudCanvas = CreateScreenCanvas("Windows.PriorityHudCanvas", PriorityHudSortingOrder);
-        PriorityHudCanvas.AddComponent<HudCanvasElement>();
+        PriorityHudCanvas.gameObject.AddComponent<HudCanvasElement>();
 
         EnsureEventSystem();
 
@@ -181,17 +180,17 @@ public partial class PRWindowsContainer
     {
         PRContainer container = MonoBehaviourUtils.CreateContainer(name);
 
-        var canvas = container.AddComponent<Canvas>();
+        var canvas = container.gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = sortingOrder;
 
-        var canvasScaler = container.AddComponent<CanvasScaler>();
+        var canvasScaler = container.gameObject.AddComponent<CanvasScaler>();
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasScaler.referenceResolution = new Vector2(1920, 1080);
         canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
         canvasScaler.referencePixelsPerUnit = 100;
 
-        container.AddComponent<GraphicRaycaster>();
+        container.gameObject.AddComponent<GraphicRaycaster>();
 
         return container;
     }
@@ -212,8 +211,8 @@ public partial class PRWindowsContainer
             return;
 
         PRContainer eventSystem = MonoBehaviourUtils.CreateContainer("Windows.EventSystem");
-        eventSystem.AddComponent<EventSystem>();
-        eventSystem.AddComponent<StandaloneInputModule>();
+        eventSystem.gameObject.AddComponent<EventSystem>();
+        eventSystem.gameObject.AddComponent<StandaloneInputModule>();
 
         PRLog.WriteDebug(typeof(PRUnitySDK), "EventSystem не найден в сцене - создан SDK.");
     }

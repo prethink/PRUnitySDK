@@ -186,6 +186,10 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
 
     /// <remarks>
     /// Ответ без идущей синхронизации — опоздавший, на уже списанную по тайм-ауту: не считается.
+    /// <para>
+    /// Следующая из очереди запускается до подписчиков <see cref="SyncFinished"/>: подписчик может сам позвать
+    /// <see cref="Sync"/>, и с уже идущей синхронизацией его вызов встанет в очередь, а не запустит вторую параллельно.
+    /// </para>
     /// </remarks>
     private static void Finish(bool success)
     {
@@ -193,14 +197,15 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
             return;
 
         syncInFlight = false;
-        FinishedSyncs = startedSyncs;
-        SyncFinished?.Invoke(FinishedSyncs, success);
+        int finished = FinishedSyncs = startedSyncs;
 
         if (syncQueued)
         {
             syncQueued = false;
             StartSync();
         }
+
+        SyncFinished?.Invoke(finished, success);
     }
 
     #region IGameDataStorage

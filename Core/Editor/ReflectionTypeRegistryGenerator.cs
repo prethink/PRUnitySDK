@@ -6,6 +6,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Callbacks;
 using UnityEditor.Compilation;
 using UnityEngine;
 
@@ -44,6 +45,23 @@ public sealed class ReflectionTypeRegistryGenerator : IPreprocessBuildWithReport
     private static void GenerateFromMenu()
     {
         Generate(silent: false);
+    }
+
+    /// <summary>
+    /// Обновляет список после каждой перекомпиляции, чтобы он не отставал от кода.
+    /// </summary>
+    /// <remarks>
+    /// Во время перезагрузки домена импортировать ассеты нельзя, поэтому запись откладывается
+    /// на следующий тик редактора. При входе в Play Mode домен тоже перезагружается, тогда файл не трогаем.
+    /// </remarks>
+    [DidReloadScripts]
+    private static void GenerateAfterReload()
+    {
+        EditorApplication.delayCall += () =>
+        {
+            if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                Generate(silent: true);
+        };
     }
 
     /// <summary>

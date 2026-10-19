@@ -463,8 +463,12 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `ISaveable.TrySaveData` синхронный; собирается перед записью и при уходе объекта
   со сцены. Парного `ILoadable` нет намеренно — момент загрузки у всех разный.
 - `DatabaseExternalEditor` — каталог с собственным окном не редактируется в окне базы.
-- `ReflectionPreserveGenerator` собирает `link.xml` для типов, создаваемых рефлексией:
-  помечать их `[Preserve]` вручную не нужно.
+- `ReflectionPreserveGenerator` собирает `link.xml` для кода, до которого игра добирается рефлексией:
+  классы по контрактам и атрибутам, методы с `[MethodHook]`, `[InvokePartial]` и `Override*`, классы
+  сохранения, которые читает Newtonsoft (от `PRSaveData` и с `[JsonProperty]`), каталоги `PRSDKDatabase`.
+  Помечать их `[Preserve]` вручную не нужно. `link.xml` и список типов `ReflectionTypeRegistry`
+  обновляются сами после каждой перекомпиляции и перед билдом. `[Preserve]` нужен методу, который
+  вызывают по имени снаружи кода: событию анимации, `SendMessage`.
 - Классы по контракту при запуске перебором сборки не ищут: `Assembly.GetTypes()` на слабом телефоне
   стоит полторы секунды. Контракт помечают `[ReflectionContract]`, а классы берут через
   `ReflectionTypeRegistry.TryGetTypes` с перебором как запасным путём ([Core/Reflection](Core/Reflection/README.md)).
