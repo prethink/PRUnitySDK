@@ -2071,9 +2071,13 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             SetExpanded(child, expanded);
     }
 
+    /// <remarks>
+    /// Сверяется с текущей базой на каждой отрисовке: активный проект могли сменить (окно проектов, Undo, правка
+    /// указателя), и окно продолжало бы править базу другой игры.
+    /// </remarks>
     private bool EnsureDatabase()
     {
-        if (database != null && serializedDatabase != null)
+        if (database != null && serializedDatabase != null && database == PRSDKDatabase.Instance)
             return true;
 
         BindDatabase();
@@ -2082,9 +2086,21 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     private void BindDatabase()
     {
+        PRSDKDatabase previous = database;
         database = PRSDKDatabase.Instance;
         serializedDatabase = database != null ? new SerializedObject(database) : null;
         assetCache.Clear();
+
+        // Выбор и редакторы ассетов относятся к прежней базе.
+        if (previous != null && previous != database)
+        {
+            foreach (UnityEditor.Editor editor in selectedAssetEditors.Values)
+                if (editor != null)
+                    DestroyImmediate(editor);
+            selectedAssetEditors.Clear();
+            gridViewStates.Clear();
+            pendingPreset = null;
+        }
     }
 
     private UnityEditor.Editor GetOrCreateAssetEditor(

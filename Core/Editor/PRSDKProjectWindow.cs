@@ -199,6 +199,9 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
 
         Debug.Log($"[PRUnitySDK] Активный проект: {project.Title}.");
         Reload();
+
+        // Окна базы и настроек сверяются с текущим проектом при отрисовке: перерисовка переводит их на новый.
+        UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
     }
 
     /// <summary>

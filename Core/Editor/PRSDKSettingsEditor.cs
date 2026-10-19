@@ -409,9 +409,12 @@ public sealed class PRSDKSettingsEditor : EditorWindow
         Repaint();
     }
 
+    /// <remarks>
+    /// Сверяется с текущими настройками на каждой отрисовке: активный проект могли сменить.
+    /// </remarks>
     private bool EnsureSettings()
     {
-        if (settings != null && serializedSettings != null)
+        if (settings != null && serializedSettings != null && settings == PRSDKSettings.Instance)
             return true;
 
         BindSettings();

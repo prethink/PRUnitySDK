@@ -69,6 +69,10 @@ public partial class LocalizationWindow : ExtendedEditorWindow
 
     private void OnGUI()
     {
+        // Активный проект могли сменить: окно не должно править базу другой игры.
+        if (database != ScriptableObjectSingleton<PRSDKDatabase>.Instance)
+            Initialize();
+
         DrawSearch();
 
         // Вкладка проекта работает и без базы: переводы предметов и подписи на префабах

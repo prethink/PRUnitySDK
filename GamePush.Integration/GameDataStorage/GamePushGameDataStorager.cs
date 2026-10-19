@@ -21,9 +21,11 @@ using GamePush;
 /// </para>
 /// <para>
 /// Событие сохранения игры приходит, когда данные отданы плагину, а не когда сервер их принял. Кому нужно
-/// подтверждение облака — списанию покупок, — тот ждёт <see cref="SyncFinished"/>: синхронизации нумеруются
-/// (<see cref="RequestedSyncs"/>), и номер в событии — сколько их завершилось. Площадка завершает их по порядку.
-/// Все вызовы синхронизации игрока поэтому идут через <see cref="Sync"/>: чужой вызов мимо счётчика сдвинул бы номера.
+/// подтверждение облака — списанию покупок, — тот ждёт <see cref="SyncFinished"/>. Ответ площадки не говорит, на какой
+/// вызов он пришёл, поэтому синхронизация идёт по одной: пока идёт текущая, новые запросы склеиваются в следующую,
+/// и каждый ответ относится ровно к своей. Номер, с которым уйдут последние данные, — <see cref="DataSyncNumber"/>.
+/// Все вызовы синхронизации игрока поэтому идут через <see cref="Sync"/>: вызов мимо очереди спутал бы ответы.
+/// Ответа нет дольше <see cref="SyncTimeoutSeconds"/> — синхронизация считается сорвавшейся.
 /// </para>
 /// </remarks>
 public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
@@ -43,12 +45,17 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     public static GamePushGameDataStorager Current { get; private set; }
 
     /// <summary>
-    /// Сколько синхронизаций с сервером запрошено.
+    /// Сколько секунд ждать ответа синхронизации, прежде чем считать её сорвавшейся.
     /// </summary>
-    public static int RequestedSyncs { get; private set; }
+    public const float SyncTimeoutSeconds = 60f;
 
     /// <summary>
-    /// Сколько синхронизаций завершилось — успешно или нет.
+    /// Номер синхронизации, которая отправит последние переданные данные.
+    /// </summary>
+    public static int DataSyncNumber { get; private set; }
+
+    /// <summary>
+    /// Сколько синхронизаций завершилось — успешно или нет; номер последней завершённой.
     /// </summary>
     public static int FinishedSyncs { get; private set; }
 
@@ -56,6 +63,11 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     /// Синхронизация завершилась: её номер по порядку и успех.
     /// </summary>
     public static event Action<int, bool> SyncFinished;
+
+    private static int startedSyncs;
+    private static bool syncInFlight;
+    private static bool syncQueued;
+    private static float syncStartedAt;
 
     public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
         ? null
@@ -83,11 +95,35 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     }
 
     /// <summary>
-    /// Отправляет данные игрока на сервер и считает синхронизацию.
+    /// Отправляет данные игрока на сервер: сразу, а если синхронизация уже идёт — следующей за ней.
     /// </summary>
-    public static void Sync()
+    /// <returns>Номер синхронизации, которая отправит текущие данные.</returns>
+    public static int Sync()
     {
-        RequestedSyncs++;
+        if (syncInFlight)
+        {
+            if (UnityEngine.Time.realtimeSinceStartup - syncStartedAt < SyncTimeoutSeconds)
+            {
+                // Переданное плагину уйдёт следующей синхронизацией: она отправит всё поле целиком.
+                syncQueued = true;
+                return DataSyncNumber = startedSyncs + 1;
+            }
+
+            // Ответа нет слишком долго — считаем синхронизацию сорвавшейся и не ждём её больше.
+            Finish(false);
+            if (syncInFlight)
+                return DataSyncNumber = startedSyncs;
+        }
+
+        StartSync();
+        return DataSyncNumber = startedSyncs;
+    }
+
+    private static void StartSync()
+    {
+        startedSyncs++;
+        syncInFlight = true;
+        syncStartedAt = UnityEngine.Time.realtimeSinceStartup;
         GP_Player.Sync();
     }
 
@@ -95,10 +131,23 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
 
     private static void HandleSyncError() => Finish(false);
 
+    /// <remarks>
+    /// Ответ без идущей синхронизации — опоздавший, на уже списанную по тайм-ауту: не считается.
+    /// </remarks>
     private static void Finish(bool success)
     {
-        FinishedSyncs++;
+        if (!syncInFlight)
+            return;
+
+        syncInFlight = false;
+        FinishedSyncs = startedSyncs;
         SyncFinished?.Invoke(FinishedSyncs, success);
+
+        if (syncQueued)
+        {
+            syncQueued = false;
+            StartSync();
+        }
     }
 
     #region IGameDataStorage
