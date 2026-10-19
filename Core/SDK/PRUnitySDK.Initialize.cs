@@ -262,7 +262,7 @@ public partial class PRUnitySDK
             double durationMilliseconds = TrackInitialization<T>(displayName, category,
                 () => (object)(initializeAction == null ? default : initializeAction.Invoke()));
             InitializedTypes.Add(typeof(T));
-            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color={Color.yellow}>{displayName}</color> in {durationMilliseconds:F2} ms.");
+            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize complete <color=yellow>{displayName}</color> in {durationMilliseconds:F2} ms.");
         }
         finally
         {
@@ -290,13 +290,13 @@ public partial class PRUnitySDK
         }
         catch (Exception exception)
         {
-            PRLog.WriteError(typeof(PRUnitySDK), $"Cannot initialize module <color={Color.yellow}>{name}</color>. {exception}");
+            PRLog.WriteError(typeof(PRUnitySDK), $"Cannot initialize module <color=yellow>{name}</color>. {exception}");
             throw;
         }
         finally
         {
             stopwatch.Stop();
-            PRLog.WriteDebug(typeof(PRUnitySDK), $"Module <color={Color.yellow}>{name}</color> initialized in {stopwatch.ElapsedMilliseconds} ms");
+            PRLog.WriteDebug(typeof(PRUnitySDK), $"Module <color=yellow>{name}</color> initialized in {stopwatch.ElapsedMilliseconds} ms");
         }
     }
 
@@ -305,7 +305,7 @@ public partial class PRUnitySDK
         if(getProperty() == null)
         {
             var result = setProperty();
-            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize <color={Color.yellow}>{name}</color> implement {result.GetType()}.", new PRLogSettings() { LevelDebug = 8 });
+            PRLog.WriteDebug(typeof(PRUnitySDK), $"Initialize <color=yellow>{name}</color> implement {result.GetType()}.", new PRLogSettings() { LevelDebug = 8 });
         }
     }
     

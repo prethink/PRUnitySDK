@@ -197,7 +197,7 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable
             catch (Exception exception)
             {
                 PRLog.WriteError(this,
-                    $"Cannot create background task <color={Color.yellow}>{taskType.Name}</color>. {exception}");
+                    $"Cannot create background task <color=yellow>{taskType.Name}</color>. {exception}");
                 continue;
             }
 

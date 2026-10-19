@@ -139,7 +139,7 @@ public static class GameRules
         catch (Exception exception)
         {
             PRLog.WriteError(typeof(GameRules),
-                $"Cannot create stat rule provider <color={Color.yellow}>{providerType.Name}</color>. {exception}");
+                $"Cannot create stat rule provider <color=yellow>{providerType.Name}</color>. {exception}");
             return null;
         }
     }
@@ -157,7 +157,7 @@ public static class GameRules
         catch (Exception exception)
         {
             PRLog.WriteError(typeof(GameRules),
-                $"Stat rule provider <color={Color.yellow}>{providerType.Name}</color> failed to return rules. {exception}");
+                $"Stat rule provider <color=yellow>{providerType.Name}</color> failed to return rules. {exception}");
             return;
         }
 
@@ -198,7 +198,7 @@ public static class GameRules
         RuleCount += added;
 
         PRLog.WriteDebug(typeof(GameRules),
-            $"Initialize rule <color={Color.yellow}>{SafeName(provider, providerType)}</color> ({added} rules)");
+            $"Initialize rule <color=yellow>{SafeName(provider, providerType)}</color> ({added} rules)");
     }
 
     /// <summary>
