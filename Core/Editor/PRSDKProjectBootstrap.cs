@@ -97,7 +97,7 @@ public static class PRSDKProjectBootstrap
         {
             Debug.LogWarning(
                 $"[PRUnitySDK] Проектов найдено {projects.Length}, активный не выбран — " +
-                "укажите его в окне PRUnitySDK/Windows/Project.");
+                "укажите его в окне PRUnitySDK/Game/Project.");
         }
 
         return null;

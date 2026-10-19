@@ -126,7 +126,11 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     private void OnEnable()
     {
-        titleContent = new GUIContent("SDK Database");
+        // Наследники получают название при открытии, а после перезагрузки скриптов оно
+        // восстанавливается само: общее подставляется только окну без названия.
+        if (string.IsNullOrEmpty(titleContent.text))
+            titleContent = new GUIContent("SDK Database");
+
         minSize = new Vector2(620f, 450f);
         BindDatabase();
     }

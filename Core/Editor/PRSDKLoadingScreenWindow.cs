@@ -85,7 +85,7 @@ public sealed class PRSDKLoadingScreenWindow : EditorWindow
 
         if (settings == null || settings.LoadingScreen == null)
         {
-            EditorGUILayout.HelpBox("Настройки проекта не найдены. Выберите проект в PRUnitySDK → Windows → Project.", MessageType.Warning);
+            EditorGUILayout.HelpBox("Настройки проекта не найдены. Выберите проект в PRUnitySDK → Game → Project.", MessageType.Warning);
             return;
         }
 

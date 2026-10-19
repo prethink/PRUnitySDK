@@ -16,12 +16,12 @@ using UnityEngine;
 /// а ссылка на них одна — из указателя <see cref="PRSDKActiveProject"/>.
 /// </para>
 /// </remarks>
-public sealed class PRSDKProjectWindow : EditorWindow
+public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
 {
     /// <summary>
     /// Путь пункта меню.
     /// </summary>
-    public const string MenuPath = "PRUnitySDK/Windows/Project";
+    public const string MenuPath = "PRUnitySDK/Game/Project";
 
     private const string DefaultFolder = "Assets/PRUnityData/Projects";
 
@@ -33,10 +33,8 @@ public sealed class PRSDKProjectWindow : EditorWindow
     [MenuItem(MenuPath, false, 0)]
     private static void Open()
     {
-        var window = GetWindow<PRSDKProjectWindow>();
-        window.titleContent = new GUIContent("Проект SDK");
+        var window = PRSDKGameWindows.Open<PRSDKProjectWindow>("Project");
         window.minSize = new Vector2(560f, 420f);
-        window.Show();
     }
 
     private void OnGUI()

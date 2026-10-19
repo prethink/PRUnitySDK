@@ -168,11 +168,11 @@ public sealed class ExampleDatabase : Database<ExampleDefinition>
 | Окно | Меню | Что показывает |
 | --- | --- | --- |
 | Общее | `PRUnitySDK/Windows/Common` | действия, спрайты, звуки |
-| Предметы | `PRUnitySDK/Windows/Items` | каталоги вещей, наборы, брейнроты, питомцы |
-| Награды | `PRUnitySDK/Windows/Rewards` | контейнеры подарков и кейсов, все награды проекта, генератор |
-| Витрина | `PRUnitySDK/Windows/Shop` | товары, цены и условия покупки |
+| Предметы | `PRUnitySDK/Game/Items` | каталоги вещей, наборы, брейнроты, питомцы |
+| Награды | `PRUnitySDK/Game/Rewards` | контейнеры подарков и кейсов, все награды проекта, генератор |
+| Витрина | `PRUnitySDK/Game/Shop` | товары, цены и условия покупки |
 | Переводы | `PRUnitySDK/Windows/Localization` | списки по языкам и таблица проекта |
-| Достижения | `PRUnitySDK/Windows/Achievements` | условия, прогресс и награды |
+| Достижения | `PRUnitySDK/Game/Achievements` | условия, прогресс и награды |
 
 Окно **кнопок HUD** (`PRUnitySDK/Windows/Buttons`) находит все `UIButtonDefinition` проекта. Слева — карточки с превью трёх слоёв, поиск по имени, пути, ключу и переводам и фильтр по типу. Справа — обычный инспектор кнопки с проверками заполнения. Из окна можно создать кнопку, сохранить выбранный ассет и показать его в Project. Те же три слоя рисуются и картинкой самого ассета — в окне выбора и в Project (`UIButtonDefinitionEditor.RenderStaticPreview`); после смены иконки ассет нужно переимпортировать.
 
@@ -189,7 +189,7 @@ public sealed class ExampleDatabase : Database<ExampleDefinition>
 ```csharp
 public sealed class PRSDKItemsWindow : PRSDKDatabaseEditor
 {
-    public const string MenuPath = "PRUnitySDK/Windows/Items";
+    public const string MenuPath = "PRUnitySDK/Game/Items";
 
     protected override string OwnedEditorMenuPath => MenuPath;
 }

@@ -152,7 +152,7 @@ graph TD
 | `Assets/PRUnitySDKPrivate` | проектный слой: механики конкретной игры, надстроенные над фреймворком |
 | `Assets/PRUnityData` | данные игры: каталоги, настройки, проекты |
 
-Какая из игр собирается сейчас, указывает `PRSDKProject` — окно `PRUnitySDK/Windows/Project`. Подробности — в [PRUnityData/README.md](../PRUnityData/README.md).
+Какая из игр собирается сейчас, указывает `PRSDKProject` — окно `PRUnitySDK/Game/Project`. Подробности — в [PRUnityData/README.md](../PRUnityData/README.md).
 
 Опыт и уровни живут в проектном слое: `XPManager`, фоновое начисление и бустеры опыта — в [PRUnitySDKPrivate/Modules/@ProgressionModule](../PRUnitySDKPrivate/Modules/@ProgressionModule/README.md).
 
