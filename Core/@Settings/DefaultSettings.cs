@@ -28,7 +28,7 @@ public class DefaultSettings
     /// <summary>
     /// Громкость музыка.
     /// </summary>
-    [field: SerializeField] public float MusicVolume { get; protected set; } = 1;
+    [field: SerializeField] public float MusicVolume { get; protected set; } = 0.7f;
 
     /// <summary>
     /// Громкость эффектов.

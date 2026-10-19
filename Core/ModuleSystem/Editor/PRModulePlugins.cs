@@ -150,7 +150,7 @@ public static class PRModulePlugins
             if (TryMove(folder, folder + HiddenSuffix, out string error))
                 StoreFolderMeta(folder);
             else
-                errors.Add($"{module.DisplayName}: {error}");
+                errors.Add($"{module.DisplayName}: плагин не спрятан и попадёт в сборку — {error}");
         }
 
         errors.AddRange(SyncTemplates(list, disabledIds));
@@ -197,11 +197,18 @@ public static class PRModulePlugins
         foreach (PRModuleInfo module in modules.Where(module => !disabledIds.Contains(module.Id)))
         {
             PRModuleManifest manifest = module.Manifest;
-            if (!IsTemplateOutdated(manifest))
-                continue;
-
             string source = manifest.WebGLTemplateSource;
             string target = manifest.WebGLTemplateFolder;
+
+            // Исходник указан, но его нет: в сборку ушла бы старая копия или не ушло бы ничего.
+            if (source.Length > 0 && !Directory.Exists(source))
+            {
+                errors.Add($"{module.DisplayName}: нет исходника шаблона {source}, сборка WebGL остановится");
+                continue;
+            }
+
+            if (!IsTemplateOutdated(manifest))
+                continue;
 
             try
             {

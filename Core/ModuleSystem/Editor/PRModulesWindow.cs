@@ -679,7 +679,8 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         PRModuleDefines.WriteDisabledIds(pendingDisabled);
 
-        // Плагин, который не удалось спрятать, сборке не мешает, но попадёт в страницу: об этом надо сказать.
+        // Плагин, который не удалось спрятать, сборке не мешает, но попадёт в страницу; без исходника шаблона
+        // остановится сборка WebGL. Об этом надо сказать.
         List<string> hideErrors = PRModulePlugins.HideDisabledAndSetTemplate(modules, pendingDisabled);
         AssetDatabase.Refresh();
         Reload(true);
@@ -687,8 +688,8 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         if (hideErrors.Count > 0)
         {
             EditorUtility.DisplayDialog(
-                "Плагин не спрятан",
-                "Модули переключены, но эти плагины остались в проекте и попадут в сборку:\n\n" + string.Join("\n\n", hideErrors),
+                "Не всё применилось",
+                "Модули переключены, но:\n\n" + string.Join("\n\n", hideErrors),
                 "Понятно");
         }
     }
