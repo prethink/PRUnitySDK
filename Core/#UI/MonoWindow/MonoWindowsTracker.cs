@@ -24,6 +24,15 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
     public MonoWindowBase CurrentWindow { get; private set; }
 
     /// <summary>
+    /// Сколько раз закрывались все окна разом (<see cref="HideAllWindows"/>, <see cref="HideForceAllWindows"/>).
+    /// </summary>
+    /// <remarks>
+    /// Окно, которое собирается открыться само позже, запоминает число и сверяет перед показом: изменилось —
+    /// игра намеренно убрала интерфейс, и показ отменяется.
+    /// </remarks>
+    public int HideAllCount { get; private set; }
+
+    /// <summary>
     /// Показывает, что в трекере осталось хотя бы одно открытое окно.
     /// </summary>
     public bool HasOpenWindows =>
@@ -257,6 +266,7 @@ public class MonoWindowsTracker : TrackerBase<MonoWindowBase>, IMonoWindowEvents
 
     private void HideWindows(bool isForceClose)
     {
+        HideAllCount++;
         foreach (MonoWindowBase window in elements.ToList())
         {
             if (window != null && window.IsVisible)
