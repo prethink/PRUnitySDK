@@ -10,6 +10,7 @@ public class EntityTrackerSearchTests
     private PlayerTracker players;
     private EntityTracker previousEntities;
     private PlayerTracker previousPlayers;
+    private IServerTime previousServerTime;
     private readonly List<EntityMetadata> metadataAssets = new();
     private readonly List<GameObject> gameObjects = new();
 
@@ -18,6 +19,9 @@ public class EntityTrackerSearchTests
     {
         previousEntities = EntityService.Instance;
         previousPlayers = PlayerService.Instance;
+        // События урона и смерти берут время у SDK, а в EditMode он не запущен.
+        previousServerTime = PRUnitySDK.ServerTime;
+        PRUnitySDK.ServerTime ??= new LocalServerTime();
         entities = new EntityTracker();
         players = new PlayerTracker();
         EntityService.Override(entities);
@@ -32,6 +36,7 @@ public class EntityTrackerSearchTests
         gameObjects.Clear();
         EntityService.Override(previousEntities);
         PlayerService.Override(previousPlayers);
+        PRUnitySDK.ServerTime = previousServerTime;
         foreach (var metadata in metadataAssets)
             UnityEngine.Object.DestroyImmediate(metadata);
         metadataAssets.Clear();
@@ -173,8 +178,8 @@ public class EntityTrackerSearchTests
         health.SetOverrideIsAlive(null);
         health.InitHealth();
         health.SetBlockDamage(true).SetImmortal(true);
-        Assert.AreEqual(DamageResult.Blocked, health.Kill().Result);
-        Assert.AreEqual(DamageResult.Killed, health.Kill(force: true).Result);
+        Assert.AreEqual(DamageResult.Blocked, health.KillByGame().Result);
+        Assert.AreEqual(DamageResult.Killed, health.KillByGame(force: true).Result);
 
         health.InitHealth();
         health.SetImmortal(false);

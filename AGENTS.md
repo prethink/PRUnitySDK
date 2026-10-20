@@ -446,7 +446,7 @@ Partial-поля Settings и Database не требуют ручного доб�
   `PRSDK_DISABLE_<Id>`. Модуль — папка с `Module.asset`, его скрипты обёрнуты в `#if`.
   Раскатано пока на `Boosters`, `VIP` и окно `WheelOfFortune`.
 - `DamageSound` переименован в `HealthSound` (GUID тот же) и получил список звуков
-  смерти `Death Clips`; смерть через `Kill()` тоже звучит.
+  смерти `Death Clips`; смерть через `Kill` тоже звучит.
 - Окно `PRUnitySDK/Windows/Debug Window` принимает вкладки модулей: реализация
   `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Вкладка с
   `AvailableInEditMode` видна и без Play Mode — для данных на диске. Вкладка отдельной игры
@@ -563,8 +563,10 @@ Test Framework: без обёртки тесты там не собрались 
 вне `Editor`, и тоже обёрнут в `#if PRSDK_TESTS`. Скрипт из `Editor` на объект не вешается: `AddComponent`
 вернёт `null`, и тест упадёт на первом обращении к компоненту. Тестовый `ScriptableObject` остаётся в `Editor`.
 
-Запуск: добавить `PRSDK_TESTS` в `Project Settings → Player → Scripting Define Symbols`,
-затем `Window → General → Test Runner → EditMode → Run All`. После прогона символ можно убрать.
+Запуск: **PRUnitySDK → Тесты → Включить тесты** (`PRTestsDefineMenu` ставит `PRSDK_TESTS` на все платформы и
+сначала проверяет, что пакет Test Framework установлен), затем `Window → General → Test Runner → EditMode → Run All`.
+Тест в папке отключаемого модуля обёрнут в `#if PRSDK_TESTS && !PRSDK_DISABLE_<Id>`: у выключенного модуля
+его тестов нет.
 
 Проверяйте чистые решения, а не сцену: `EntitySides.ResolveDamage` с настройками, созданными
 в тесте, а не `GetDamage` с сущностями и ассетом проекта. Коду, которому нужны настройки

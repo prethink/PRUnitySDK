@@ -589,8 +589,12 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <summary>
     /// Убить сущность от имени игры.
     /// </summary>
+    /// <remarks>
+    /// Не перегрузка <c>Kill</c>: у компонентов Unity есть неявное преобразование в <c>bool</c>, и вызов
+    /// <c>Kill(npc)</c> молча попадал бы сюда — принудительное убийство без убийцы в обход бессмертия.
+    /// </remarks>
     /// <returns>Итог убийства; подробности - у <see cref="Kill(IEntity, IWeapon, bool)"/>.</returns>
-    public virtual DamageOutcome Kill(bool force = false)
+    public virtual DamageOutcome KillByGame(bool force = false)
     {
         return Kill(GameEventEntityFactory.CreateEventGame(), force: force);
     }

@@ -40,7 +40,11 @@ public interface IHealthEntity
     /// </summary>
     /// <param name="force">Обойти бессмертие.</param>
     /// <returns>Итог убийства; никогда не <c>null</c>.</returns>
-    public DamageOutcome Kill(bool force = false);
+    /// <remarks>
+    /// Отдельное имя, а не перегрузка <c>Kill</c>: сущность-компонент Unity неявно приводится к <c>bool</c>,
+    /// и <c>Kill(npc)</c> попадал бы сюда.
+    /// </remarks>
+    public DamageOutcome KillByGame(bool force = false);
 
     /// <summary>
     /// Убить сущность с указанием источника - он попадёт в <see cref="Killer"/>

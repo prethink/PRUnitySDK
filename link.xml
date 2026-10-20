@@ -196,6 +196,7 @@
       <method name="InitializeEmoteWheel" />
       <method name="InitializeExperienceShopWindow" />
       <method name="InitializeFreeGiftWindow" />
+      <method name="InitializeGameUpdatesWindow" />
       <method name="InitializeObbyCustomizationWindow" />
       <method name="InitializePetInfoWindow" />
       <method name="InitializePetShopWindow" />

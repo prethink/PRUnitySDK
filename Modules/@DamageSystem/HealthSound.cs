@@ -118,7 +118,7 @@ public sealed class HealthSound : MonoBehaviour
                 return deathClip;
         }
 
-        // Смерть без урона — команда Kill(): звука удара у неё нет.
+        // Смерть без урона — команда Kill: звука удара у неё нет.
         if (outcome.Result == DamageResult.Killed && outcome.AppliedDamage <= 0f)
             return null;
 
