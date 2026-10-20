@@ -64,11 +64,12 @@ public static class PRTestsDefineMenu
     }
 
     /// <summary>
-    /// Платформы, для которых в проекте уже заданы символы, и выбранная для сборки.
+    /// Все платформы, как у символов модулей (<see cref="PRModuleDefines"/>): включённое для WebGL
+    /// не должно пропасть после переключения на Android.
     /// </summary>
     private static IEnumerable<NamedBuildTarget> Targets()
     {
-        var targets = new List<NamedBuildTarget> { CurrentTarget };
+        var targets = new List<NamedBuildTarget> { CurrentTarget, NamedBuildTarget.Server };
         foreach (BuildTargetGroup group in Enum.GetValues(typeof(BuildTargetGroup)))
         {
             if (group == BuildTargetGroup.Unknown || IsObsolete(group))
@@ -84,7 +85,7 @@ public static class PRTestsDefineMenu
                 continue;
             }
 
-            if (!targets.Contains(target) && !string.IsNullOrEmpty(PlayerSettings.GetScriptingDefineSymbols(target)))
+            if (!targets.Contains(target))
                 targets.Add(target);
         }
 
