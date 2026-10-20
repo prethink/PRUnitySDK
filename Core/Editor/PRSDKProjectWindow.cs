@@ -197,6 +197,9 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
         ScriptableObjectSingleton<PRSDKDatabase>.ResetInstance();
         ScriptableObjectSingleton<PRSDKSettings>.ResetInstance();
 
+        // Своё сохранение у каждой игры: прежнее уходит в папку прежнего проекта, на место — сохранение нового.
+        PRSDKProjectSaves.Sync();
+
         Debug.Log($"[PRUnitySDK] Активный проект: {project.Title}.");
         Reload();
 
