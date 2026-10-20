@@ -25,4 +25,20 @@ public static class ApplicationLifetime
     }
 
     private static void OnQuitting() => IsQuitting = true;
+
+#if UNITY_EDITOR
+    // На выходе из Play Mode домен не перезагружается, и без сброса Edit Mode жил бы с IsQuitting = true:
+    // синглтоны отказались бы создаваться в тестах и окнах редактора. Сцена игры к EnteredEditMode уже разобрана.
+    [UnityEditor.InitializeOnLoadMethod]
+    private static void SubscribeEditMode()
+    {
+        UnityEditor.EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+    }
+
+    private static void OnPlayModeStateChanged(UnityEditor.PlayModeStateChange state)
+    {
+        if (state == UnityEditor.PlayModeStateChange.EnteredEditMode) IsQuitting = false;
+    }
+#endif
 }
