@@ -12,20 +12,31 @@ using UnityEngine;
 /// Площадка пишет сохранение в одно место (у Яндекса — <c>Assets/PluginYourGames/Editor/SavesEditorYG2.json</c>),
 /// и без переключения игры в одном Unity-проекте делили бы прогресс: StealEgg читал бы сохранение PickBox.
 /// <para>
-/// При смене проекта файлы площадок (<see cref="IPRSDKEditorSaveStore"/>) копируются в папку прежнего проекта
-/// (<c>&lt;папка данных проекта&gt;/Editor/Saves/&lt;площадка&gt;</c>), а на их место ложатся файлы нового. Если у
-/// нового проекта сохранения ещё нет, файлы площадки удаляются — игра начнётся с чистого сохранения. Папка
-/// <c>Editor</c> в сборку не попадает.
+/// При смене проекта файлы площадок (<see cref="IPRSDKEditorSaveStore"/>) копируются в папку прежнего проекта,
+/// а на их место ложатся файлы нового. Если у нового проекта сохранения ещё нет, файлы площадки удаляются — игра
+/// начнётся с чистого сохранения.
 /// </para>
 /// <para>
-/// Чьё сохранение сейчас лежит у площадки, помнит <c>EditorPrefs</c> (ключ свой у каждого Unity-проекта). В первый
-/// запуск владельцем считается активный проект. Во время игры переключение откладывается до выхода из неё:
-/// площадка держит сохранение открытым и записала бы его поверх.
+/// Сохранения проектов лежат в <c>UserSettings/PRSDKProjectSaves/Projects/&lt;guid проекта&gt;/&lt;площадка&gt;</c>:
+/// по GUID, а не по имени, — переименование ассета проекта их не теряет, и удалённый проект оставляет своё
+/// сохранение на месте. <c>UserSettings</c> не импортируется как ассеты, не попадает в сборку и переживает
+/// удаление <c>Library</c>.
+/// </para>
+/// <para>
+/// Переключение — одна операция: перед ней файлы площадок копируются в <c>…/Backup</c>, при любой ошибке они
+/// возвращаются оттуда, а владелец меняется только после успеха всех площадок. Чьё сохранение сейчас у площадки,
+/// помнит <c>EditorPrefs</c> (ключ свой у каждого Unity-проекта); в первый запуск владелец — активный проект.
+/// Во время игры переключение ждёт выхода из неё: площадка держит сохранение открытым и записала бы его поверх.
 /// </para>
 /// </remarks>
 [InitializeOnLoad]
 public static class PRSDKProjectSaves
 {
+    /// <summary>
+    /// Где лежат сохранения проектов и служебные копии.
+    /// </summary>
+    public const string Root = "UserSettings/PRSDKProjectSaves";
+
     // Ключ с путём проекта: EditorPrefs общие на все Unity-проекты машины.
     private static readonly string OwnerKey = "PRSDK.SaveOwner." + Application.dataPath;
 
@@ -35,7 +46,7 @@ public static class PRSDKProjectSaves
     {
         PRSDKActiveProject.EditedInEditor += Sync;
         EditorApplication.playModeStateChanged += OnPlayModeChanged;
-        EditorApplication.delayCall += InitializeOwner;
+        EditorApplication.delayCall += Initialize;
     }
 
     /// <summary>
@@ -50,15 +61,7 @@ public static class PRSDKProjectSaves
     /// <summary>
     /// Папка сохранений проекта для площадки.
     /// </summary>
-    public static string GetFolder(PRSDKProject project, string platform)
-    {
-        string path = AssetDatabase.GetAssetPath(project);
-        if (string.IsNullOrEmpty(path))
-            return null;
-
-        string directory = Path.GetDirectoryName(path)?.Replace('\\', '/');
-        return $"{directory}/{Path.GetFileNameWithoutExtension(path)}/Editor/Saves/{platform}";
-    }
+    public static string GetFolder(string projectGuid, string platform) => $"{Root}/Projects/{projectGuid}/{platform}";
 
     /// <summary>
     /// Переключает сохранения площадок на активный проект, если они ещё от другого.
@@ -88,20 +91,27 @@ public static class PRSDKProjectSaves
         if (ownerGuid == activeGuid)
             return;
 
-        var owner = AssetDatabase.LoadAssetAtPath<PRSDKProject>(AssetDatabase.GUIDToAssetPath(ownerGuid));
-
-        foreach (IPRSDKEditorSaveStore store in Stores)
+        IReadOnlyList<IPRSDKEditorSaveStore> stores = Stores;
+        try
         {
-            // Прежний проект удалён — его сохранение некуда убрать, оно просто уступает место новому.
-            if (owner != null)
-                Stash(store, GetFolder(owner, store.Platform));
-
-            Restore(store, GetFolder(active, store.Platform));
+            Backup(stores);
+            foreach (IPRSDKEditorSaveStore store in stores)
+            {
+                Stash(store, GetFolder(ownerGuid, store.Platform));
+                Restore(store, GetFolder(activeGuid, store.Platform));
+            }
+        }
+        catch (Exception exception)
+        {
+            RollBack(stores);
+            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены, прежние возвращены на место: {exception.Message}");
+            AssetDatabase.Refresh();
+            return;
         }
 
         EditorPrefs.SetString(OwnerKey, activeGuid);
         AssetDatabase.Refresh();
-        Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {(owner != null ? owner.Title : "удалённый проект")} → {active.Title}.");
+        Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(ownerGuid)} → {active.Title}.");
     }
 
     /// <summary>
@@ -109,17 +119,14 @@ public static class PRSDKProjectSaves
     /// </summary>
     private static void Stash(IPRSDKEditorSaveStore store, string folder)
     {
-        if (string.IsNullOrEmpty(folder))
-            return;
-
         Directory.CreateDirectory(folder);
         foreach (string file in store.Files)
         {
             string copy = Path.Combine(folder, Path.GetFileName(file));
             if (File.Exists(file))
                 File.Copy(file, copy, overwrite: true);
-            else
-                DeleteWithMeta(copy);
+            else if (File.Exists(copy))
+                File.Delete(copy);
         }
     }
 
@@ -130,8 +137,8 @@ public static class PRSDKProjectSaves
     {
         foreach (string file in store.Files)
         {
-            string copy = string.IsNullOrEmpty(folder) ? null : Path.Combine(folder, Path.GetFileName(file));
-            if (copy != null && File.Exists(copy))
+            string copy = Path.Combine(folder, Path.GetFileName(file));
+            if (File.Exists(copy))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(file) ?? string.Empty);
                 File.Copy(copy, file, overwrite: true);
@@ -139,6 +146,48 @@ public static class PRSDKProjectSaves
             else
             {
                 DeleteWithMeta(file);
+            }
+        }
+    }
+
+    private static string BackupFolder(IPRSDKEditorSaveStore store) => $"{Root}/Backup/{store.Platform}";
+
+    /// <summary>
+    /// Копия нынешних файлов площадок до переключения; файла нет — копии тоже нет.
+    /// </summary>
+    private static void Backup(IEnumerable<IPRSDKEditorSaveStore> stores)
+    {
+        foreach (IPRSDKEditorSaveStore store in stores)
+        {
+            string folder = BackupFolder(store);
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, recursive: true);
+            Directory.CreateDirectory(folder);
+            foreach (string file in store.Files)
+                if (File.Exists(file))
+                    File.Copy(file, Path.Combine(folder, Path.GetFileName(file)), overwrite: true);
+        }
+    }
+
+    /// <summary>
+    /// Возвращает файлы площадок, какими они были до переключения.
+    /// </summary>
+    private static void RollBack(IEnumerable<IPRSDKEditorSaveStore> stores)
+    {
+        foreach (IPRSDKEditorSaveStore store in stores)
+        {
+            foreach (string file in store.Files)
+            {
+                try
+                {
+                    string copy = Path.Combine(BackupFolder(store), Path.GetFileName(file));
+                    if (File.Exists(copy)) File.Copy(copy, file, overwrite: true);
+                    else DeleteWithMeta(file);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError($"[PRUnitySDK] Не вернул {file}, копия лежит в {BackupFolder(store)}: {exception.Message}");
+                }
             }
         }
     }
@@ -153,10 +202,55 @@ public static class PRSDKProjectSaves
 
     private static string GuidOf(PRSDKProject project) => AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(project));
 
-    private static void InitializeOwner()
+    private static string TitleOf(string guid)
     {
+        var project = AssetDatabase.LoadAssetAtPath<PRSDKProject>(AssetDatabase.GUIDToAssetPath(guid));
+        return project != null ? project.Title : $"удалённый проект {guid}";
+    }
+
+    private static void Initialize()
+    {
+        MigrateFromAssets();
         if (string.IsNullOrEmpty(EditorPrefs.GetString(OwnerKey, string.Empty)))
             Sync();
+    }
+
+    /// <summary>
+    /// Переносит сохранения из прежнего места — <c>&lt;папка данных проекта&gt;/Editor/Saves</c> внутри Assets — в
+    /// папку по GUID. Там они зависели от имени проекта и импортировались как ассеты.
+    /// </summary>
+    private static void MigrateFromAssets()
+    {
+        bool moved = false;
+        foreach (string guid in AssetDatabase.FindAssets("t:" + nameof(PRSDKProject)))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            string editor = $"{Path.GetDirectoryName(path)?.Replace('\\', '/')}/{Path.GetFileNameWithoutExtension(path)}/Editor";
+            string old = editor + "/Saves";
+            if (!Directory.Exists(old))
+                continue;
+
+            foreach (string platformFolder in Directory.GetDirectories(old))
+            {
+                string target = GetFolder(guid, Path.GetFileName(platformFolder));
+                Directory.CreateDirectory(target);
+                foreach (string file in Directory.GetFiles(platformFolder).Where(file => !file.EndsWith(".meta")))
+                {
+                    string copy = Path.Combine(target, Path.GetFileName(file));
+                    if (!File.Exists(copy))
+                        File.Copy(file, copy);
+                }
+            }
+
+            AssetDatabase.DeleteAsset(old);
+            if (AssetDatabase.IsValidFolder(editor) && !Directory.EnumerateFileSystemEntries(editor).Any())
+                AssetDatabase.DeleteAsset(editor);
+            moved = true;
+            Debug.Log($"[PRUnitySDK] Сохранения проекта {Path.GetFileNameWithoutExtension(path)} перенесены из {old} в {Root}/Projects/{guid}.");
+        }
+
+        if (moved)
+            AssetDatabase.Refresh();
     }
 
     private static void OnPlayModeChanged(PlayModeStateChange state)
