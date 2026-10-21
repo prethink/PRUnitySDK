@@ -282,6 +282,38 @@ public sealed class PRSDKSaveSwitchTests
         Assert.AreEqual("guidA", File.ReadAllText(first.File + ".meta"));
     }
 
+    [Test]
+    public void Switch_ToSaveWithoutMeta_RemovesForeignMeta()
+    {
+        File.WriteAllText(first.File, "A1");
+        File.WriteAllText(first.File + ".meta", "guidA");
+        WriteProject(B, first, "B1");
+
+        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.IsFalse(File.Exists(first.File + ".meta"));
+        Assert.AreEqual("guidA", File.ReadAllText(Path.Combine(saves.GetFolder(A, first.Platform), "first.json.meta")));
+    }
+
+    [Test]
+    public void RollBack_ToSaveWithoutMeta_RemovesForeignMeta()
+    {
+        File.WriteAllText(first.File, "A1");
+        File.WriteAllText(second.File, "A2");
+        WriteProject(B, first, "B1");
+        File.WriteAllText(Path.Combine(saves.GetFolder(B, first.Platform), "first.json.meta"), "guidB");
+        WriteProject(B, second, "B2");
+
+        // Первый файл получает .meta от B, второй не перезаписать — откат к A, у которого .meta не было.
+        using (new FileStream(second.File, FileMode.Open, FileAccess.Read, FileShare.Read))
+            Assert.IsFalse(saves.TrySwitch(A, B, null, out _));
+
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.IsFalse(File.Exists(first.File + ".meta"));
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
     private void WriteProject(string project, Store store, string text)
     {
         string path = saves.GetFolder(project, store.Platform);

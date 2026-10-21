@@ -25,7 +25,8 @@ using System.IO;
 /// (<see cref="HasUnfinished"/> — запуск игры и новое переключение отказывают, пока оно есть).
 /// <para>
 /// <c>.meta</c> файлов площадок ходят вместе с ними — в копии, в папке проекта и обратно: на файл сохранения
-/// внутри Assets могут ссылаться, и новый GUID после возврата эти ссылки потерял бы.
+/// внутри Assets могут ссылаться, и новый GUID после возврата эти ссылки потерял бы. Нет своего <c>.meta</c> у
+/// восстанавливаемого сохранения — чужой удаляется, и Unity заводит новый.
 /// </para>
 /// </remarks>
 public sealed class PRSDKSaveSwitch
@@ -204,9 +205,9 @@ public sealed class PRSDKSaveSwitch
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(file) ?? string.Empty);
                 File.Copy(copy, file, overwrite: true);
-                // Свой .meta проекта — его GUID; нет своего — Unity оставит тот, что лежит.
-                if (File.Exists(copy + MetaExtension))
-                    File.Copy(copy + MetaExtension, file + MetaExtension, overwrite: true);
+                // Свой .meta проекта — его GUID; своего нет — чужой убирается, и Unity заведёт новый:
+                // иначе следующее переключение сохранило бы чужой GUID как свой.
+                PlaceMeta(copy, file);
             }
             else
             {
@@ -269,6 +270,8 @@ public sealed class PRSDKSaveSwitch
                         CopyIfDiffers(copy, file);
                         if (File.Exists(copy + MetaExtension))
                             CopyIfDiffers(copy + MetaExtension, file + MetaExtension);
+                        else if (File.Exists(file + MetaExtension))
+                            File.Delete(file + MetaExtension);
                     }
                     else
                     {
@@ -282,6 +285,17 @@ public sealed class PRSDKSaveSwitch
             }
         }
         return failed;
+    }
+
+    /// <summary>
+    /// <c>.meta</c> к файлу на месте: из копии, а без него в копии — никакого.
+    /// </summary>
+    private static void PlaceMeta(string copy, string file)
+    {
+        if (File.Exists(copy + MetaExtension))
+            File.Copy(copy + MetaExtension, file + MetaExtension, overwrite: true);
+        else if (File.Exists(file + MetaExtension))
+            File.Delete(file + MetaExtension);
     }
 
     private static void CopyIfDiffers(string source, string target)
