@@ -20,6 +20,7 @@ public sealed class PRSDKSaveSwitchTests
     private Store second;
     private PRSDKSaveSwitch saves;
     private string owner;
+    private System.Func<string> readOwner;
     private System.Action<string> writeOwner;
 
     /// <summary>
@@ -67,8 +68,9 @@ public sealed class PRSDKSaveSwitchTests
         first = new Store("First", Path.Combine(live, "first.json"));
         second = new Store("Second", Path.Combine(live, "second.json"));
         owner = A;
+        readOwner = () => owner;
         writeOwner = value => owner = value;
-        saves = new PRSDKSaveSwitch(root, new IPRSDKEditorSaveStore[] { first, second }, () => owner, value => writeOwner(value));
+        saves = new PRSDKSaveSwitch(root, new IPRSDKEditorSaveStore[] { first, second }, () => readOwner(), value => writeOwner(value));
     }
 
     [TearDown]
@@ -216,6 +218,79 @@ public sealed class PRSDKSaveSwitchTests
         Assert.AreEqual(A, owner);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void RollbackStarted_RecoverDoesNotTrustNewOwner()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        // Владелец записан B, но проверочное чтение один раз падает; вернуть A не выходит.
+        bool readFails = false;
+        readOwner = () => { if (readFails) { readFails = false; throw new IOException("занят"); } return owner; };
+        writeOwner = value => { if (value == A) throw new IOException("диск"); owner = value; readFails = true; };
+
+        Assert.IsFalse(saves.TrySwitch(A, B, out _));
+
+        // Файлы откатились, владелец остался B — журнал с отметкой отката.
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual(B, owner);
+        Assert.IsTrue(saves.HasUnfinished);
+
+        // Владелец «куда» больше не довод: восстановление доводит откат, а не признаёт переключение.
+        writeOwner = value => owner = value;
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, saves.RecoverInterrupted());
+        Assert.AreEqual(A, owner);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void CrashDuringRollback_RecoverFinishesRollback()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        // Авария посреди отката: файлы и владелец ещё от B, в журнале отметка.
+        File.WriteAllLines(saves.JournalPath, new[] { A, B, "rollback" });
+
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, saves.RecoverInterrupted());
+
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual(A, owner);
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void RollbackMarkFailure_LeavesFilesForRecovery()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        FileStream journalLock = null;
+        // Запись владельца портит его и падает, а журнал в этот момент не дописать — отметку отката не поставить.
+        writeOwner = value =>
+        {
+            owner = "proj";
+            journalLock = new FileStream(saves.JournalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            throw new IOException("оборвалось");
+        };
+
+        try
+        {
+            Assert.IsFalse(saves.TrySwitch(A, B, out string error));
+            StringAssert.Contains("отметка отката", error);
+        }
+        finally { journalLock?.Dispose(); }
+
+        // Без отметки откат не начат: файлы от B, журнал без отметки.
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.IsTrue(saves.HasUnfinished);
+
+        // Владелец не «куда» — восстановление откатывает.
+        writeOwner = value => owner = value;
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, saves.RecoverInterrupted());
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual(A, owner);
     }
 
     [Test]

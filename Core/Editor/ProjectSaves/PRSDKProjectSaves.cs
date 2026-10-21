@@ -117,7 +117,8 @@ public static class PRSDKProjectSaves
         }
 
         string to = GuidOf(target);
-        string from = Owner;
+        if (!TryReadOwner(out string from))
+            return false;
         if (string.IsNullOrEmpty(from))
         {
             from = UnknownOwner(target);
@@ -212,14 +213,14 @@ public static class PRSDKProjectSaves
         if (active == null || TrySwitchTo(active))
             return;
 
-        // Владелец неизвестен: вернуть некому, причину и что делать TrySwitchTo уже написал.
-        if (string.IsNullOrEmpty(Owner))
+        // Владелец неизвестен или не читается: вернуть некому, причину TrySwitchTo уже написал.
+        if (!TryReadOwner(out string ownerGuid) || string.IsNullOrEmpty(ownerGuid))
             return;
 
-        PRSDKProject owner = ProjectOf(Owner);
+        PRSDKProject owner = ProjectOf(ownerGuid);
         if (owner == null)
         {
-            Debug.LogError($"[PRUnitySDK] Проект-владелец сохранений ({Owner}) не найден: игра с {active.Title} не запустится, " +
+            Debug.LogError($"[PRUnitySDK] Проект-владелец сохранений ({ownerGuid}) не найден: игра с {active.Title} не запустится, " +
                            "пока сохранения не переключатся. Сделайте проект активным в окне проектов ещё раз.");
             return;
         }
@@ -249,10 +250,10 @@ public static class PRSDKProjectSaves
             BindOwner(Owner);
 
         lastActive = GuidOf(Active);
-        if (!Recover())
+        if (!Recover() || !TryReadOwner(out string owner))
             return;
 
-        if (string.IsNullOrEmpty(Owner) && !string.IsNullOrEmpty(lastActive))
+        if (string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(lastActive))
         {
             // Переключений не было — сохранение у площадки одно, и оно от активного проекта: файл и указатель лежат
             // в Assets и переезжают вместе. Были — запись владельца потеряна, а указатель мог разойтись с файлом.
@@ -264,11 +265,35 @@ public static class PRSDKProjectSaves
                 return;
             }
 
-            BindOwner(lastActive);
+            if (!BindOwner(lastActive))
+                return;
+            owner = lastActive;
         }
 
-        if (Owner != lastActive)
+        if (owner != lastActive)
             Sync();
+    }
+
+    /// <summary>
+    /// Читает владельца. Файл не читается (держит другая программа) — ошибка в консоли, а не исключение.
+    /// </summary>
+    /// <remarks>
+    /// Пустым такого владельца считать нельзя: пустой назначается заново и перезаписал бы настоящего.
+    /// </remarks>
+    private static bool TryReadOwner(out string owner)
+    {
+        try
+        {
+            owner = Owner;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            owner = null;
+            Debug.LogError($"[PRUnitySDK] Не прочитать {OwnerPath}: {exception.Message}. Сохранения площадок не переключаются, " +
+                           "игра не запустится, пока файл не освободится.");
+            return false;
+        }
     }
 
     /// <summary>
@@ -286,7 +311,8 @@ public static class PRSDKProjectSaves
         {
             case PRSDKSaveSwitch.Recovery.RolledBack:
                 AssetDatabase.Refresh();
-                Debug.LogWarning($"[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — {TitleOf(Owner)}.");
+                Debug.LogWarning("[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — " +
+                                 $"{(TryReadOwner(out string owner) ? TitleOf(owner) : OwnerPath)}.");
                 return true;
             case PRSDKSaveSwitch.Recovery.Incomplete:
                 AssetDatabase.Refresh();
@@ -392,7 +418,13 @@ public static class PRSDKProjectSaves
         }
 
         PRSDKProject active = Active;
-        string owner = Owner;
+        if (!TryReadOwner(out string owner))
+        {
+            if (active != null)
+                EditorApplication.isPlaying = false;
+            return;
+        }
+
         if (active == null || owner == GuidOf(active))
             return;
 

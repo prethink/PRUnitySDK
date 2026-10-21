@@ -21,9 +21,13 @@ using System.IO;
 /// <item>Записывается новый владелец и сверяется чтением. Только потом журнал удаляется.</item>
 /// </list>
 /// Запись владельца могла упасть на полпути: если прочиталось «куда» — переключение состоялось; иначе файлы
-/// откатываются и владельцем снова пишется «откуда». Журнал удаляется, только когда и файлы, и владелец сошлись
-/// с «откуда». Не сошлись — журнал остаётся (<see cref="HasUnfinished"/>: запуск игры и новое переключение
-/// отказывают), и <see cref="RecoverInterrupted"/> доводит откат так же: файлы, потом владелец, потом журнал.
+/// откатываются и владельцем снова пишется «откуда». Перед откатом в журнал третьей строкой пишется
+/// <c>rollback</c>: с этой минуты владелец «куда» ничего не доказывает (файлы уже могут быть от «откуда»), и
+/// <see cref="RecoverInterrupted"/> по такому журналу всегда доводит откат. Отметку записать не вышло — откат не
+/// начинается: файлы не тронуты, и восстановление решит по владельцу. Журнал удаляется, только когда и файлы,
+/// и владелец сошлись с «откуда». Не сошлись — журнал остаётся (<see cref="HasUnfinished"/>: запуск игры и новое
+/// переключение отказывают), и <see cref="RecoverInterrupted"/> доводит откат так же: файлы, потом владелец, потом
+/// журнал.
 /// <para>
 /// <c>.meta</c> файлов площадок ходят вместе с ними — в копии, в папке проекта и обратно: на файл сохранения
 /// внутри Assets могут ссылаться, и новый GUID после возврата эти ссылки потерял бы. Нет своего <c>.meta</c> у
@@ -124,7 +128,7 @@ public sealed class PRSDKSaveSwitch
         catch (Exception exception)
         {
             // Владелец ещё не тронут, но сверяется так же: откат законченный, только когда сошлось всё.
-            error = Undo(from, "прежние возвращены на место: " + exception.Message, exception.Message);
+            error = Undo(from, false, "прежние возвращены на место: " + exception.Message, exception.Message);
             return false;
         }
 
@@ -134,7 +138,7 @@ public sealed class PRSDKSaveSwitch
             return true;
         }
 
-        error = Undo(from, "не записан новый владелец, прежние файлы и владелец возвращены: " + ownerError,
+        error = Undo(from, true, "не записан новый владелец, прежние файлы и владелец возвращены: " + ownerError,
             "не записан новый владелец: " + ownerError);
         return false;
     }
@@ -150,9 +154,11 @@ public sealed class PRSDKSaveSwitch
         string[] lines = File.ReadAllLines(JournalPath);
         string from = lines.Length > 0 ? lines[0] : null;
         string to = lines.Length > 1 ? lines[1] : null;
+        // Любая третья строка, даже недописанная, — откат начат: владельцу «куда» больше не верим.
+        bool rollingBack = lines.Length > 2;
 
         // Владелец уже новый: файлы подменили и запомнили, не успели только убрать журнал.
-        if (!string.IsNullOrEmpty(to) && ReadOwner() == to)
+        if (!rollingBack && !string.IsNullOrEmpty(to) && ReadOwner() == to)
         {
             DeleteJournal();
             return Recovery.Completed;
@@ -172,9 +178,20 @@ public sealed class PRSDKSaveSwitch
     /// Откат после сбоя: файлы из копии, владелец — <paramref name="from"/>. Журнал удаляется, только если сошлось и то,
     /// и другое.
     /// </summary>
+    /// <param name="ownerTouched">Владельца уже пытались переписать: без отметки отката в журнале восстановление
+    /// поверило бы ему, поэтому без неё откат не начинается.</param>
     /// <returns>Текст ошибки: <paramref name="done"/>, если откат полный, иначе — с тем, что не вернулось.</returns>
-    private string Undo(string from, string done, string reason)
+    private string Undo(string from, bool ownerTouched, string done, string reason)
     {
+        if (!TryMarkRollback(out string markError))
+        {
+            // Владелец не тронут — восстановление и без отметки откатит (он не «куда»). Тронут — файлы оставляем:
+            // от «куда» и они, и, возможно, владелец; восстановление решит по владельцу.
+            if (ownerTouched)
+                return reason + ". Не записана отметка отката (" + markError + "), файлы не возвращены" +
+                       $" — журнал {JournalPath} оставлен";
+        }
+
         List<string> failed = RollBack();
         bool ownerBack = TryWriteOwner(from, out string ownerError);
         if (failed.Count == 0 && ownerBack)
@@ -187,6 +204,24 @@ public sealed class PRSDKSaveSwitch
         string notBack = failed.Count > 0 ? ". Не вернулись: " + string.Join(", ", failed) : string.Empty;
         string owner = ownerBack ? string.Empty : ". Владелец не возвращён: " + ownerError;
         return reason + notBack + owner + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
+    }
+
+    /// <summary>
+    /// Отмечает в журнале, что начат откат. Дозаписью: оборвётся — первые две строки целы.
+    /// </summary>
+    private bool TryMarkRollback(out string error)
+    {
+        error = null;
+        try
+        {
+            File.AppendAllText(JournalPath, "rollback" + Environment.NewLine);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+            return false;
+        }
     }
 
     /// <summary>
