@@ -10,6 +10,11 @@ using UnityEditor.Build.Reporting;
 /// <see cref="PRSDKProjectScenes.Apply"/> ставит сцену игры номером 1, а стартовая грузит номер из
 /// <c>Bootstrap → Game Scene Index</c>. Разойдутся — в сборке после загрузки откроется не та сцена или никакой;
 /// в редакторе этого не видно (Play идёт со сцены редактора), поэтому сборка останавливается.
+/// <para>
+/// Сверяется список <c>EditorBuildSettings</c>: на этом шаге Unity не сообщает, какие сцены уйдут в сборку. Сборка
+/// скриптом со своим <c>BuildPlayerOptions.scenes</c> должна проверять свой список сама —
+/// <see cref="PRSDKProjectScenes.CheckBuild"/>.
+/// </para>
 /// </remarks>
 public sealed class PRSDKProjectScenesBuildCheck : IPreprocessBuildWithReport
 {

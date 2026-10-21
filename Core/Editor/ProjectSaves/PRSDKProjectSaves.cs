@@ -120,10 +120,13 @@ public static class PRSDKProjectSaves
         if (string.IsNullOrEmpty(from))
         {
             // Владелец нигде не записан — сохранений по проектам ещё не было (или папку UserSettings не перенесли):
-            // файл площадки лежит в Assets рядом с указателем проекта и переезжает вместе с ним, значит он от активного.
-            Owner = to;
-            Debug.Log($"[PRUnitySDK] Сохранения площадок записаны за проектом {target.Title}: прежний владелец неизвестен.");
-            return true;
+            // файл площадки лежит в Assets рядом с указателем проекта и переезжает вместе с ним, значит он от активного,
+            // а не от target — на target его ещё предстоит переключить.
+            from = GuidOf(Active);
+            if (string.IsNullOrEmpty(from))
+                from = to;
+            Owner = from;
+            Debug.Log($"[PRUnitySDK] Сохранения площадок записаны за проектом {TitleOf(from)}: прежний владелец неизвестен.");
         }
 
         if (from == to)
