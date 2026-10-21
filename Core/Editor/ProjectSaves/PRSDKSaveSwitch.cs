@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 
 /// <summary>
-/// Файловая часть переключения сохранений площадок между проектами SDK: резервная копия, журнал, подмена, откат.
+/// Переключение сохранений площадок между проектами SDK: резервная копия, журнал, подмена, запись владельца, откат.
 /// </summary>
 /// <remarks>
-/// Отделена от <see cref="PRSDKProjectSaves"/>, чтобы её проверяли тесты на своей папке и своих площадках.
+/// Отделено от <see cref="PRSDKProjectSaves"/>, чтобы его проверяли тесты на своей папке, своих площадках и своей
+/// записи владельца.
 /// <para>
-/// Порядок, который держит данные целыми при исключении и при аварийном завершении редактора:
+/// Порядок, который держит файлы и запись владельца согласованными при исключении и при аварийном завершении:
 /// </para>
 /// <list type="number">
 /// <item>Резервная копия собирается в <c>Backup.new</c> и подменяет <c>Backup</c> только целиком (прежняя
@@ -17,13 +18,12 @@ using System.IO;
 /// начата и откатывать есть из чего.</item>
 /// <item>Файлы площадок уходят в папку прежнего проекта, на их место ложатся файлы нового. Исключение —
 /// откат из копии.</item>
-/// <item>Вызывающий запоминает нового владельца, и только потом журнал удаляется. Запомнить не вышло — откат из
-/// копии, как при сбое подмены.</item>
+/// <item>Записывается новый владелец и сверяется чтением. Только потом журнал удаляется.</item>
 /// </list>
-/// После аварии журнал остаётся: <see cref="RecoverInterrupted"/> при следующем запуске либо признаёт
-/// переключение законченным (владелец уже новый), либо возвращает файлы из копии. Журнал удаляется, только когда
-/// откат прошёл целиком: иначе файлы площадок от разных проектов, и об этом должно остаться напоминание
-/// (<see cref="HasUnfinished"/> — запуск игры и новое переключение отказывают, пока оно есть).
+/// Запись владельца могла упасть на полпути: если прочиталось «куда» — переключение состоялось; иначе файлы
+/// откатываются и владельцем снова пишется «откуда». Журнал удаляется, только когда и файлы, и владелец сошлись
+/// с «откуда». Не сошлись — журнал остаётся (<see cref="HasUnfinished"/>: запуск игры и новое переключение
+/// отказывают), и <see cref="RecoverInterrupted"/> доводит откат так же: файлы, потом владелец, потом журнал.
 /// <para>
 /// <c>.meta</c> файлов площадок ходят вместе с ними — в копии, в папке проекта и обратно: на файл сохранения
 /// внутри Assets могут ссылаться, и новый GUID после возврата эти ссылки потерял бы. Нет своего <c>.meta</c> у
@@ -36,11 +36,17 @@ public sealed class PRSDKSaveSwitch
 
     private readonly string root;
     private readonly IReadOnlyList<IPRSDKEditorSaveStore> stores;
+    private readonly Func<string> readOwner;
+    private readonly Action<string> writeOwner;
 
-    public PRSDKSaveSwitch(string root, IReadOnlyList<IPRSDKEditorSaveStore> stores)
+    /// <param name="readOwner">Чьё сохранение сейчас у площадок (GUID проекта); пусто — не записано.</param>
+    /// <param name="writeOwner">Запоминает владельца. Может упасть, в том числе успев записать часть.</param>
+    public PRSDKSaveSwitch(string root, IReadOnlyList<IPRSDKEditorSaveStore> stores, Func<string> readOwner, Action<string> writeOwner)
     {
         this.root = root;
         this.stores = stores;
+        this.readOwner = readOwner;
+        this.writeOwner = writeOwner;
     }
 
     private string BackupRoot => Path.Combine(root, "Backup");
@@ -53,7 +59,7 @@ public sealed class PRSDKSaveSwitch
     public string JournalPath => Path.Combine(root, "Switch.txt");
 
     /// <summary>
-    /// Переключение не закончено или откат не вернул всех файлов: файлы площадок могут быть от разных проектов.
+    /// Переключение не закончено или откат не довёл файлы и владельца до прежних: они могут быть от разных проектов.
     /// </summary>
     public bool HasUnfinished => File.Exists(JournalPath);
 
@@ -66,9 +72,9 @@ public sealed class PRSDKSaveSwitch
         None,
         /// <summary>Переключение успели закончить: владелец уже новый.</summary>
         Completed,
-        /// <summary>Файлы возвращены из копии целиком.</summary>
+        /// <summary>Файлы возвращены из копии целиком, владелец — прежний.</summary>
         RolledBack,
-        /// <summary>Часть файлов не вернулась: журнал и копия остаются.</summary>
+        /// <summary>Часть файлов не вернулась или владелец не записался: журнал и копия остаются.</summary>
         Incomplete
     }
 
@@ -78,12 +84,13 @@ public sealed class PRSDKSaveSwitch
     public string GetFolder(string projectGuid, string platform) => Path.Combine(root, "Projects", projectGuid, platform);
 
     /// <summary>
-    /// Переключает файлы площадок с проекта <paramref name="from"/> на <paramref name="to"/>.
+    /// Переключает файлы площадок с проекта <paramref name="from"/> на <paramref name="to"/> и записывает
+    /// владельцем <paramref name="to"/>.
     /// </summary>
-    /// <param name="commit">Запоминает нового владельца; зовётся после подмены файлов, до удаления журнала.</param>
-    /// <param name="error">Почему не вышло; файлы площадок при этом прежние.</param>
-    /// <returns><c>false</c> — переключения не было.</returns>
-    public bool TrySwitch(string from, string to, Action commit, out string error)
+    /// <param name="error">Почему не вышло.</param>
+    /// <returns><c>false</c> — переключения не было: файлы и владелец прежние либо, если журнал остался
+    /// (<see cref="HasUnfinished"/>), откат не доведён.</returns>
+    public bool TrySwitch(string from, string to, out string error)
     {
         error = null;
         try
@@ -116,80 +123,105 @@ public sealed class PRSDKSaveSwitch
         }
         catch (Exception exception)
         {
-            List<string> failed = RollBack();
-            if (failed.Count == 0)
-            {
-                DeleteJournal();
-                error = "прежние возвращены на место: " + exception.Message;
-            }
-            else
-            {
-                // Файлы от разных проектов: журнал остаётся, игра не запустится, пока откат не доделан.
-                error = exception.Message + ". Не вернулись: " + string.Join(", ", failed)
-                        + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
-            }
+            // Владелец ещё не тронут, но сверяется так же: откат законченный, только когда сошлось всё.
+            error = Undo(from, "прежние возвращены на место: " + exception.Message, exception.Message);
             return false;
         }
 
-        try
+        if (TryWriteOwner(to, out string ownerError))
         {
-            commit?.Invoke();
-        }
-        catch (Exception exception)
-        {
-            // Владелец не записан — остался прежний, и файлы должны быть его: иначе запись и файлы разойдутся.
-            List<string> failed = RollBack();
-            if (failed.Count == 0)
-            {
-                DeleteJournal();
-                error = "не записан новый владелец, прежние файлы возвращены на место: " + exception.Message;
-            }
-            else
-            {
-                error = "не записан новый владелец: " + exception.Message + ". Не вернулись: " + string.Join(", ", failed)
-                        + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
-            }
-            return false;
+            DeleteJournal();
+            return true;
         }
 
-        DeleteJournal();
-        return true;
+        error = Undo(from, "не записан новый владелец, прежние файлы и владелец возвращены: " + ownerError,
+            "не записан новый владелец: " + ownerError);
+        return false;
     }
 
     /// <summary>
-    /// Доводит до конца переключение, прерванное аварией: журнал есть — его не закончили.
+    /// Доводит до конца переключение, прерванное аварией или незаконченным откатом: журнал есть — его не закончили.
     /// </summary>
-    /// <param name="owner">Чьё сохранение по записи владельца.</param>
-    /// <returns>Владелец после восстановления: <paramref name="owner"/>, если журнала нет, переключение успели
-    /// закончить или откат не удался; проект «откуда», если файлы возвращены из копии.</returns>
-    public string RecoverInterrupted(string owner, out Recovery result)
+    public Recovery RecoverInterrupted()
     {
-        result = Recovery.None;
         if (!File.Exists(JournalPath))
-            return owner;
+            return Recovery.None;
 
         string[] lines = File.ReadAllLines(JournalPath);
         string from = lines.Length > 0 ? lines[0] : null;
         string to = lines.Length > 1 ? lines[1] : null;
 
         // Владелец уже новый: файлы подменили и запомнили, не успели только убрать журнал.
-        if (!string.IsNullOrEmpty(to) && owner == to)
+        if (!string.IsNullOrEmpty(to) && ReadOwner() == to)
         {
             DeleteJournal();
-            result = Recovery.Completed;
-            return owner;
+            return Recovery.Completed;
         }
 
-        // Журнал пишется после готовой копии: по ней файлы возвращаются к виду до переключения.
+        // Журнал пишется после готовой копии: по ней файлы возвращаются к виду до переключения, владелец — «откуда».
         if (RollBack().Count > 0)
+            return Recovery.Incomplete;
+        if (!string.IsNullOrEmpty(from) && !TryWriteOwner(from, out _))
+            return Recovery.Incomplete;
+
+        DeleteJournal();
+        return Recovery.RolledBack;
+    }
+
+    /// <summary>
+    /// Откат после сбоя: файлы из копии, владелец — <paramref name="from"/>. Журнал удаляется, только если сошлось и то,
+    /// и другое.
+    /// </summary>
+    /// <returns>Текст ошибки: <paramref name="done"/>, если откат полный, иначе — с тем, что не вернулось.</returns>
+    private string Undo(string from, string done, string reason)
+    {
+        List<string> failed = RollBack();
+        bool ownerBack = TryWriteOwner(from, out string ownerError);
+        if (failed.Count == 0 && ownerBack)
         {
-            result = Recovery.Incomplete;
-            return owner;
+            DeleteJournal();
+            return done;
         }
 
-        result = Recovery.RolledBack;
-        DeleteJournal();
-        return string.IsNullOrEmpty(from) ? owner : from;
+        // Файлы или владелец от разных проектов: журнал остаётся, игра не запустится, пока откат не доделан.
+        string notBack = failed.Count > 0 ? ". Не вернулись: " + string.Join(", ", failed) : string.Empty;
+        string owner = ownerBack ? string.Empty : ". Владелец не возвращён: " + ownerError;
+        return reason + notBack + owner + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
+    }
+
+    /// <summary>
+    /// Пишет владельца и сверяет чтением: запись могла упасть, успев изменить его, или «пройти», не записав.
+    /// </summary>
+    private bool TryWriteOwner(string owner, out string error)
+    {
+        error = null;
+        try
+        {
+            writeOwner(owner);
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+
+        string written = ReadOwner();
+        if (written == owner)
+            return true;
+
+        error ??= $"записано «{written}» вместо «{owner}»";
+        return false;
+    }
+
+    private string ReadOwner()
+    {
+        try
+        {
+            return readOwner();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     /// <summary>

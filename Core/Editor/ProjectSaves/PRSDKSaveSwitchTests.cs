@@ -4,7 +4,7 @@ using System.IO;
 using NUnit.Framework;
 
 /// <summary>
-/// Переключение сохранений площадок: подмена файлов, сбой копии и подмены, восстановление после аварии, <c>.meta</c>.
+/// Переключение сохранений площадок: подмена файлов, сбой копии, подмены и записи владельца, восстановление после аварии, <c>.meta</c>.
 /// </summary>
 /// <remarks>
 /// Сбой — настоящая блокировка файла: открытый без общего доступа файл Windows не даёт ни прочитать, ни перезаписать.
@@ -19,6 +19,8 @@ public sealed class PRSDKSaveSwitchTests
     private Store first;
     private Store second;
     private PRSDKSaveSwitch saves;
+    private string owner;
+    private System.Action<string> writeOwner;
 
     /// <summary>
     /// Площадка теста. Конструктор с параметрами: <see cref="PRSDKProjectSaves.Stores"/> берёт только площадки
@@ -64,7 +66,9 @@ public sealed class PRSDKSaveSwitchTests
         Directory.CreateDirectory(live);
         first = new Store("First", Path.Combine(live, "first.json"));
         second = new Store("Second", Path.Combine(live, "second.json"));
-        saves = new PRSDKSaveSwitch(root, new IPRSDKEditorSaveStore[] { first, second });
+        owner = A;
+        writeOwner = value => owner = value;
+        saves = new PRSDKSaveSwitch(root, new IPRSDKEditorSaveStore[] { first, second }, () => owner, value => writeOwner(value));
     }
 
     [TearDown]
@@ -81,11 +85,10 @@ public sealed class PRSDKSaveSwitchTests
         File.WriteAllText(second.File, "A2");
         WriteProject(B, first, "B1");
         WriteProject(B, second, "B2");
-        bool committed = false;
 
-        Assert.IsTrue(saves.TrySwitch(A, B, () => committed = true, out string error), error);
+        Assert.IsTrue(saves.TrySwitch(A, B, out string error), error);
 
-        Assert.IsTrue(committed);
+        Assert.AreEqual(B, owner);
         Assert.AreEqual("B1", File.ReadAllText(first.File));
         Assert.AreEqual("B2", File.ReadAllText(second.File));
         Assert.AreEqual("A1", ReadProject(A, first));
@@ -99,7 +102,7 @@ public sealed class PRSDKSaveSwitchTests
         File.WriteAllText(first.File, "A1");
         File.WriteAllText(first.File + ".meta", "guid");
 
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out string error), error);
+        Assert.IsTrue(saves.TrySwitch(A, B, out string error), error);
 
         Assert.IsFalse(File.Exists(first.File));
         Assert.IsFalse(File.Exists(first.File + ".meta"));
@@ -112,13 +115,12 @@ public sealed class PRSDKSaveSwitchTests
         File.WriteAllText(first.File, "A1");
         File.WriteAllText(second.File, "A2");
         WriteProject(B, first, "B1");
-        bool committed = false;
 
         // Второй файл не прочитать: копия не соберётся целиком.
         using (new FileStream(second.File, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-            Assert.IsFalse(saves.TrySwitch(A, B, () => committed = true, out _));
+            Assert.IsFalse(saves.TrySwitch(A, B, out _));
 
-        Assert.IsFalse(committed);
+        Assert.AreEqual(A, owner);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.AreEqual("A2", File.ReadAllText(second.File));
         Assert.IsFalse(File.Exists(saves.JournalPath));
@@ -131,32 +133,89 @@ public sealed class PRSDKSaveSwitchTests
         File.WriteAllText(second.File, "A2");
         WriteProject(B, first, "B1");
         WriteProject(B, second, "B2");
-        bool committed = false;
 
         // Второй файл читается (копия собирается), но не перезаписывается: первая площадка уже подменена.
         using (new FileStream(second.File, FileMode.Open, FileAccess.Read, FileShare.Read))
-            Assert.IsFalse(saves.TrySwitch(A, B, () => committed = true, out _));
+            Assert.IsFalse(saves.TrySwitch(A, B, out _));
 
-        Assert.IsFalse(committed);
+        Assert.AreEqual(A, owner);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.AreEqual("A2", File.ReadAllText(second.File));
         Assert.IsFalse(File.Exists(saves.JournalPath));
     }
 
     [Test]
-    public void CommitFailure_RollsBackFiles()
+    public void OwnerWriteFailure_RollsBackFiles()
     {
         File.WriteAllText(first.File, "A1");
         File.WriteAllText(second.File, "A2");
         WriteProject(B, first, "B1");
         WriteProject(B, second, "B2");
+        // Новый владелец не пишется вовсе, прежний — пишется.
+        writeOwner = value => { if (value == B) throw new IOException("владелец занят"); owner = value; };
 
-        Assert.IsFalse(saves.TrySwitch(A, B, () => throw new IOException("владелец занят"), out string error));
+        Assert.IsFalse(saves.TrySwitch(A, B, out string error));
 
         StringAssert.Contains("владелец занят", error);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.AreEqual("A2", File.ReadAllText(second.File));
-        Assert.IsFalse(File.Exists(saves.JournalPath));
+        Assert.AreEqual(A, owner);
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void OwnerHalfWritten_RestoresFilesAndOwner()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        // Запись успела испортить владельца и упала.
+        writeOwner = value => { if (value == B) { owner = "proj"; throw new IOException("оборвалось"); } owner = value; };
+
+        Assert.IsFalse(saves.TrySwitch(A, B, out _));
+
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual(A, owner);
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void OwnerWrittenThenFailure_CountsAsSwitched()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        // Владелец записан целиком, упало уже после: файлы и запись сходятся с B — переключение состоялось.
+        writeOwner = value => { owner = value; throw new IOException("после записи"); };
+
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.AreEqual(B, owner);
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void OwnerNotRestored_KeepsJournal_UntilRecover()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        // Запись владельца сломана целиком: испорчен и не возвращается.
+        writeOwner = value => { owner = "proj"; throw new IOException("диск"); };
+
+        Assert.IsFalse(saves.TrySwitch(A, B, out string error));
+
+        StringAssert.Contains("Владелец не возвращён", error);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.IsTrue(saves.HasUnfinished);
+
+        // Пока запись не починилась, восстановление тоже не заканчивается.
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.Incomplete, saves.RecoverInterrupted());
+        Assert.IsTrue(saves.HasUnfinished);
+
+        writeOwner = value => owner = value;
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, saves.RecoverInterrupted());
+        Assert.AreEqual(A, owner);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.IsFalse(saves.HasUnfinished);
     }
 
     [Test]
@@ -169,7 +228,7 @@ public sealed class PRSDKSaveSwitchTests
 
         // У B нет первого сохранения — первый файл с .meta удаляется; второй не перезаписать — откат.
         using (new FileStream(second.File, FileMode.Open, FileAccess.Read, FileShare.Read))
-            Assert.IsFalse(saves.TrySwitch(A, B, null, out _));
+            Assert.IsFalse(saves.TrySwitch(A, B, out _));
 
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.AreEqual("guid", File.ReadAllText(first.File + ".meta"));
@@ -183,10 +242,11 @@ public sealed class PRSDKSaveSwitchTests
         WriteProject(B, first, "B1");
         WriteProject(B, second, "B2");
         // Авария до записи владельца: файлы подменены, журнал остался, владелец прежний.
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
         File.WriteAllLines(saves.JournalPath, new[] { A, B });
 
-        string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
+        owner = A;
+        PRSDKSaveSwitch.Recovery result = saves.RecoverInterrupted();
 
         Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, result);
         Assert.AreEqual(A, owner);
@@ -200,11 +260,12 @@ public sealed class PRSDKSaveSwitchTests
     {
         File.WriteAllText(first.File, "A1");
         WriteProject(B, first, "B1");
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
         // Авария после записи владельца, до удаления журнала.
         File.WriteAllLines(saves.JournalPath, new[] { A, B });
 
-        string owner = saves.RecoverInterrupted(B, out PRSDKSaveSwitch.Recovery result);
+        owner = B;
+        PRSDKSaveSwitch.Recovery result = saves.RecoverInterrupted();
 
         Assert.AreEqual(PRSDKSaveSwitch.Recovery.Completed, result);
         Assert.AreEqual(B, owner);
@@ -217,7 +278,7 @@ public sealed class PRSDKSaveSwitchTests
     {
         File.WriteAllText(first.File, "A1");
 
-        string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
+        PRSDKSaveSwitch.Recovery result = saves.RecoverInterrupted();
 
         Assert.AreEqual(PRSDKSaveSwitch.Recovery.None, result);
         Assert.AreEqual(A, owner);
@@ -229,8 +290,8 @@ public sealed class PRSDKSaveSwitchTests
     {
         File.WriteAllText(first.File, "A1");
         WriteProject(B, first, "B1");
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
-        Assert.IsTrue(saves.TrySwitch(B, A, null, out _));
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        Assert.IsTrue(saves.TrySwitch(B, A, out _));
 
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.IsFalse(Directory.Exists(Path.Combine(root, "Backup.new")));
@@ -252,13 +313,14 @@ public sealed class PRSDKSaveSwitchTests
         try
         {
             using (new FileStream(second.File, FileMode.Open, FileAccess.Read, FileShare.Read))
-                Assert.IsFalse(saves.TrySwitch(A, B, null, out _));
+                Assert.IsFalse(saves.TrySwitch(A, B, out _));
         }
         finally { firstLock?.Dispose(); }
 
         Assert.IsTrue(saves.HasUnfinished);
+        Assert.AreEqual(A, owner);
         // Отпустили файл — восстановление при следующем запуске доводит откат.
-        string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
+        PRSDKSaveSwitch.Recovery result = saves.RecoverInterrupted();
         Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, result);
         Assert.AreEqual(A, owner);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
@@ -270,12 +332,13 @@ public sealed class PRSDKSaveSwitchTests
     {
         File.WriteAllText(first.File, "A1");
         WriteProject(B, first, "B1");
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
         File.WriteAllLines(saves.JournalPath, new[] { A, B });
 
         using (new FileStream(first.File, FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
+            owner = A;
+            PRSDKSaveSwitch.Recovery result = saves.RecoverInterrupted();
             Assert.AreEqual(PRSDKSaveSwitch.Recovery.Incomplete, result);
             Assert.AreEqual(A, owner);
         }
@@ -290,9 +353,9 @@ public sealed class PRSDKSaveSwitchTests
         File.WriteAllText(first.File + ".meta", "guidA");
 
         // У B сохранения нет: файл и .meta уходят, а .meta остаётся у сохранения A.
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
         Assert.IsFalse(File.Exists(first.File + ".meta"));
-        Assert.IsTrue(saves.TrySwitch(B, A, null, out _));
+        Assert.IsTrue(saves.TrySwitch(B, A, out _));
 
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.AreEqual("guidA", File.ReadAllText(first.File + ".meta"));
@@ -305,7 +368,7 @@ public sealed class PRSDKSaveSwitchTests
         File.WriteAllText(first.File + ".meta", "guidA");
         WriteProject(B, first, "B1");
 
-        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
 
         Assert.AreEqual("B1", File.ReadAllText(first.File));
         Assert.IsFalse(File.Exists(first.File + ".meta"));
@@ -323,7 +386,7 @@ public sealed class PRSDKSaveSwitchTests
 
         // Первый файл получает .meta от B, второй не перезаписать — откат к A, у которого .meta не было.
         using (new FileStream(second.File, FileMode.Open, FileAccess.Read, FileShare.Read))
-            Assert.IsFalse(saves.TrySwitch(A, B, null, out _));
+            Assert.IsFalse(saves.TrySwitch(A, B, out _));
 
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.IsFalse(File.Exists(first.File + ".meta"));

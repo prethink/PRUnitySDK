@@ -77,7 +77,7 @@ public static class PRSDKProjectSaves
     /// </summary>
     public static string GetFolder(string projectGuid, string platform) => $"{Root}/Projects/{projectGuid}/{platform}";
 
-    private static PRSDKSaveSwitch Switch => new(Root, Stores);
+    private static PRSDKSaveSwitch Switch => new(Root, Stores, () => Owner, value => Owner = value);
 
     private static string Owner
     {
@@ -85,7 +85,7 @@ public static class PRSDKProjectSaves
         set
         {
             // Простой записью, не File.Replace: тот падает, пока свежий файл держит антивирус или индексатор.
-            // Оборванную запись при переключении страхует журнал: владелец не совпадёт с «куда», и файлы откатятся.
+            // Оборванную запись при переключении ловит PRSDKSaveSwitch: сверяет записанное и откатывает файлы и владельца.
             Directory.CreateDirectory(Root);
             File.WriteAllText(OwnerPath, value);
             EditorPrefs.DeleteKey(LegacyOwnerKey);
@@ -128,7 +128,8 @@ public static class PRSDKProjectSaves
                 return false;
             }
 
-            BindOwner(from);
+            if (!BindOwner(from))
+                return false;
         }
 
         if (from == to)
@@ -137,7 +138,7 @@ public static class PRSDKProjectSaves
             return true;
         }
 
-        bool switched = Switch.TrySwitch(from, to, () => Owner = to, out string error);
+        bool switched = Switch.TrySwitch(from, to, out string error);
         AssetDatabase.Refresh();
         if (!switched)
         {
@@ -174,10 +175,21 @@ public static class PRSDKProjectSaves
     private static bool HasProjectSaves() =>
         Directory.Exists(Root + "/Projects") && Directory.EnumerateFileSystemEntries(Root + "/Projects").Any();
 
-    private static void BindOwner(string guid)
+    /// <returns><c>false</c> — записать не вышло, причина в консоли.</returns>
+    private static bool BindOwner(string guid)
     {
-        Owner = guid;
+        try
+        {
+            Owner = guid;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"[PRUnitySDK] Владелец сохранений ({TitleOf(guid)}) не записан в {OwnerPath}: {exception.Message}");
+            return false;
+        }
+
         Debug.Log($"[PRUnitySDK] Сохранения площадок записаны за проектом {TitleOf(guid)}: прежний владелец не был записан.");
+        return true;
     }
 
     /// <summary>
@@ -232,8 +244,9 @@ public static class PRSDKProjectSaves
     {
         MigrateFromAssets();
         // Владелец из EditorPrefs — в файл сразу: ключ привязан к пути и пропадёт, если проект перенесут.
+        // Не вышло — ключ остаётся и читается дальше, перенос повторится при следующем запуске.
         if (!File.Exists(OwnerPath) && !string.IsNullOrEmpty(Owner))
-            Owner = Owner;
+            BindOwner(Owner);
 
         lastActive = GuidOf(Active);
         if (!Recover())
@@ -268,17 +281,18 @@ public static class PRSDKProjectSaves
         if (!saves.HasUnfinished)
             return true;
 
-        string recovered = saves.RecoverInterrupted(Owner, out PRSDKSaveSwitch.Recovery result);
+        PRSDKSaveSwitch.Recovery result = saves.RecoverInterrupted();
         switch (result)
         {
             case PRSDKSaveSwitch.Recovery.RolledBack:
-                Owner = recovered;
                 AssetDatabase.Refresh();
-                Debug.LogWarning($"[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — {TitleOf(recovered)}.");
+                Debug.LogWarning($"[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — {TitleOf(Owner)}.");
                 return true;
             case PRSDKSaveSwitch.Recovery.Incomplete:
-                Debug.LogError($"[PRUnitySDK] Прошлое переключение сохранений не откатилось целиком: файлы площадок могут быть от разных проектов. " +
-                               $"Закройте то, что держит файлы сохранения, и перезапустите редактор; копия и журнал — в {Root}.");
+                AssetDatabase.Refresh();
+                Debug.LogError($"[PRUnitySDK] Прошлое переключение сохранений не откатилось целиком: файлы площадок или запись владельца " +
+                               $"({OwnerPath}) могут быть от разных проектов. Закройте то, что держит эти файлы, и перезапустите редактор; " +
+                               $"копия и журнал — в {Root}.");
                 return false;
             default:
                 return true;
@@ -391,7 +405,7 @@ public static class PRSDKProjectSaves
         }
 
         // В ExitingEditMode isPlayingOrWillChangePlaymode уже true — переключение идёт мимо проверки игры.
-        bool switched = Switch.TrySwitch(owner, GuidOf(active), () => Owner = GuidOf(active), out string error);
+        bool switched = Switch.TrySwitch(owner, GuidOf(active), out string error);
         AssetDatabase.Refresh();
         if (switched)
         {
