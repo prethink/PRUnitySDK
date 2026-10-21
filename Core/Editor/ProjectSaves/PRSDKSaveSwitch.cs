@@ -20,10 +20,12 @@ using System.IO;
 /// <item>Вызывающий запоминает нового владельца, и только потом журнал удаляется.</item>
 /// </list>
 /// После аварии журнал остаётся: <see cref="RecoverInterrupted"/> при следующем запуске либо признаёт
-/// переключение законченным (владелец уже новый), либо возвращает файлы из копии.
+/// переключение законченным (владелец уже новый), либо возвращает файлы из копии. Журнал удаляется, только когда
+/// откат прошёл целиком: иначе файлы площадок от разных проектов, и об этом должно остаться напоминание
+/// (<see cref="HasUnfinished"/> — запуск игры и новое переключение отказывают, пока оно есть).
 /// <para>
-/// <c>.meta</c> файлов площадок копируются вместе с ними: на файл сохранения внутри Assets могут ссылаться,
-/// и новый GUID после отката эти ссылки потерял бы.
+/// <c>.meta</c> файлов площадок ходят вместе с ними — в копии, в папке проекта и обратно: на файл сохранения
+/// внутри Assets могут ссылаться, и новый GUID после возврата эти ссылки потерял бы.
 /// </para>
 /// </remarks>
 public sealed class PRSDKSaveSwitch
@@ -47,6 +49,26 @@ public sealed class PRSDKSaveSwitch
     /// Журнал незаконченного переключения.
     /// </summary>
     public string JournalPath => Path.Combine(root, "Switch.txt");
+
+    /// <summary>
+    /// Переключение не закончено или откат не вернул всех файлов: файлы площадок могут быть от разных проектов.
+    /// </summary>
+    public bool HasUnfinished => File.Exists(JournalPath);
+
+    /// <summary>
+    /// Чем кончилось восстановление после прерванного переключения.
+    /// </summary>
+    public enum Recovery
+    {
+        /// <summary>Журнала не было.</summary>
+        None,
+        /// <summary>Переключение успели закончить: владелец уже новый.</summary>
+        Completed,
+        /// <summary>Файлы возвращены из копии целиком.</summary>
+        RolledBack,
+        /// <summary>Часть файлов не вернулась: журнал и копия остаются.</summary>
+        Incomplete
+    }
 
     /// <summary>
     /// Папка сохранений проекта для площадки.
@@ -93,9 +115,17 @@ public sealed class PRSDKSaveSwitch
         catch (Exception exception)
         {
             List<string> failed = RollBack();
-            DeleteJournal();
-            error = "прежние возвращены на место: " + exception.Message
-                    + (failed.Count > 0 ? ". Не вернулись: " + string.Join(", ", failed) + $" — копия в {BackupRoot}" : string.Empty);
+            if (failed.Count == 0)
+            {
+                DeleteJournal();
+                error = "прежние возвращены на место: " + exception.Message;
+            }
+            else
+            {
+                // Файлы от разных проектов: журнал остаётся, игра не запустится, пока откат не доделан.
+                error = exception.Message + ". Не вернулись: " + string.Join(", ", failed)
+                        + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
+            }
             return false;
         }
 
@@ -108,11 +138,11 @@ public sealed class PRSDKSaveSwitch
     /// Доводит до конца переключение, прерванное аварией: журнал есть — его не закончили.
     /// </summary>
     /// <param name="owner">Чьё сохранение по записи владельца.</param>
-    /// <returns>Владелец после восстановления: <paramref name="owner"/>, если журнала нет или переключение успели
-    /// закончить, иначе проект «откуда» — файлы возвращены из копии.</returns>
-    public string RecoverInterrupted(string owner, out bool rolledBack)
+    /// <returns>Владелец после восстановления: <paramref name="owner"/>, если журнала нет, переключение успели
+    /// закончить или откат не удался; проект «откуда», если файлы возвращены из копии.</returns>
+    public string RecoverInterrupted(string owner, out Recovery result)
     {
-        rolledBack = false;
+        result = Recovery.None;
         if (!File.Exists(JournalPath))
             return owner;
 
@@ -124,18 +154,25 @@ public sealed class PRSDKSaveSwitch
         if (!string.IsNullOrEmpty(to) && owner == to)
         {
             DeleteJournal();
+            result = Recovery.Completed;
             return owner;
         }
 
         // Журнал пишется после готовой копии: по ней файлы возвращаются к виду до переключения.
-        RollBack();
-        rolledBack = true;
+        if (RollBack().Count > 0)
+        {
+            result = Recovery.Incomplete;
+            return owner;
+        }
+
+        result = Recovery.RolledBack;
         DeleteJournal();
         return string.IsNullOrEmpty(from) ? owner : from;
     }
 
     /// <summary>
-    /// Копирует файлы площадки в папку проекта; файла нет — убирает и старую копию: сохранение было пустым.
+    /// Копирует файлы площадки с их <c>.meta</c> в папку проекта; файла нет — убирает и старую копию: сохранение было
+    /// пустым.
     /// </summary>
     private static void Stash(IPRSDKEditorSaveStore store, string folder)
     {
@@ -145,8 +182,13 @@ public sealed class PRSDKSaveSwitch
             string copy = Path.Combine(folder, Path.GetFileName(file));
             if (File.Exists(file))
                 File.Copy(file, copy, overwrite: true);
-            else if (File.Exists(copy))
-                File.Delete(copy);
+            else
+                DeleteWithMeta(copy);
+
+            if (File.Exists(file + MetaExtension))
+                File.Copy(file + MetaExtension, copy + MetaExtension, overwrite: true);
+            else if (File.Exists(copy + MetaExtension))
+                File.Delete(copy + MetaExtension);
         }
     }
 
@@ -162,6 +204,9 @@ public sealed class PRSDKSaveSwitch
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(file) ?? string.Empty);
                 File.Copy(copy, file, overwrite: true);
+                // Свой .meta проекта — его GUID; нет своего — Unity оставит тот, что лежит.
+                if (File.Exists(copy + MetaExtension))
+                    File.Copy(copy + MetaExtension, file + MetaExtension, overwrite: true);
             }
             else
             {
@@ -219,9 +264,11 @@ public sealed class PRSDKSaveSwitch
                     if (File.Exists(copy))
                     {
                         Directory.CreateDirectory(Path.GetDirectoryName(file) ?? string.Empty);
-                        File.Copy(copy, file, overwrite: true);
+                        // Файл, который не успели тронуть, не перезаписывается: его могут держать открытым,
+                        // и откат зря счёл бы себя неполным.
+                        CopyIfDiffers(copy, file);
                         if (File.Exists(copy + MetaExtension))
-                            File.Copy(copy + MetaExtension, file + MetaExtension, overwrite: true);
+                            CopyIfDiffers(copy + MetaExtension, file + MetaExtension);
                     }
                     else
                     {
@@ -235,6 +282,32 @@ public sealed class PRSDKSaveSwitch
             }
         }
         return failed;
+    }
+
+    private static void CopyIfDiffers(string source, string target)
+    {
+        if (File.Exists(target) && SameContent(source, target))
+            return;
+        File.Copy(source, target, overwrite: true);
+    }
+
+    private static bool SameContent(string a, string b)
+    {
+        var first = new FileInfo(a);
+        var second = new FileInfo(b);
+        if (first.Length != second.Length)
+            return false;
+        // Чтение с общим доступом: файл, открытый площадкой на чтение, сравнить можно.
+        using var left = new FileStream(a, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var right = new FileStream(b, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        int x, y;
+        do
+        {
+            x = left.ReadByte();
+            y = right.ReadByte();
+            if (x != y) return false;
+        } while (x != -1);
+        return true;
     }
 
     private void DeleteJournal()

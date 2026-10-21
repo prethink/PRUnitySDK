@@ -34,7 +34,25 @@ public sealed class PRSDKSaveSwitchTests
 
         public string Platform { get; }
         public string File { get; }
-        public IEnumerable<string> Files { get { yield return File; } }
+
+        /// <summary>
+        /// Сколько раз перечисляли файлы: копия, в папку проекта, на место, откат — по разу.
+        /// </summary>
+        public int Passes { get; private set; }
+
+        /// <summary>
+        /// Зовётся на каждом перечислении с его номером: так тест вмешивается в нужную стадию.
+        /// </summary>
+        public System.Action<int> OnPass { get; set; }
+
+        public IEnumerable<string> Files
+        {
+            get
+            {
+                OnPass?.Invoke(++Passes);
+                yield return File;
+            }
+        }
     }
 
     [SetUp]
@@ -152,9 +170,9 @@ public sealed class PRSDKSaveSwitchTests
         Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
         File.WriteAllLines(saves.JournalPath, new[] { A, B });
 
-        string owner = saves.RecoverInterrupted(A, out bool rolledBack);
+        string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
 
-        Assert.IsTrue(rolledBack);
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, result);
         Assert.AreEqual(A, owner);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
         Assert.AreEqual("A2", File.ReadAllText(second.File));
@@ -170,9 +188,9 @@ public sealed class PRSDKSaveSwitchTests
         // Авария после записи владельца, до удаления журнала.
         File.WriteAllLines(saves.JournalPath, new[] { A, B });
 
-        string owner = saves.RecoverInterrupted(B, out bool rolledBack);
+        string owner = saves.RecoverInterrupted(B, out PRSDKSaveSwitch.Recovery result);
 
-        Assert.IsFalse(rolledBack);
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.Completed, result);
         Assert.AreEqual(B, owner);
         Assert.AreEqual("B1", File.ReadAllText(first.File));
         Assert.IsFalse(File.Exists(saves.JournalPath));
@@ -183,9 +201,9 @@ public sealed class PRSDKSaveSwitchTests
     {
         File.WriteAllText(first.File, "A1");
 
-        string owner = saves.RecoverInterrupted(A, out bool rolledBack);
+        string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
 
-        Assert.IsFalse(rolledBack);
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.None, result);
         Assert.AreEqual(A, owner);
         Assert.AreEqual("A1", File.ReadAllText(first.File));
     }
@@ -202,6 +220,66 @@ public sealed class PRSDKSaveSwitchTests
         Assert.IsFalse(Directory.Exists(Path.Combine(root, "Backup.new")));
         Assert.IsFalse(Directory.Exists(Path.Combine(root, "Backup.old")));
         Assert.AreEqual("B1", File.ReadAllText(Path.Combine(root, "Backup", first.Platform, "first.json")));
+    }
+
+    [Test]
+    public void IncompleteRollBack_KeepsJournal()
+    {
+        File.WriteAllText(first.File, "A1");
+        File.WriteAllText(second.File, "A2");
+        WriteProject(B, first, "B1");
+        WriteProject(B, second, "B2");
+        FileStream firstLock = null;
+        // Откат — четвёртое перечисление: в этот момент первый файл держит кто-то другой.
+        first.OnPass = pass => { if (pass == 4) firstLock = new FileStream(first.File, FileMode.Open, FileAccess.Read, FileShare.None); };
+
+        try
+        {
+            using (new FileStream(second.File, FileMode.Open, FileAccess.Read, FileShare.Read))
+                Assert.IsFalse(saves.TrySwitch(A, B, null, out _));
+        }
+        finally { firstLock?.Dispose(); }
+
+        Assert.IsTrue(saves.HasUnfinished);
+        // Отпустили файл — восстановление при следующем запуске доводит откат.
+        string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, result);
+        Assert.AreEqual(A, owner);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void Recover_WhenFileStillLocked_KeepsJournal()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        File.WriteAllLines(saves.JournalPath, new[] { A, B });
+
+        using (new FileStream(first.File, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            string owner = saves.RecoverInterrupted(A, out PRSDKSaveSwitch.Recovery result);
+            Assert.AreEqual(PRSDKSaveSwitch.Recovery.Incomplete, result);
+            Assert.AreEqual(A, owner);
+        }
+
+        Assert.IsTrue(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void Meta_TravelsWithProjectSave()
+    {
+        File.WriteAllText(first.File, "A1");
+        File.WriteAllText(first.File + ".meta", "guidA");
+
+        // У B сохранения нет: файл и .meta уходят, а .meta остаётся у сохранения A.
+        Assert.IsTrue(saves.TrySwitch(A, B, null, out _));
+        Assert.IsFalse(File.Exists(first.File + ".meta"));
+        Assert.IsTrue(saves.TrySwitch(B, A, null, out _));
+
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual("guidA", File.ReadAllText(first.File + ".meta"));
     }
 
     private void WriteProject(string project, Store store, string text)

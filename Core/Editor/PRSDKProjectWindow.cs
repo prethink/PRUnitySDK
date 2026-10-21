@@ -184,12 +184,13 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// Кеш синглтонов сбрасывается здесь же: они держат найденный ассет до перезапуска,
     /// и без сброса редактор продолжил бы показывать данные прежней игры.
     /// </remarks>
-    private void Activate(PRSDKProject project)
+    /// <returns><c>false</c> — проект не сменён: не вышло переключить сохранения площадок.</returns>
+    private bool Activate(PRSDKProject project)
     {
         PRSDKActiveProject pointer = PRSDKActiveProject.Instance;
 
         if (pointer == null)
-            return;
+            return false;
 
         // Своё сохранение у каждой игры: прежнее уходит в папку прежнего проекта, на место — сохранение нового.
         // Сначала сохранения, потом проект: не вышло — активным остаётся прежний, и сохранение с проектом не расходятся.
@@ -198,7 +199,7 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
             EditorUtility.DisplayDialog("Проект не сменён",
                 $"Не удалось переключить сохранения площадок на {project.Title}. Активным остался прежний проект, подробности в консоли.",
                 "Понятно");
-            return;
+            return false;
         }
 
         Undo.RecordObject(pointer, "Сменить проект SDK");
@@ -212,6 +213,7 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
 
         // Окна базы и настроек сверяются с текущим проектом при отрисовке: перерисовка переводит их на новый.
         UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+        return true;
     }
 
     /// <summary>
@@ -315,7 +317,10 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
         if (choice == 1)
             return;
 
-        bool wasActive = IsActive(project);
+        // Активный проект нельзя оставить пустым: сначала активным становится другой (вместе с сохранениями),
+        // и только потом удаляется этот. Не вышло переключить — не удаляется ничего.
+        if (IsActive(project) && !Activate(projects.First(other => other != project)))
+            return;
 
         if (choice == 0)
         {
@@ -331,11 +336,6 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
         AssetDatabase.SaveAssets();
 
         Reload();
-
-        // Активный проект нельзя оставить пустым: указатель повис бы, а данных
-        // в Resources больше нет.
-        if (wasActive && projects.Length > 0)
-            Activate(projects[0]);
 
         Debug.Log($"[PRUnitySDK] Проект «{title}» удалён.");
     }

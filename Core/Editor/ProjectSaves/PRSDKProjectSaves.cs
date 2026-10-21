@@ -92,6 +92,13 @@ public static class PRSDKProjectSaves
             return false;
         }
 
+        if (!Recover())
+        {
+            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены на {target.Title}: прошлое переключение не доведено, " +
+                           $"файлы площадок могут быть от разных проектов — копия и журнал в {Root}.");
+            return false;
+        }
+
         string to = GuidOf(target);
         string from = Owner;
         if (string.IsNullOrEmpty(from))
@@ -162,18 +169,35 @@ public static class PRSDKProjectSaves
     private static void Initialize()
     {
         MigrateFromAssets();
-
-        string owner = Owner;
-        string recovered = Switch.RecoverInterrupted(owner, out bool rolledBack);
-        if (rolledBack)
-        {
-            Owner = recovered;
-            AssetDatabase.Refresh();
-            Debug.LogWarning($"[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — {TitleOf(recovered)}.");
-        }
-
-        if (string.IsNullOrEmpty(Owner) || Owner != GuidOf(Active))
+        if (Recover() && (string.IsNullOrEmpty(Owner) || Owner != GuidOf(Active)))
             Sync();
+    }
+
+    /// <summary>
+    /// Доводит прерванное переключение, если оно было.
+    /// </summary>
+    /// <returns><c>false</c> — откат не вернул всех файлов, и переключать дальше нельзя.</returns>
+    private static bool Recover()
+    {
+        PRSDKSaveSwitch saves = Switch;
+        if (!saves.HasUnfinished)
+            return true;
+
+        string recovered = saves.RecoverInterrupted(Owner, out PRSDKSaveSwitch.Recovery result);
+        switch (result)
+        {
+            case PRSDKSaveSwitch.Recovery.RolledBack:
+                Owner = recovered;
+                AssetDatabase.Refresh();
+                Debug.LogWarning($"[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — {TitleOf(recovered)}.");
+                return true;
+            case PRSDKSaveSwitch.Recovery.Incomplete:
+                Debug.LogError($"[PRUnitySDK] Прошлое переключение сохранений не откатилось целиком: файлы площадок могут быть от разных проектов. " +
+                               $"Закройте то, что держит файлы сохранения, и перезапустите редактор; копия и журнал — в {Root}.");
+                return false;
+            default:
+                return true;
+        }
     }
 
     /// <summary>
@@ -261,6 +285,13 @@ public static class PRSDKProjectSaves
     /// </summary>
     private static void GuardPlay()
     {
+        if (!Recover())
+        {
+            EditorApplication.isPlaying = false;
+            Debug.LogError("[PRUnitySDK] Запуск остановлен: прошлое переключение сохранений не доведено, файлы площадок могут быть от разных проектов.");
+            return;
+        }
+
         PRSDKProject active = Active;
         string owner = Owner;
         if (active == null || string.IsNullOrEmpty(owner) || owner == GuidOf(active))
