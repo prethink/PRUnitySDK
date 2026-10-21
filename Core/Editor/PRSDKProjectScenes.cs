@@ -38,12 +38,49 @@ public static class PRSDKProjectScenes
             return $"сцена игры проекта «{project.Title}» не найдена (GUID {project.GameSceneGuid})";
 
         int gameIndex = GameSceneIndexOf(project);
-        string loaded = gameIndex < enabledScenes.Count ? enabledScenes[gameIndex] : null;
+        string loaded = gameIndex >= 0 && gameIndex < enabledScenes.Count ? enabledScenes[gameIndex] : null;
         if (loaded == gamePath)
             return null;
 
         return $"стартовая сцена грузит номер {gameIndex} ({(loaded ?? "такой сцены в сборке нет")}), а сцена игры проекта «{project.Title}» — {gamePath}. " +
                "Поправьте Bootstrap → Game Scene Index или сделайте проект активным заново в окне проектов";
+    }
+
+    [InitializeOnLoadMethod]
+    private static void WatchPlay() => EditorApplication.playModeStateChanged += state =>
+    {
+        if (state == PlayModeStateChange.ExitingEditMode)
+            GuardPlay();
+    };
+
+    /// <summary>
+    /// Не даёт запустить сцену игры другого проекта с данными активного.
+    /// </summary>
+    /// <remarks>
+    /// Так бывает, когда смена проекта не открыла его сцену: прежнюю не удалось сохранить или отказались сохранять
+    /// Untitled. С «Start From Editor Scene» стартовая сцена загрузила бы именно её. Прочие сцены (тестовые,
+    /// без проекта) запускаются как раньше.
+    /// </remarks>
+    private static void GuardPlay()
+    {
+        PRSDKProject active = PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
+        string scenePath = UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
+        if (active == null || string.IsNullOrEmpty(scenePath))
+            return;
+
+        string sceneGuid = AssetDatabase.AssetPathToGUID(scenePath);
+        if (sceneGuid == active.GameSceneGuid)
+            return;
+
+        PRSDKProject owner = AssetDatabase.FindAssets("t:" + nameof(PRSDKProject))
+            .Select(guid => AssetDatabase.LoadAssetAtPath<PRSDKProject>(AssetDatabase.GUIDToAssetPath(guid)))
+            .FirstOrDefault(project => project != null && project != active && project.GameSceneGuid == sceneGuid);
+        if (owner == null)
+            return;
+
+        EditorApplication.isPlaying = false;
+        Debug.LogError($"[PRUnitySDK] Запуск остановлен: открыта сцена игры «{owner.Title}», а активный проект — «{active.Title}». " +
+                       "Откройте сцену активного проекта или сделайте активным проект этой сцены.");
     }
 
     private static int GameSceneIndexOf(PRSDKProject project) =>
@@ -138,7 +175,10 @@ public static class PRSDKProjectScenes
             }
 
             if (untitled && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                Debug.LogWarning($"[PRUnitySDK] Сохранение отменено — сцена проекта «{project.Title}» не открыта.");
                 return;
+            }
 
             EditorSceneManager.OpenScene(gamePath, OpenSceneMode.Single);
             Debug.Log($"[PRUnitySDK] Открыта сцена проекта «{project.Title}»: {gamePath}.");

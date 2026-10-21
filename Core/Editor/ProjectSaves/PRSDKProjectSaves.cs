@@ -30,8 +30,9 @@ using UnityEngine;
 /// вышло — останавливается: иначе игра прочитала бы и перезаписала чужой прогресс. Прерванное аварией
 /// переключение доводится при следующем запуске редактора. Чьё сохранение сейчас у площадки, записано в
 /// <c>Owner.txt</c> рядом с сохранениями проектов — переезжает вместе с ними, если Unity-проект перенесли в другую
-/// папку или на другой компьютер. Записи нет — владельцем становится активный проект: файл площадки лежит в Assets
-/// и переезжает вместе с указателем проекта.
+/// папку или на другой компьютер. Записи нет — владельцем при запуске редактора становится активный проект: файл
+/// площадки лежит в Assets и переезжает вместе с указателем проекта. Посреди сессии сменённый указатель владельцем
+/// не назначается (<see cref="UnknownOwner"/>).
 /// Во время игры переключение ждёт выхода из неё: площадка держит сохранение открытым и записала бы его поверх.
 /// </para>
 /// </remarks>
@@ -50,6 +51,9 @@ public static class PRSDKProjectSaves
     private static readonly string LegacyOwnerKey = "PRSDK.SaveOwner." + Application.dataPath;
 
     private static bool pending;
+
+    // Активный проект, известный до смены указателя: при запуске редактора и после переключений.
+    private static string lastActive;
 
     static PRSDKProjectSaves()
     {
@@ -119,18 +123,22 @@ public static class PRSDKProjectSaves
         string from = Owner;
         if (string.IsNullOrEmpty(from))
         {
-            // Владелец нигде не записан — сохранений по проектам ещё не было (или папку UserSettings не перенесли):
-            // файл площадки лежит в Assets рядом с указателем проекта и переезжает вместе с ним, значит он от активного,
-            // а не от target — на target его ещё предстоит переключить.
-            from = GuidOf(Active);
+            from = UnknownOwner(target);
             if (string.IsNullOrEmpty(from))
-                from = to;
-            Owner = from;
-            Debug.Log($"[PRUnitySDK] Сохранения площадок записаны за проектом {TitleOf(from)}: прежний владелец неизвестен.");
+            {
+                Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены на {target.Title}: неизвестно, чьи они сейчас " +
+                               $"({OwnerPath} нет). Перезапустите редактор — владельцем станет проект, активный при запуске.");
+                return false;
+            }
+
+            BindOwner(from);
         }
 
         if (from == to)
+        {
+            lastActive = to;
             return true;
+        }
 
         bool switched = Switch.TrySwitch(from, to, () => Owner = to, out string error);
         AssetDatabase.Refresh();
@@ -140,8 +148,35 @@ public static class PRSDKProjectSaves
             return false;
         }
 
+        lastActive = to;
         Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(from)} → {target.Title}.");
         return true;
+    }
+
+    /// <summary>
+    /// Чьи сохранения у площадки, когда владелец не записан, — без догадок по уже сменённому указателю.
+    /// </summary>
+    /// <returns>Пусто — узнать нельзя.</returns>
+    /// <remarks>
+    /// Файл площадки лежит в Assets рядом с указателем проекта и переезжает вместе с ним, поэтому он от проекта,
+    /// который был активным до смены: того, что запомнили при запуске редактора и после переключений
+    /// (<see cref="lastActive"/>). Не запомнили — указатель годится, только если его ещё не сменили, то есть
+    /// <paramref name="target"/> другой (окно проектов переключает сохранения до указателя). Указатель пуст —
+    /// сохранение не принадлежало ни одному проекту и достаётся <paramref name="target"/>.
+    /// </remarks>
+    private static string UnknownOwner(PRSDKProject target)
+    {
+        if (!string.IsNullOrEmpty(lastActive))
+            return lastActive;
+        if (target == Active)
+            return null;
+        return Active != null ? GuidOf(Active) : GuidOf(target);
+    }
+
+    private static void BindOwner(string guid)
+    {
+        Owner = guid;
+        Debug.Log($"[PRUnitySDK] Сохранения площадок записаны за проектом {TitleOf(guid)}: прежний владелец не был записан.");
     }
 
     /// <summary>
@@ -194,7 +229,15 @@ public static class PRSDKProjectSaves
         // Владелец из EditorPrefs — в файл сразу: ключ привязан к пути и пропадёт, если проект перенесут.
         if (!File.Exists(OwnerPath) && !string.IsNullOrEmpty(Owner))
             Owner = Owner;
-        if (Recover() && (string.IsNullOrEmpty(Owner) || Owner != GuidOf(Active)))
+
+        // Указатель при запуске прочитан с диска, его ещё никто не менял: владельца без записи привязываем к нему
+        // здесь, отдельно от переключения.
+        lastActive = GuidOf(Active);
+        if (!Recover())
+            return;
+        if (string.IsNullOrEmpty(Owner) && !string.IsNullOrEmpty(lastActive))
+            BindOwner(lastActive);
+        if (Owner != lastActive)
             Sync();
     }
 
@@ -326,7 +369,10 @@ public static class PRSDKProjectSaves
         bool switched = Switch.TrySwitch(owner, GuidOf(active), () => Owner = GuidOf(active), out string error);
         AssetDatabase.Refresh();
         if (switched)
+        {
+            lastActive = GuidOf(active);
             return;
+        }
 
         EditorApplication.isPlaying = false;
         Debug.LogError($"[PRUnitySDK] Запуск остановлен: сохранения площадок от {TitleOf(owner)}, активный проект — {active.Title}, " +
