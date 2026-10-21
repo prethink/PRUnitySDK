@@ -32,6 +32,13 @@ public static class PRSDKActiveProjectWatcher
         PRSDKActiveProject.EditedInEditor += Check;
         PRSDKProject.EditedInEditor += Check;
         Undo.undoRedoPerformed += Check;
+        // После загрузки сверить список сборки: смену могли не применить до перезагрузки (сбой, перезапуск). Сцену
+        // не открываем — иначе каждая компиляция уводила бы из открытой тестовой сцены.
+        EditorApplication.delayCall += () =>
+        {
+            if (!EditorApplication.isPlayingOrWillChangePlaymode && CurrentProject != null)
+                PRSDKProjectScenes.Apply(CurrentProject);
+        };
         EditorApplication.playModeStateChanged += state =>
         {
             // Перед игрой — довести смену, о которой ещё не сообщили: иначе в игре её сочли бы сменой посреди игры.

@@ -147,9 +147,12 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
                 if (GUILayout.Button("В проекте", GUILayout.Width(90f)))
                     EditorGUIUtility.PingObject(project);
 
-                using (new EditorGUI.DisabledScope(isActive))
+                // Во время игры проект не меняется: сохранения площадок переключаются только вне неё.
+                using (new EditorGUI.DisabledScope(isActive || EditorApplication.isPlayingOrWillChangePlaymode))
                 {
-                    if (GUILayout.Button("Сделать активным", GUILayout.Width(140f)))
+                    if (GUILayout.Button(new GUIContent("Сделать активным",
+                            EditorApplication.isPlayingOrWillChangePlaymode ? "Проект SDK меняется вне игры." : null),
+                            GUILayout.Width(140f)))
                         Activate(project);
                 }
 

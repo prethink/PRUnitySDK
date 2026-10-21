@@ -144,6 +144,22 @@ public sealed class PRSDKSaveSwitchTests
     }
 
     [Test]
+    public void CommitFailure_RollsBackFiles()
+    {
+        File.WriteAllText(first.File, "A1");
+        File.WriteAllText(second.File, "A2");
+        WriteProject(B, first, "B1");
+        WriteProject(B, second, "B2");
+
+        Assert.IsFalse(saves.TrySwitch(A, B, () => throw new IOException("владелец занят"), out string error));
+
+        StringAssert.Contains("владелец занят", error);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual("A2", File.ReadAllText(second.File));
+        Assert.IsFalse(File.Exists(saves.JournalPath));
+    }
+
+    [Test]
     public void SwapFailure_RestoresDeletedMeta()
     {
         File.WriteAllText(first.File, "A1");
