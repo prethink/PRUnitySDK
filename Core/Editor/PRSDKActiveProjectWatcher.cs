@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEditorInternal;
+using UnityEngine;
 
 /// <summary>
 /// Следит за активным проектом в редакторе и переводит синглтоны базы и настроек на то, что в нём сейчас лежит.
@@ -10,6 +11,12 @@ using UnityEditorInternal;
 /// <see cref="PRSDKDatabase"/>.Instance и <see cref="PRSDKSettings"/>.Instance остались бы прежними, и окна базы
 /// и настроек, которые сверяются с ними на отрисовке, продолжили бы править чужие данные. Поэтому сравниваются
 /// не только проект, но и его база и настройки, и сбрасывается только сменившийся синглтон.
+/// <para>
+/// Во время игры проект не меняется: игра уже держит его базу и настройки, а сохранения площадок переключаются только
+/// вне игры (<see cref="PRSDKProjectSaves"/>) — игра читала бы данные одного проекта и сохранение другого. Сменённый
+/// указатель возвращается прежнему проекту; правки внутри проекта (база, настройки, сцена) применяются после выхода
+/// из игры.
+/// </para>
 /// </remarks>
 [InitializeOnLoad]
 public static class PRSDKActiveProjectWatcher
@@ -25,6 +32,12 @@ public static class PRSDKActiveProjectWatcher
         PRSDKActiveProject.EditedInEditor += Check;
         PRSDKProject.EditedInEditor += Check;
         Undo.undoRedoPerformed += Check;
+        EditorApplication.playModeStateChanged += state =>
+        {
+            // Перед игрой — довести смену, о которой ещё не сообщили: иначе в игре её сочли бы сменой посреди игры.
+            if (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.EnteredEditMode)
+                Apply();
+        };
     }
 
     private static PRSDKProject CurrentProject => PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
@@ -38,6 +51,14 @@ public static class PRSDKActiveProjectWatcher
     }
 
     private static void Check()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            KeepProjectWhilePlaying();
+        else
+            Apply();
+    }
+
+    private static void Apply()
     {
         PRSDKProject project = CurrentProject;
         bool databaseChanged = (project != null ? project.Database : null) != lastDatabase;
@@ -66,5 +87,20 @@ public static class PRSDKActiveProjectWatcher
             PRSDKProjectScenes.OpenGameScene(project);
 
         InternalEditorUtility.RepaintAllViews();
+    }
+
+    /// <summary>
+    /// Возвращает указатель проекту, с которым идёт игра.
+    /// </summary>
+    private static void KeepProjectWhilePlaying()
+    {
+        PRSDKActiveProject pointer = PRSDKActiveProject.Instance;
+        if (pointer == null || pointer.Project == lastProject)
+            return;
+
+        string attempted = pointer.Project != null ? pointer.Project.Title : "пусто";
+        pointer.SetProject(lastProject);
+        Debug.LogError($"[PRUnitySDK] Проект SDK меняется вне игры: возвращён {(lastProject != null ? lastProject.Title : "пустой указатель")} " +
+                       $"вместо {attempted}. Выйдите из Play и смените проект ещё раз.");
     }
 }

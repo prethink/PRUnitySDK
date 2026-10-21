@@ -338,6 +338,10 @@ Partial-поля Settings и Database не требуют ручного доб�
   `[SceneGuid]`). Смена активного проекта ставит в сборку стартовую сцену и за ней сцену проекта, остальные
   выключает (`PRSDKProjectScenes.Apply`, зовёт `PRSDKActiveProjectWatcher`) и открывает её, сохранив изменённые
   сцены (`OpenGameScene`). `PRSDKActiveProject.SetProject` теперь сам сообщает о смене. Пустое поле сборку не трогает.
+  Сцена игры встаёт номером 1: `Bootstrap → Game Scene Index` другой — сборку останавливает
+  `PRSDKProjectScenesBuildCheck`. Во время Play указатель проекта не меняется — наблюдатель возвращает прежний.
+  Владелец сохранений площадок — `UserSettings/PRSDKProjectSaves/Owner.txt` (прежний ключ `EditorPrefs` читается,
+  пока файла нет).
 - **Синглтоны не рождаются на закрытии.** `PRMonoBehaviourSingletonBase.Instance` после `Application.quitting`
   (в редакторе — выход из Play Mode) не создаёт новый объект, а возвращает `null` и пишет об этом в отладочный лог:
   иначе обработчик уничтожения поднимал бы объект, переживающий сцену («Some objects were not cleaned up»).

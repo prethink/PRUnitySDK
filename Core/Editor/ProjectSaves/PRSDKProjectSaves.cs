@@ -28,8 +28,10 @@ using UnityEngine;
 /// Если проект сменили в обход окна (инспектором, Undo) и переключить сохранения не вышло, указатель возвращается
 /// к владельцу. Запуск игры при несовпадении владельца и активного проекта сначала пробует переключить, а не
 /// вышло — останавливается: иначе игра прочитала бы и перезаписала чужой прогресс. Прерванное аварией
-/// переключение доводится при следующем запуске редактора. Чьё сохранение сейчас у площадки,
-/// помнит <c>EditorPrefs</c> (ключ свой у каждого Unity-проекта); в первый запуск владелец — активный проект.
+/// переключение доводится при следующем запуске редактора. Чьё сохранение сейчас у площадки, записано в
+/// <c>Owner.txt</c> рядом с сохранениями проектов — переезжает вместе с ними, если Unity-проект перенесли в другую
+/// папку или на другой компьютер. Записи нет — владельцем становится активный проект: файл площадки лежит в Assets
+/// и переезжает вместе с указателем проекта.
 /// Во время игры переключение ждёт выхода из неё: площадка держит сохранение открытым и записала бы его поверх.
 /// </para>
 /// </remarks>
@@ -41,8 +43,11 @@ public static class PRSDKProjectSaves
     /// </summary>
     public const string Root = "UserSettings/PRSDKProjectSaves";
 
-    // Ключ с путём проекта: EditorPrefs общие на все Unity-проекты машины.
-    private static readonly string OwnerKey = "PRSDK.SaveOwner." + Application.dataPath;
+    // Владелец лежит рядом с сохранениями проектов: переезжает вместе с ними, а не теряется с путём проекта.
+    private const string OwnerPath = Root + "/Owner.txt";
+
+    // Прежнее место владельца: EditorPrefs общие на машину, ключ с путём проекта. Читается, пока нет файла.
+    private static readonly string LegacyOwnerKey = "PRSDK.SaveOwner." + Application.dataPath;
 
     private static bool pending;
 
@@ -71,8 +76,19 @@ public static class PRSDKProjectSaves
 
     private static string Owner
     {
-        get => EditorPrefs.GetString(OwnerKey, string.Empty);
-        set => EditorPrefs.SetString(OwnerKey, value);
+        get => File.Exists(OwnerPath) ? File.ReadAllText(OwnerPath).Trim() : EditorPrefs.GetString(LegacyOwnerKey, string.Empty);
+        set
+        {
+            // Через временный файл: оборванная запись не оставит полфайла вместо владельца.
+            Directory.CreateDirectory(Root);
+            string temp = OwnerPath + ".new";
+            File.WriteAllText(temp, value);
+            if (File.Exists(OwnerPath))
+                File.Replace(temp, OwnerPath, null);
+            else
+                File.Move(temp, OwnerPath);
+            EditorPrefs.DeleteKey(LegacyOwnerKey);
+        }
     }
 
     private static PRSDKProject Active => PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
@@ -103,7 +119,10 @@ public static class PRSDKProjectSaves
         string from = Owner;
         if (string.IsNullOrEmpty(from))
         {
+            // Владелец нигде не записан — сохранений по проектам ещё не было (или папку UserSettings не перенесли):
+            // файл площадки лежит в Assets рядом с указателем проекта и переезжает вместе с ним, значит он от активного.
             Owner = to;
+            Debug.Log($"[PRUnitySDK] Сохранения площадок записаны за проектом {target.Title}: прежний владелец неизвестен.");
             return true;
         }
 
@@ -169,6 +188,9 @@ public static class PRSDKProjectSaves
     private static void Initialize()
     {
         MigrateFromAssets();
+        // Владелец из EditorPrefs — в файл сразу: ключ привязан к пути и пропадёт, если проект перенесут.
+        if (!File.Exists(OwnerPath) && !string.IsNullOrEmpty(Owner))
+            Owner = Owner;
         if (Recover() && (string.IsNullOrEmpty(Owner) || Owner != GuidOf(Active)))
             Sync();
     }

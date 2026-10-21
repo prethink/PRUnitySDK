@@ -20,6 +20,36 @@ using UnityEngine;
 public static class PRSDKProjectScenes
 {
     /// <summary>
+    /// Номер сцены игры в сборке: сразу за стартовой.
+    /// </summary>
+    public const int GameSceneBuildIndex = 1;
+
+    /// <summary>
+    /// Сверяет сборку с проектом: под номером, который грузит стартовая сцена, должна стоять сцена игры проекта.
+    /// </summary>
+    /// <returns><c>null</c> — всё сходится или у проекта нет сцены; иначе — что не так.</returns>
+    public static string CheckBuild(PRSDKProject project, IReadOnlyList<string> enabledScenes)
+    {
+        if (project == null || string.IsNullOrEmpty(project.GameSceneGuid))
+            return null;
+
+        string gamePath = AssetDatabase.GUIDToAssetPath(project.GameSceneGuid);
+        if (string.IsNullOrEmpty(gamePath))
+            return $"сцена игры проекта «{project.Title}» не найдена (GUID {project.GameSceneGuid})";
+
+        int gameIndex = GameSceneIndexOf(project);
+        string loaded = gameIndex < enabledScenes.Count ? enabledScenes[gameIndex] : null;
+        if (loaded == gamePath)
+            return null;
+
+        return $"стартовая сцена грузит номер {gameIndex} ({(loaded ?? "такой сцены в сборке нет")}), а сцена игры проекта «{project.Title}» — {gamePath}. " +
+               "Поправьте Bootstrap → Game Scene Index или сделайте проект активным заново в окне проектов";
+    }
+
+    private static int GameSceneIndexOf(PRSDKProject project) =>
+        project.Settings != null && project.Settings.Bootstrap != null ? project.Settings.Bootstrap.GameSceneIndex : GameSceneBuildIndex;
+
+    /// <summary>
     /// Ставит сцену игры проекта в сборку.
     /// </summary>
     /// <returns><c>false</c> — у проекта нет сцены или её не нашлось.</returns>
@@ -44,9 +74,12 @@ public static class PRSDKProjectScenes
         }
 
         // Номер в сборке считается по включённым сценам: сцена игры — вторая включённая, то есть номер 1.
-        int gameIndex = project.Settings != null && project.Settings.Bootstrap != null ? project.Settings.Bootstrap.GameSceneIndex : 1;
-        if (gameIndex != 1)
-            Debug.LogWarning($"[PRUnitySDK] У проекта «{project.Title}» стартовая сцена грузит сцену номер {gameIndex}, а сцена игры встаёт номером 1: поправьте Bootstrap → Game Scene Index.");
+        // Другой номер в настройках сборку остановит (PRSDKProjectScenesBuildCheck): список всё равно строится,
+        // иначе в нём осталась бы сцена прежней игры.
+        int gameIndex = GameSceneIndexOf(project);
+        if (gameIndex != GameSceneBuildIndex)
+            Debug.LogError($"[PRUnitySDK] У проекта «{project.Title}» стартовая сцена грузит сцену номер {gameIndex}, а сцена игры встаёт номером {GameSceneBuildIndex}: " +
+                           "поправьте Bootstrap → Game Scene Index, иначе сборка остановится.");
 
         var result = new List<EditorBuildSettingsScene> { new(bootstrapPath, true), new(gamePath, true) };
         result.AddRange(scenes.Skip(1).Where(scene => scene.path != gamePath).Select(scene => new EditorBuildSettingsScene(scene.path, false)));
@@ -75,6 +108,10 @@ public static class PRSDKProjectScenes
         EditorApplication.delayCall += () =>
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            // За кадр проект могли сменить ещё раз (или вернуть прежний): открывается сцена только текущего.
+            if (PRSDKActiveProject.Instance == null || PRSDKActiveProject.Instance.Project != project)
                 return;
 
             string gamePath = AssetDatabase.GUIDToAssetPath(project.GameSceneGuid);
