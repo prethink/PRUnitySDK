@@ -23,10 +23,12 @@ using UnityEngine;
 /// удаление <c>Library</c>.
 /// </para>
 /// <para>
-/// Переключение — одна операция: перед ней файлы площадок копируются в <c>…/Backup</c>, при любой ошибке они
-/// возвращаются оттуда, а владелец меняется только после успеха всех площадок. Копия собирается в <c>…/Backup.new</c>
-/// и становится резервной, только когда скопированы все файлы: в неполной копии нет файла — не значит, что его
-/// не было, и откат по ней удалил бы живое сохранение. Не собралась копия — файлы площадок не трогаются вовсе. Чьё сохранение сейчас у площадки,
+/// Переключение — одна операция (<see cref="PRSDKSaveSwitch"/>: резервная копия, журнал, откат): владелец меняется
+/// только после успеха всех площадок, и только после этого меняется активный проект (<see cref="TrySwitchTo"/>).
+/// Если проект сменили в обход окна (инспектором, Undo) и переключить сохранения не вышло, указатель возвращается
+/// к владельцу. Запуск игры при несовпадении владельца и активного проекта сначала пробует переключить, а не
+/// вышло — останавливается: иначе игра прочитала бы и перезаписала чужой прогресс. Прерванное аварией
+/// переключение доводится при следующем запуске редактора. Чьё сохранение сейчас у площадки,
 /// помнит <c>EditorPrefs</c> (ключ свой у каждого Unity-проекта); в первый запуск владелец — активный проект.
 /// Во время игры переключение ждёт выхода из неё: площадка держит сохранение открытым и записала бы его поверх.
 /// </para>
@@ -65,9 +67,61 @@ public static class PRSDKProjectSaves
     /// </summary>
     public static string GetFolder(string projectGuid, string platform) => $"{Root}/Projects/{projectGuid}/{platform}";
 
+    private static PRSDKSaveSwitch Switch => new(Root, Stores);
+
+    private static string Owner
+    {
+        get => EditorPrefs.GetString(OwnerKey, string.Empty);
+        set => EditorPrefs.SetString(OwnerKey, value);
+    }
+
+    private static PRSDKProject Active => PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
+
     /// <summary>
-    /// Переключает сохранения площадок на активный проект, если они ещё от другого.
+    /// Переключает сохранения площадок на <paramref name="target"/>. Активный проект меняет вызывающий — и только
+    /// при успехе.
     /// </summary>
+    /// <returns><c>false</c> — сохранения остались от прежнего проекта, причина в консоли.</returns>
+    public static bool TrySwitchTo(PRSDKProject target)
+    {
+        if (target == null)
+            return false;
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            Debug.LogError("[PRUnitySDK] Проект SDK меняется вне игры: площадка держит сохранение открытым.");
+            return false;
+        }
+
+        string to = GuidOf(target);
+        string from = Owner;
+        if (string.IsNullOrEmpty(from))
+        {
+            Owner = to;
+            return true;
+        }
+
+        if (from == to)
+            return true;
+
+        bool switched = Switch.TrySwitch(from, to, () => Owner = to, out string error);
+        AssetDatabase.Refresh();
+        if (!switched)
+        {
+            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены на {target.Title}: {error}");
+            return false;
+        }
+
+        Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(from)} → {target.Title}.");
+        return true;
+    }
+
+    /// <summary>
+    /// Переключает сохранения площадок на активный проект, если они ещё от другого; не вышло — возвращает
+    /// активным проект-владелец.
+    /// </summary>
+    /// <remarks>
+    /// Для смены проекта в обход окна проектов — инспектором указателя или Undo.
+    /// </remarks>
     public static void Sync()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -77,154 +131,27 @@ public static class PRSDKProjectSaves
         }
 
         pending = false;
-        PRSDKProject active = PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
-        if (active == null)
+        PRSDKProject active = Active;
+        if (active == null || TrySwitchTo(active))
             return;
 
-        string activeGuid = GuidOf(active);
-        string ownerGuid = EditorPrefs.GetString(OwnerKey, string.Empty);
-
-        if (string.IsNullOrEmpty(ownerGuid))
+        PRSDKProject owner = ProjectOf(Owner);
+        if (owner == null)
         {
-            EditorPrefs.SetString(OwnerKey, activeGuid);
-            return;
-        }
-
-        if (ownerGuid == activeGuid)
-            return;
-
-        IReadOnlyList<IPRSDKEditorSaveStore> stores = Stores;
-        try
-        {
-            Backup(stores);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены: не удалась резервная копия, файлы площадок не тронуты: {exception.Message}");
+            Debug.LogError($"[PRUnitySDK] Проект-владелец сохранений ({Owner}) не найден: игра с {active.Title} не запустится, " +
+                           "пока сохранения не переключатся. Сделайте проект активным в окне проектов ещё раз.");
             return;
         }
 
-        try
-        {
-            foreach (IPRSDKEditorSaveStore store in stores)
-            {
-                Stash(store, GetFolder(ownerGuid, store.Platform));
-                Restore(store, GetFolder(activeGuid, store.Platform));
-            }
-        }
-        catch (Exception exception)
-        {
-            RollBack(stores);
-            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены, прежние возвращены на место: {exception.Message}");
-            AssetDatabase.Refresh();
-            return;
-        }
-
-        EditorPrefs.SetString(OwnerKey, activeGuid);
-        AssetDatabase.Refresh();
-        Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(ownerGuid)} → {active.Title}.");
+        PRSDKActiveProject.Instance.SetProject(owner);
+        Debug.LogError($"[PRUnitySDK] Активным оставлен {owner.Title}: сохранения площадок от него.");
     }
 
-    /// <summary>
-    /// Копирует файлы площадки в папку проекта; файла нет — убирает и старую копию: сохранение было пустым.
-    /// </summary>
-    private static void Stash(IPRSDKEditorSaveStore store, string folder)
-    {
-        Directory.CreateDirectory(folder);
-        foreach (string file in store.Files)
-        {
-            string copy = Path.Combine(folder, Path.GetFileName(file));
-            if (File.Exists(file))
-                File.Copy(file, copy, overwrite: true);
-            else if (File.Exists(copy))
-                File.Delete(copy);
-        }
-    }
+    private static PRSDKProject ProjectOf(string guid) =>
+        string.IsNullOrEmpty(guid) ? null : AssetDatabase.LoadAssetAtPath<PRSDKProject>(AssetDatabase.GUIDToAssetPath(guid));
 
-    /// <summary>
-    /// Кладёт файлы проекта на место файлов площадки; копии нет — удаляет файл, и площадка создаст новое сохранение.
-    /// </summary>
-    private static void Restore(IPRSDKEditorSaveStore store, string folder)
-    {
-        foreach (string file in store.Files)
-        {
-            string copy = Path.Combine(folder, Path.GetFileName(file));
-            if (File.Exists(copy))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(file) ?? string.Empty);
-                File.Copy(copy, file, overwrite: true);
-            }
-            else
-            {
-                DeleteWithMeta(file);
-            }
-        }
-    }
-
-    private const string BackupRoot = Root + "/Backup";
-    private const string NewBackupRoot = Root + "/Backup.new";
-
-    private static string BackupFolder(IPRSDKEditorSaveStore store) => $"{BackupRoot}/{store.Platform}";
-
-    /// <summary>
-    /// Копия нынешних файлов площадок до переключения; файла нет — копии тоже нет.
-    /// </summary>
-    /// <remarks>
-    /// Собирается в <see cref="NewBackupRoot"/> и подменяет прежнюю копию, только когда скопированы все файлы
-    /// всех площадок. Ошибка по пути оставляет прежнюю копию или никакой, но не полкопии.
-    /// </remarks>
-    private static void Backup(IEnumerable<IPRSDKEditorSaveStore> stores)
-    {
-        if (Directory.Exists(NewBackupRoot))
-            Directory.Delete(NewBackupRoot, recursive: true);
-        Directory.CreateDirectory(NewBackupRoot);
-        foreach (IPRSDKEditorSaveStore store in stores)
-        {
-            string folder = $"{NewBackupRoot}/{store.Platform}";
-            Directory.CreateDirectory(folder);
-            foreach (string file in store.Files)
-                if (File.Exists(file))
-                    File.Copy(file, Path.Combine(folder, Path.GetFileName(file)), overwrite: true);
-        }
-
-        if (Directory.Exists(BackupRoot))
-            Directory.Delete(BackupRoot, recursive: true);
-        Directory.Move(NewBackupRoot, BackupRoot);
-    }
-
-    /// <summary>
-    /// Возвращает файлы площадок, какими они были до переключения. Зовётся только после готовой
-    /// <see cref="Backup"/>: нет файла в копии — его не было и на месте.
-    /// </summary>
-    private static void RollBack(IEnumerable<IPRSDKEditorSaveStore> stores)
-    {
-        foreach (IPRSDKEditorSaveStore store in stores)
-        {
-            foreach (string file in store.Files)
-            {
-                try
-                {
-                    string copy = Path.Combine(BackupFolder(store), Path.GetFileName(file));
-                    if (File.Exists(copy)) File.Copy(copy, file, overwrite: true);
-                    else DeleteWithMeta(file);
-                }
-                catch (Exception exception)
-                {
-                    Debug.LogError($"[PRUnitySDK] Не вернул {file}, копия лежит в {BackupFolder(store)}: {exception.Message}");
-                }
-            }
-        }
-    }
-
-    private static void DeleteWithMeta(string file)
-    {
-        if (File.Exists(file))
-            File.Delete(file);
-        if (File.Exists(file + ".meta"))
-            File.Delete(file + ".meta");
-    }
-
-    private static string GuidOf(PRSDKProject project) => AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(project));
+    private static string GuidOf(PRSDKProject project) =>
+        project != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(project)) : string.Empty;
 
     private static string TitleOf(string guid)
     {
@@ -235,7 +162,17 @@ public static class PRSDKProjectSaves
     private static void Initialize()
     {
         MigrateFromAssets();
-        if (string.IsNullOrEmpty(EditorPrefs.GetString(OwnerKey, string.Empty)))
+
+        string owner = Owner;
+        string recovered = Switch.RecoverInterrupted(owner, out bool rolledBack);
+        if (rolledBack)
+        {
+            Owner = recovered;
+            AssetDatabase.Refresh();
+            Debug.LogWarning($"[PRUnitySDK] Прошлое переключение сохранений прервалось: файлы площадок возвращены, владелец — {TitleOf(recovered)}.");
+        }
+
+        if (string.IsNullOrEmpty(Owner) || Owner != GuidOf(Active))
             Sync();
     }
 
@@ -315,5 +252,28 @@ public static class PRSDKProjectSaves
     {
         if (state == PlayModeStateChange.EnteredEditMode && pending)
             Sync();
+        else if (state == PlayModeStateChange.ExitingEditMode)
+            GuardPlay();
+    }
+
+    /// <summary>
+    /// Игра не запускается с сохранением чужого проекта: прочитала бы и перезаписала его прогресс.
+    /// </summary>
+    private static void GuardPlay()
+    {
+        PRSDKProject active = Active;
+        string owner = Owner;
+        if (active == null || string.IsNullOrEmpty(owner) || owner == GuidOf(active))
+            return;
+
+        // В ExitingEditMode isPlayingOrWillChangePlaymode уже true — переключение идёт мимо проверки игры.
+        bool switched = Switch.TrySwitch(owner, GuidOf(active), () => Owner = GuidOf(active), out string error);
+        AssetDatabase.Refresh();
+        if (switched)
+            return;
+
+        EditorApplication.isPlaying = false;
+        Debug.LogError($"[PRUnitySDK] Запуск остановлен: сохранения площадок от {TitleOf(owner)}, активный проект — {active.Title}, " +
+                       $"а переключить не вышло: {error}");
     }
 }

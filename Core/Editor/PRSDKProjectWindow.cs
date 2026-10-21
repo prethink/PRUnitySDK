@@ -191,14 +191,21 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
         if (pointer == null)
             return;
 
+        // Своё сохранение у каждой игры: прежнее уходит в папку прежнего проекта, на место — сохранение нового.
+        // Сначала сохранения, потом проект: не вышло — активным остаётся прежний, и сохранение с проектом не расходятся.
+        if (!PRSDKProjectSaves.TrySwitchTo(project))
+        {
+            EditorUtility.DisplayDialog("Проект не сменён",
+                $"Не удалось переключить сохранения площадок на {project.Title}. Активным остался прежний проект, подробности в консоли.",
+                "Понятно");
+            return;
+        }
+
         Undo.RecordObject(pointer, "Сменить проект SDK");
         pointer.SetProject(project);
 
         ScriptableObjectSingleton<PRSDKDatabase>.ResetInstance();
         ScriptableObjectSingleton<PRSDKSettings>.ResetInstance();
-
-        // Своё сохранение у каждой игры: прежнее уходит в папку прежнего проекта, на место — сохранение нового.
-        PRSDKProjectSaves.Sync();
 
         Debug.Log($"[PRUnitySDK] Активный проект: {project.Title}.");
         Reload();
