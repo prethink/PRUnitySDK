@@ -24,7 +24,9 @@ using UnityEngine;
 /// </para>
 /// <para>
 /// Переключение — одна операция: перед ней файлы площадок копируются в <c>…/Backup</c>, при любой ошибке они
-/// возвращаются оттуда, а владелец меняется только после успеха всех площадок. Чьё сохранение сейчас у площадки,
+/// возвращаются оттуда, а владелец меняется только после успеха всех площадок. Копия собирается в <c>…/Backup.new</c>
+/// и становится резервной, только когда скопированы все файлы: в неполной копии нет файла — не значит, что его
+/// не было, и откат по ней удалил бы живое сохранение. Не собралась копия — файлы площадок не трогаются вовсе. Чьё сохранение сейчас у площадки,
 /// помнит <c>EditorPrefs</c> (ключ свой у каждого Unity-проекта); в первый запуск владелец — активный проект.
 /// Во время игры переключение ждёт выхода из неё: площадка держит сохранение открытым и записала бы его поверх.
 /// </para>
@@ -95,6 +97,15 @@ public static class PRSDKProjectSaves
         try
         {
             Backup(stores);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены: не удалась резервная копия, файлы площадок не тронуты: {exception.Message}");
+            return;
+        }
+
+        try
+        {
             foreach (IPRSDKEditorSaveStore store in stores)
             {
                 Stash(store, GetFolder(ownerGuid, store.Platform));
@@ -150,27 +161,40 @@ public static class PRSDKProjectSaves
         }
     }
 
-    private static string BackupFolder(IPRSDKEditorSaveStore store) => $"{Root}/Backup/{store.Platform}";
+    private const string BackupRoot = Root + "/Backup";
+    private const string NewBackupRoot = Root + "/Backup.new";
+
+    private static string BackupFolder(IPRSDKEditorSaveStore store) => $"{BackupRoot}/{store.Platform}";
 
     /// <summary>
     /// Копия нынешних файлов площадок до переключения; файла нет — копии тоже нет.
     /// </summary>
+    /// <remarks>
+    /// Собирается в <see cref="NewBackupRoot"/> и подменяет прежнюю копию, только когда скопированы все файлы
+    /// всех площадок. Ошибка по пути оставляет прежнюю копию или никакой, но не полкопии.
+    /// </remarks>
     private static void Backup(IEnumerable<IPRSDKEditorSaveStore> stores)
     {
+        if (Directory.Exists(NewBackupRoot))
+            Directory.Delete(NewBackupRoot, recursive: true);
+        Directory.CreateDirectory(NewBackupRoot);
         foreach (IPRSDKEditorSaveStore store in stores)
         {
-            string folder = BackupFolder(store);
-            if (Directory.Exists(folder))
-                Directory.Delete(folder, recursive: true);
+            string folder = $"{NewBackupRoot}/{store.Platform}";
             Directory.CreateDirectory(folder);
             foreach (string file in store.Files)
                 if (File.Exists(file))
                     File.Copy(file, Path.Combine(folder, Path.GetFileName(file)), overwrite: true);
         }
+
+        if (Directory.Exists(BackupRoot))
+            Directory.Delete(BackupRoot, recursive: true);
+        Directory.Move(NewBackupRoot, BackupRoot);
     }
 
     /// <summary>
-    /// Возвращает файлы площадок, какими они были до переключения.
+    /// Возвращает файлы площадок, какими они были до переключения. Зовётся только после готовой
+    /// <see cref="Backup"/>: нет файла в копии — его не было и на месте.
     /// </summary>
     private static void RollBack(IEnumerable<IPRSDKEditorSaveStore> stores)
     {
@@ -219,6 +243,11 @@ public static class PRSDKProjectSaves
     /// Переносит сохранения из прежнего места — <c>&lt;папка данных проекта&gt;/Editor/Saves</c> внутри Assets — в
     /// папку по GUID. Там они зависели от имени проекта и импортировались как ассеты.
     /// </summary>
+    /// <remarks>
+    /// Прежняя папка удаляется, только когда перенесены все её файлы. Если в новой папке уже лежит другой файл
+    /// с тем же именем (перенос прерывали), на месте остаётся более свежий, а второй ложится рядом
+    /// (<see cref="KeepBoth"/>): какой из двух нужен, по содержимому не понять.
+    /// </remarks>
     private static void MigrateFromAssets()
     {
         bool moved = false;
@@ -230,16 +259,26 @@ public static class PRSDKProjectSaves
             if (!Directory.Exists(old))
                 continue;
 
-            foreach (string platformFolder in Directory.GetDirectories(old))
+            try
             {
-                string target = GetFolder(guid, Path.GetFileName(platformFolder));
-                Directory.CreateDirectory(target);
-                foreach (string file in Directory.GetFiles(platformFolder).Where(file => !file.EndsWith(".meta")))
+                foreach (string platformFolder in Directory.GetDirectories(old))
                 {
-                    string copy = Path.Combine(target, Path.GetFileName(file));
-                    if (!File.Exists(copy))
-                        File.Copy(file, copy);
+                    string target = GetFolder(guid, Path.GetFileName(platformFolder));
+                    Directory.CreateDirectory(target);
+                    foreach (string file in Directory.GetFiles(platformFolder).Where(file => !file.EndsWith(".meta")))
+                    {
+                        string copy = Path.Combine(target, Path.GetFileName(file));
+                        if (!File.Exists(copy))
+                            File.Copy(file, copy);
+                        else if (!SameContent(file, copy))
+                            KeepBoth(file, copy);
+                    }
                 }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"[PRUnitySDK] Сохранения проекта {Path.GetFileNameWithoutExtension(path)} не перенесены, {old} оставлена на месте: {exception.Message}");
+                continue;
             }
 
             AssetDatabase.DeleteAsset(old);
@@ -251,6 +290,25 @@ public static class PRSDKProjectSaves
 
         if (moved)
             AssetDatabase.Refresh();
+    }
+
+    private static bool SameContent(string a, string b) =>
+        new FileInfo(a).Length == new FileInfo(b).Length && File.ReadAllBytes(a).SequenceEqual(File.ReadAllBytes(b));
+
+    /// <summary>
+    /// Два разных сохранения под одним именем: свежее остаётся в <paramref name="copy"/>, второе ложится рядом
+    /// с пометкой «older» и датой — площадка его не читает, но оно не потеряно.
+    /// </summary>
+    private static void KeepBoth(string file, string copy)
+    {
+        bool sourceNewer = File.GetLastWriteTimeUtc(file) > File.GetLastWriteTimeUtc(copy);
+        string older = sourceNewer ? copy : file;
+        string aside = Path.Combine(Path.GetDirectoryName(copy) ?? string.Empty,
+            $"{Path.GetFileNameWithoutExtension(copy)}.older-{File.GetLastWriteTime(older):yyyyMMdd-HHmmss}{Path.GetExtension(copy)}");
+        File.Copy(older, aside, overwrite: true);
+        if (sourceNewer)
+            File.Copy(file, copy, overwrite: true);
+        Debug.LogWarning($"[PRUnitySDK] При переносе {file} в {copy} сохранения разные: оставлено более свежее, второе — {aside}.");
     }
 
     private static void OnPlayModeChanged(PlayModeStateChange state)
