@@ -334,6 +334,10 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Сцена игры у проекта SDK.** Необязательное поле `PRSDKProject.GameSceneGuid` (в инспекторе — выбор сцены,
+  `[SceneGuid]`). Смена активного проекта ставит в сборку стартовую сцену и за ней сцену проекта, остальные
+  выключает (`PRSDKProjectScenes.Apply`, зовёт `PRSDKActiveProjectWatcher`) и открывает её, сохранив изменённые
+  сцены (`OpenGameScene`). `PRSDKActiveProject.SetProject` теперь сам сообщает о смене. Пустое поле сборку не трогает.
 - **Синглтоны не рождаются на закрытии.** `PRMonoBehaviourSingletonBase.Instance` после `Application.quitting`
   (в редакторе — выход из Play Mode) не создаёт новый объект, а возвращает `null` и пишет об этом в отладочный лог:
   иначе обработчик уничтожения поднимал бы объект, переживающий сцену («Some objects were not cleaned up»).

@@ -13,9 +13,11 @@
     <type fullname="AnimationControl">
       <method name="ApplyPauseToOverrideAnimation" />
     </type>
+    <type fullname="AuraDatabase" preserve="all" />
     <type fullname="BackgroundExperienceSourceTask" preserve="all" />
     <type fullname="BackgroundTask" preserve="all" />
     <type fullname="BackgroundTaskKeyEnumerations" preserve="all" />
+    <type fullname="BlockPetDatabase" preserve="all" />
     <type fullname="Bootstrap">
       <method name="OnDisableYG" />
       <method name="OnEnableYG" />
@@ -39,6 +41,7 @@
     <type fullname="DailyGiftReservedItems" preserve="all" />
     <type fullname="DamageEffectHandler" preserve="all" />
     <type fullname="Database`1" preserve="all" />
+    <type fullname="DumbbellDatabase" preserve="all" />
     <type fullname="EggDatabase" preserve="all" />
     <type fullname="EntityBase">
       <method name="AttachContainerShine" />
@@ -50,6 +53,7 @@
     <type fullname="EntitySideEnumerations" preserve="all" />
     <type fullname="EntityTypeEnumerations" preserve="all" />
     <type fullname="EnumerationProviderBase" preserve="all" />
+    <type fullname="FishingRodDatabase" preserve="all" />
     <type fullname="FlagsProviderBase" preserve="all" />
     <type fullname="FreeGiftDatabase" preserve="all" />
     <type fullname="FreeGiftReservedItems" preserve="all" />
@@ -113,6 +117,7 @@
       <method name="InitializeAdManager" />
       <method name="InitializeAdManagerOverrideYG" />
       <method name="InitializeAudioMixerManager" />
+      <method name="InitializeAuras" />
       <method name="InitializeBoosterManager" />
       <method name="InitializeDamageMultiplier" />
       <method name="InitializeEmotes" />
@@ -190,6 +195,7 @@
     <type fullname="PRWindowsContainer">
       <method name="InitializeAchievementNotifier" />
       <method name="InitializeAchievementWindow" />
+      <method name="InitializeAurasWindow" />
       <method name="InitializeBrainrotInfoWindow" />
       <method name="InitializeCaseWindow" />
       <method name="InitializeConfirmWindow" />
@@ -276,6 +282,7 @@
       <method name="RegisterOfflineIncome" />
       <method name="UnregisterOfflineIncome" />
     </type>
+    <type fullname="StoneDatabase" preserve="all" />
     <type fullname="TimeLimitedRewardExpiryTask" preserve="all" />
     <type fullname="TrailDatabase" preserve="all" />
     <type fullname="TriggerKeyEnumerations" preserve="all" />

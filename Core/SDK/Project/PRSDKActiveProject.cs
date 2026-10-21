@@ -67,6 +67,9 @@ public class PRSDKActiveProject : ScriptableObjectSingleton<PRSDKActiveProject>
         project = value;
         UnityEditor.EditorUtility.SetDirty(this);
         UnityEditor.AssetDatabase.SaveAssets();
+        // SetDirty не зовёт OnValidate: о смене сообщаем сами, чтобы наблюдатель перестроил сцены сборки.
+        UnityEditor.EditorApplication.delayCall -= RaiseEdited;
+        UnityEditor.EditorApplication.delayCall += RaiseEdited;
     }
 #endif
 }

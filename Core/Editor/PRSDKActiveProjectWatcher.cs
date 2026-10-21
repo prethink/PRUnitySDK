@@ -17,6 +17,7 @@ public static class PRSDKActiveProjectWatcher
     private static PRSDKProject lastProject;
     private static PRSDKDatabase lastDatabase;
     private static PRSDKSettings lastSettings;
+    private static string lastScene;
 
     static PRSDKActiveProjectWatcher()
     {
@@ -33,6 +34,7 @@ public static class PRSDKActiveProjectWatcher
         lastProject = CurrentProject;
         lastDatabase = lastProject != null ? lastProject.Database : null;
         lastSettings = lastProject != null ? lastProject.Settings : null;
+        lastScene = lastProject != null ? lastProject.GameSceneGuid : null;
     }
 
     private static void Check()
@@ -42,8 +44,9 @@ public static class PRSDKActiveProjectWatcher
         bool settingsChanged = (project != null ? project.Settings : null) != lastSettings;
 
         bool projectChanged = project != lastProject;
+        bool sceneChanged = (project != null ? project.GameSceneGuid : null) != lastScene;
 
-        if (!projectChanged && !databaseChanged && !settingsChanged)
+        if (!projectChanged && !databaseChanged && !settingsChanged && !sceneChanged)
             return;
 
         Remember();
@@ -53,6 +56,14 @@ public static class PRSDKActiveProjectWatcher
             ScriptableObjectSingleton<PRSDKDatabase>.ResetInstance();
         if (projectChanged || settingsChanged)
             ScriptableObjectSingleton<PRSDKSettings>.ResetInstance();
+
+        // Сцена игры из проекта встаёт в сборку за стартовой: и при смене проекта, и когда её выбрали у активного.
+        if ((projectChanged || sceneChanged) && project != null)
+            PRSDKProjectScenes.Apply(project);
+
+        // Сменили проект — сразу открыть его сцену, сохранив текущие.
+        if (projectChanged && project != null)
+            PRSDKProjectScenes.OpenGameScene(project);
 
         InternalEditorUtility.RepaintAllViews();
     }

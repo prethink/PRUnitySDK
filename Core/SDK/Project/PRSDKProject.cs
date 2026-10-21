@@ -33,6 +33,11 @@ public class PRSDKProject : ScriptableObject
     [Tooltip("Настройки модулей SDK.")]
     private PRSDKSettings settings;
 
+    [SerializeField, SceneGuid]
+    [Tooltip("Необязательно. Сцена игры: когда проект становится активным, в списке сборки первой встаёт стартовая сцена, " +
+             "за ней эта, остальные выключаются. Пусто — список сборки не трогается.")]
+    private string gameScene;
+
     /// <summary>
     /// Название проекта; пусто — имя ассета.
     /// </summary>
@@ -61,6 +66,15 @@ public class PRSDKProject : ScriptableObject
     /// Так проект можно собирать по частям, не ломая работающую игру.
     /// </remarks>
     public bool IsComplete => database != null && settings != null;
+
+    /// <summary>
+    /// GUID сцены игры; пусто — сцена к проекту не привязана.
+    /// </summary>
+    /// <remarks>
+    /// Хранится GUID, а не путь: перенос сцены в другую папку привязку не ломает. В сборке поле не читается —
+    /// по нему в редакторе собирается список сцен сборки (<c>PRSDKProjectScenes</c>).
+    /// </remarks>
+    public string GameSceneGuid => gameScene;
 
     /// <summary>
     /// Ассет проекта нужного вида либо <see langword="null"/>.
