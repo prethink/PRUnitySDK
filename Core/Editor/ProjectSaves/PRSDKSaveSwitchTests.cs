@@ -328,6 +328,54 @@ public sealed class PRSDKSaveSwitchTests
     }
 
     [Test]
+    public void LostBackup_RecoverKeepsLiveFiles()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        File.WriteAllLines(saves.JournalPath, new[] { A, B });
+        owner = A;
+        // Копию потеряли (перенос проекта без неё): «не было файла» от этого не отличить — файл не трогаем.
+        Directory.Delete(Path.Combine(root, "Backup"), recursive: true);
+
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.Incomplete, saves.RecoverInterrupted());
+
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.IsTrue(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void AbsentInBackup_RollBackDeletesFile()
+    {
+        // До переключения файла не было: откат его убирает, а не считает копию потерянной.
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        File.WriteAllLines(saves.JournalPath, new[] { A, B });
+        owner = A;
+
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.RolledBack, saves.RecoverInterrupted());
+
+        Assert.IsFalse(File.Exists(first.File));
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void Switch_WithUnfinishedJournal_Refuses()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        File.WriteAllLines(saves.JournalPath, new[] { A, B });
+        string backup = File.ReadAllText(Path.Combine(root, "Backup", first.Platform, "first.json"));
+
+        Assert.IsFalse(saves.TrySwitch(B, A, out string error));
+
+        StringAssert.Contains("не доведено", error);
+        Assert.AreEqual(backup, File.ReadAllText(Path.Combine(root, "Backup", first.Platform, "first.json")));
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+    }
+
+    [Test]
     public void LockedJournal_RecoverTouchesNothing()
     {
         File.WriteAllText(first.File, "A1");

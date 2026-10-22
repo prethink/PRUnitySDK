@@ -15,6 +15,10 @@ using UnityEngine;
 /// Чего не хватает — создаётся пустым в папке данных. Пустая база лучше, чем ошибка
 /// на старте: игру можно запустить и заполнять по ходу.
 /// </para>
+/// <para>
+/// Проектов несколько, а активный не выбран — ничего не собирается: выбирает человек. Ничьи база и настройки
+/// берутся, только если такой ассет один и ни одному проекту не принадлежит.
+/// </para>
 /// </remarks>
 [InitializeOnLoad]
 public static class PRSDKProjectBootstrap
@@ -53,19 +57,40 @@ public static class PRSDKProjectBootstrap
         // созданные до появления проектов. У проекта, уже выбранного человеком, чужого
         // брать нельзя — так одна игра начала бы собираться из данных другой.
         bool isFirstSetup = project == null;
+        PRSDKProject[] projects = FindAll<PRSDKProject>();
 
-        project ??= FindProject() ?? CreateProject();
+        if (isFirstSetup)
+        {
+            // Проектов несколько — выбирать за человека нельзя, и новый тоже не создаётся: взятый наугад или
+            // собранный заново проект означает сборку не из тех данных.
+            if (projects.Length > 1)
+            {
+                Debug.LogWarning(
+                    $"[PRUnitySDK] Проектов найдено {projects.Length}, активный не выбран — " +
+                    "укажите его в окне PRUnitySDK/Game/Project.");
+                return;
+            }
 
-        if (project == null)
+            project = projects.Length == 1 ? projects[0] : null;
+        }
+
+        PRSDKDatabase database = project != null ? project.Database : null;
+        PRSDKSettings settings = project != null ? project.Settings : null;
+
+        // Ничьи данные — только при первой настройке и только однозначно: чужие проектам и в одном экземпляре.
+        // Иначе новая игра могла бы получить базу одной игры и настройки другой.
+        if (isFirstSetup && database == null && !TryFindFree(projects, out database))
+            return;
+        if (isFirstSetup && settings == null && !TryFindFree(projects, out settings))
             return;
 
-        PRSDKDatabase database = project.Database
-                                 ?? (isFirstSetup ? Find<PRSDKDatabase>() : null)
-                                 ?? Create<PRSDKDatabase>(project.name);
-
-        PRSDKSettings settings = project.Settings
-                                 ?? (isFirstSetup ? Find<PRSDKSettings>() : null)
-                                 ?? Create<PRSDKSettings>(project.name);
+        // Явные сравнения, не ??: потерянная ссылка Unity равна null только для ==.
+        if (project == null)
+            project = CreateProject();
+        if (database == null)
+            database = Create<PRSDKDatabase>(project.name);
+        if (settings == null)
+            settings = Create<PRSDKSettings>(project.name);
 
         project.SetContent(database, settings);
 
@@ -77,30 +102,6 @@ public static class PRSDKProjectBootstrap
         Debug.Log(
             $"[PRUnitySDK] Проект «{project.Title}» подключён: " +
             $"база {Describe(database)}, настройки {Describe(settings)}.");
-    }
-
-    /// <summary>
-    /// Существующий проект: единственный либо ни одного.
-    /// </summary>
-    /// <remarks>
-    /// Когда проектов несколько, выбирать за человека нельзя: он сам укажет активный
-    /// в окне. Взятый наугад первый проект означает сборку не из тех данных.
-    /// </remarks>
-    private static PRSDKProject FindProject()
-    {
-        PRSDKProject[] projects = FindAll<PRSDKProject>();
-
-        if (projects.Length == 1)
-            return projects[0];
-
-        if (projects.Length > 1)
-        {
-            Debug.LogWarning(
-                $"[PRUnitySDK] Проектов найдено {projects.Length}, активный не выбран — " +
-                "укажите его в окне PRUnitySDK/Game/Project.");
-        }
-
-        return null;
     }
 
     private static PRSDKProject CreateProject()
@@ -115,20 +116,25 @@ public static class PRSDKProjectBootstrap
     }
 
     /// <summary>
-    /// Первый ассет нужного вида в проекте Unity.
+    /// Ассет нужного вида, который не принадлежит ни одному проекту.
     /// </summary>
-    private static T Find<T>() where T : ScriptableObject
+    /// <returns><c>false</c> — таких несколько: какой из них данные этой игры, не понять, и ничего не собирается.
+    /// <c>true</c> с <c>null</c> — таких нет, создастся пустой.</returns>
+    private static bool TryFindFree<T>(PRSDKProject[] projects, out T asset) where T : ScriptableObject
     {
-        T[] assets = FindAll<T>();
+        T[] free = FindAll<T>()
+            .Where(candidate => !projects.Any(project =>
+                project.Database == candidate || (ScriptableObject)project.Settings == candidate))
+            .ToArray();
 
-        if (assets.Length > 1)
-        {
-            Debug.LogWarning(
-                $"[PRUnitySDK] {typeof(T).Name}: найдено {assets.Length} ассетов, взят первый — " +
-                "лишние стоит удалить или разложить по проектам.");
-        }
+        asset = free.Length == 1 ? free[0] : null;
+        if (free.Length <= 1)
+            return true;
 
-        return assets.FirstOrDefault();
+        Debug.LogWarning(
+            $"[PRUnitySDK] {typeof(T).Name}: ничьих ассетов {free.Length} ({string.Join(", ", free.Select(AssetDatabase.GetAssetPath))}) — " +
+            "проект не собран: лишние удалите или соберите проект вручную в окне PRUnitySDK/Game/Project.");
+        return false;
     }
 
     private static T[] FindAll<T>() where T : ScriptableObject

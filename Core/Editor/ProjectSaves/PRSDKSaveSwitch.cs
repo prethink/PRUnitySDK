@@ -13,7 +13,9 @@ using System.IO;
 /// </para>
 /// <list type="number">
 /// <item>Резервная копия собирается в <c>Backup.new</c> и подменяет <c>Backup</c> только целиком (прежняя
-/// уходит в <c>Backup.old</c> и удаляется после подмены). Не собралась — файлы площадок не трогаются.</item>
+/// уходит в <c>Backup.old</c> и удаляется после подмены). Не собралась — файлы площадок не трогаются. Файла не
+/// было — в копии отметка <c>.absent</c>: без неё «не было» не отличить от потерянной копии, и откат такой файл не
+/// трогает. Пока журнал есть, новое переключение не начинается — его копия заменила бы нужную для отката.</item>
 /// <item>Журнал <c>Switch.txt</c> («откуда», «куда») пишется после готовой копии: по нему видно, что операция
 /// начата и откатывать есть из чего. Пишется в <c>Switch.txt.new</c> и переносится — на месте он только целый;
 /// нечитаемый журнал или журнал без двух GUID проектов восстановление не трогает (<see cref="Recovery.Unreadable"/>).</item>
@@ -38,6 +40,9 @@ using System.IO;
 public sealed class PRSDKSaveSwitch
 {
     private const string MetaExtension = ".meta";
+
+    // Отметка в резервной копии: файла площадки до переключения не было.
+    private const string AbsentExtension = ".absent";
 
     private readonly string root;
     private readonly IReadOnlyList<IPRSDKEditorSaveStore> stores;
@@ -100,6 +105,13 @@ public sealed class PRSDKSaveSwitch
     public bool TrySwitch(string from, string to, out string error)
     {
         error = null;
+        // Новая копия заменила бы ту, по которой откатывается незаконченная операция.
+        if (HasUnfinished)
+        {
+            error = $"прошлое переключение не доведено (журнал {JournalPath}), сначала восстановление";
+            return false;
+        }
+
         try
         {
             Backup();
@@ -354,6 +366,8 @@ public sealed class PRSDKSaveSwitch
                 string copy = Path.Combine(folder, Path.GetFileName(file));
                 if (File.Exists(file))
                     File.Copy(file, copy, overwrite: true);
+                else
+                    File.WriteAllText(copy + AbsentExtension, string.Empty);
                 if (File.Exists(file + MetaExtension))
                     File.Copy(file + MetaExtension, copy + MetaExtension, overwrite: true);
             }
@@ -367,8 +381,9 @@ public sealed class PRSDKSaveSwitch
     }
 
     /// <summary>
-    /// Возвращает файлы площадок и их <c>.meta</c>, какими они были до переключения. Нет файла в копии — его не было
-    /// и на месте: файл удаляется вместе с <c>.meta</c>.
+    /// Возвращает файлы площадок и их <c>.meta</c>, какими они были до переключения. Вместо файла в копии отметка
+    /// <c>.absent</c> — его не было и на месте: файл удаляется вместе с <c>.meta</c>. Нет ни файла, ни отметки —
+    /// копия потеряна или неполная: файл не трогается и считается невозвращённым.
     /// </summary>
     /// <returns>Файлы, которые вернуть не удалось.</returns>
     private List<string> RollBack()
@@ -392,9 +407,14 @@ public sealed class PRSDKSaveSwitch
                         else if (File.Exists(file + MetaExtension))
                             File.Delete(file + MetaExtension);
                     }
-                    else
+                    else if (File.Exists(copy + AbsentExtension))
                     {
                         DeleteWithMeta(file);
+                    }
+                    else
+                    {
+                        // Не отличить «не было» от «копию потеряли»: удалить значило бы, возможно, стереть прогресс.
+                        failed.Add(file + " (нет в резервной копии)");
                     }
                 }
                 catch (Exception)

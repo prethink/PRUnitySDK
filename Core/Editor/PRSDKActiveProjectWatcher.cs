@@ -89,8 +89,8 @@ public static class PRSDKActiveProjectWatcher
         if ((projectChanged || sceneChanged) && project != null)
             PRSDKProjectScenes.Apply(project);
 
-        // Сменили проект — сразу открыть его сцену, сохранив текущие.
-        if (projectChanged && project != null)
+        // Сменили проект или его сцену — сразу открыть её, сохранив текущие.
+        if ((projectChanged || sceneChanged) && project != null)
             PRSDKProjectScenes.OpenGameScene(project);
 
         InternalEditorUtility.RepaintAllViews();

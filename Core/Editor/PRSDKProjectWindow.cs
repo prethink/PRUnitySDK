@@ -401,7 +401,8 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// </summary>
     /// <param name="fromCurrent">
     /// Взять то, что игра использует сейчас, вместо создания пустых. Так делается первый
-    /// проект: состав уже собран, и переносить его руками незачем.
+    /// проект: состав уже собран, и переносить его руками незачем. Если эти ассеты уже у какого-то
+    /// проекта, ничего не создаётся — для новой игры есть «Копия».
     /// </param>
     /// <remarks>
     /// Новый проект получает **свои** базу и настройки, а не ссылки на чужие: иначе две
@@ -410,6 +411,22 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// </remarks>
     private void CreateProject(bool fromCurrent)
     {
+        // «Из текущих» — только перенос из Resources: если на текущие базу или настройки уже ссылается проект
+        // (активный или собранный раньше), новый делил бы их с ним. Для новой игры — «Копия» со своими ассетами.
+        if (fromCurrent)
+        {
+            PRSDKProject owner = projects.FirstOrDefault(other =>
+                other.Database == PRSDKDatabase.Instance || other.Settings == PRSDKSettings.Instance);
+            if (owner != null)
+            {
+                EditorUtility.DisplayDialog("Собрать из текущих",
+                    $"Текущие база и настройки уже принадлежат проекту «{owner.Title}», и новый проект делил бы их с ним. " +
+                    $"Для новой игры нажмите «Копия» у «{owner.Title}»: копия получит свои базу и настройки.",
+                    "Понятно");
+                return;
+            }
+        }
+
         if (!Directory.Exists(DefaultFolder))
             Directory.CreateDirectory(DefaultFolder);
 
