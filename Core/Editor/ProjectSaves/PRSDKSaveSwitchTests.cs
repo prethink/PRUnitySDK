@@ -11,8 +11,9 @@ using NUnit.Framework;
 /// </remarks>
 public sealed class PRSDKSaveSwitchTests
 {
-    private const string A = "projectA";
-    private const string B = "projectB";
+    // Как GUID ассетов Unity: журнал с другим форматом восстановление не принимает.
+    private const string A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    private const string B = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
     private string folder;
     private string root;
@@ -306,6 +307,23 @@ public sealed class PRSDKSaveSwitchTests
 
         Assert.AreEqual("B1", File.ReadAllText(first.File));
         Assert.AreEqual(B, owner);
+        Assert.IsTrue(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void Journal_WithTruncatedGuid_DoesNotRecover()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        // «Откуда» обрезан: откат записал бы обрывок владельцем.
+        File.WriteAllLines(saves.JournalPath, new[] { A.Substring(0, 8), B });
+        owner = A;
+
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.Unreadable, saves.RecoverInterrupted());
+
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.AreEqual(A, owner);
         Assert.IsTrue(saves.HasUnfinished);
     }
 

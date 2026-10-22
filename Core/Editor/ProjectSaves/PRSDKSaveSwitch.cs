@@ -16,7 +16,7 @@ using System.IO;
 /// уходит в <c>Backup.old</c> и удаляется после подмены). Не собралась — файлы площадок не трогаются.</item>
 /// <item>Журнал <c>Switch.txt</c> («откуда», «куда») пишется после готовой копии: по нему видно, что операция
 /// начата и откатывать есть из чего. Пишется в <c>Switch.txt.new</c> и переносится — на месте он только целый;
-/// нечитаемый или без обоих проектов журнал восстановление не трогает (<see cref="Recovery.Unreadable"/>).</item>
+/// нечитаемый журнал или журнал без двух GUID проектов восстановление не трогает (<see cref="Recovery.Unreadable"/>).</item>
 /// <item>Файлы площадок уходят в папку прежнего проекта, на их место ложатся файлы нового. Исключение —
 /// откат из копии.</item>
 /// <item>Записывается новый владелец и сверяется чтением. Только потом журнал удаляется.</item>
@@ -81,7 +81,7 @@ public sealed class PRSDKSaveSwitch
         RolledBack,
         /// <summary>Часть файлов не вернулась или владелец не записался: журнал и копия остаются.</summary>
         Incomplete,
-        /// <summary>Журнал не прочитать или в нём нет обоих проектов: ничего не тронуто, журнал остаётся.</summary>
+        /// <summary>Журнал не прочитать или в нём нет двух GUID проектов: ничего не тронуто, журнал остаётся.</summary>
         Unreadable
     }
 
@@ -169,8 +169,8 @@ public sealed class PRSDKSaveSwitch
 
         string from = lines.Length > 0 ? lines[0].Trim() : null;
         string to = lines.Length > 1 ? lines[1].Trim() : null;
-        // Журнал появляется только целым, но и чужая правка не должна стать владельцем: без обоих проектов — не трогаем.
-        if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to))
+        // Журнал появляется только целым, но и чужая правка не должна стать владельцем: не GUID проекта — не трогаем.
+        if (!IsProjectGuid(from) || !IsProjectGuid(to))
             return Recovery.Unreadable;
         // Любая третья строка, даже недописанная, — откат начат: владельцу «куда» больше не верим.
         bool rollingBack = lines.Length > 2;
@@ -222,6 +222,19 @@ public sealed class PRSDKSaveSwitch
         string notBack = failed.Count > 0 ? ". Не вернулись: " + string.Join(", ", failed) : string.Empty;
         string owner = ownerBack ? string.Empty : ". Владелец не возвращён: " + ownerError;
         return reason + notBack + owner + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
+    }
+
+    /// <summary>
+    /// GUID ассета Unity: 32 шестнадцатеричных знака.
+    /// </summary>
+    private static bool IsProjectGuid(string value)
+    {
+        if (value == null || value.Length != 32)
+            return false;
+        foreach (char c in value)
+            if (!Uri.IsHexDigit(c))
+                return false;
+        return true;
     }
 
     /// <summary>
