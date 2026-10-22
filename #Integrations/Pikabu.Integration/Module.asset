@@ -24,4 +24,4 @@ MonoBehaviour:
   pluginModulesFile:
   hidePluginWhenDisabled: 1
   webGLTemplate: PROJECT:Pikabu
-  webGLTemplateSource: Assets/PRUnitySDK/Pikabu.Integration/WebGLTemplate~
+  webGLTemplateSource: Assets/PRUnitySDK/#Integrations/Pikabu.Integration/WebGLTemplate~

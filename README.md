@@ -559,7 +559,7 @@ PRUnitySDK/
 ├── Resources/                  # Runtime-ресурсы фреймворка (данные игры — в PRUnityData)
 ├── Utils/                      # Дополнительные утилиты
 ├── Plugins/                    # Сторонние плагины (SerializedCollections)
-└── *.Integration/              # Интеграции площадок: YG2, GamePush и другие
+└── #Integrations/*.Integration/ # Интеграции площадок: YG2, GamePush и другие
 ```
 
 ## Дополнительная документация
@@ -639,8 +639,8 @@ PRUnitySDK/
 - [GameSessions](Modules/GameSessions/README.md) — сессия карты и раунды с режимами и правилами; одиночная игра и локальный мультиплеер
 - [HitBox](Modules/HitBox/README.md) — связь физических коллайдеров с `DamageSystem`
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
-- [YG2 Integration](YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
-- [GamePush Integration](GamePush.Integration/README.md) — те же контракты на плагине GamePush
+- [YG2 Integration](%23Integrations/YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
+- [GamePush Integration](%23Integrations/GamePush.Integration/README.md) — те же контракты на плагине GamePush
 
 ## Текущие ограничения
 

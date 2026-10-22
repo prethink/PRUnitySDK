@@ -464,4 +464,4 @@ editor processor он не меняет Inspector.
 - [SDK](../SDK/README.md)
 - [PRMonoBehaviour](../PRMonoBehaviour/README.md)
 - [PauseSystem](../PauseSystem/README.md)
-- [YG2 Integration](../../YG2.Integration/README.md)
+- [YG2 Integration](../../%23Integrations/YG2.Integration/README.md)
