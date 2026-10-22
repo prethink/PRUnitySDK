@@ -15,7 +15,8 @@ using System.IO;
 /// <item>Резервная копия собирается в <c>Backup.new</c> и подменяет <c>Backup</c> только целиком (прежняя
 /// уходит в <c>Backup.old</c> и удаляется после подмены). Не собралась — файлы площадок не трогаются.</item>
 /// <item>Журнал <c>Switch.txt</c> («откуда», «куда») пишется после готовой копии: по нему видно, что операция
-/// начата и откатывать есть из чего.</item>
+/// начата и откатывать есть из чего. Пишется в <c>Switch.txt.new</c> и переносится — на месте он только целый;
+/// нечитаемый или без обоих проектов журнал восстановление не трогает (<see cref="Recovery.Unreadable"/>).</item>
 /// <item>Файлы площадок уходят в папку прежнего проекта, на их место ложатся файлы нового. Исключение —
 /// откат из копии.</item>
 /// <item>Записывается новый владелец и сверяется чтением. Только потом журнал удаляется.</item>
@@ -79,7 +80,9 @@ public sealed class PRSDKSaveSwitch
         /// <summary>Файлы возвращены из копии целиком, владелец — прежний.</summary>
         RolledBack,
         /// <summary>Часть файлов не вернулась или владелец не записался: журнал и копия остаются.</summary>
-        Incomplete
+        Incomplete,
+        /// <summary>Журнал не прочитать или в нём нет обоих проектов: ничего не тронуто, журнал остаётся.</summary>
+        Unreadable
     }
 
     /// <summary>
@@ -109,7 +112,10 @@ public sealed class PRSDKSaveSwitch
 
         try
         {
-            File.WriteAllLines(JournalPath, new[] { from, to });
+            // Через временный файл и перенос: оборванная запись остаётся в .new, а журнал появляется только целым.
+            string temp = JournalPath + ".new";
+            File.WriteAllLines(temp, new[] { from, to });
+            File.Move(temp, JournalPath);
         }
         catch (Exception exception)
         {
@@ -151,14 +157,26 @@ public sealed class PRSDKSaveSwitch
         if (!File.Exists(JournalPath))
             return Recovery.None;
 
-        string[] lines = File.ReadAllLines(JournalPath);
-        string from = lines.Length > 0 ? lines[0] : null;
-        string to = lines.Length > 1 ? lines[1] : null;
+        string[] lines;
+        try
+        {
+            lines = File.ReadAllLines(JournalPath);
+        }
+        catch (Exception)
+        {
+            return Recovery.Unreadable;
+        }
+
+        string from = lines.Length > 0 ? lines[0].Trim() : null;
+        string to = lines.Length > 1 ? lines[1].Trim() : null;
+        // Журнал появляется только целым, но и чужая правка не должна стать владельцем: без обоих проектов — не трогаем.
+        if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to))
+            return Recovery.Unreadable;
         // Любая третья строка, даже недописанная, — откат начат: владельцу «куда» больше не верим.
         bool rollingBack = lines.Length > 2;
 
         // Владелец уже новый: файлы подменили и запомнили, не успели только убрать журнал.
-        if (!rollingBack && !string.IsNullOrEmpty(to) && ReadOwner() == to)
+        if (!rollingBack && ReadOwner() == to)
         {
             DeleteJournal();
             return Recovery.Completed;
@@ -167,7 +185,7 @@ public sealed class PRSDKSaveSwitch
         // Журнал пишется после готовой копии: по ней файлы возвращаются к виду до переключения, владелец — «откуда».
         if (RollBack().Count > 0)
             return Recovery.Incomplete;
-        if (!string.IsNullOrEmpty(from) && !TryWriteOwner(from, out _))
+        if (!TryWriteOwner(from, out _))
             return Recovery.Incomplete;
 
         DeleteJournal();

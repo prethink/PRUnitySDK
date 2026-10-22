@@ -320,6 +320,11 @@ public static class PRSDKProjectSaves
                                $"({OwnerPath}) могут быть от разных проектов. Закройте то, что держит эти файлы, и перезапустите редактор; " +
                                $"копия и журнал — в {Root}.");
                 return false;
+            case PRSDKSaveSwitch.Recovery.Unreadable:
+                Debug.LogError($"[PRUnitySDK] Журнал прошлого переключения сохранений ({saves.JournalPath}) не прочитать или он повреждён: " +
+                               "файлы площадок и владелец не тронуты, но могут быть от разных проектов; игра не запустится. " +
+                               $"Сверьте файлы площадок с копией в {Root}/Backup и {OwnerPath}, затем удалите журнал.");
+                return false;
             default:
                 return true;
         }

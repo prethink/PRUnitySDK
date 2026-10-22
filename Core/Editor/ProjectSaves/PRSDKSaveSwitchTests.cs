@@ -294,6 +294,54 @@ public sealed class PRSDKSaveSwitchTests
     }
 
     [Test]
+    public void DamagedJournal_RecoverTouchesNothing()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        // Журнал без «куда»: из него нельзя понять ни владельца, ни направления.
+        File.WriteAllLines(saves.JournalPath, new[] { "proj" });
+
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.Unreadable, saves.RecoverInterrupted());
+
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.AreEqual(B, owner);
+        Assert.IsTrue(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void LockedJournal_RecoverTouchesNothing()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Assert.IsTrue(saves.TrySwitch(A, B, out _));
+        File.WriteAllLines(saves.JournalPath, new[] { A, B });
+        owner = A;
+
+        using (new FileStream(saves.JournalPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            Assert.AreEqual(PRSDKSaveSwitch.Recovery.Unreadable, saves.RecoverInterrupted());
+
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.AreEqual(A, owner);
+        Assert.IsTrue(saves.HasUnfinished);
+    }
+
+    [Test]
+    public void JournalWriteFailure_LeavesNoJournal()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        Directory.CreateDirectory(root);
+        // Временный файл журнала занят: журнал не появляется вовсе, а не появляется наполовину.
+        using (new FileStream(saves.JournalPath + ".new", FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            Assert.IsFalse(saves.TrySwitch(A, B, out _));
+
+        Assert.IsFalse(saves.HasUnfinished);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual(A, owner);
+    }
+
+    [Test]
     public void SwapFailure_RestoresDeletedMeta()
     {
         File.WriteAllText(first.File, "A1");
