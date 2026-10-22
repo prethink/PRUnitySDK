@@ -112,6 +112,14 @@ public sealed class PRSDKSaveSwitch
             return false;
         }
 
+        // Файлы площадки лежат в копии и в папке проекта по имени: два файла с одним именем затёрли бы друг друга.
+        string clash = FindNameClash();
+        if (clash != null)
+        {
+            error = $"у площадки два файла с одним именем ({clash}) — их сохранения смешались бы, файлы не тронуты";
+            return false;
+        }
+
         try
         {
             Backup();
@@ -234,6 +242,20 @@ public sealed class PRSDKSaveSwitch
         string notBack = failed.Count > 0 ? ". Не вернулись: " + string.Join(", ", failed) : string.Empty;
         string owner = ownerBack ? string.Empty : ". Владелец не возвращён: " + ownerError;
         return reason + notBack + owner + $" — копия в {BackupRoot}, журнал {JournalPath} оставлен";
+    }
+
+    /// <summary>
+    /// Первая пара файлов одной площадки с одинаковым именем, иначе <c>null</c>.
+    /// </summary>
+    private string FindNameClash()
+    {
+        // Без учёта регистра: на Windows Save.json и save.json — один файл.
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (IPRSDKEditorSaveStore store in stores)
+            foreach (string file in store.Files)
+                if (!seen.Add(store.Platform + "/" + Path.GetFileName(file)))
+                    return $"{store.Platform}: {Path.GetFileName(file)}";
+        return null;
     }
 
     /// <summary>

@@ -40,7 +40,7 @@ public sealed class PRSDKSaveSwitchTests
         public string File { get; }
 
         /// <summary>
-        /// Сколько раз перечисляли файлы: копия, в папку проекта, на место, откат — по разу.
+        /// Сколько раз перечисляли файлы: проверка имён, копия, в папку проекта, на место, откат — по разу.
         /// </summary>
         public int Passes { get; private set; }
 
@@ -376,6 +376,26 @@ public sealed class PRSDKSaveSwitchTests
     }
 
     [Test]
+    public void SameFileNameInOnePlatform_Refuses()
+    {
+        // Тот же «save.json» из другой папки той же площадки: в копии и в папке проекта он лёг бы поверх первого.
+        string otherDir = Path.Combine(folder, "Other");
+        Directory.CreateDirectory(otherDir);
+        var twin = new Store(first.Platform, Path.Combine(otherDir, Path.GetFileName(first.File)));
+        var clashing = new PRSDKSaveSwitch(root, new IPRSDKEditorSaveStore[] { first, twin }, () => owner, value => owner = value);
+        File.WriteAllText(first.File, "A1");
+        File.WriteAllText(twin.File, "A1-other");
+
+        Assert.IsFalse(clashing.TrySwitch(A, B, out string error));
+
+        StringAssert.Contains("одним именем", error);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.AreEqual("A1-other", File.ReadAllText(twin.File));
+        Assert.AreEqual(A, owner);
+        Assert.IsFalse(clashing.HasUnfinished);
+    }
+
+    [Test]
     public void LockedJournal_RecoverTouchesNothing()
     {
         File.WriteAllText(first.File, "A1");
@@ -496,8 +516,8 @@ public sealed class PRSDKSaveSwitchTests
         WriteProject(B, first, "B1");
         WriteProject(B, second, "B2");
         FileStream firstLock = null;
-        // Откат — четвёртое перечисление: в этот момент первый файл держит кто-то другой.
-        first.OnPass = pass => { if (pass == 4) firstLock = new FileStream(first.File, FileMode.Open, FileAccess.Read, FileShare.None); };
+        // Откат — пятое перечисление: в этот момент первый файл держит кто-то другой.
+        first.OnPass = pass => { if (pass == 5) firstLock = new FileStream(first.File, FileMode.Open, FileAccess.Read, FileShare.None); };
 
         try
         {

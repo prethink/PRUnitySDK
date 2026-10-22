@@ -54,6 +54,22 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
         }
     }
 
+    private const string PlayingTooltip = "Проекты SDK меняются вне игры.";
+
+    private static bool Playing => EditorApplication.isPlayingOrWillChangePlaymode;
+
+    /// <summary>
+    /// Проверка в самих операциях, а не только в кнопках: их зовут и из кода, и окно могло нарисоваться до Play.
+    /// </summary>
+    private static bool RefuseWhilePlaying(string action)
+    {
+        if (!Playing)
+            return false;
+
+        Debug.LogError($"[PRUnitySDK] {action}: проекты SDK меняются вне игры — выйдите из Play.");
+        return true;
+    }
+
     private void DrawToolbar()
     {
         using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
@@ -61,11 +77,16 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
             if (GUILayout.Button("Обновить", EditorStyles.toolbarButton, GUILayout.Width(80f)))
                 Reload();
 
-            if (GUILayout.Button("Создать проект", EditorStyles.toolbarButton, GUILayout.Width(120f)))
-                CreateProject(fromCurrent: false);
+            using (new EditorGUI.DisabledScope(Playing))
+            {
+                if (GUILayout.Button(new GUIContent("Создать проект", Playing ? PlayingTooltip : null),
+                        EditorStyles.toolbarButton, GUILayout.Width(120f)))
+                    CreateProject(fromCurrent: false);
 
-            if (GUILayout.Button("Собрать из текущих", EditorStyles.toolbarButton, GUILayout.Width(140f)))
-                CreateProject(fromCurrent: true);
+                if (GUILayout.Button(new GUIContent("Собрать из текущих", Playing ? PlayingTooltip : null),
+                        EditorStyles.toolbarButton, GUILayout.Width(140f)))
+                    CreateProject(fromCurrent: true);
+            }
 
             GUILayout.FlexibleSpace();
         }
@@ -147,18 +168,19 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
                 if (GUILayout.Button("В проекте", GUILayout.Width(90f)))
                     EditorGUIUtility.PingObject(project);
 
-                // Во время игры проект не меняется: сохранения площадок переключаются только вне неё.
-                using (new EditorGUI.DisabledScope(isActive || EditorApplication.isPlayingOrWillChangePlaymode))
+                // Во время игры проекты не меняются: сохранения площадок переключаются только вне неё,
+                // а игра держит базу и настройки.
+                using (new EditorGUI.DisabledScope(isActive || Playing))
                 {
-                    if (GUILayout.Button(new GUIContent("Сделать активным",
-                            EditorApplication.isPlayingOrWillChangePlaymode ? "Проект SDK меняется вне игры." : null),
+                    if (GUILayout.Button(new GUIContent("Сделать активным", Playing ? PlayingTooltip : null),
                             GUILayout.Width(140f)))
                         Activate(project);
                 }
 
-                using (new EditorGUI.DisabledScope(!project.IsComplete))
+                using (new EditorGUI.DisabledScope(!project.IsComplete || Playing))
                 {
-                    if (GUILayout.Button(new GUIContent("Копия", "Новый проект со своими копиями базы и настроек этого."),
+                    if (GUILayout.Button(new GUIContent("Копия",
+                                Playing ? PlayingTooltip : "Новый проект со своими копиями базы и настроек этого."),
                             GUILayout.Width(70f)))
                     {
                         Duplicate(project);
@@ -168,9 +190,9 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
 
                 // Последний проект удалить нельзя: без него игра вернётся к загрузке
                 // из Resources, где данных уже нет — они переехали в папку проекта.
-                using (new EditorGUI.DisabledScope(projects.Length <= 1))
+                using (new EditorGUI.DisabledScope(projects.Length <= 1 || Playing))
                 {
-                    if (GUILayout.Button("Удалить", GUILayout.Width(80f)))
+                    if (GUILayout.Button(new GUIContent("Удалить", Playing ? PlayingTooltip : null), GUILayout.Width(80f)))
                     {
                         Delete(project);
                         GUIUtility.ExitGUI();
@@ -192,7 +214,7 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     {
         PRSDKActiveProject pointer = PRSDKActiveProject.Instance;
 
-        if (pointer == null)
+        if (pointer == null || RefuseWhilePlaying("Проект не сменён"))
             return false;
 
         // Своё сохранение у каждой игры: прежнее уходит в папку прежнего проекта, на место — сохранение нового.
@@ -229,6 +251,9 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// </remarks>
     private void Duplicate(PRSDKProject source)
     {
+        if (RefuseWhilePlaying("Копия не создана"))
+            return;
+
         string sourcePath = AssetDatabase.GetAssetPath(source);
 
         string path = EditorUtility.SaveFilePanelInProject(
@@ -292,7 +317,7 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// </remarks>
     private void Delete(PRSDKProject project)
     {
-        if (project == null || projects.Length <= 1)
+        if (project == null || projects.Length <= 1 || RefuseWhilePlaying("Проект не удалён"))
             return;
 
         // Всё, что понадобится после удаления, снимается заранее: удалённый ассет —
@@ -411,6 +436,9 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// </remarks>
     private void CreateProject(bool fromCurrent)
     {
+        if (RefuseWhilePlaying("Проект не создан"))
+            return;
+
         // «Из текущих» — только перенос из Resources: если на текущие базу или настройки уже ссылается проект
         // (активный или собранный раньше), новый делил бы их с ним. Для новой игры — «Копия» со своими ассетами.
         if (fromCurrent)
