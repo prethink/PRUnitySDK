@@ -149,6 +149,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fadeImage: {fileID: 3075895634338863963}
   fadeDuration: 1
+  irisShader: {fileID: 4800000, guid: 985bbfc36cd2db84184975b25b78fbc8, type: 3}
 --- !u!1 &8082716050833271959
 GameObject:
   m_ObjectHideFlags: 0

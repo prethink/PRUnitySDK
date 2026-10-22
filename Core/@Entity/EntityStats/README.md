@@ -184,3 +184,9 @@ float preview = EntityStatsUtils.GetStat(
 - [PropertyContainer](../../PropertyContainer/README.md) — устройство слоя персональных модификаторов
 - [GameRules](../../GameRules/README.md) — глобальные границы характеристик
 - [Enumeration](../../Models/Enumeration/README.md) — ключи характеристик
+
+## Названия характеристик в окнах
+
+Окно показывает модификатор строкой «Название: ×2». Название — из `StatLabels`: характеристику заводит игра,
+она же регистрирует переводимое название (`StatLabels.Register(stat, provider)`) до показа окна. Без регистрации
+пишется имя перечисления. Так каталог питомцев (`PetInfoWindow`) пишет «Сила: ×1,5» для `StoneSkill` StoneSkipping.
