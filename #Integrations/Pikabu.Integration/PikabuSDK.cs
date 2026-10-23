@@ -461,7 +461,8 @@ public sealed class PikabuSDK : MonoBehaviour
         public static void FocusGame() => PikabuSDK_FocusGame();
 #else
         // Вне браузера SDK изображается здесь же: ответы приходят тем же путём, что и из JavaScript.
-        private const string StoragePrefix = "PikabuEditorStorage.";
+        // Хранилище — файл, а не PlayerPrefs: те общие на все игры, файл переключается вместе с проектом SDK.
+        private static readonly PRSDKEditorStorage storage = new("Pikabu");
 
         public static void Init(string receiverName) =>
             receiver.OnInitialized(JsonUtility.ToJson(new PikabuInitResult
@@ -474,12 +475,12 @@ public sealed class PikabuSDK : MonoBehaviour
             }));
 
         public static void GameStarted() => PRLog.WriteDebug(typeof(PikabuSDK), "Пикабу: gameStarted().");
-        public static string StorageGet(string key) => PlayerPrefs.GetString(StoragePrefix + key, string.Empty);
-        public static void StorageSet(string key, string value) => PlayerPrefs.SetString(StoragePrefix + key, value);
+        public static string StorageGet(string key) => storage.Get(key);
+        public static void StorageSet(string key, string value) => storage.Set(key, value);
 
         public static void StorageFlush(int id)
         {
-            PlayerPrefs.Save();
+            storage.Flush();
             Respond(id, new PikabuResult { success = true }, 0f);
         }
 

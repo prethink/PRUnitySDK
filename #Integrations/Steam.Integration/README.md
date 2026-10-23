@@ -31,7 +31,7 @@ PC-сборка в Steam через [Steamworks.NET](https://github.com/rlabrecq
 | --- | --- | --- |
 | `SteamPlatform` | `SteamAPI.InitEx`, `RunCallbacks` каждый кадр, `Shutdown` на выходе; оверлей (Shift+Tab) ставит паузу | `SteamAPI`, `GameOverlayActivated_t` |
 | `Bootstrap.Steam` | SDK собирается после запуска Steam; экран загрузки — на языке Steam | — |
-| `SteamGameDataStorager` | `IGameDataStorage`: файл в Steam Cloud и в `persistentDataPath`, при загрузке — более новый по дате изменения | `ISteamRemoteStorage` |
+| `SteamGameDataStorager` | `IGameDataStorage`: файл в Steam Cloud и в `persistentDataPath`, при загрузке — более новый по дате изменения. В редакторе локальный файл — `UserSettings/PRSDKEditorSaves/Steam/storage.json` (свой у каждого проекта SDK), а облако с App ID 480 не трогается: оно общее на все игры | `ISteamRemoteStorage` |
 | `SteamLanguageManager` | `ILanguageManager`: язык игры в клиенте Steam (russian/ukrainian → ru, turkish → tr, иначе en), выбор игрока — `PlayerPrefs` | `SteamApps.GetCurrentGameLanguage` |
 | `SteamPlayerNameService` | ник в Steam | `SteamFriends.GetPersonaName` |
 | `SteamAchievementSync` (приватная часть) | выполненные достижения из списка связей → Steam; при запуске догоняет уже выполненные | `SteamUserStats.SetAchievement` |

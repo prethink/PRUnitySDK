@@ -54,6 +54,11 @@ public sealed class PRModuleManifest : ScriptableObject
     [Tooltip("Текстовый файл плагина со списком его установленных частей, по одной в строке. Окно модулей показывает его в карточке модуля.")]
     [SerializeField] private string pluginModulesFile;
 
+    [Tooltip("Файлы настроек плагина, свои у каждого проекта SDK (игры), — пути от папки плагина, например " +
+             "Resources/SettingsYG2.asset. При смене проекта на их место встаёт копия нового, правки сразу уходят в копию " +
+             "активного (PRSDKProjectPlatformSettings). Пусто — настройки плагина общие для всех игр.")]
+    [SerializeField] private List<string> projectSettingsFiles = new();
+
     [Tooltip("Прятать папку плагина, пока модуль отключён: окно модулей переименует её в «Имя~», и Unity перестанет её видеть. " +
              "Нужно плагинам, которые попадают в сборку и без кода модуля: jslib, jspre, автозапуск, обработчики сборки.")]
     [SerializeField] private bool hidePluginWhenDisabled;
@@ -61,7 +66,7 @@ public sealed class PRModuleManifest : ScriptableObject
     [Tooltip("Шаблон страницы WebGL, который окно модулей ставит, когда модуль включён, например PROJECT:YandexGames. Пусто — шаблон не меняется.")]
     [SerializeField] private string webGLTemplate;
 
-    [Tooltip("Папка с исходником шаблона WebGL внутри модуля, например Assets/PRUnitySDK/VK.Integration/WebGLTemplate~. " +
+    [Tooltip("Папка с исходником шаблона WebGL внутри модуля, от папки модуля, например WebGLTemplate~; путь с Assets/ — от проекта. " +
              "«~» в имени прячет её от Unity. «Применить» и сборка WebGL копируют её в Assets/WebGLTemplates под именем из " +
              "Web GL Template (PROJECT:Имя): Unity берёт шаблоны только оттуда. Пусто — шаблон лежит в Assets/WebGLTemplates сам.")]
     [SerializeField] private string webGLTemplateSource;
@@ -123,6 +128,14 @@ public sealed class PRModuleManifest : ScriptableObject
     public string PluginModulesFile => string.IsNullOrWhiteSpace(pluginModulesFile) ? string.Empty : pluginModulesFile.Trim();
 
     /// <summary>
+    /// Файлы настроек плагина, свои у каждого проекта SDK, — пути от папки плагина.
+    /// </summary>
+    public IReadOnlyList<string> ProjectSettingsFiles =>
+        projectSettingsFiles == null
+            ? System.Array.Empty<string>()
+            : projectSettingsFiles.Where(file => !string.IsNullOrWhiteSpace(file)).Select(file => file.Trim().Replace('\\', '/').Trim('/')).ToList();
+
+    /// <summary>
     /// Папку плагина прячут, пока модуль отключён, см. <see cref="PRModulePlugins"/>.
     /// </summary>
     public bool HidePluginWhenDisabled => hidePluginWhenDisabled && PluginFolder.Length > 0;
@@ -133,9 +146,23 @@ public sealed class PRModuleManifest : ScriptableObject
     public string WebGLTemplate => string.IsNullOrWhiteSpace(webGLTemplate) ? string.Empty : webGLTemplate.Trim();
 
     /// <summary>
-    /// Папка исходника шаблона WebGL; пустая строка — исходника в модуле нет.
+    /// Папка исходника шаблона WebGL от корня проекта; пустая строка — исходника в модуле нет.
     /// </summary>
-    public string WebGLTemplateSource => string.IsNullOrWhiteSpace(webGLTemplateSource) ? string.Empty : webGLTemplateSource.Trim().TrimEnd('/');
+    /// <remarks>
+    /// В манифесте путь пишется от папки модуля: так он переживает перенос модуля. Путь с <c>Assets/</c> берётся как есть.
+    /// </remarks>
+    public string WebGLTemplateSource
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(webGLTemplateSource))
+                return string.Empty;
+
+            string source = webGLTemplateSource.Trim().Replace('\\', '/').TrimEnd('/');
+            string folder = FolderPath;
+            return source.StartsWith("Assets/", System.StringComparison.Ordinal) || folder.Length == 0 ? source : folder + "/" + source;
+        }
+    }
 
     /// <summary>
     /// Куда копируется исходник шаблона: <c>Assets/WebGLTemplates/Имя</c> для <c>PROJECT:Имя</c>; пустая строка —

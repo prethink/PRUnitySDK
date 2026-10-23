@@ -24,4 +24,4 @@ MonoBehaviour:
   pluginModulesFile:
   hidePluginWhenDisabled: 1
   webGLTemplate: PROJECT:VK
-  webGLTemplateSource: Assets/PRUnitySDK/#Integrations/VK.Integration/WebGLTemplate~
+  webGLTemplateSource: WebGLTemplate~

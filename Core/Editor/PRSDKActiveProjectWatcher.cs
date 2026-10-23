@@ -77,7 +77,12 @@ public static class PRSDKActiveProjectWatcher
         if (!projectChanged && !databaseChanged && !settingsChanged && !sceneChanged)
             return;
 
+        PRSDKProject previous = lastProject;
         Remember();
+
+        // Настройки площадок (ID игры, покупки, таблицы) — свои у каждой игры: в плагин встают настройки нового проекта.
+        if (projectChanged)
+            PRSDKProjectPlatformSettings.Switch(previous, project);
 
         // Смена проекта сбрасывает оба: неполный проект берёт недостающее из ресурсов, и прежний синглтон мог быть оттуда.
         if (projectChanged || databaseChanged)

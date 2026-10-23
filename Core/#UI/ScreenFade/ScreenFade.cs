@@ -46,7 +46,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
     }
 
     /// <summary>
-    /// Открывает экран и снимает блокировку UI.
+    /// Открывает экран; блокировка UI снимается, когда он открыт полностью.
     /// </summary>
     /// <param name="onComplete">Действие, когда экран открыт полностью.</param>
     public void FadeOut(Action onComplete = null)
@@ -70,7 +70,8 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
 
         ScreenFadeSettings settings = Settings;
         ApplyStyle(settings);
-        fadeImage.raycastTarget = blockRaycasts;
+        // Пока шторка движется, UI закрыт в обе стороны: на открытии экран ещё тёмный, и нажатие ушло бы вслепую.
+        fadeImage.raycastTarget = true;
         if (pattern != null) pattern.raycastTarget = false;
         // Центр круга берётся и на закрытии, и на открытии: после смены сцены игрок уже другой.
         irisCenter = FindIrisCenter(settings);
@@ -78,6 +79,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
         if (Mathf.Approximately(progress, target))
         {
             SetProgress(target, settings);
+            fadeImage.raycastTarget = blockRaycasts;
             coroutine = null;
             onComplete?.Invoke();
             return;
@@ -86,10 +88,10 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
         AudioClip sound = settings == null ? null : target > progress ? settings.CloseSound : settings.OpenSound;
         if (sound != null) PRUnitySDK.Managers?.Sound?.PlaySoundUIOneShot(sound);
 
-        coroutine = StartCoroutine(Fade(target, settings, onComplete));
+        coroutine = StartCoroutine(Fade(target, blockRaycasts, settings, onComplete));
     }
 
-    private IEnumerator Fade(float target, ScreenFadeSettings settings, Action onComplete)
+    private IEnumerator Fade(float target, bool blockRaycasts, ScreenFadeSettings settings, Action onComplete)
     {
         float start = progress;
         float duration = Mathf.Max(0f, settings != null ? settings.Duration : fadeDuration);
@@ -103,6 +105,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
         }
 
         SetProgress(target, settings);
+        fadeImage.raycastTarget = blockRaycasts;
         coroutine = null;
         onComplete?.Invoke();
     }

@@ -24,7 +24,15 @@ public class SteamGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
 
     private static string FileName => PRUnitySDK.Settings.Steam.SaveFileName;
 
-    private static string LocalPath => Path.Combine(Application.persistentDataPath, FileName);
+    // В редакторе — свой файл у каждого проекта SDK: его переключает перенос сохранений (SteamEditorSaveStore).
+    // persistentDataPath общий на все игры Unity-проекта.
+    private static string LocalPath => Application.isEditor
+        ? PRSDKEditorStorage.PathOf("Steam", PRSDKEditorStorage.FileName)
+        : Path.Combine(Application.persistentDataPath, FileName);
+
+    // Облако App ID 480 (Spacewar) общее на все игры: в редакторе оно подмешало бы прогресс другой игры.
+    private static bool UseCloud => SteamPlatform.IsReady &&
+                                    !(Application.isEditor && PRUnitySDK.Settings.Steam.AppId == SteamSettings.SpacewarAppId);
 
     public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
         ? null
@@ -78,6 +86,7 @@ public class SteamGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
 
         try
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(LocalPath)!);
             File.WriteAllText(LocalPath, raw, Encoding.UTF8);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -85,7 +94,7 @@ public class SteamGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
             PRLog.WriteWarning(this, $"Сохранение не записано на диск: {exception.Message}");
         }
 
-        if (SteamPlatform.IsReady)
+        if (UseCloud)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(raw);
             if (!SteamRemoteStorage.FileWrite(FileName, bytes, bytes.Length))
@@ -126,7 +135,7 @@ public class SteamGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
 
     private static string ReadCloud()
     {
-        if (!SteamPlatform.IsReady || !SteamRemoteStorage.FileExists(FileName))
+        if (!UseCloud || !SteamRemoteStorage.FileExists(FileName))
             return string.Empty;
 
         int size = SteamRemoteStorage.GetFileSize(FileName);

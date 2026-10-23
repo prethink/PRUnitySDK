@@ -9,8 +9,9 @@ using UnityEngine;
 /// Своё сохранение у каждого проекта SDK: при смене проекта сохранение площадок переключается вместе с ним.
 /// </summary>
 /// <remarks>
-/// Площадка пишет сохранение в одно место (у Яндекса — <c>Assets/PluginYourGames/Editor/SavesEditorYG2.json</c>),
-/// и без переключения игры в одном Unity-проекте делили бы прогресс: StealEgg читал бы сохранение PickBox.
+/// Площадка пишет сохранение в одно место (у Яндекса — <c>Assets/PluginYourGames/Editor/SavesEditorYG2.json</c>,
+/// у VK, Пикабу и Steam — <c>UserSettings/PRSDKEditorSaves</c>), и без переключения игры в одном Unity-проекте
+/// делили бы прогресс: StealEgg читал бы сохранение PickBox.
 /// <para>
 /// При смене проекта файлы площадок (<see cref="IPRSDKEditorSaveStore"/>) копируются в папку прежнего проекта,
 /// а на их место ложатся файлы нового. Если у нового проекта сохранения ещё нет, файлы площадки удаляются — игра
@@ -149,6 +150,8 @@ public static class PRSDKProjectSaves
 
         lastActive = to;
         Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(from)} → {target.Title}.");
+        if (error != null)
+            Debug.LogWarning($"[PRUnitySDK] {error}.");
         return true;
     }
 

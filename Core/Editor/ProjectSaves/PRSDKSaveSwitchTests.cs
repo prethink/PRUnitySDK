@@ -602,6 +602,56 @@ public sealed class PRSDKSaveSwitchTests
         Assert.IsFalse(saves.HasUnfinished);
     }
 
+    [Test]
+    public void Switch_FromNotGuidOwner_TouchesNothing()
+    {
+        File.WriteAllText(first.File, "A1");
+
+        // Испорченный Owner.txt: путь вместо GUID увёл бы копию файлов за пределы папки сохранений.
+        Assert.IsFalse(saves.TrySwitch("../..", B, out string error));
+
+        StringAssert.Contains("GUID", error);
+        Assert.AreEqual("A1", File.ReadAllText(first.File));
+        Assert.IsFalse(saves.HasUnfinished);
+        Assert.IsFalse(Directory.Exists(root));
+    }
+
+    [Test]
+    public void JournalNotDeleted_SwitchStillSucceeds_RecoverCompletes()
+    {
+        File.WriteAllText(first.File, "A1");
+        WriteProject(B, first, "B1");
+        // Журнал держат, пока пишется владелец: удалить его после записи не выйдет.
+        FileStream journal = null;
+        writeOwner = value =>
+        {
+            owner = value;
+            journal ??= new FileStream(saves.JournalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        };
+
+        try
+        {
+            Assert.IsTrue(saves.TrySwitch(A, B, out string error));
+            StringAssert.Contains("не удалён", error);
+            Assert.AreEqual(B, owner);
+            Assert.AreEqual("B1", File.ReadAllText(first.File));
+            Assert.IsTrue(saves.HasUnfinished);
+
+            // Пока журнал держат, восстановление не заканчивается, но и файлы не трогает.
+            Assert.AreEqual(PRSDKSaveSwitch.Recovery.Incomplete, saves.RecoverInterrupted());
+            Assert.AreEqual("B1", File.ReadAllText(first.File));
+        }
+        finally
+        {
+            journal?.Dispose();
+        }
+
+        Assert.AreEqual(PRSDKSaveSwitch.Recovery.Completed, saves.RecoverInterrupted());
+        Assert.AreEqual(B, owner);
+        Assert.AreEqual("B1", File.ReadAllText(first.File));
+        Assert.IsFalse(saves.HasUnfinished);
+    }
+
     private void WriteProject(string project, Store store, string text)
     {
         string path = saves.GetFolder(project, store.Platform);

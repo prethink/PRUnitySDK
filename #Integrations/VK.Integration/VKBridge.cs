@@ -294,7 +294,8 @@ public sealed class VKBridge : MonoBehaviour
         public static void FocusGame() => VKBridge_FocusGame();
 #else
         // Вне браузера площадка изображается здесь же: ответы приходят тем же путём, что и из JavaScript.
-        private const string StoragePrefix = "VKEditorStorage.";
+        // Хранилище — файл, а не PlayerPrefs: те общие на все игры, файл переключается вместе с проектом SDK.
+        private static readonly PRSDKEditorStorage storage = new("VK");
 
         public static void Init(string receiverName)
         {
@@ -304,20 +305,24 @@ public sealed class VKBridge : MonoBehaviour
                 userId = "editor",
                 language = "ru",
                 platform = "desktop_web",
-                save = PlayerPrefs.GetString(StoragePrefix + "prsave", string.Empty),
-                savedLanguage = PlayerPrefs.GetString(StoragePrefix + "prlang", string.Empty),
+                save = storage.Get("prsave"),
+                savedLanguage = storage.Get("prlang"),
             }));
             receiver.OnEvent("reward|1");
         }
 
         public static void StorageSave(string text)
         {
-            PlayerPrefs.SetString(StoragePrefix + "prsave", text);
-            PlayerPrefs.Save();
+            storage.Set("prsave", text);
+            storage.Flush();
             receiver.OnEvent("saved|1");
         }
 
-        public static void StorageSetValue(string key, string value) => PlayerPrefs.SetString(StoragePrefix + key, value);
+        public static void StorageSetValue(string key, string value)
+        {
+            storage.Set(key, value);
+            storage.Flush();
+        }
 
         public static void ShowAd(string format, int id)
         {

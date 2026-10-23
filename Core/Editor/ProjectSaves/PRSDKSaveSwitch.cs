@@ -105,6 +105,13 @@ public sealed class PRSDKSaveSwitch
     public bool TrySwitch(string from, string to, out string error)
     {
         error = null;
+        // Владелец читается из файла, который правят руками: не GUID — и путь к папке проекта, и журнал вышли бы мусорными.
+        if (!IsProjectGuid(from) || !IsProjectGuid(to))
+        {
+            error = $"«{from}» → «{to}»: ожидались GUID проектов (32 шестнадцатеричных знака), файлы не тронуты";
+            return false;
+        }
+
         // Новая копия заменила бы ту, по которой откатывается незаконченная операция.
         if (HasUnfinished)
         {
@@ -160,7 +167,9 @@ public sealed class PRSDKSaveSwitch
 
         if (TryWriteOwner(to, out string ownerError))
         {
-            DeleteJournal();
+            // Переключение уже состоялось: неубранный журнал восстановление закроет само — владелец в нём «куда».
+            if (!TryDeleteJournal(out string journalError))
+                error = $"журнал {JournalPath} не удалён ({journalError}), восстановление уберёт его само";
             return true;
         }
 
@@ -197,10 +206,7 @@ public sealed class PRSDKSaveSwitch
 
         // Владелец уже новый: файлы подменили и запомнили, не успели только убрать журнал.
         if (!rollingBack && ReadOwner() == to)
-        {
-            DeleteJournal();
-            return Recovery.Completed;
-        }
+            return TryDeleteJournal(out _) ? Recovery.Completed : Recovery.Incomplete;
 
         // Журнал пишется после готовой копии: по ней файлы возвращаются к виду до переключения, владелец — «откуда».
         if (RollBack().Count > 0)
@@ -208,8 +214,7 @@ public sealed class PRSDKSaveSwitch
         if (!TryWriteOwner(from, out _))
             return Recovery.Incomplete;
 
-        DeleteJournal();
-        return Recovery.RolledBack;
+        return TryDeleteJournal(out _) ? Recovery.RolledBack : Recovery.Incomplete;
     }
 
     /// <summary>
@@ -234,8 +239,10 @@ public sealed class PRSDKSaveSwitch
         bool ownerBack = TryWriteOwner(from, out string ownerError);
         if (failed.Count == 0 && ownerBack)
         {
-            DeleteJournal();
-            return done;
+            // Журнал с отметкой отката безопасен: восстановление повторит тот же откат и уберёт его.
+            return TryDeleteJournal(out string journalError)
+                ? done
+                : done + $". Журнал {JournalPath} не удалён ({journalError}), восстановление уберёт его само";
         }
 
         // Файлы или владелец от разных проектов: журнал остаётся, игра не запустится, пока откат не доделан.
@@ -485,10 +492,23 @@ public sealed class PRSDKSaveSwitch
         return true;
     }
 
-    private void DeleteJournal()
+    /// <summary>
+    /// Убирает журнал. Не вышло (файл держит другая программа) — журнал остаётся, а переключение считается незаконченным.
+    /// </summary>
+    private bool TryDeleteJournal(out string error)
     {
-        if (File.Exists(JournalPath))
-            File.Delete(JournalPath);
+        try
+        {
+            if (File.Exists(JournalPath))
+                File.Delete(JournalPath);
+            error = null;
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            error = exception.Message;
+            return false;
+        }
     }
 
     private static void DeleteWithMeta(string file)
