@@ -21,7 +21,7 @@ public sealed class PRSDKProjectWindow : EditorWindow, IPRSDKGameWindow
     /// <summary>
     /// Путь пункта меню.
     /// </summary>
-    public const string MenuPath = "PRUnitySDK/Game/Project";
+    public const string MenuPath = "PRUnitySDK/Project";
 
     private const string DefaultFolder = "Assets/PRUnityData/Projects";
 

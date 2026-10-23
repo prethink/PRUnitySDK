@@ -67,7 +67,7 @@ public static class PRSDKProjectBootstrap
             {
                 Debug.LogWarning(
                     $"[PRUnitySDK] Проектов найдено {projects.Length}, активный не выбран — " +
-                    "укажите его в окне PRUnitySDK/Game/Project.");
+                    "укажите его в окне PRUnitySDK/Project.");
                 return;
             }
 
@@ -133,7 +133,7 @@ public static class PRSDKProjectBootstrap
 
         Debug.LogWarning(
             $"[PRUnitySDK] {typeof(T).Name}: ничьих ассетов {free.Length} ({string.Join(", ", free.Select(AssetDatabase.GetAssetPath))}) — " +
-            "проект не собран: лишние удалите или соберите проект вручную в окне PRUnitySDK/Game/Project.");
+            "проект не собран: лишние удалите или соберите проект вручную в окне PRUnitySDK/Project.");
         return false;
     }
 
