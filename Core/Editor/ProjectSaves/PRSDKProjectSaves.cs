@@ -140,31 +140,48 @@ public static class PRSDKProjectSaves
             return true;
         }
 
-        // Сначала настройки площадок (ID игры, покупки), потом сохранения: настройки откатить проще, а владелец
-        // у них общий — переключаются оба или ни одно (PRSDKProjectPlatformSettings).
+        if (!SwitchBoth(from, to, out string error))
+        {
+            Debug.LogError($"[PRUnitySDK] Сохранения и настройки площадок не переключены на {target.Title}: {error}");
+            return false;
+        }
+
+        lastActive = to;
+        Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(from)} → {target.Title}.");
+        if (error != null)
+            Debug.LogWarning($"[PRUnitySDK] {error}.");
+        return true;
+    }
+
+    /// <summary>
+    /// Переключает настройки и сохранения площадок одной операцией: оба или ни одно.
+    /// </summary>
+    /// <remarks>
+    /// Единственный путь переключения — и для окна проектов (<see cref="TrySwitchTo"/>), и для проверки перед игрой
+    /// (<see cref="GuardPlay"/>). Сначала настройки (ID игры, покупки): их откатить проще, а владелец у них общий с
+    /// сохранениями (<see cref="PRSDKProjectPlatformSettings"/>).
+    /// </remarks>
+    /// <param name="error">Почему не вышло; при успехе — предупреждение или <c>null</c>.</param>
+    private static bool SwitchBoth(string from, string to, out string error)
+    {
         if (!PRSDKProjectPlatformSettings.TrySwitch(from, to, out string settingsError))
         {
-            Debug.LogError($"[PRUnitySDK] Настройки площадок не переключены на {target.Title}: {settingsError}. Проект не сменён.");
+            error = "настройки площадок не переключены: " + settingsError;
             return false;
         }
 
         PRSDKSaveSwitch saves = Switch;
-        bool switched = saves.TrySwitch(from, to, out string error);
+        bool switched = saves.TrySwitch(from, to, out error);
         AssetDatabase.Refresh();
         if (!switched)
         {
             // Журнал сохранений остался — их восстановление решит по владельцу, и настройки решат так же: не трогаем.
             if (!saves.HasUnfinished)
                 PRSDKProjectPlatformSettings.Revert();
-            Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены на {target.Title}: {error}");
             return false;
         }
 
         PRSDKProjectPlatformSettings.Commit();
-        lastActive = to;
-        Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(from)} → {target.Title}.");
-        if (error != null)
-            Debug.LogWarning($"[PRUnitySDK] {error}.");
         return true;
     }
 
@@ -493,8 +510,8 @@ public static class PRSDKProjectSaves
         }
 
         // В ExitingEditMode isPlayingOrWillChangePlaymode уже true — переключение идёт мимо проверки игры.
-        bool switched = Switch.TrySwitch(owner, GuidOf(active), out string error);
-        AssetDatabase.Refresh();
+        // Та же операция, что при смене проекта: иначе сохранения стали бы от активного, а настройки остались бы от прежнего.
+        bool switched = SwitchBoth(owner, GuidOf(active), out string error);
         if (switched)
         {
             lastActive = GuidOf(active);
@@ -502,7 +519,7 @@ public static class PRSDKProjectSaves
         }
 
         EditorApplication.isPlaying = false;
-        Debug.LogError($"[PRUnitySDK] Запуск остановлен: сохранения площадок от {TitleOf(owner)}, активный проект — {active.Title}, " +
+        Debug.LogError($"[PRUnitySDK] Запуск остановлен: сохранения и настройки площадок от {TitleOf(owner)}, активный проект — {active.Title}, " +
                        $"а переключить не вышло: {error}");
     }
 }

@@ -86,13 +86,38 @@ public sealed class PRSDKPlatformSettingsFileTests
     }
 
     [Test]
-    public void Load_WithoutLiveFile_DoesNothing()
+    public void Load_WithoutLiveFile_RestoresProjectCopy()
     {
         Write(stored, "game B", DateTime.UtcNow);
 
+        Assert.AreEqual(PRSDKPlatformSettingsFile.LoadResult.Loaded, PRSDKPlatformSettingsFile.Load(live, stored, false, out _));
+
+        Assert.AreEqual("game B", File.ReadAllText(live));
+    }
+
+    [Test]
+    public void Load_WithoutLiveFileAndCopy_DoesNothing()
+    {
         Assert.AreEqual(PRSDKPlatformSettingsFile.LoadResult.None, PRSDKPlatformSettingsFile.Load(live, stored, false, out _));
 
         Assert.IsFalse(File.Exists(live));
+        Assert.IsFalse(File.Exists(stored));
+    }
+
+    [Test]
+    public void Save_LockedCopy_FailsAndKeepsOldCopy()
+    {
+        Write(stored, "old copy", DateTime.UtcNow.AddMinutes(-5));
+        File.WriteAllText(live, "new");
+
+        using (new FileStream(stored, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Assert.IsFalse(PRSDKPlatformSettingsFile.Save(live, stored, out string error));
+            Assert.IsNotNull(error);
+        }
+
+        Assert.AreEqual("old copy", File.ReadAllText(stored));
+        Assert.IsFalse(File.Exists(stored + ".new"));
     }
 
     [Test]

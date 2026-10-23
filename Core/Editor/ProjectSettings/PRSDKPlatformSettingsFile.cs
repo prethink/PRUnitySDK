@@ -15,7 +15,7 @@ public static class PRSDKPlatformSettingsFile
     /// </summary>
     public enum LoadResult
     {
-        /// <summary>Живого файла нет — нечего ни грузить, ни запоминать.</summary>
+        /// <summary>Нет ни живого файла, ни копии проекта — делать нечего.</summary>
         None,
         /// <summary>Файл уже такой, как у проекта.</summary>
         Same,
@@ -42,7 +42,7 @@ public static class PRSDKPlatformSettingsFile
                 return false;
 
             Directory.CreateDirectory(Path.GetDirectoryName(stored)!);
-            File.Copy(live, stored, overwrite: true);
+            WriteThroughTemp(live, stored);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -62,8 +62,16 @@ public static class PRSDKPlatformSettingsFile
         error = null;
         try
         {
+            // Файла в плагине нет (плагин переустановили, файл удалили), а у проекта копия есть — она и встаёт.
             if (!File.Exists(live))
-                return LoadResult.None;
+            {
+                if (!File.Exists(stored))
+                    return LoadResult.None;
+
+                Directory.CreateDirectory(Path.GetDirectoryName(live)!);
+                File.Copy(stored, live);
+                return LoadResult.Loaded;
+            }
 
             if (!File.Exists(stored))
                 return Save(live, stored, out error) ? LoadResult.Seeded : LoadResult.Failed;
@@ -81,6 +89,41 @@ public static class PRSDKPlatformSettingsFile
         {
             error = exception.Message;
             return LoadResult.Failed;
+        }
+    }
+
+    /// <summary>
+    /// Пишет копию через временный файл: оборванная запись остаётся во временном, прежняя копия цела.
+    /// </summary>
+    /// <remarks>
+    /// <c>File.Replace</c> падает, пока свежий файл держит антивирус или индексатор: тогда — прямой записью, она не
+    /// начнётся, если файл держат, а иначе пройдёт.
+    /// </remarks>
+    private static void WriteThroughTemp(string source, string target)
+    {
+        string temp = target + ".new";
+        try
+        {
+            File.Copy(source, temp, overwrite: true);
+            if (!File.Exists(target))
+            {
+                File.Move(temp, target);
+                return;
+            }
+
+            try
+            {
+                File.Replace(temp, target, null);
+            }
+            catch (IOException)
+            {
+                File.Copy(temp, target, overwrite: true);
+            }
+        }
+        finally
+        {
+            if (File.Exists(temp))
+                File.Delete(temp);
         }
     }
 

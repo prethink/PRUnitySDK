@@ -166,6 +166,43 @@ public sealed class PRSDKPlatformSettingsSwitchTests
     }
 
     [Test]
+    public void FromCopyLocked_NothingSwitched_NoJournal()
+    {
+        File.WriteAllText(yandex, "A yandex edited");
+        Copy(A, yandex, "A yandex");
+        Copy(B, yandex, "B yandex");
+
+        string error;
+        using (new FileStream(CopyPath(A, yandex), FileMode.Open, FileAccess.Read, FileShare.Read))
+            Assert.IsFalse(settings.TrySwitch(A, B, Entries(A, B, gamePushToo: false), out _, out error));
+
+        StringAssert.Contains("не запомнены у прежнего проекта", error);
+        Assert.AreEqual("A yandex edited", File.ReadAllText(yandex));
+        Assert.AreEqual("A yandex", File.ReadAllText(CopyPath(A, yandex)));
+        Assert.IsFalse(settings.HasUnfinished);
+    }
+
+    [Test]
+    public void LiveMissing_ProjectCopyRestores_AndRollbackRemovesIt()
+    {
+        // Файла YG2 в плагине нет, у B копия есть; второй файл не перезаписать — переключение откатывается.
+        File.WriteAllText(gamePush, "A gp");
+        Copy(B, yandex, "B yandex");
+        Copy(B, gamePush, "B gp");
+
+        using (new FileStream(gamePush, FileMode.Open, FileAccess.Read, FileShare.Read))
+            Assert.IsFalse(settings.TrySwitch(A, B, Entries(A, B), out List<string> restored, out _));
+
+        Assert.IsFalse(File.Exists(yandex));
+        Assert.AreEqual("A gp", File.ReadAllText(gamePush));
+        Assert.IsFalse(settings.HasUnfinished);
+
+        Assert.IsTrue(settings.TrySwitch(A, B, Entries(A, B), out List<string> loaded, out string error), error);
+        Assert.AreEqual("B yandex", File.ReadAllText(yandex));
+        CollectionAssert.Contains(loaded, yandex);
+    }
+
+    [Test]
     public void LiveFolder_FindsHiddenPlugin()
     {
         string plugin = Path.Combine(folder, "PluginYourGames");

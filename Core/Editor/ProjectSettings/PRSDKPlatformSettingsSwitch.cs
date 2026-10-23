@@ -257,11 +257,22 @@ public sealed class PRSDKPlatformSettingsSwitch
             string copy = BackupPath(i);
             try
             {
-                // Файла не было до переключения — переключение его и не создавало: трогать нечего.
+                // Файла не было до переключения: если его поставила копия нового проекта — убрать.
                 if (!File.Exists(copy))
                 {
                     if (!File.Exists(copy + AbsentSuffix))
+                    {
                         failed.Add(live + " (нет в резервной копии)");
+                        continue;
+                    }
+
+                    if (File.Exists(live))
+                    {
+                        File.Delete(live);
+                        if (File.Exists(live + ".meta"))
+                            File.Delete(live + ".meta");
+                        restored.Add(live);
+                    }
                     continue;
                 }
 

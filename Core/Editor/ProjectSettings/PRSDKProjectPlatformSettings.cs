@@ -230,8 +230,18 @@ public static class PRSDKProjectPlatformSettings
         writing = true;
         try
         {
+            bool removed = false;
             foreach (string live in changed.Where(path => !path.Contains(PRModulePlugins.HiddenSuffix + "/")))
-                AssetDatabase.ImportAsset(live, ImportAssetOptions.ForceUpdate);
+            {
+                // Откат убрал файл, которого до переключения не было: импортировать нечего, база забудет его на обновлении.
+                if (File.Exists(live))
+                    AssetDatabase.ImportAsset(live, ImportAssetOptions.ForceUpdate);
+                else
+                    removed = true;
+            }
+
+            if (removed)
+                AssetDatabase.Refresh();
         }
         finally
         {
