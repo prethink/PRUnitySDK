@@ -140,14 +140,27 @@ public static class PRSDKProjectSaves
             return true;
         }
 
-        bool switched = Switch.TrySwitch(from, to, out string error);
+        // Сначала настройки площадок (ID игры, покупки), потом сохранения: настройки откатить проще, а владелец
+        // у них общий — переключаются оба или ни одно (PRSDKProjectPlatformSettings).
+        if (!PRSDKProjectPlatformSettings.TrySwitch(from, to, out string settingsError))
+        {
+            Debug.LogError($"[PRUnitySDK] Настройки площадок не переключены на {target.Title}: {settingsError}. Проект не сменён.");
+            return false;
+        }
+
+        PRSDKSaveSwitch saves = Switch;
+        bool switched = saves.TrySwitch(from, to, out string error);
         AssetDatabase.Refresh();
         if (!switched)
         {
+            // Журнал сохранений остался — их восстановление решит по владельцу, и настройки решат так же: не трогаем.
+            if (!saves.HasUnfinished)
+                PRSDKProjectPlatformSettings.Revert();
             Debug.LogError($"[PRUnitySDK] Сохранения площадок не переключены на {target.Title}: {error}");
             return false;
         }
 
+        PRSDKProjectPlatformSettings.Commit();
         lastActive = to;
         Debug.Log($"[PRUnitySDK] Сохранения площадок переключены: {TitleOf(from)} → {target.Title}.");
         if (error != null)
@@ -275,6 +288,9 @@ public static class PRSDKProjectSaves
 
         if (owner != lastActive)
             Sync();
+        else
+            // Владелец — активный проект: плагин сверяется с его копией настроек (новее копия из git — встаёт она).
+            PRSDKProjectPlatformSettings.Refresh(Active);
     }
 
     /// <summary>
@@ -304,6 +320,38 @@ public static class PRSDKProjectSaves
     /// </summary>
     /// <returns><c>false</c> — откат не вернул всех файлов, и переключать дальше нельзя.</returns>
     private static bool Recover()
+    {
+        // Сохранения первыми: их восстановление может вернуть владельца, а настройки решают по нему.
+        if (!RecoverSaves())
+            return false;
+        return TryReadOwner(out string owner) && PRSDKProjectPlatformSettings.Recover(owner);
+    }
+
+    /// <summary>
+    /// Активный проект, если он же владелец сохранений и настроек площадок; иначе <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    /// Без сообщений в консоль: спрашивают на каждом импорте.
+    /// </remarks>
+    internal static PRSDKProject ActiveOwner
+    {
+        get
+        {
+            PRSDKProject active = Active;
+            if (active == null)
+                return null;
+            try
+            {
+                return Owner == GuidOf(active) ? active : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+
+    private static bool RecoverSaves()
     {
         PRSDKSaveSwitch saves = Switch;
         if (!saves.HasUnfinished)

@@ -13,21 +13,27 @@ using UnityEngine;
 /// ID игры, покупки, таблицы лидеров), и без переключения все игры в одном Unity-проекте делили бы их. Какие файлы
 /// чьи, задаёт манифест модуля (<see cref="PRModuleManifest.ProjectSettingsFiles"/>), пути — от папки плагина.
 /// <para>
-/// Копия лежит у проекта: <c>&lt;папка ассета проекта&gt;/PlatformSettings~/&lt;Id модуля&gt;/&lt;путь в плагине&gt;</c>. «~»
-/// прячет её от Unity — второго ассета с тем же GUID не появится, — а в git она идёт вместе с данными игры.
+/// Копия лежит рядом с настройками проекта: <c>&lt;папка его PRSDKSettings&gt;/PlatformSettings~/&lt;Id модуля&gt;/&lt;путь в плагине&gt;</c>.
+/// Не у ассета проекта: «Копия» в окне проектов кладёт новый проект в ту же папку, и два проекта делили бы одни
+/// настройки, а PRSDKSettings у каждого свои. «~» прячет папку от Unity — второго ассета с тем же GUID не появится, — а
+/// в git она идёт вместе с данными игры.
 /// </para>
 /// <para>
-/// Правка в плагине сразу уходит в копию активного проекта (<see cref="Postprocessor"/>). При смене проекта
-/// изменённые в памяти ассеты сначала записываются и запоминаются у прежнего, затем на место встают копии нового;
-/// копии у нового нет — он получает нынешние настройки как стартовые. При запуске редактора копия активного
-/// проекта сверяется с плагином: новее копия (пришла из git) — встаёт она, новее плагин — запоминается он.
+/// Переключение — часть смены проекта в <see cref="PRSDKProjectSaves.TrySwitchTo"/>: сначала настройки
+/// (<see cref="PRSDKPlatformSettingsSwitch"/>: резерв, журнал, откат), потом сохранения; не вышло что-то одно —
+/// настройки возвращаются, и проект не меняется. Чьи настройки сейчас в плагине, — тот же владелец, что у сохранений
+/// (<c>Owner.txt</c>): переключаются они вместе. Прерванное переключение доводится по владельцу при запуске редактора.
+/// </para>
+/// <para>
+/// Правка в плагине уходит в копию владельца, только когда он и есть активный проект (<see cref="Postprocessor"/>).
+/// При запуске редактора, если владелец совпал с активным, копия сверяется с плагином: новее копия (пришла из git) —
+/// встаёт она, новее плагин — запоминается он. Время файла решает только это: чьи настройки, решает владелец.
 /// </para>
 /// <para>
 /// Отключённая площадка прячет плагин в «Имя~», но её настройки переключаются и там: файлы ищутся в обеих папках.
 /// Поэтому этот класс в ядре и не зависит от кода плагинов.
 /// </para>
 /// </remarks>
-[InitializeOnLoad]
 public static class PRSDKProjectPlatformSettings
 {
     /// <summary>
@@ -38,45 +44,147 @@ public static class PRSDKProjectPlatformSettings
     private static List<PRModuleManifest> manifests;
     private static bool writing;
 
-    static PRSDKProjectPlatformSettings()
-    {
-        EditorApplication.delayCall += () =>
-        {
-            if (!EditorApplication.isPlayingOrWillChangePlaymode)
-                Load(Active, preferNewer: true);
-        };
-    }
-
-    private static PRSDKProject Active => PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
+    private static PRSDKPlatformSettingsSwitch Operation => new(PRSDKProjectSaves.Root);
 
     /// <summary>
-    /// Переводит настройки площадок с проекта <paramref name="from"/> на <paramref name="to"/>.
+    /// Ставит настройки проекта <paramref name="toGuid"/>; журнал остаётся до <see cref="Commit"/> или <see cref="Revert"/>.
     /// </summary>
-    public static void Switch(PRSDKProject from, PRSDKProject to)
+    /// <returns><c>false</c> — настройки прежние, причина в <paramref name="error"/>.</returns>
+    internal static bool TrySwitch(string fromGuid, string toGuid, out string error)
     {
-        if (to == null || from == to)
-            return;
-
-        if (from != null)
+        PRSDKProject from = ProjectOf(fromGuid);
+        PRSDKProject to = ProjectOf(toGuid);
+        error = null;
+        if (to == null)
         {
-            foreach (FileEntry entry in Entries())
-            {
-                // Правка в окне плагина может ещё не лечь на диск: без записи она ушла бы в настройки новой игры.
-                if (entry.Visible && entry.Live.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
-                    AssetDatabase.SaveAssetIfDirty(AssetDatabase.LoadMainAssetAtPath(entry.Live));
-
-                PRSDKPlatformSettingsFile.Save(entry.Live, StoredPath(from, entry), out string error);
-                if (error != null)
-                    Debug.LogError($"[PRUnitySDK] Настройки {entry.Live} не запомнены у {from.Title}: {error}. Они перейдут к {to.Title}.");
-            }
+            error = $"проект {toGuid} не найден";
+            return false;
         }
 
-        Load(to, preferNewer: false);
+        var entries = new List<PRSDKPlatformSettingsSwitch.Entry>();
+        foreach (FileEntry entry in Entries())
+        {
+            // Правка в окне плагина может ещё не лечь на диск: без записи она ушла бы в настройки новой игры.
+            if (entry.Visible && entry.Live.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
+            {
+                UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(entry.Live);
+                if (asset != null)
+                    AssetDatabase.SaveAssetIfDirty(asset);
+            }
+
+            entries.Add(new PRSDKPlatformSettingsSwitch.Entry(entry.Live, from != null ? StoredPath(from, entry) : null, StoredPath(to, entry)));
+        }
+
+        if (entries.Count == 0)
+            return true;
+
+        bool switched;
+        List<string> changed;
+        PRSDKPlatformSettingsSwitch operation = Operation;
+        writing = true;
+        try
+        {
+            switched = operation.TrySwitch(fromGuid, toGuid, entries, out changed, out error);
+        }
+        finally
+        {
+            writing = false;
+        }
+
+        Reimport(changed);
+        if (switched && changed.Count > 0)
+            Debug.Log($"[PRUnitySDK] Настройки площадок проекта {to.Title}: {string.Join(", ", changed)}.");
+        // Первый переход в игру без своих настроек — она получает нынешние; без предупреждения кажется, что настройки общие.
+        if (switched && operation.Seeded.Count > 0)
+            Debug.LogWarning($"[PRUnitySDK] У проекта {to.Title} своих настроек площадок не было — взяты от " +
+                             $"{(from != null ? from.Title : "прежнего проекта")}: {string.Join(", ", operation.Seeded)}. " +
+                             "Поправьте их под игру: дальше они у каждой игры свои.");
+        return switched;
     }
 
-    private static void Load(PRSDKProject project, bool preferNewer)
+    /// <summary>
+    /// Смена проекта прошла целиком: журнал настроек больше не нужен.
+    /// </summary>
+    internal static void Commit()
     {
-        if (project == null)
+        if (!Operation.Commit())
+            Debug.LogWarning($"[PRUnitySDK] Журнал настроек площадок ({Operation.JournalPath}) не удалён — уберётся при запуске редактора.");
+    }
+
+    /// <summary>
+    /// Смена проекта не прошла: настройки возвращаются из резерва.
+    /// </summary>
+    internal static void Revert()
+    {
+        PRSDKPlatformSettingsSwitch operation = Operation;
+        if (!operation.HasUnfinished)
+            return;
+
+        bool reverted;
+        List<string> restored;
+        string error;
+        writing = true;
+        try
+        {
+            reverted = operation.Revert(out restored, out error);
+        }
+        finally
+        {
+            writing = false;
+        }
+
+        Reimport(restored);
+        if (!reverted)
+            Debug.LogError($"[PRUnitySDK] Настройки площадок не вернулись к прежнему проекту: {error}. Копия — {PRSDKProjectSaves.Root}.");
+    }
+
+    /// <summary>
+    /// Доводит прерванное переключение настроек по владельцу сохранений.
+    /// </summary>
+    /// <returns><c>false</c> — настройки могут быть от разных проектов, переключать и играть нельзя.</returns>
+    internal static bool Recover(string owner)
+    {
+        PRSDKPlatformSettingsSwitch operation = Operation;
+        if (!operation.HasUnfinished)
+            return true;
+
+        PRSDKPlatformSettingsSwitch.Recovery result;
+        List<string> restored;
+        writing = true;
+        try
+        {
+            result = operation.Recover(owner, out restored);
+        }
+        finally
+        {
+            writing = false;
+        }
+
+        Reimport(restored);
+        switch (result)
+        {
+            case PRSDKPlatformSettingsSwitch.Recovery.RolledBack:
+                Debug.LogWarning("[PRUnitySDK] Прошлое переключение настроек площадок прервалось: возвращены настройки владельца сохранений.");
+                return true;
+            case PRSDKPlatformSettingsSwitch.Recovery.Incomplete:
+                Debug.LogError($"[PRUnitySDK] Прошлое переключение настроек площадок не откатилось целиком: закройте то, что держит файлы " +
+                               $"плагинов, и перезапустите редактор. Копия и журнал — в {PRSDKProjectSaves.Root}.");
+                return false;
+            case PRSDKPlatformSettingsSwitch.Recovery.Unreadable:
+                Debug.LogError($"[PRUnitySDK] Журнал переключения настроек площадок ({operation.JournalPath}) не прочитать: сверьте файлы " +
+                               $"плагинов с копией в {PRSDKProjectSaves.Root}/PlatformSettingsBackup, затем удалите журнал.");
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    /// <summary>
+    /// Сверяет плагин с копией владельца, когда тот — активный проект: выигрывает более новый файл.
+    /// </summary>
+    internal static void Refresh(PRSDKProject owner)
+    {
+        if (owner == null || Operation.HasUnfinished)
             return;
 
         var loaded = new List<string>();
@@ -88,19 +196,14 @@ public static class PRSDKProjectPlatformSettings
             foreach (FileEntry entry in Entries())
             {
                 PRSDKPlatformSettingsFile.LoadResult result =
-                    PRSDKPlatformSettingsFile.Load(entry.Live, StoredPath(project, entry), preferNewer, out string error);
+                    PRSDKPlatformSettingsFile.Load(entry.Live, StoredPath(owner, entry), preferNewer: true, out string error);
 
                 if (result == PRSDKPlatformSettingsFile.LoadResult.Failed)
-                    Debug.LogError($"[PRUnitySDK] Настройки площадки {entry.Live} не переключены на {project.Title}: {error}.");
+                    Debug.LogError($"[PRUnitySDK] Настройки площадки {entry.Live} не сверены с проектом {owner.Title}: {error}.");
                 else if (result == PRSDKPlatformSettingsFile.LoadResult.Seeded)
                     seeded.Add(entry.Live);
                 else if (result == PRSDKPlatformSettingsFile.LoadResult.Loaded)
-                {
                     loaded.Add(entry.Live);
-                    // Ассет в памяти перечитывается с диска; у спрятанного плагина Unity файла не видит.
-                    if (entry.Visible)
-                        AssetDatabase.ImportAsset(entry.Live, ImportAssetOptions.ForceUpdate);
-                }
             }
         }
         finally
@@ -108,17 +211,50 @@ public static class PRSDKProjectPlatformSettings
             writing = false;
         }
 
+        Reimport(loaded);
         if (loaded.Count > 0)
-            Debug.Log($"[PRUnitySDK] Настройки площадок проекта {project.Title}: {string.Join(", ", loaded)}.");
+            Debug.Log($"[PRUnitySDK] Настройки площадок проекта {owner.Title} обновлены из его копии: {string.Join(", ", loaded)}.");
         if (seeded.Count > 0)
-            Debug.Log($"[PRUnitySDK] У проекта {project.Title} своих настроек площадок не было — взяты нынешние: " +
-                      $"{string.Join(", ", seeded)}. Поправьте их под игру.");
+            Debug.Log($"[PRUnitySDK] У проекта {owner.Title} своих настроек площадок не было — взяты нынешние: " +
+                      $"{string.Join(", ", seeded)}.");
     }
 
-    private static string StoredPath(PRSDKProject project, FileEntry entry)
+    /// <summary>
+    /// Ассеты в памяти перечитываются с диска; у спрятанного плагина Unity файла не видит.
+    /// </summary>
+    private static void Reimport(List<string> changed)
     {
-        string folder = Path.GetDirectoryName(AssetDatabase.GetAssetPath(project))!.Replace('\\', '/');
-        return $"{folder}/{FolderName}/{entry.ModuleId}/{entry.Relative}";
+        if (changed == null)
+            return;
+
+        writing = true;
+        try
+        {
+            foreach (string live in changed.Where(path => !path.Contains(PRModulePlugins.HiddenSuffix + "/")))
+                AssetDatabase.ImportAsset(live, ImportAssetOptions.ForceUpdate);
+        }
+        finally
+        {
+            writing = false;
+        }
+    }
+
+    private static PRSDKProject ProjectOf(string guid) =>
+        string.IsNullOrEmpty(guid) ? null : AssetDatabase.LoadAssetAtPath<PRSDKProject>(AssetDatabase.GUIDToAssetPath(guid));
+
+    private static string StoredPath(PRSDKProject project, FileEntry entry) => $"{DataFolder(project)}/{FolderName}/{entry.ModuleId}/{entry.Relative}";
+
+    /// <summary>
+    /// Папка данных проекта: где его PRSDKSettings; настроек нет — папка с именем проекта рядом с его ассетом.
+    /// </summary>
+    private static string DataFolder(PRSDKProject project)
+    {
+        string projectPath = AssetDatabase.GetAssetPath(project);
+        string settingsPath = project.Settings != null ? AssetDatabase.GetAssetPath(project.Settings) : string.Empty;
+        string folder = settingsPath.Length > 0
+            ? Path.GetDirectoryName(settingsPath)
+            : Path.Combine(Path.GetDirectoryName(projectPath) ?? string.Empty, Path.GetFileNameWithoutExtension(projectPath));
+        return folder!.Replace('\\', '/');
     }
 
     private static IEnumerable<FileEntry> Entries()
@@ -133,13 +269,13 @@ public static class PRSDKProjectPlatformSettings
             if (manifest == null || manifest.ProjectSettingsFiles.Count == 0)
                 continue;
 
-            PRPluginState state = PRModulePlugins.GetState(manifest);
-            if (state != PRPluginState.Visible && state != PRPluginState.Hidden)
+            string folder = PRSDKPlatformSettingsSwitch.LiveFolder(manifest.PluginFolder, PRModulePlugins.HiddenSuffix);
+            if (folder == null)
                 continue;
 
-            string folder = manifest.PluginFolder + (state == PRPluginState.Hidden ? PRModulePlugins.HiddenSuffix : string.Empty);
+            bool visible = folder == manifest.PluginFolder;
             foreach (string relative in manifest.ProjectSettingsFiles)
-                yield return new FileEntry(manifest.Id, $"{folder}/{relative}", relative, state == PRPluginState.Visible);
+                yield return new FileEntry(manifest.Id, $"{folder}/{relative}", relative, visible);
         }
     }
 
@@ -160,7 +296,7 @@ public static class PRSDKProjectPlatformSettings
     }
 
     /// <summary>
-    /// Правка настроек в плагине сразу уходит в копию активного проекта.
+    /// Правка настроек в плагине уходит в копию владельца, если он и есть активный проект.
     /// </summary>
     private sealed class Postprocessor : AssetPostprocessor
     {
@@ -170,8 +306,12 @@ public static class PRSDKProjectPlatformSettings
             if (imported.Concat(moved).Any(path => AssetDatabase.GetMainAssetTypeAtPath(path) == typeof(PRModuleManifest)))
                 manifests = null;
 
-            PRSDKProject project = Active;
-            if (writing || project == null || imported.Length == 0)
+            if (writing || imported.Length == 0 || Operation.HasUnfinished)
+                return;
+
+            // Чьи настройки — решает владелец: посреди сбоя или до переключения указатель мог уйти к другой игре.
+            PRSDKProject owner = PRSDKProjectSaves.ActiveOwner;
+            if (owner == null)
                 return;
 
             var changed = new HashSet<string>(imported, StringComparer.OrdinalIgnoreCase);
@@ -180,9 +320,9 @@ public static class PRSDKProjectPlatformSettings
                 if (!entry.Visible || !changed.Contains(entry.Live))
                     continue;
 
-                PRSDKPlatformSettingsFile.Save(entry.Live, StoredPath(project, entry), out string error);
+                PRSDKPlatformSettingsFile.Save(entry.Live, StoredPath(owner, entry), out string error);
                 if (error != null)
-                    Debug.LogError($"[PRUnitySDK] Правка {entry.Live} не запомнена у проекта {project.Title}: {error}.");
+                    Debug.LogError($"[PRUnitySDK] Правка {entry.Live} не запомнена у проекта {owner.Title}: {error}.");
             }
         }
     }
