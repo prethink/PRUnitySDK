@@ -1,23 +1,30 @@
+using System;
 using UnityEngine;
 
+/// <summary>
+/// Верхняя граница значения характеристики.
+/// </summary>
+[Serializable]
 public class MaxValueRule : StatRuleBase
 {
-    public float MaxValue { get; protected set; }
+    [SerializeField]
+    [Tooltip("Больше этого значение не поднимется.")]
+    private float maxValue;
 
-    public MaxValueRule(Enumeration stat, float maxValue)
-        : base(stat)
+    public MaxValueRule()
     {
-        MaxValue = maxValue;
     }
 
-    public MaxValueRule(Enumeration stat, float maxValue, int priority)
+    public MaxValueRule(Enumeration stat, float maxValue, int priority = DefaultPriority)
         : base(stat, priority)
     {
-        MaxValue = maxValue;
+        this.maxValue = maxValue;
     }
+
+    public float MaxValue => maxValue;
 
     public override float Apply(float value)
     {
-        return Mathf.Min(value, MaxValue);
+        return Mathf.Min(value, maxValue);
     }
 }

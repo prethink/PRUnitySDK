@@ -171,6 +171,24 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
         Hide();
     }
 
+    /// <summary>
+    /// Закрывает окно так же, как крестик, — если крестик есть и сейчас нажимается.
+    /// </summary>
+    /// <remarks>
+    /// Нажатие идёт через сам крестик, а не через <see cref="Hide"/>: окно, переопределившее
+    /// <see cref="ExitButtonAction"/>, и обработчики с префаба отработают как при клике. Окно без крестика
+    /// или с выключенным крестиком так не закрыть — значит, закрываться ему сейчас нельзя.
+    /// </remarks>
+    /// <returns><c>false</c> — крестика нет, он скрыт или неактивен.</returns>
+    internal bool TryPressExitButton()
+    {
+        if (!IsVisible || exitButton == null || !exitButton.isActiveAndEnabled || !exitButton.interactable)
+            return false;
+
+        exitButton.onClick.Invoke();
+        return true;
+    }
+
     protected override void OnEnable()
     {
         exitButton?.onClick.AddListener(ExitButtonAction);

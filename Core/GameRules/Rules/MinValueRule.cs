@@ -1,23 +1,30 @@
+using System;
 using UnityEngine;
 
+/// <summary>
+/// Нижняя граница значения характеристики.
+/// </summary>
+[Serializable]
 public class MinValueRule : StatRuleBase
 {
-    public MinValueRule(Enumeration stat, float minValue)
-        : base(stat)
+    [SerializeField]
+    [Tooltip("Меньше этого значение не опустится.")]
+    private float minValue;
+
+    public MinValueRule()
     {
-        MinValue = minValue;
     }
 
-    public MinValueRule(Enumeration stat, float minValue, int priority)
+    public MinValueRule(Enumeration stat, float minValue, int priority = DefaultPriority)
         : base(stat, priority)
     {
-        MinValue = minValue;
+        this.minValue = minValue;
     }
 
-    public float MinValue { get; protected set; }
+    public float MinValue => minValue;
 
     public override float Apply(float value)
     {
-        return Mathf.Max(value, MinValue);
+        return Mathf.Max(value, minValue);
     }
 }

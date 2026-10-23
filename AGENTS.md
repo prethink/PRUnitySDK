@@ -334,6 +334,12 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Правила характеристик у проекта SDK.** `GameRules` больше не ищет `IStatRuleProvider` рефлексией (интерфейс удалён):
+  правила лежат в настройках проекта — `PRSDKSettings.StatRules` (`GameRulesSettings`, список `[SerializeReference]` из
+  `StatRuleBase`), у каждой игры свои. Правятся в окне *PRUnitySDK → Windows → Game Rules* (активный проект, предупреждения
+  min > max, проверка значения); характеристика — строка с выпадающим списком из наборов `EntityStatsBase<T>`
+  (`StatKeyAttribute`). Наследник правила — `[Serializable]`, конструктор без параметров, поля `[SerializeField]`.
+  Бывший `PlayerRules` (private) перенесён в настройки всех четырёх игр. См. `Core/GameRules/README.md`.
 - **Настройки площадок у проекта SDK.** У плагина площадки настройки в одном файле на все игры (YG2 —
   `Resources/SettingsYG2.asset`: ID игры, покупки, таблицы). Какие файлы свои у каждой игры, задаёт манифест модуля
   (`Project Settings Files`, пути от папки плагина); пока задано только у YG2, у GamePush кандидаты —

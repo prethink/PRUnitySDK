@@ -25,8 +25,8 @@
 Формат файла — строка с `#` открывает контракт, под ней его классы:
 
 ```text
-#IStatRuleProvider
-PlayerRules, Assembly-CSharp
+#IAbilityEffectHandler
+DamageEffectHandler, Assembly-CSharp
 ```
 
 ## Использование
@@ -34,9 +34,9 @@ PlayerRules, Assembly-CSharp
 Место, которое ищет классы, сначала спрашивает список и только при отказе перебирает сборку:
 
 ```csharp
-Type[] candidates = ReflectionTypeRegistry.TryGetTypes(typeof(IStatRuleProvider), out IReadOnlyList<Type> listed)
+Type[] candidates = ReflectionTypeRegistry.TryGetTypes(typeof(IAbilityEffectHandler), out IReadOnlyList<Type> listed)
     ? listed.ToArray()
-    : typeof(IStatRuleProvider).Assembly.GetTypes();
+    : typeof(IAbilityEffectHandler).Assembly.GetTypes();
 ```
 
 В список попадают все неабстрактные и необобщённые классы контракта. Остальные условия — конструктор без
@@ -51,7 +51,7 @@ Type[] candidates = ReflectionTypeRegistry.TryGetTypes(typeof(IStatRuleProvider)
 
 ```csharp
 [ReflectionContract]
-public interface IStatRuleProvider { }
+public interface IAbilityEffectHandler { }
 ```
 
 Больше ничего не нужно: генератор найдёт помеченное сам, в том числе в коде проекта, о котором ядро не знает.
