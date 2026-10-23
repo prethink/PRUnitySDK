@@ -93,14 +93,16 @@ public static class PRSDKPlatformSettingsFile
     }
 
     /// <summary>
-    /// Пишет копию через временный файл: оборванная запись остаётся во временном, прежняя копия цела.
+    /// Пишет копию через временный файл и замену целиком: прежняя копия либо цела, либо уже новая.
     /// </summary>
     /// <remarks>
-    /// <c>File.Replace</c> падает, пока свежий файл держит антивирус или индексатор: тогда — прямой записью, она не
-    /// начнётся, если файл держат, а иначе пройдёт.
+    /// Прямой записи поверх нет: оборванная, она испортила бы единственную копию настроек игры. <c>File.Replace</c>
+    /// падает, пока свежий файл держит антивирус или индексатор, — поэтому несколько попыток с паузой; не вышло — ошибка,
+    /// и переключение проекта отказывает с прежней копией на месте.
     /// </remarks>
     private static void WriteThroughTemp(string source, string target)
     {
+        const int attempts = 4;
         string temp = target + ".new";
         try
         {
@@ -111,13 +113,17 @@ public static class PRSDKPlatformSettingsFile
                 return;
             }
 
-            try
+            for (int attempt = 1; ; attempt++)
             {
-                File.Replace(temp, target, null);
-            }
-            catch (IOException)
-            {
-                File.Copy(temp, target, overwrite: true);
+                try
+                {
+                    File.Replace(temp, target, null);
+                    return;
+                }
+                catch (Exception exception) when (attempt < attempts && exception is IOException or UnauthorizedAccessException)
+                {
+                    System.Threading.Thread.Sleep(100 * attempt);
+                }
             }
         }
         finally
