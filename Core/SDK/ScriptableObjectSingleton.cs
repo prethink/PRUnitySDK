@@ -55,24 +55,28 @@ public class ScriptableObjectSingleton<T> : ScriptableObject
 #if UNITY_EDITOR
     private static T CreateInEditor(string fileName)
     {
-        instance = ScriptableObject.CreateInstance<T>();
-
-        string path = $"{PATCH_ASSETS}/Resources/{CORE_FOLDER}/{fileName}.asset";
         string directory = $"{PATCH_ASSETS}/Resources/{CORE_FOLDER}";
-        Debug.Log(path);
+        string path = $"{directory}/{fileName}.asset";
+
+        // Файл есть, а Resources его не видит — база ассетов ещё не готова (первый импорт, загрузка домена).
+        // Создать заново значило бы затереть данные, например выбранный активный проект. Пока ассет
+        // не импортирован, вернётся null, и синглтон поищет его снова при следующем обращении.
+        if (File.Exists(path))
+            return AssetDatabase.LoadAssetAtPath<T>(path);
+
         if (!Directory.Exists(directory))
             Directory.CreateDirectory(directory);
 
-        AssetDatabase.CreateAsset(instance, path);
-        AssetDatabase.Refresh();
+        // Созданный объект и есть ассет. Перечитывать его через Resources нельзя: во время импорта
+        // загрузка возвращает null.
+        T created = ScriptableObject.CreateInstance<T>();
+        AssetDatabase.CreateAsset(created, path);
 
-        // Путь в ресурсах считается от папки Resources, поэтому имени файла мало:
-        // без папки ассет не находится, и синглтон возвращал пустую ссылку.
-        instance = Resources.Load<T>($"{CORE_FOLDER}/{fileName}");
+        created.SetDefaultSettings();
+        EditorUtility.SetDirty(created);
+        AssetDatabase.SaveAssetIfDirty(created);
 
-        instance.SetDefaultSettings();
-
-        return instance;
+        return created;
     }
 #endif
 

@@ -182,7 +182,10 @@ public partial class PRManagerContainer
 2. Args, если окно принимает данные.
 3. Factory и prefab в `Resources/PRUnitySDK/Prefabs/Windows/...`.
 4. Уникальный ключ в partial `MonoWindowKeyEnumerations`.
-5. Partial-регистрация:
+5. Справка «?» рядом с крестиком — у **каждого** окна (образец — колесо удачи): что в окне происходит и как им
+   пользоваться, на трёх языках. Поле префаба `helpText` или переопределённый `HelpText` (окна, собранные кодом).
+   Пустая справка — кнопки нет, такое окно считается незаконченным. Описание окна живёт в справке, а не строкой в окне.
+6. Partial-регистрация:
 
 ```csharp
 public partial class PRWindowsContainer
