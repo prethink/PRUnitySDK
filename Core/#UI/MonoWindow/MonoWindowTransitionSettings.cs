@@ -10,9 +10,21 @@ using UnityEngine;
 /// </remarks>
 [Serializable]
 [SettingsDescription("Переход окон: как MonoWindow появляется и закрывается. Пресет — готовый набор, " +
-                     "Custom — свои значения. Окно может взять свой переход или отключить его (Transition Mode у окна).")]
+                     "Custom — свои значения. Окно может взять свой переход или отключить его (Transition Mode у окна). " +
+                     "Переход по умолчанию с превью — PRUnitySDK → Game → Window Transition.")]
+[DatabaseExternalEditor(MenuPath, WindowName = "Переход окон")]
 public class MonoWindowTransitionSettings
 {
+    /// <summary>
+    /// Пункт меню окна перехода по умолчанию с превью.
+    /// </summary>
+    /// <remarks>
+    /// Лежит в рантайме, а не рядом с окном: на путь ссылается атрибут настроек, а сборка
+    /// редактора из рантайма не видна. Атрибут уводит из общего окна настроек только раздел
+    /// проекта: свой переход окна по-прежнему правится на его префабе.
+    /// </remarks>
+    public const string MenuPath = "PRUnitySDK/Game/Window Transition";
+
     [field: SerializeField]
     [field: Tooltip("Окна появляются и закрываются плавно. Выключено — сразу.")]
     public bool Enabled { get; private set; } = true;
