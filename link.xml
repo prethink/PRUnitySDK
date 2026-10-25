@@ -53,6 +53,7 @@
     <type fullname="EntitySideEnumerations" preserve="all" />
     <type fullname="EntityTypeEnumerations" preserve="all" />
     <type fullname="EnumerationProviderBase" preserve="all" />
+    <type fullname="FinDatabase" preserve="all" />
     <type fullname="FishingRodDatabase" preserve="all" />
     <type fullname="FlagsProviderBase" preserve="all" />
     <type fullname="FreeGiftDatabase" preserve="all" />
@@ -220,6 +221,7 @@
       <method name="InitializeSettingsWindow" />
       <method name="InitializeShopWindow" />
       <method name="InitializeStealEggBaseWindows" />
+      <method name="InitializeStealEggDeepWindows" />
       <method name="InitializeStealEggFusionWindow" />
       <method name="InitializeStealEggPetIndexWindow" />
       <method name="InitializeStealEggSellWindow" />

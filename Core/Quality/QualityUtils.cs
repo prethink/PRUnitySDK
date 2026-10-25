@@ -71,7 +71,8 @@ public static class QualityUtils
     /// </summary>
     public static Color GetDefaultColor(QualityType quality) => quality switch
     {
-        QualityType.Common => new Color(0.75f, 0.75f, 0.75f),
+        // Светлее серого 0,75: мелкая подпись «Обычный» с тёмной обводкой читалась тёмно-серой.
+        QualityType.Common => new Color(0.85f, 0.85f, 0.85f),
         QualityType.Uncommon => new Color(0.35f, 0.85f, 0.35f),
         QualityType.Rare => new Color(0.35f, 0.55f, 0.95f),
         QualityType.Mythic => new Color(0.75f, 0.35f, 0.95f),
