@@ -17,6 +17,8 @@
 | `CurrentRealSecond` | Полная секунда `RealTime` |
 | `CurrentGameSecond` | Полная секунда `GameTime` |
 | `LastRawTime` | Последнее значение `Time.realtimeSinceStartup` |
+| `GetDeltaTime(слои)` | Шаг кадра в темпе этих слоёв `TimeLayer` — для персонажей, UI и всего, что живёт своим темпом |
+| `GetTime(слои)` | Часы этих слоёв для ожиданий «до момента»; сравнивать только с моментами тех же часов |
 
 Темп мира читается через `PRTimeScale.GetWorldTimeScale()`. Замедление «всего, кроме игрока» замедляет и
 игровое время: объекту в своём темпе нужен `PRTimeScale.Resolve(слои)` или `RelativeToWorld(слои)`.

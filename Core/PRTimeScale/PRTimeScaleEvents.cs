@@ -7,8 +7,9 @@ public interface IOnPRTimeScaleChange : IGlobalSubscriber
     /// Масштаб изменился у этих слоёв.
     /// </summary>
     /// <param name="layers">
-    /// Слои, которые задел модификатор. Подписчику со своими слоями достаточно проверить пересечение; тело с
-    /// драйвером зависит ещё и от мира (<see cref="TimeLayer.World"/>) — его темп заложен в шаг физики.
+    /// Слои, на которые наложен модификатор (<see cref="TimeScaleModifier.Affects"/>). Подписчику со своими слоями
+    /// достаточно <see cref="PRTimeScale.Touches"/>; тело с драйвером зависит ещё и от мира
+    /// (<see cref="TimeLayer.World"/>) — его темп заложен в шаг физики.
     /// </param>
     void OnPRTimeScaleChange(TimeLayer layers);
 }

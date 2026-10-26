@@ -51,7 +51,7 @@ public class CanvasGroupFadeCoroutine : PRCoroutineBase
                 yield return WaitPause.Instance;
 
             // На паузе игровая дельта нулевая, поэтому мимо паузы идём по времени Unity.
-            fadeTime -= IgnorePause ? Time.unscaledDeltaTime : PRTime.Instance.GameDeltaTime;
+            fadeTime -= IgnorePause ? Time.unscaledDeltaTime : PRTime.Instance.GetDeltaTime(TimeLayer.UI);
             canvasGroup.alpha = fadeTime / fadeDuration;
             yield return null;
         }

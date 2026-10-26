@@ -438,10 +438,10 @@ public partial class PRDebugEditor
     }
 
     /// <summary>
-    /// Отдельные слои enum, без <see cref="TimeLayer.None"/> и <see cref="TimeLayer.Global"/>.
+    /// Отдельные слои enum — по одному биту, без групп вроде <see cref="TimeLayer.NPC"/> и <see cref="TimeLayer.Global"/>.
     /// </summary>
     private static readonly TimeLayer[] SingleTimeLayers = ((TimeLayer[])Enum.GetValues(typeof(TimeLayer)))
-        .Where(layer => layer != TimeLayer.None && layer != TimeLayer.Global)
+        .Where(layer => layer != TimeLayer.None && ((int)layer & ((int)layer - 1)) == 0)
         .ToArray();
 
     private void CaptureSaveDiagnostics()

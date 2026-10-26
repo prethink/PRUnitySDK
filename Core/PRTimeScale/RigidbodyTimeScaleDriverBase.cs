@@ -36,6 +36,13 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     private float appliedScale = 1f;
 
     /// <summary>
+    /// Скорости тела в обычном темпе на момент заморозки: при нуле их не из чего восстановить делением.
+    /// </summary>
+    private Vector3 frozenVelocity;
+
+    private Vector3 frozenAngularVelocity;
+
+    /// <summary>
     /// Слои времени этого тела. Только <see cref="TimeLayer.World"/> — тело идёт в темпе мира, и драйвер
     /// бездействует: этот темп уже заложен в шаг симуляции.
     /// </summary>
@@ -145,10 +152,30 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         if (Mathf.Approximately(scale, appliedScale))
             return;
 
-        // Пересчёт идёт от ранее применённого масштаба, а не от единицы: иначе
-        // повторные изменения накапливали бы ошибку.
-        if (appliedScale > Mathf.Epsilon)
+        bool wasFrozen = appliedScale <= Mathf.Epsilon;
+        bool freezes = scale <= Mathf.Epsilon;
+
+        if (!wasFrozen && freezes)
         {
+            // Замирает: скорость в обычном темпе запоминаем, иначе после оттаивания тело стояло бы — из нуля
+            // делением прежнюю скорость не восстановить.
+            frozenVelocity = body.velocity / appliedScale;
+            frozenAngularVelocity = body.angularVelocity / appliedScale;
+            body.velocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+        else if (wasFrozen && !freezes)
+        {
+            // Оттаивает: летящее продолжает полёт в новом темпе.
+            body.velocity = frozenVelocity * scale;
+            body.angularVelocity = frozenAngularVelocity * scale;
+            frozenVelocity = Vector3.zero;
+            frozenAngularVelocity = Vector3.zero;
+        }
+        else if (!wasFrozen)
+        {
+            // Пересчёт идёт от ранее применённого масштаба, а не от единицы: иначе
+            // повторные изменения накапливали бы ошибку.
             var ratio = scale / appliedScale;
             body.velocity *= ratio;
             body.angularVelocity *= ratio;

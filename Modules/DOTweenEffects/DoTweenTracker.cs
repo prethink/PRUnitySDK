@@ -195,7 +195,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
             if (!tweens.TryGetValue(guid, out var dto))
                 continue;
 
-            if ((dto.Layers & layers) == 0)
+            if (!PRTimeScale.Touches(layers, dto.Layers))
                 continue;
 
             if (dto.Tween == null || !dto.Tween.active)

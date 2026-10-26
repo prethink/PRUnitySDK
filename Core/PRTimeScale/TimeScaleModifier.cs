@@ -20,14 +20,10 @@ public class TimeScaleModifier
     public TimeLayer Affects { get; }
 
     /// <summary>
-    /// Какие слои модификатор не трогает, даже если они есть в <see cref="Affects"/>.
+    /// Кого модификатор не трогает: объект, у которого есть хоть один из этих слоёв, не задевается вовсе —
+    /// даже если другие его слои есть в <see cref="Affects"/>.
     /// </summary>
     public TimeLayer Except { get; }
-
-    /// <summary>
-    /// Слои, которые модификатор задевает на деле: <see cref="Affects"/> без <see cref="Except"/>.
-    /// </summary>
-    public TimeLayer Targets => Affects & ~Except;
 
     /// <summary>
     /// Множитель масштаба времени.
@@ -67,9 +63,14 @@ public class TimeScaleModifier
     }
 
     /// <summary>
-    /// Задевает ли модификатор объект с этими слоями: есть хоть один общий.
+    /// Задевает ли модификатор объект с этими слоями: есть общий слой с <see cref="Affects"/> и нет ни одного
+    /// из <see cref="Except"/>.
     /// </summary>
-    public bool Hits(TimeLayer layers) => (Targets & layers) != 0;
+    /// <remarks>
+    /// Исключение — по объекту, а не по слою. Враг-моб (<c>Mobs | Enemy</c>) при «всё, кроме врагов» не замедляется:
+    /// вычитание слоя из маски задело бы его через <see cref="TimeLayer.Mobs"/>.
+    /// </remarks>
+    public bool Hits(TimeLayer layers) => (Affects & layers) != 0 && (Except & layers) == 0;
 
     /// <summary>
     /// Истёк ли срок к этому моменту.

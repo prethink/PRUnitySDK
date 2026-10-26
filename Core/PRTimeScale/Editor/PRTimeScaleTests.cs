@@ -72,6 +72,39 @@ public class PRTimeScaleTests
     }
 
     [Test]
+    public void NpcGroup_HitsBotsPetsMobs_SingleLayerOnlyItself()
+    {
+        timeScale.AddModifier(0.5f, TimeLayer.NPC);
+        timeScale.AddModifier(0.5f, TimeLayer.Pets);
+
+        Assert.AreEqual(0.5f, timeScale.Resolve(TimeLayer.Bots), 1e-5f);
+        Assert.AreEqual(0.5f, timeScale.Resolve(TimeLayer.Mobs | TimeLayer.Enemy), 1e-5f);
+        Assert.AreEqual(0.25f, timeScale.Resolve(TimeLayer.Pets), 1e-5f);
+        Assert.AreEqual(1f, timeScale.Resolve(TimeLayer.Player), 1e-5f);
+        Assert.AreEqual(1f, timeScale.GetWorldTimeScale(), 1e-5f);
+    }
+
+    [Test]
+    public void Except_ExcludesWholeObject_EvenWithOtherLayers()
+    {
+        timeScale.AddModifier(0.3f, TimeLayer.Global, TimeLayer.Enemy);
+        timeScale.AddModifier(0.5f, TimeLayer.Global, TimeLayer.Player);
+
+        // Враг-моб и игрок с эффектом не задеты своими исключениями, хотя второй их слой в Affects есть.
+        Assert.AreEqual(0.5f, timeScale.Resolve(TimeLayer.Mobs | TimeLayer.Enemy), 1e-5f);
+        Assert.AreEqual(0.3f, timeScale.Resolve(TimeLayer.Player | TimeLayer.Effects), 1e-5f);
+        Assert.AreEqual(0.15f, timeScale.Resolve(TimeLayer.Mobs), 1e-5f);
+    }
+
+    [Test]
+    public void Touches_TreatsNoLayersAsWorld()
+    {
+        Assert.IsTrue(PRTimeScale.Touches(TimeLayer.World, TimeLayer.None));
+        Assert.IsFalse(PRTimeScale.Touches(TimeLayer.Pets, TimeLayer.None));
+        Assert.IsTrue(PRTimeScale.Touches(TimeLayer.NPC, TimeLayer.Bots | TimeLayer.Enemy));
+    }
+
+    [Test]
     public void NoLayers_CountAsWorld()
     {
         timeScale.AddModifier(0.4f, TimeLayer.World);
@@ -86,8 +119,7 @@ public class PRTimeScaleTests
         timeScale.RemoveModifier(handle);
 
         Assert.AreEqual(2, listener.Changes.Count);
-        Assert.AreEqual(TimeLayer.Global & ~TimeLayer.Player, listener.Changes[0]);
-        Assert.AreEqual(TimeLayer.None, listener.Changes[0] & TimeLayer.Player);
+        Assert.AreEqual(TimeLayer.Global, listener.Changes[0]);
         Assert.AreEqual(listener.Changes[0], listener.Changes[1]);
     }
 

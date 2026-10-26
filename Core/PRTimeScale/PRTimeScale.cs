@@ -13,7 +13,9 @@ using UnityEngine;
 /// <para>
 /// Темп мира (<see cref="TimeLayer.World"/>) — это шаг физики и <see cref="PRTime.GameDeltaTime"/>. Остальным
 /// слоям драйверы добавляют разницу с миром (<see cref="RelativeToWorld"/>): симуляция PhysX одна на сцену.
-/// Поэтому тело без драйвера идёт в темпе мира, даже если у его сущности свой слой.
+/// Поэтому тело без драйвера идёт в темпе мира, даже если у его сущности свой слой. По той же причине мир нельзя
+/// остановить совсем, оставив кого-то идти: при нуле физика не шагает ни для кого — для «всё, кроме игрока»
+/// годится сильное замедление (0,05), но не 0.
 /// </para>
 /// </remarks>
 public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitializer, IOnPRUpdateEvent
@@ -82,6 +84,28 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     }
 
     /// <summary>
+    /// Касается ли изменение объекта с этими слоями. Объект без слоёв — часть мира, как и в <see cref="Resolve"/>.
+    /// </summary>
+    /// <param name="changed">Слои из события <see cref="IOnPRTimeScaleChange"/>.</param>
+    /// <param name="layers">Слои объекта.</param>
+    public static bool Touches(TimeLayer changed, TimeLayer layers)
+    {
+        return (changed & (layers == TimeLayer.None ? TimeLayer.World : layers)) != 0;
+    }
+
+    /// <summary>
+    /// Слои компонента — у его сущности на нём, в родителях или по ссылке (<see cref="TimeLayerClock"/>); нет — мир.
+    /// </summary>
+    /// <remarks>
+    /// Ищет по иерархии при каждом вызове. Компоненту, которому время нужно каждый кадр, — держать
+    /// <see cref="TimeLayerClock"/> полем.
+    /// </remarks>
+    public static TimeLayer LayersOf(Component component)
+    {
+        return component != null ? new TimeLayerClock(component).Layers : TimeLayer.World;
+    }
+
+    /// <summary>
     /// Темп мира: шаг физики и <see cref="PRTime.GameDeltaTime"/>.
     /// </summary>
     public float GetWorldTimeScale() => Resolve(TimeLayer.World);
@@ -124,7 +148,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
         var modifier = new TimeScaleModifier(Guid.NewGuid(), affects, except, value, owner, endRealTime);
         modifiers.Add(modifier);
-        RaiseChange(modifier.Targets);
+        RaiseChange(modifier.Affects);
 
         return new TimeScaleModifierHandle(modifier.Id);
     }
@@ -149,9 +173,9 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         if (index < 0)
             return false;
 
-        TimeLayer targets = modifiers[index].Targets;
+        TimeLayer affects = modifiers[index].Affects;
         modifiers.RemoveAt(index);
-        RaiseChange(targets);
+        RaiseChange(affects);
 
         return true;
     }
@@ -216,7 +240,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
             if (!match(modifiers[i]))
                 continue;
 
-            changed |= modifiers[i].Targets;
+            changed |= modifiers[i].Affects;
             modifiers.RemoveAt(i);
             removed++;
         }

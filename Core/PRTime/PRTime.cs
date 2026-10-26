@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Игровое и реальное время SDK с учётом паузы и масштаба времени.
@@ -68,6 +69,17 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond, с учётом global layer time scale.
     /// </summary>
     private long lastGameSecond;
+
+    /// <summary>
+    /// Часы слоёв, которые кто-то спросил: накопленное время в их темпе.
+    /// </summary>
+    /// <remarks>
+    /// Заводятся при первом запросе со значением <see cref="GameTime"/> и дальше идут каждый кадр. Масок в игре
+    /// немного (игрок, боты, питомцы, UI), поэтому словарь маленький.
+    /// </remarks>
+    private readonly Dictionary<TimeLayer, float> layerClocks = new();
+
+    private readonly List<TimeLayer> layerClockKeys = new();
 
     #region MonoBehaviour
 
@@ -147,6 +159,56 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
     #endregion
 
+    #region Время слоёв
+
+    /// <summary>
+    /// Шаг кадра в темпе этих слоёв: <see cref="RealDeltaTime"/>, умноженный на их масштаб <see cref="PRTimeScale"/>.
+    /// </summary>
+    /// <remarks>
+    /// Для всего, что живёт своим темпом, а не темпом мира: персонажи (<see cref="ITimeScaleLayer.GetTimeLayers"/>),
+    /// интерфейс (<see cref="TimeLayer.UI"/>). <see cref="GameDeltaTime"/> — то же для <see cref="TimeLayer.World"/>.
+    /// </remarks>
+    public float GetDeltaTime(TimeLayer layers)
+    {
+        return RealDeltaTime * PRTimeScale.Instance.Resolve(layers);
+    }
+
+    /// <summary>
+    /// Накопленное время в темпе этих слоёв — часы для перезарядок и таймеров «до момента».
+    /// </summary>
+    /// <remarks>
+    /// Объекту, который живёт своим темпом, нельзя мерить ожидания <see cref="GameTime"/>: при замедлении «всего,
+    /// кроме игрока» перезарядка игрока шла бы медленнее его бега. Часы маски заводятся при первом запросе со значением
+    /// <see cref="GameTime"/>, поэтому сравнивать можно только моменты одних часов: запомнили по маске игрока — по ней
+    /// и сравнивать.
+    /// </remarks>
+    public float GetTime(TimeLayer layers)
+    {
+        if (layers == TimeLayer.None || layers == TimeLayer.World)
+            return GameTime;
+
+        if (layerClocks.TryGetValue(layers, out float time))
+            return time;
+
+        layerClocks[layers] = GameTime;
+        layerClockKeys.Add(layers);
+        return GameTime;
+    }
+
+    /// <summary>
+    /// Двигает часы слоёв на шаг кадра.
+    /// </summary>
+    private void AdvanceLayerClocks()
+    {
+        for (int i = 0; i < layerClockKeys.Count; i++)
+        {
+            TimeLayer layers = layerClockKeys[i];
+            layerClocks[layers] += GetDeltaTime(layers);
+        }
+    }
+
+    #endregion
+
     #region Методы времени
 
     /// <summary>
@@ -188,6 +250,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         // Игровое время идёт в темпе мира: замедление «всего, кроме игрока» его тоже замедляет.
         GameDeltaTime = this.RealDeltaTime * PRTimeScale.Instance.GetWorldTimeScale();
         GameTime += GameDeltaTime;
+        AdvanceLayerClocks();
 
         CurrentGameSecond = Mathf.FloorToInt(this.GameTime);
 
@@ -217,6 +280,8 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     {
         this.RealTime = 0f;
         this.GameTime = 0f;
+        layerClocks.Clear();
+        layerClockKeys.Clear();
         this.CurrentRealSecond = 0;
         this.CurrentGameSecond = 0;
         this.lastRealSecond = 0;

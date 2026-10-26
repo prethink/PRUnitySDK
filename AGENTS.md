@@ -337,6 +337,11 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Слои времени — флаги `TimeLayer`.** `PRTimeScale` без базовых значений и режима смешивания: только модификаторы
+  `AddModifier(value, affects, except, owner, duration)`, исключение — по объекту. `World` — шаг физики и
+  `GameDeltaTime`; своё время — `PRTime.GetDeltaTime(слои)` / `GetTime(слои)`, слои компонента —
+  `PRTimeScale.LayersOf`. Правило для кода игр — корневой `AGENTS.md`, «Время — по слоям объекта»
+  ([PRTimeScale/README](Core/PRTimeScale/README.md)).
 - **Ускорение времени для проверки.** `PRDebugTime.Speed` — вся игра в N раз быстрее (`PRTime`, `Time.timeScale`,
   часы `ServerTime` через `PRDebugServerTime`); окно отладки, Time → «Скорость времени». Только редактор и debug-сборка
   ([PRTime/README](Core/PRTime/README.md)).

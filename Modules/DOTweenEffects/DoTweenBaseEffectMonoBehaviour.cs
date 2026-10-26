@@ -30,7 +30,7 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     [SerializeField] protected bool playAnimationOnStart;
     [SerializeField] protected bool ignorePauseNotify;
 
-    [Tooltip("Слои времени эффекта: какие замедления его задевают. Эффект интерфейса — UI.")]
+    [Tooltip("Слои времени эффекта: какие замедления его задевают. World на объекте интерфейса (RectTransform) считается UI.")]
     [SerializeField] protected TimeLayer timeLayers = TimeLayer.World;
 
     /// <summary>
@@ -169,9 +169,14 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     /// <summary>
     /// Слои времени, по которым идёт эффект.
     /// </summary>
+    /// <remarks>
+    /// Слой по умолчанию на объекте интерфейса — <see cref="TimeLayer.UI"/>: иначе каждую кнопку и плашку пришлось бы
+    /// перенастраивать руками, а пока этого не сделали, их анимации тормозили бы вместе с миром — например, за окном,
+    /// которое замедляет всё, кроме интерфейса.
+    /// </remarks>
     public virtual TimeLayer GetTimeLayers()
     {
-        return timeLayers;
+        return timeLayers == TimeLayer.World && transform is RectTransform ? TimeLayer.UI : timeLayers;
     }
 
     /// <summary>
@@ -180,7 +185,7 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     public void OnPRTimeScaleChange(TimeLayer layers)
     {
         var effectLayers = GetTimeLayers();
-        if (tween != null && (effectLayers & layers) != 0)
+        if (tween != null && PRTimeScale.Touches(layers, effectLayers))
             tween.timeScale = PRTimeScale.Instance.Resolve(effectLayers);
     }
 
