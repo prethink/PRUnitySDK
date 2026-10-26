@@ -50,7 +50,7 @@ public static class PRDebugTime
     }
 
     /// <summary>
-    /// Насколько часы таймеров ушли вперёд от настоящих из-за ускорения.
+    /// Насколько часы таймеров ушли от настоящих из-за ускорения: обычно вперёд, после подвисаний может быть и меньше нуля.
     /// </summary>
     public static TimeSpan Offset { get; private set; }
 
@@ -61,8 +61,12 @@ public static class PRDebugTime
     /// Ровно столько, сколько за этот кадр прошла физика: Unity продвигает её не дальше <c>Time.maximumDeltaTime</c>
     /// за кадр (0,333 с), даже если сам кадр подвис дольше. Без предела при низком FPS и подвисаниях доход, воздух и
     /// таймеры уходили бы вперёд движения, а за кадр проходило бы несколько целых секунд — секундное событие же одно
-    /// на кадр, и доход за остальные терялся. Часы таймеров назад не идут: на подвисании игра отстаёт от настоящих
-    /// часов, как и физика, а сдвиг не уменьшается.
+    /// на кадр, и доход за остальные терялся.
+    /// <para>
+    /// Часы таймеров идут вместе с игрой: сдвиг меняется на разницу всегда, в том числе в минус, когда кадр подвис
+    /// дольше предела. Иначе созревание по <see cref="PRUnitySDK.ServerTime"/> уходило бы вперёд дохода по секундам
+    /// PRTime. Назад часы всё равно не идут: за кадр они продвигаются на шаг игры, а он больше нуля.
+    /// </para>
     /// </remarks>
     public static float Advance(float realDelta)
     {
@@ -70,8 +74,7 @@ public static class PRDebugTime
             return realDelta;
 
         float scaled = Mathf.Min(realDelta * speed, Time.maximumDeltaTime);
-        if (scaled > realDelta)
-            Offset += TimeSpan.FromSeconds(scaled - realDelta);
+        Offset += TimeSpan.FromSeconds(scaled - realDelta);
         return scaled;
     }
 
@@ -80,7 +83,7 @@ public static class PRDebugTime
     /// </summary>
     /// <remarks>
     /// Таймеры, поставленные при ускорении, хранят время окончания по ушедшим вперёд часам и после сброса
-    /// затянутся на весь сдвиг.
+    /// затянутся на весь сдвиг; отстававшие часы сброс, наоборот, двигает вперёд.
     /// </remarks>
     public static void ResetClock() => Offset = TimeSpan.Zero;
 

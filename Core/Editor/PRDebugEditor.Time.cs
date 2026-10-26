@@ -97,7 +97,7 @@ public partial class PRDebugEditor
             EditorGUILayout.LabelField("Temporary global override", EditorStyles.miniBoldLabel);
             temporaryGlobalTimeScale = DrawTimeScaleSlider("Scale", temporaryGlobalTimeScale,
                 0f, TimeScaleSliderMax);
-            temporaryGlobalDurationSeconds = DrawTimeScaleSlider("Duration (real seconds)",
+            temporaryGlobalDurationSeconds = DrawTimeScaleSlider("Duration (PRTime s)",
                 temporaryGlobalDurationSeconds, 0f, DurationSliderMax);
 
             EditorGUILayout.BeginHorizontal();

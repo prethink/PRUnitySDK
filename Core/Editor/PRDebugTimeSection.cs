@@ -45,10 +45,11 @@ public static class PRDebugTimeSection
         TimeSpan offset = PRDebugTime.Offset;
         using (new EditorGUILayout.HorizontalScope())
         {
-            EditorGUILayout.LabelField("Часы таймеров впереди на", FormatOffset(offset));
+            EditorGUILayout.LabelField("Часы таймеров сдвинуты на", FormatOffset(offset));
             using (new EditorGUI.DisabledScope(offset == TimeSpan.Zero))
             {
-                if (GUILayout.Button("Сбросить", EditorStyles.miniButton, GUILayout.Width(80f)) && ConfirmResetClock(offset))
+                if (GUILayout.Button("Сбросить", EditorStyles.miniButton, GUILayout.Width(80f))
+                    && (offset < TimeSpan.Zero || ConfirmResetClock(offset)))
                     PRDebugTime.ResetClock();
             }
         }
@@ -69,14 +70,25 @@ public static class PRDebugTimeSection
     /// <summary>
     /// Сброс часов возвращает их назад, а таймеры, поставленные при ускорении, остаются ждать по ушедшим вперёд.
     /// </summary>
+    /// <remarks>
+    /// Спрашивается, только когда часы впереди: отставшие (после подвисаний) сброс двигает вперёд, таймерам это не вредит.
+    /// </remarks>
     private static bool ConfirmResetClock(TimeSpan offset) =>
         EditorUtility.DisplayDialog("Сбросить часы таймеров?",
-            $"Часы вернутся назад на {FormatOffset(offset)}. Таймеры, поставленные при ускорении (созревание, " +
+            $"Часы вернутся назад на {FormatOffset(offset).TrimStart('+')}. Таймеры, поставленные при ускорении (созревание, " +
             "перезарядки, подарки), затянутся на это же время. Сохранение при этом не меняется.\n\n" +
             "Чтобы просто замедлить игру, выберите x1 — часы при этом не сбрасываются.",
             "Сбросить", "Отмена");
 
-    private static string FormatOffset(TimeSpan offset) =>
-        offset.TotalDays >= 1 ? $"{(int)offset.TotalDays} д {offset.Hours:00}:{offset.Minutes:00}:{offset.Seconds:00}"
-            : $"{offset.Hours:00}:{offset.Minutes:00}:{offset.Seconds:00}";
+    /// <summary>
+    /// Сдвиг со знаком: «+» — часы впереди настоящих, «−» — отстают.
+    /// </summary>
+    private static string FormatOffset(TimeSpan offset)
+    {
+        string sign = offset < TimeSpan.Zero ? "−" : "+";
+        TimeSpan span = offset.Duration();
+
+        return span.TotalDays >= 1 ? $"{sign}{(int)span.TotalDays} д {span.Hours:00}:{span.Minutes:00}:{span.Seconds:00}"
+            : $"{sign}{span.Hours:00}:{span.Minutes:00}:{span.Seconds:00}";
+    }
 }
