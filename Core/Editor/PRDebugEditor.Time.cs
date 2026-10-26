@@ -38,7 +38,8 @@ public partial class PRDebugEditor
     /// </summary>
     private void DrawClock()
     {
-        if (!EditorApplication.isPlaying || !PRUnitySDK.IsInitialized)
+        // HasInstance, а не Instance: Instance создал бы PRTime, если его нет, — окно отладки игру не меняет.
+        if (!EditorApplication.isPlaying || !PRUnitySDK.IsInitialized || !PRTime.HasInstance)
             return;
 
         PRTime time = PRTime.Instance;
@@ -170,7 +171,10 @@ public partial class PRDebugEditor
         if (!modifier.EndRealTime.HasValue)
             return "permanent";
 
-        float remaining = modifier.EndRealTime.Value - Time.realtimeSinceStartup;
+        // Срок модификатора записан по часам PRTime (без пауз и с ускорением для проверки), а не по часам Unity:
+        // они расходятся после первой же паузы, и остаток показывался бы «expiring» при живом модификаторе.
+        float now = PRTime.HasInstance ? PRTime.Instance.RealTime : Time.realtimeSinceStartup;
+        float remaining = modifier.EndRealTime.Value - now;
 
         return remaining > 0f ? $"{remaining:0.0}s" : "expiring";
     }

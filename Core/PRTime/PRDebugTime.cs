@@ -58,17 +58,20 @@ public static class PRDebugTime
     /// Сколько игра прожила за кадр в <paramref name="realDelta"/> настоящих секунд; часы таймеров уходят вперёд на разницу.
     /// </summary>
     /// <remarks>
-    /// Не больше, чем за этот кадр прошла физика: Unity продвигает её не дальше <c>Time.maximumDeltaTime</c> за кадр
-    /// (0,333 с). Без предела при низком FPS доход, воздух и таймеры уходили бы вперёд движения, а за кадр проходило бы
-    /// несколько целых секунд — секундное событие же одно на кадр, и доход за остальные терялся.
+    /// Ровно столько, сколько за этот кадр прошла физика: Unity продвигает её не дальше <c>Time.maximumDeltaTime</c>
+    /// за кадр (0,333 с), даже если сам кадр подвис дольше. Без предела при низком FPS и подвисаниях доход, воздух и
+    /// таймеры уходили бы вперёд движения, а за кадр проходило бы несколько целых секунд — секундное событие же одно
+    /// на кадр, и доход за остальные терялся. Часы таймеров назад не идут: на подвисании игра отстаёт от настоящих
+    /// часов, как и физика, а сдвиг не уменьшается.
     /// </remarks>
     public static float Advance(float realDelta)
     {
         if (speed <= 1f || realDelta <= 0f)
             return realDelta;
 
-        float scaled = Mathf.Min(realDelta * speed, Mathf.Max(realDelta, Time.maximumDeltaTime));
-        Offset += TimeSpan.FromSeconds(scaled - realDelta);
+        float scaled = Mathf.Min(realDelta * speed, Time.maximumDeltaTime);
+        if (scaled > realDelta)
+            Offset += TimeSpan.FromSeconds(scaled - realDelta);
         return scaled;
     }
 
