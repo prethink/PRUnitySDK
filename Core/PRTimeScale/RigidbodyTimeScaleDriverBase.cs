@@ -43,6 +43,13 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     private Vector3 frozenAngularVelocity;
 
     /// <summary>
+    /// Ограничения тела до заморозки: на время заморозки драйвер ставит <see cref="RigidbodyConstraints.FreezeAll"/>.
+    /// </summary>
+    private RigidbodyConstraints savedConstraints;
+
+    private bool locked;
+
+    /// <summary>
     /// Слои времени этого тела. Только <see cref="TimeLayer.World"/> — тело идёт в темпе мира, и драйвер
     /// бездействует: этот темп уже заложен в шаг симуляции.
     /// </summary>
@@ -78,6 +85,10 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
 
         appliedScale = RelativeTimeScale;
 
+        // Тело появилось уже в заморозке — фиксируем сразу, а скорость, которую ему выдадут, заберёт HoldFrozen.
+        if (IsFrozen && scaleVelocityOnChange)
+            LockBody();
+
         base.InitializationComponents();
     }
 
@@ -104,6 +115,15 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     }
 
     #endregion
+
+    /// <summary>
+    /// Выключенный драйвер (объект ушёл в пул) не держит тело замороженным: ограничения возвращаются.
+    /// </summary>
+    protected override void OnDisable()
+    {
+        UnlockBody();
+        base.OnDisable();
+    }
 
     #region IOnPRTimeScaleChange
 
@@ -190,6 +210,33 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     }
 
     /// <summary>
+    /// Фиксирует замороженное тело: нулевая скорость не мешает PhysX сдвигать его толчками и столкновениями,
+    /// а с ограничениями оно стоит на месте, и другие тела от него отскакивают.
+    /// </summary>
+    private void LockBody()
+    {
+        if (locked || body == null || body.isKinematic)
+            return;
+
+        savedConstraints = body.constraints;
+        body.constraints = RigidbodyConstraints.FreezeAll;
+        locked = true;
+    }
+
+    /// <summary>
+    /// Возвращает телу ограничения, что были до заморозки.
+    /// </summary>
+    private void UnlockBody()
+    {
+        if (!locked)
+            return;
+
+        locked = false;
+        if (body != null)
+            body.constraints = savedConstraints;
+    }
+
+    /// <summary>
     /// Пересчитать скорость тела под новый масштаб времени.
     /// Вызывается автоматически при изменении масштаба.
     /// </summary>
@@ -214,10 +261,12 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
             frozenAngularVelocity = body.angularVelocity / appliedScale;
             body.velocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
+            LockBody();
         }
         else if (wasFrozen && !freezes)
         {
             // Оттаивает: летящее продолжает полёт в новом темпе.
+            UnlockBody();
             body.velocity = frozenVelocity * scale;
             body.angularVelocity = frozenAngularVelocity * scale;
             frozenVelocity = Vector3.zero;

@@ -134,7 +134,8 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// <summary>
     /// Наложить модификатор.
     /// </summary>
-    /// <param name="value">Множитель масштаба времени: 0,3 — втрое медленнее, 0 — стоп.</param>
+    /// <param name="value">Множитель масштаба времени: 0,3 — втрое медленнее, 0 — стоп. NaN и бесконечность
+    /// отклоняются (вернётся пустая ссылка), отрицательное — обрезается до нуля.</param>
     /// <param name="affects">На какие слои действует; по умолчанию — <see cref="TimeLayer.Global"/>, на всё.</param>
     /// <param name="except">Какие слои не трогать: «всё, кроме игрока» — <c>except: TimeLayer.Player</c>.</param>
     /// <param name="owner">Источник — виден в отладке и позволяет снять все свои модификаторы разом.</param>
@@ -142,6 +143,20 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     public TimeScaleModifierHandle AddModifier(float value, TimeLayer affects = TimeLayer.Global, TimeLayer except = TimeLayer.None,
         object owner = null, float duration = 0f)
     {
+        // NaN или бесконечность в произведении испортили бы масштаб всем задетым объектам, а с ним — скорости тел.
+        if (float.IsNaN(value) || float.IsInfinity(value))
+        {
+            PRLog.WriteWarning(this, $"Time scale modifier from '{owner}' ignored: value {value} is not a finite number.");
+            return TimeScaleModifierHandle.None;
+        }
+
+        // Отрицательного времени нет: такое значение — ошибка вызова, ближе всего к ней остановка.
+        if (value < 0f)
+        {
+            PRLog.WriteWarning(this, $"Time scale modifier from '{owner}' clamped to 0: value {value} is negative.");
+            value = 0f;
+        }
+
         // Длительность считается по реальным часам, а не по игровым: иначе замедление продлевало бы само себя,
         // и чем сильнее эффект, тем дольше он бы действовал.
         float? endRealTime = duration > 0f ? GetRealTime() + duration : null;

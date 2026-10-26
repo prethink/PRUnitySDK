@@ -135,6 +135,19 @@ public class PRTimeScaleTests
     }
 
     [Test]
+    public void InvalidValues_AreRejectedOrClamped()
+    {
+        UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
+
+        Assert.IsFalse(timeScale.AddModifier(float.NaN).IsValid);
+        Assert.IsFalse(timeScale.AddModifier(float.PositiveInfinity).IsValid);
+        Assert.AreEqual(1f, timeScale.GetWorldTimeScale(), 1e-5f);
+
+        Assert.IsTrue(timeScale.AddModifier(-2f, TimeLayer.NPC).IsValid);
+        Assert.AreEqual(0f, timeScale.Resolve(TimeLayer.Bots), 1e-5f);
+    }
+
+    [Test]
     public void LayerClock_StaysContinuous_WhenLayersChange()
     {
         var clocks = new Dictionary<TimeLayer, float> { [TimeLayer.Player] = 100f, [TimeLayer.Player | TimeLayer.Enemy] = 40f };
