@@ -134,6 +134,32 @@ public class PRTimeScaleTests
         Assert.AreEqual(1f, timeScale.Resolve(TimeLayer.Global), 1e-5f);
     }
 
+    [Test]
+    public void LayerClock_StaysContinuous_WhenLayersChange()
+    {
+        var clocks = new Dictionary<TimeLayer, float> { [TimeLayer.Player] = 100f, [TimeLayer.Player | TimeLayer.Enemy] = 40f };
+        TimeLayer layers = TimeLayer.Player;
+        var clock = new TimeLayerClock(() => layers, mask => clocks[mask]);
+
+        float started = clock.Now;
+        Assert.AreEqual(100f, started, 1e-5f);
+
+        // Маска сменилась — часы объекта продолжают со 100, а не прыгают на 40.
+        layers = TimeLayer.Player | TimeLayer.Enemy;
+        Assert.AreEqual(100f, clock.Now, 1e-5f);
+
+        // Дальше идут ходом новых часов.
+        clocks[TimeLayer.Player | TimeLayer.Enemy] = 43f;
+        Assert.AreEqual(103f, clock.Now, 1e-5f);
+
+        // И обратно — снова без скачка.
+        clocks[TimeLayer.Player] = 200f;
+        layers = TimeLayer.Player;
+        Assert.AreEqual(103f, clock.Now, 1e-5f);
+        clocks[TimeLayer.Player] = 201f;
+        Assert.AreEqual(104f, clock.Now, 1e-5f);
+    }
+
     private sealed class Listener : IOnPRTimeScaleChange
     {
         public readonly List<TimeLayer> Changes = new();

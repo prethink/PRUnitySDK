@@ -1,63 +1,120 @@
+using System;
 using UnityEngine;
 
 /// <summary>
-/// Время компонента по слоям его сущности: шаг кадра и часы «до момента».
+/// Время объекта по его слоям: шаг кадра и непрерывные часы «до момента».
 /// </summary>
 /// <remarks>
-/// Для компонентов поведения, которые не знают свою сущность напрямую: держат часы полем и спрашивают
-/// <see cref="DeltaTime"/> вместо <see cref="PRTime.GameDeltaTime"/> мира. Тогда выборочное замедление («заморозить
-/// NPC», «всё, кроме игрока») доходит и до их таймеров, а не только до анимации и физики.
+/// Для всего, что живёт своим темпом: держат часы полем и спрашивают <see cref="DeltaTime"/> вместо
+/// <see cref="PRTime.GameDeltaTime"/> мира. Тогда выборочное замедление («заморозить NPC», «всё, кроме игрока»)
+/// доходит и до таймеров, а не только до анимации и физики.
 /// <para>
-/// Сущность ищется один раз: на объекте или в родителях, а если её нет — по ссылке <see cref="EntityLinkBase"/>
-/// (тело игрока лежит отдельно от сущности и связано с ней ссылкой). Слои спрашиваются при каждом обращении: ссылку
-/// переназначают в рантайме, а слои сущности могут смениться. Ничего не нашлось — мир.
+/// Часы <see cref="Now"/> непрерывны и при смене слоёв: у каждой маски в <see cref="PRTime"/> свои часы, и они
+/// расходятся, поэтому при смене маски часы объекта продолжают с того же значения, а не прыгают на чужие. Иначе
+/// перезарядка, начатая до смены, укоротилась бы или растянулась на разницу часов.
+/// </para>
+/// <para>
+/// Слои компонента — у его сущности: сначала по ссылке <see cref="EntityLinkBase"/> на объекте или в родителях (тело
+/// игрока связано с сущностью ссылкой), затем сущность в родителях — как у <see cref="EntityTimeScaleDriver"/>.
+/// Не нашлось — мир, и поиск повторяется позже: ссылку и сущность могут добавить после первого запроса.
 /// </para>
 /// </remarks>
 public sealed class TimeLayerClock
 {
-    private readonly Component component;
-    private EntityBase entity;
-    private EntityLinkBase link;
-    private bool resolved;
+    /// <summary>
+    /// Через сколько кадров повторить поиск сущности, если её не нашлось.
+    /// </summary>
+    private const int RetryFrames = 30;
 
-    /// <param name="component">Компонент, чьё время нужно.</param>
+    private readonly Component component;
+    private readonly Func<TimeLayer> layersSource;
+    private readonly Func<TimeLayer, float> timeOf;
+
+    private EntityLinkBase link;
+    private EntityBase entity;
+    private bool found;
+    private int retryFrame = int.MinValue;
+
+    private bool started;
+    private TimeLayer lastLayers;
+    private float offset;
+
+    /// <summary>
+    /// Часы компонента: слои — у его сущности.
+    /// </summary>
     public TimeLayerClock(Component component)
     {
         this.component = component;
+        timeOf = DefaultTimeOf;
     }
 
     /// <summary>
-    /// Слои времени компонента — у его сущности.
+    /// Часы со своим источником слоёв — у мозга, мотора, оружия, которые знают сущность сами.
     /// </summary>
-    public TimeLayer Layers
+    /// <param name="layers">Слои объекта; спрашиваются при каждом обращении.</param>
+    /// <param name="timeOf">Часы маски; по умолчанию <see cref="PRTime.GetTime"/>. Подменяются в тестах.</param>
+    public TimeLayerClock(Func<TimeLayer> layers, Func<TimeLayer, float> timeOf = null)
     {
-        get
-        {
-            Resolve();
-
-            EntityBase owner = entity != null ? entity : link != null ? link.Entity : null;
-            return owner != null ? owner.GetTimeLayers() : TimeLayer.World;
-        }
+        layersSource = layers;
+        this.timeOf = timeOf ?? DefaultTimeOf;
     }
 
     /// <summary>
-    /// Шаг кадра в темпе слоёв компонента.
+    /// Слои времени объекта.
+    /// </summary>
+    public TimeLayer Layers => layersSource != null ? layersSource() : ComponentLayers();
+
+    /// <summary>
+    /// Шаг кадра в темпе слоёв объекта.
     /// </summary>
     public float DeltaTime => PRTime.Instance.GetDeltaTime(Layers);
 
     /// <summary>
-    /// Часы слоёв компонента — для ожиданий «до момента». Сравнивать только с моментами, взятыми отсюда же.
+    /// Часы объекта для ожиданий «до момента», непрерывные и при смене слоёв. Сравнивать только с моментами,
+    /// взятыми отсюда же.
     /// </summary>
-    public float Now => PRTime.Instance.GetTime(Layers);
+    public float Now
+    {
+        get
+        {
+            TimeLayer layers = Layers;
+
+            if (!started)
+            {
+                started = true;
+                lastLayers = layers;
+            }
+            else if (layers != lastLayers)
+            {
+                // Маска сменилась: часы продолжают с того значения, что показывали на старой маске.
+                offset += timeOf(lastLayers) - timeOf(layers);
+                lastLayers = layers;
+            }
+
+            return timeOf(layers) + offset;
+        }
+    }
+
+    private static float DefaultTimeOf(TimeLayer layers) => PRTime.Instance.GetTime(layers);
+
+    private TimeLayer ComponentLayers()
+    {
+        Resolve();
+
+        EntityBase owner = link != null && link.Entity != null ? link.Entity : entity;
+        return owner != null ? owner.GetTimeLayers() : TimeLayer.World;
+    }
 
     private void Resolve()
     {
-        if (resolved || component == null)
+        if (found || component == null || Time.frameCount < retryFrame)
             return;
 
-        resolved = true;
+        link = component.GetComponentInParent<EntityLinkBase>(true);
         entity = component.GetComponentInParent<EntityBase>(true);
-        if (entity == null)
-            link = component.GetComponentInParent<EntityLinkBase>(true);
+        found = link != null || entity != null;
+
+        if (!found)
+            retryFrame = Time.frameCount + RetryFrames;
     }
 }

@@ -120,23 +120,24 @@ public class CooldownGameTime : CooldownBase
 /// Перезарядка по часам своих слоёв (<see cref="PRTime.GetTime"/>): у персонажа, который живёт своим темпом.
 /// </summary>
 /// <remarks>
-/// Слои спрашиваются при каждом запросе: у объекта из пула или бота они могут смениться. Отложенное действие
+/// Слои спрашиваются при каждом запросе, а часы непрерывны и при их смене (<see cref="TimeLayerClock"/>): начатая
+/// перезарядка не прыгает на разницу часов старой и новой маски. Отложенное действие
 /// (<see cref="CooldownBase.ExecuteAfter"/>) по-прежнему ждёт по игровому времени мира.
 /// </remarks>
 public class CooldownLayerTime : CooldownBase
 {
-    private readonly Func<TimeLayer> layers;
+    private readonly TimeLayerClock clock;
 
     /// <param name="layers">Откуда брать слои — обычно <c>() =&gt; entity.GetTimeLayers()</c>.</param>
     public CooldownLayerTime(Func<TimeLayer> layers)
     {
-        this.layers = layers;
+        clock = new TimeLayerClock(layers ?? (() => TimeLayer.World));
     }
 
     protected override PRTimeType timeType => PRTimeType.GameTime;
 
     protected override float GetTime()
     {
-        return PRTime.Instance.GetTime(layers != null ? layers() : TimeLayer.World);
+        return clock.Now;
     }
 }

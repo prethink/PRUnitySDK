@@ -62,6 +62,11 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     /// </summary>
     public Rigidbody Body => body;
 
+    /// <summary>
+    /// Тело заморожено: его темп — ноль.
+    /// </summary>
+    public bool IsFrozen => appliedScale <= Mathf.Epsilon;
+
     #endregion
 
     #region MonoBehaviour
@@ -83,6 +88,8 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     protected override void PRFixedUpdate()
     {
         base.PRFixedUpdate();
+
+        HoldFrozen();
 
         if (!compensateGravity || body == null || !body.useGravity || body.isKinematic)
             return;
@@ -126,6 +133,17 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         if (body == null)
             return;
 
+        // Замороженному импульс достаётся после разморозки: время для него стоит, а выстрел не должен пропасть.
+        // Непрерывная сила за нулевое время ничего не меняет.
+        if (IsFrozen)
+        {
+            if (mode == ForceMode.VelocityChange)
+                frozenVelocity += force;
+            else if (mode == ForceMode.Impulse && body.mass > 0f)
+                frozenVelocity += force / body.mass;
+            return;
+        }
+
         var scale = RelativeTimeScale;
 
         var scaledForce = mode switch
@@ -136,6 +154,39 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         };
 
         body.AddForce(scaledForce, mode);
+    }
+
+    /// <summary>
+    /// Задать скорость тела в его темпе: замедленное вдвое летит вдвое медленнее, замороженное получит её после
+    /// разморозки.
+    /// </summary>
+    public void SetScaledVelocity(Vector3 velocity)
+    {
+        if (body == null)
+            return;
+
+        if (IsFrozen)
+            frozenVelocity = velocity;
+        else
+            body.velocity = velocity * RelativeTimeScale;
+    }
+
+    /// <summary>
+    /// Пока тело заморожено, скорость, выданную ему мимо драйвера (появилось уже в заморозке, задали напрямую,
+    /// толкнули), забирает себе: тело стоит, а после разморозки движется с ней в новом темпе.
+    /// </summary>
+    private void HoldFrozen()
+    {
+        if (!IsFrozen || !scaleVelocityOnChange || body == null || body.isKinematic)
+            return;
+
+        if (body.velocity.sqrMagnitude <= 0f && body.angularVelocity.sqrMagnitude <= 0f)
+            return;
+
+        frozenVelocity += body.velocity;
+        frozenAngularVelocity += body.angularVelocity;
+        body.velocity = Vector3.zero;
+        body.angularVelocity = Vector3.zero;
     }
 
     /// <summary>

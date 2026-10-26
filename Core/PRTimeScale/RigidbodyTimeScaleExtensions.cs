@@ -54,6 +54,14 @@ public static class RigidbodyTimeScaleExtensions
         if (body == null)
             return;
 
-        body.velocity = velocity * body.GetRelativeTimeScale();
+        var driver = body.GetComponent<RigidbodyTimeScaleDriverBase>();
+
+        if (driver != null)
+        {
+            driver.SetScaledVelocity(velocity);
+            return;
+        }
+
+        body.velocity = velocity;
     }
 }
