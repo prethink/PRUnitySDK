@@ -49,7 +49,7 @@ public static class PRDebugTimeSection
             using (new EditorGUI.DisabledScope(offset == TimeSpan.Zero))
             {
                 if (GUILayout.Button("Сбросить", EditorStyles.miniButton, GUILayout.Width(80f))
-                    && (offset < TimeSpan.Zero || ConfirmResetClock(offset)))
+                    && ConfirmResetClock(offset))
                     PRDebugTime.ResetClock();
             }
         }
@@ -68,17 +68,22 @@ public static class PRDebugTimeSection
     }
 
     /// <summary>
-    /// Сброс часов возвращает их назад, а таймеры, поставленные при ускорении, остаются ждать по ушедшим вперёд.
+    /// Сброс часов переставляет их скачком: таймеры, поставленные по сдвинутым часам, затянутся или сработают сразу.
     /// </summary>
-    /// <remarks>
-    /// Спрашивается, только когда часы впереди: отставшие (после подвисаний) сброс двигает вперёд, таймерам это не вредит.
-    /// </remarks>
-    private static bool ConfirmResetClock(TimeSpan offset) =>
-        EditorUtility.DisplayDialog("Сбросить часы таймеров?",
-            $"Часы вернутся назад на {FormatOffset(offset).TrimStart('+')}. Таймеры, поставленные при ускорении (созревание, " +
-            "перезарядки, подарки), затянутся на это же время. Сохранение при этом не меняется.\n\n" +
-            "Чтобы просто замедлить игру, выберите x1 — часы при этом не сбрасываются.",
+    private static bool ConfirmResetClock(TimeSpan offset)
+    {
+        string span = FormatOffset(offset).Substring(1);
+        string effect = offset > TimeSpan.Zero
+            ? $"Часы вернутся назад на {span}. Таймеры, поставленные при ускорении (созревание, перезарядки, подарки), " +
+              "затянутся на это же время."
+            : $"Часы прыгнут вперёд на {span}. Таймеры, которым осталось меньше (созревание, перезарядки, подарки), " +
+              "сработают сразу.";
+
+        return EditorUtility.DisplayDialog("Сбросить часы таймеров?",
+            effect + " Сохранение при этом не меняется.\n\n" +
+            "Чтобы просто вернуть обычную скорость, выберите x1 — часы при этом не сбрасываются.",
             "Сбросить", "Отмена");
+    }
 
     /// <summary>
     /// Сдвиг со знаком: «+» — часы впереди настоящих, «−» — отстают.
