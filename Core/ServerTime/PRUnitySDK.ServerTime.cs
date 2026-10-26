@@ -28,6 +28,10 @@
 
             InitializeDefault(nameof(IServerTime), () => ServerTime, () => { ServerTime = new LocalServerTime(); return ServerTime; });
 
+            // Часы таймеров идут вперёд вместе с ускорением времени для проверки (PRDebugTime); в релизе обёртки нет.
+            if (PRDebugTime.Allowed && ServerTime != null && ServerTime is not PRDebugServerTime)
+                ServerTime = new PRDebugServerTime(ServerTime);
+
             return ServerTime;
         });
     }

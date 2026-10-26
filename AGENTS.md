@@ -337,6 +337,9 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Ускорение времени для проверки.** `PRDebugTime.Speed` — вся игра в N раз быстрее (`PRTime`, `Time.timeScale`,
+  часы `ServerTime` через `PRDebugServerTime`); окно отладки, Overview → «Скорость времени». Только редактор и debug-сборка
+  ([PRTime/README](Core/PRTime/README.md)).
 - **Правила характеристик у проекта SDK.** `GameRules` больше не ищет `IStatRuleProvider` рефлексией (интерфейс удалён):
   правила лежат в настройках проекта — `PRSDKSettings.StatRules` (`GameRulesSettings`, список `[SerializeReference]` из
   `StatRuleBase`), у каждой игры свои. Правятся в окне *PRUnitySDK → Windows → Game Rules* (активный проект, предупреждения
