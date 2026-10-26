@@ -477,10 +477,11 @@ Partial-поля Settings и Database не требуют ручного доб�
 - `DamageSound` переименован в `HealthSound` (GUID тот же) и получил список звуков
   смерти `Death Clips`; смерть через `Kill` тоже звучит.
 - Окно `PRUnitySDK/Windows/Debug Window` принимает вкладки модулей: реализация
-  `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Вкладка с
-  `AvailableInEditMode` видна и без Play Mode — для данных на диске. Вкладка отдельной игры
+  `IPRDebugTab` рядом с модулем (в папке `Editor`) находится сама. Окно работает только в Play Mode:
+  вне игры пишет «Игра не запущена» и вкладки не обновляет. Вкладка отдельной игры
   проекта — `IPRDebugGameTab` (та же `IPRDebugTab`): окно ставит такие в самый низ списка под
-  разделителем, видны всегда, о незапущенной игре вкладка пишет сама (образец — `StealEggDebugTab`).
+  разделителем; видна только вкладка активного проекта (`Project` = `PRSDKProject.Title`, пусто —
+  всегда), о незапущенной игре вкладка пишет сама (образец — `StealEggDebugTab`).
 - Вкладка `Tools` окна отладки (`Core/Editor/Tools`): снимки окна Game (`PRScreenshotTool` —
   кнопка, клавиша F9 во время игры, пункт меню `PRUnitySDK/Capture Screenshot`; файлы в
   `Screenshots` рядом с `Assets`; галка `All languages` в Play Mode снимает серию по всем `LangType`

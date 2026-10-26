@@ -16,9 +16,6 @@ public sealed class MetricsDebugTab : IPRDebugTab
     /// <inheritdoc />
     public int Order => -100;
     /// <inheritdoc />
-    public bool AvailableInEditMode => true;
-
-    /// <inheritdoc />
     public void Refresh(PRDebugTabContext context)
     {
         entries = MetricDebugHistory.Snapshot();

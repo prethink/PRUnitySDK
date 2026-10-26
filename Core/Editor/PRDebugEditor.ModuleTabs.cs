@@ -62,9 +62,6 @@ public partial class PRDebugEditor
 
         foreach (IPRDebugTab tab in moduleTabs)
         {
-            if (!context.IsPlaying && !tab.AvailableInEditMode)
-                continue;
-
             try
             {
                 tab.Refresh(context);
@@ -78,12 +75,14 @@ public partial class PRDebugEditor
     }
 
     /// <summary>
-    /// Вкладки модулей для общего списка в Play Mode; вкладки игр (<see cref="IPRDebugGameTab"/>) — в конце.
+    /// Вкладки модулей для общего списка в Play Mode; вкладки игр (<see cref="IPRDebugGameTab"/>) — в конце,
+    /// и только активного проекта.
     /// </summary>
     private IEnumerable<(string name, Action draw)> GetModuleTabEntries()
     {
         IEnumerable<(string name, Action draw)> modules = moduleTabs.Where(tab => tab is not IPRDebugGameTab).Select(ToEntry);
-        IPRDebugTab[] games = moduleTabs.Where(tab => tab is IPRDebugGameTab).ToArray();
+        PRSDKProject active = PRSDKActiveProject.Instance != null ? PRSDKActiveProject.Instance.Project : null;
+        IPRDebugTab[] games = moduleTabs.Where(tab => tab is IPRDebugGameTab game && IsForProject(game, active)).ToArray();
 
         if (games.Length == 0)
             return modules;
@@ -92,36 +91,26 @@ public partial class PRDebugEditor
         return modules.Append((string.Empty, () => { })).Concat(games.Select(ToEntry));
     }
 
-    private (string name, Action draw) ToEntry(IPRDebugTab tab) => (SafeTitle(tab), () => DrawModuleTab(tab));
-
     /// <summary>
-    /// Вкладки, которым есть что показать без игры.
+    /// Вкладка игры относится к активному проекту. Без активного проекта видны все.
     /// </summary>
-    /// <remarks>
-    /// Рисуются подряд, а не списком выбора: встроенных вкладок вне игры нет, а общий
-    /// номер выбранной вкладки остался от Play Mode и указывал бы в другой список.
-    /// </remarks>
-    private void DrawEditModeModuleTabs()
+    private static bool IsForProject(IPRDebugGameTab tab, PRSDKProject active)
     {
-        foreach (string error in moduleTabLoadErrors)
-            EditorGUILayout.HelpBox(error, MessageType.Error);
+        if (active == null)
+            return true;
 
-        IPRDebugTab[] available = moduleTabs.Where(tab => tab.AvailableInEditMode).ToArray();
-
-        if (available.Length == 0)
-            return;
-
-        scroll = EditorGUILayout.BeginScrollView(scroll);
-
-        foreach (IPRDebugTab tab in available)
+        try
         {
-            EditorGUILayout.Space(6f);
-            EditorGUILayout.LabelField(SafeTitle(tab), EditorStyles.boldLabel);
-            DrawModuleTab(tab);
+            return string.IsNullOrEmpty(tab.Project) || string.Equals(tab.Project, active.Title, StringComparison.OrdinalIgnoreCase);
         }
-
-        EditorGUILayout.EndScrollView();
+        catch (Exception)
+        {
+            // Сломанную вкладку лучше показать с ошибкой внутри, чем молча спрятать.
+            return true;
+        }
     }
+
+    private (string name, Action draw) ToEntry(IPRDebugTab tab) => (SafeTitle(tab), () => DrawModuleTab(tab));
 
     private void DrawModuleTab(IPRDebugTab tab)
     {

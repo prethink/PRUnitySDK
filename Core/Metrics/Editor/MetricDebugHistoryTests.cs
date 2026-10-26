@@ -122,7 +122,6 @@ public class MetricDebugHistoryTests
         new RecordingMetric().Send("menu_click");
         var tab = new MetricsDebugTab();
         tab.Refresh(new PRDebugTabContext(string.Empty, 0, false));
-        Assert.IsTrue(tab.AvailableInEditMode);
         Assert.AreEqual("Metrics (1)", tab.Title);
     }
 

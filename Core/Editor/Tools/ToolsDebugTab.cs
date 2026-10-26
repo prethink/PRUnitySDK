@@ -30,9 +30,6 @@ public sealed class ToolsDebugTab : IPRDebugTab
     public int Order => -200;
 
     /// <inheritdoc />
-    public bool AvailableInEditMode => true;
-
-    /// <inheritdoc />
     public void Refresh(PRDebugTabContext context)
     {
         blocks = context.IsPlaying ? PRUnitySDK.Trackers.HudBlocks.Elements : new List<IHudBlock>();

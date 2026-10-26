@@ -191,8 +191,11 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 
         if (!EditorApplication.isPlaying)
         {
-            EditorGUILayout.HelpBox("Runtime diagnostics are available in Play Mode.", MessageType.Info);
-            DrawEditModeModuleTabs();
+            EditorGUILayout.HelpBox("Игра не запущена. Отладка работает только в Play Mode.", MessageType.Info);
+
+            foreach (string error in moduleTabLoadErrors)
+                EditorGUILayout.HelpBox(error, MessageType.Error);
+
             return;
         }
 
