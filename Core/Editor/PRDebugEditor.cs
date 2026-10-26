@@ -114,12 +114,11 @@ public partial class PRDebugEditor : ExtendedEditorWindow
     private bool hasLoadedSave;
     private bool canStartSave;
     private long saveCooldownRemainingSeconds;
-    private string timeScaleCombineMode = "-";
     private int timeScaleSubscriberCount;
-    private bool hasActiveTemporaryTimeScales;
-    private bool globalTemporaryTimeScaleActive;
-    private float temporaryGlobalTimeScale = 0.5f;
-    private float temporaryGlobalDurationSeconds = 8f;
+    private float modifierScale = 0.3f;
+    private float modifierDurationSeconds = 5f;
+    private TimeLayer modifierAffects = TimeLayer.Global;
+    private TimeLayer modifierExcept = TimeLayer.None;
     private double initializationTotalMilliseconds;
     private int selectedFlagProviderIndex;
     private int selectedFlagIndex;

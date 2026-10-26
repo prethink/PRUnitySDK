@@ -3,9 +3,9 @@
 /// <summary>
 /// Замедляет или ускоряет отдельное физическое тело относительно остальной сцены.
 /// <para>
-/// Глобальный масштаб физика учитывает сама, а слои <see cref="PRTimeScale"/> PhysX
-/// не поддерживает: симуляция одна на сцену. База добавляет телу разницу между его слоем
-/// и глобальным темпом, слой задаёт наследник.
+/// Темп мира физика учитывает сама — он заложен в шаг симуляции, — а слои <see cref="PRTimeScale"/>
+/// PhysX не поддерживает: симуляция одна на сцену. База добавляет телу разницу между его слоями
+/// и миром, слои задаёт наследник.
 /// </para>
 /// <para>
 /// При замедлении в k раз скорость умножается на k, а ускорение на k², потому что путь
@@ -36,36 +36,19 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     private float appliedScale = 1f;
 
     /// <summary>
-    /// Слой масштаба времени для этого тела. Null означает глобальный темп -
-    /// в этом случае драйвер бездействует, потому что глобальный масштаб уже
-    /// заложен в шаг симуляции.
+    /// Слои времени этого тела. Только <see cref="TimeLayer.World"/> — тело идёт в темпе мира, и драйвер
+    /// бездействует: этот темп уже заложен в шаг симуляции.
     /// </summary>
-    protected abstract Enumeration GetTimeScaleLayer();
+    protected abstract TimeLayer GetTimeLayers();
 
     /// <summary>
-    /// Насколько тело идёт медленнее или быстрее остальной сцены.
+    /// Насколько тело идёт медленнее или быстрее мира.
     /// <para>
-    /// Это отношение масштаба слоя к глобальному: глобальное замедление уже заложено
+    /// Это отношение масштаба тела к масштабу мира: замедление мира уже заложено
     /// в шаг симуляции, и учитывать его второй раз нельзя.
     /// </para>
     /// </summary>
-    public float RelativeTimeScale
-    {
-        get
-        {
-            var globalScale = PRTimeScale.Instance.GetGlobalTimeScale();
-
-            if (globalScale <= Mathf.Epsilon)
-                return 1f;
-
-            var layer = GetTimeScaleLayer();
-
-            if (layer == null)
-                return 1f;
-
-            return PRTimeScale.Instance.Resolve(layer) / globalScale;
-        }
-    }
+    public float RelativeTimeScale => PRTimeScale.Instance.RelativeToWorld(GetTimeLayers());
 
     /// <summary>
     /// Тело под управлением драйвера.
@@ -110,7 +93,11 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
 
     #region IOnPRTimeScaleChange
 
-    public void OnPRTimeScaleChange(Enumeration enumeration, float value)
+    /// <remarks>
+    /// Пересчёт при любом изменении, а не только своих слоёв: темп тела относителен к миру, и замедление мира
+    /// его тоже меняет. Сам пересчёт ничего не делает, если масштаб не изменился.
+    /// </remarks>
+    public void OnPRTimeScaleChange(TimeLayer layers)
     {
         ApplyScaleChange();
     }

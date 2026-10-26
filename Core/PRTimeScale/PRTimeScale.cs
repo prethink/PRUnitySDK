@@ -1,166 +1,106 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Управляет скоростью времени по независимым слоям.
-/// <para>
-/// Значение слоя складывается из базового значения и наложенных модификаторов:
-/// базовое задаётся напрямую через Set*, а модификаторы накладывают источники
-/// эффектов и снимают по своей ссылке. Модификаторы перемножаются, поэтому два
-/// независимых замедления не спорят за одно значение - снятие одного не отменяет
-/// второе, как это было при прямой записи.
-/// </para>
+/// Масштаб времени по слоям (<see cref="TimeLayer"/>): замедления и ускорения накладываются модификаторами.
 /// </summary>
+/// <remarks>
+/// Модификатор задевает набор слоёв и может часть исключить. Масштаб объекта — произведение всех модификаторов,
+/// у которых с ним есть общий слой. Так собираются и общее замедление (<see cref="TimeLayer.Global"/> — все слои), и выборочные эффекты: замедлить
+/// мир, кроме игрока, — как маска Кроноса в Crash Bandicoot 4, — или одних врагов. Модификаторы перемножаются и
+/// снимаются каждый своим владельцем, поэтому два источника замедления не спорят за одно значение.
+/// <para>
+/// Темп мира (<see cref="TimeLayer.World"/>) — это шаг физики и <see cref="PRTime.GameDeltaTime"/>. Остальным
+/// слоям драйверы добавляют разницу с миром (<see cref="RelativeToWorld"/>): симуляция PhysX одна на сцену.
+/// Поэтому тело без драйвера идёт в темпе мира, даже если у его сущности свой слой.
+/// </para>
+/// </remarks>
 public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitializer, IOnPRUpdateEvent
 {
     #region Поля и свойства
 
     public const float DefaultTimeScale = 1f;
 
-    /// <summary>
-    /// Базовые значения слоёв - то, что задаётся методами Set*.
-    /// </summary>
-    private readonly Dictionary<Enumeration, float> layers = new();
-
-    /// <summary>
-    /// Наложенные модификаторы по слоям.
-    /// </summary>
-    private readonly Dictionary<Enumeration, List<TimeScaleModifier>> modifiers = new();
+    private readonly List<TimeScaleModifier> modifiers = new();
 
     private bool isInitialize;
 
     public int InitializeOrder => -1;
 
     /// <summary>
+    /// Наложенные модификаторы.
+    /// </summary>
+    public IReadOnlyList<TimeScaleModifier> Modifiers => modifiers;
+
+    /// <summary>
     /// Есть ли хотя бы один модификатор со сроком действия.
     /// </summary>
-    public bool HasActiveTemporaryTimeScales => modifiers.Values
-        .Any(list => list.Any(modifier => modifier.EndRealTime.HasValue));
+    public bool HasActiveTemporaryTimeScales
+    {
+        get
+        {
+            foreach (TimeScaleModifier modifier in modifiers)
+                if (modifier.EndRealTime.HasValue)
+                    return true;
+
+            return false;
+        }
+    }
 
     #endregion
 
     #region Чтение
 
     /// <summary>
-    /// Действует ли на слое модификатор со сроком действия.
+    /// Масштаб времени объекта с этими слоями: произведение модификаторов, задевающих хоть один из них.
     /// </summary>
-    public bool IsTimeScaleTemporaryActive(Enumeration layer)
-    {
-        return layer != null
-            && modifiers.TryGetValue(layer, out var list)
-            && list.Any(modifier => modifier.EndRealTime.HasValue);
-    }
-
-    /// <summary>
-    /// Значение слоя с учётом наложенных модификаторов, без комбинирования с глобальным.
-    /// Неизвестный слой возвращает глобальное значение - так же, как и раньше.
-    /// </summary>
-    public float GetTimeScale(Enumeration layer = null)
+    /// <remarks>
+    /// Объект без слоёв считается частью мира. Модификатор с истёкшим сроком не учитывается, даже если его ещё не
+    /// сняли: снимаются они после того, как <see cref="PRTime"/> посчитал время кадра, и иначе действовали бы
+    /// лишний кадр.
+    /// </remarks>
+    public float Resolve(TimeLayer layers)
     {
         if (!isInitialize)
             return DefaultTimeScale;
 
-        if (layer == null || !layers.ContainsKey(layer))
-            return GetLayerValue(PRTimeScaleEnumerations.Global);
+        if (layers == TimeLayer.None)
+            layers = TimeLayer.World;
 
-        return GetLayerValue(layer);
-    }
+        float now = GetRealTime();
+        float value = DefaultTimeScale;
 
-    /// <summary>
-    /// Глобальное значение с учётом модификаторов.
-    /// </summary>
-    public float GetGlobalTimeScale()
-    {
-        if (!isInitialize)
-            return DefaultTimeScale;
-
-        return GetLayerValue(PRTimeScaleEnumerations.Global);
-    }
-
-    /// <summary>
-    /// Базовое значение слоя без модификаторов - то, что было задано методами Set*.
-    /// </summary>
-    public float GetBaseTimeScale(Enumeration layer)
-    {
-        if (!isInitialize || layer == null || !layers.TryGetValue(layer, out var value))
-            return DefaultTimeScale;
+        for (int i = 0; i < modifiers.Count; i++)
+        {
+            TimeScaleModifier modifier = modifiers[i];
+            if (modifier.Hits(layers) && !modifier.IsExpired(now))
+                value *= modifier.Value;
+        }
 
         return value;
     }
 
     /// <summary>
-    /// Итоговый масштаб для слоя с учётом глобального и режима комбинирования.
+    /// Темп мира: шаг физики и <see cref="PRTime.GameDeltaTime"/>.
     /// </summary>
-    public float Resolve(Enumeration layer = null)
-    {
-        if (!isInitialize)
-            return DefaultTimeScale;
-
-        var globalLayer = PRTimeScaleEnumerations.Global;
-        var global = GetLayerValue(globalLayer);
-
-        // Global is the root scale, not a child layer. Combining it with itself
-        // would square the value in Multiply mode (0.5 -> 0.25) and make global
-        // animations run at a different speed than PRTime and physics.
-        if (layer == null || layer == globalLayer)
-            return global;
-
-        // Неизвестный слой раньше ронял игру обращением к словарю: теперь он ведёт
-        // себя как глобальный, о чём сообщается предупреждением.
-        if (!layers.ContainsKey(layer))
-        {
-            PRLog.WriteWarning(this, $"Unknown time scale layer '{layer.Value}'. Falling back to global scale.");
-            return global;
-        }
-
-        var value = GetLayerValue(layer);
-
-        return PRUnitySDK.Settings.Project.TimeScaleCombineMode switch
-        {
-            TimeScaleCombineMode.Multiply => global * value,
-            TimeScaleCombineMode.Max => Math.Max(global, value),
-            TimeScaleCombineMode.Min => Math.Min(global, value),
-            TimeScaleCombineMode.OverrideGlobal => value,
-            _ => global * value
-        };
-    }
+    public float GetWorldTimeScale() => Resolve(TimeLayer.World);
 
     /// <summary>
-    /// Модификаторы, наложенные на слой. Пустой список, если слоя нет.
+    /// Во сколько раз объект с этими слоями идёт быстрее или медленнее мира.
     /// </summary>
-    public IReadOnlyList<TimeScaleModifier> GetModifiers(Enumeration layer)
+    /// <remarks>
+    /// Темп мира уже заложен в шаг физики и в <see cref="PRTime.GameDeltaTime"/>; учесть его второй раз — значит
+    /// при замедлении мира в 4 раза замедлить объект в 16. При остановленном мире физика стоит, и множитель
+    /// значения не имеет — тогда 1.
+    /// </remarks>
+    public float RelativeToWorld(TimeLayer layers)
     {
-        if (layer == null || !modifiers.TryGetValue(layer, out var list))
-            return Array.Empty<TimeScaleModifier>();
+        float world = GetWorldTimeScale();
+        if (world <= Mathf.Epsilon)
+            return 1f;
 
-        return list;
-    }
-
-    #endregion
-
-    #region Базовые значения
-
-    /// <summary>
-    /// Задать базовое значение глобального слоя.
-    /// </summary>
-    public void SetGlobalTimeScale(float value)
-    {
-        SetTimeScale(PRTimeScaleEnumerations.Global, value);
-    }
-
-    /// <summary>
-    /// Задать базовое значение слоя. Наложенные модификаторы продолжают действовать
-    /// поверх нового значения.
-    /// </summary>
-    public void SetTimeScale(Enumeration layer, float value)
-    {
-        if (layer == null)
-            throw new ArgumentNullException(nameof(layer));
-
-        layers[layer] = value;
-        RaiseChange(layer);
+        return Resolve(layers) / world;
     }
 
     #endregion
@@ -168,49 +108,33 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     #region Модификаторы
 
     /// <summary>
-    /// Наложить модификатор на слой.
-    /// <para>
-    /// В отличие от прямой записи значения, модификаторы одного слоя перемножаются
-    /// и снимаются независимо: два источника замедления не мешают друг другу.
-    /// </para>
+    /// Наложить модификатор.
     /// </summary>
-    /// <param name="layer">Слой.</param>
-    /// <param name="value">Множитель к базовому значению слоя.</param>
-    /// <param name="owner">Источник изменения - виден в отладке и позволяет снять
-    /// все свои модификаторы разом.</param>
-    /// <param name="duration">Длительность в реальных секундах. Ноль или меньше -
-    /// модификатор бессрочный.</param>
-    public TimeScaleModifierHandle AddModifier(Enumeration layer, float value, object owner = null, float duration = 0f)
+    /// <param name="value">Множитель масштаба времени: 0,3 — втрое медленнее, 0 — стоп.</param>
+    /// <param name="affects">На какие слои действует; по умолчанию — <see cref="TimeLayer.Global"/>, на всё.</param>
+    /// <param name="except">Какие слои не трогать: «всё, кроме игрока» — <c>except: TimeLayer.Player</c>.</param>
+    /// <param name="owner">Источник — виден в отладке и позволяет снять все свои модификаторы разом.</param>
+    /// <param name="duration">Длительность в секундах <see cref="PRTime.RealTime"/>. Ноль или меньше — бессрочно.</param>
+    public TimeScaleModifierHandle AddModifier(float value, TimeLayer affects = TimeLayer.Global, TimeLayer except = TimeLayer.None,
+        object owner = null, float duration = 0f)
     {
-        if (layer == null)
-            throw new ArgumentNullException(nameof(layer));
+        // Длительность считается по реальным часам, а не по игровым: иначе замедление продлевало бы само себя,
+        // и чем сильнее эффект, тем дольше он бы действовал.
+        float? endRealTime = duration > 0f ? GetRealTime() + duration : null;
 
-        // Длительность считается в реальном времени: иначе замедление продлевало бы
-        // само себя, и чем сильнее эффект, тем дольше он бы действовал.
-        float? endRealTime = duration > 0f
-            ? GetRealTime() + duration
-            : null;
+        var modifier = new TimeScaleModifier(Guid.NewGuid(), affects, except, value, owner, endRealTime);
+        modifiers.Add(modifier);
+        RaiseChange(modifier.Targets);
 
-        var modifier = new TimeScaleModifier(Guid.NewGuid(), layer, value, owner, endRealTime);
-
-        if (!modifiers.TryGetValue(layer, out var list))
-        {
-            list = new List<TimeScaleModifier>();
-            modifiers[layer] = list;
-        }
-
-        list.Add(modifier);
-        RaiseChange(layer);
-
-        return new TimeScaleModifierHandle(modifier.Id, layer);
+        return new TimeScaleModifierHandle(modifier.Id);
     }
 
     /// <summary>
-    /// Наложить модификатор на глобальный слой.
+    /// Наложить модификатор на всё.
     /// </summary>
     public TimeScaleModifierHandle AddGlobalModifier(float value, object owner = null, float duration = 0f)
     {
-        return AddModifier(PRTimeScaleEnumerations.Global, value, owner, duration);
+        return AddModifier(value, TimeLayer.Global, TimeLayer.None, owner, duration);
     }
 
     /// <summary>
@@ -218,15 +142,16 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// </summary>
     public bool RemoveModifier(TimeScaleModifierHandle handle)
     {
-        if (!handle.IsValid || !modifiers.TryGetValue(handle.Layer, out var list))
+        if (!handle.IsValid)
             return false;
 
-        var index = list.FindIndex(modifier => modifier.Id == handle.Id);
+        int index = modifiers.FindIndex(modifier => modifier.Id == handle.Id);
         if (index < 0)
             return false;
 
-        list.RemoveAt(index);
-        RaiseChange(handle.Layer);
+        TimeLayer targets = modifiers[index].Targets;
+        modifiers.RemoveAt(index);
+        RaiseChange(targets);
 
         return true;
     }
@@ -241,62 +166,15 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         if (owner == null)
             return 0;
 
-        var removed = 0;
-
-        foreach (var pair in modifiers)
-        {
-            var count = pair.Value.RemoveAll(modifier => ReferenceEquals(modifier.Owner, owner));
-
-            if (count <= 0)
-                continue;
-
-            removed += count;
-            RaiseChange(pair.Key);
-        }
-
-        return removed;
-    }
-
-    #endregion
-
-    #region Совместимость
-
-    /// <summary>
-    /// Временно изменить глобальный масштаб.
-    /// </summary>
-    public void SetGlobalTimeScaleTemporarily(float value, float callBackTime)
-    {
-        SetTimeScaleTemporarily(PRTimeScaleEnumerations.Global, value, callBackTime);
+        return RemoveWhere(modifier => ReferenceEquals(modifier.Owner, owner));
     }
 
     /// <summary>
-    /// Временно изменить масштаб слоя.
-    /// <para>
-    /// Реализовано модификатором со сроком действия, поэтому повторный вызов больше
-    /// не игнорируется: эффекты складываются и снимаются каждый в свой момент.
-    /// </para>
-    /// </summary>
-    public TimeScaleModifierHandle SetTimeScaleTemporarily(Enumeration layer, float value, float callBackTime, object owner = null)
-    {
-        return AddModifier(layer, value, owner, callBackTime);
-    }
-
-    #endregion
-
-    #region Сброс
-
-    /// <summary>
-    /// Вернуть все слои к значению по умолчанию и снять все модификаторы.
+    /// Снять все модификаторы: время снова обычное.
     /// </summary>
     public void Reset()
     {
-        modifiers.Clear();
-
-        foreach (var key in layers.Keys.ToList())
-            layers[key] = DefaultTimeScale;
-
-        foreach (var key in layers.Keys.ToList())
-            RaiseChange(key);
+        RemoveWhere(_ => true);
     }
 
     #endregion
@@ -305,12 +183,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public void SingletonInitialize()
     {
-        var options = new PRTimeScaleEnumerations().GetOptions();
-        foreach (var item in options)
-            layers[item] = DefaultTimeScale;
-
         isInitialize = true;
-
         EventBus.Subscribe(this);
     }
 
@@ -322,16 +195,8 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         if (modifiers.Count == 0)
             return;
 
-        var now = GetRealTime();
-
-        foreach (var pair in modifiers)
-        {
-            var removed = pair.Value.RemoveAll(modifier =>
-                modifier.EndRealTime.HasValue && now >= modifier.EndRealTime.Value);
-
-            if (removed > 0)
-                RaiseChange(pair.Key);
-        }
+        float now = GetRealTime();
+        RemoveWhere(modifier => modifier.IsExpired(now));
     }
 
     #endregion
@@ -339,24 +204,32 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     #region Внутреннее
 
     /// <summary>
-    /// Значение слоя: базовое, умноженное на все наложенные модификаторы.
+    /// Снимает подходящие модификаторы и одним событием сообщает, чьё время изменилось.
     /// </summary>
-    private float GetLayerValue(Enumeration layer)
+    private int RemoveWhere(Predicate<TimeScaleModifier> match)
     {
-        var value = layers.TryGetValue(layer, out var baseValue) ? baseValue : DefaultTimeScale;
+        TimeLayer changed = TimeLayer.None;
+        int removed = 0;
 
-        if (!modifiers.TryGetValue(layer, out var list))
-            return value;
+        for (int i = modifiers.Count - 1; i >= 0; i--)
+        {
+            if (!match(modifiers[i]))
+                continue;
 
-        for (var i = 0; i < list.Count; i++)
-            value *= list[i].Value;
+            changed |= modifiers[i].Targets;
+            modifiers.RemoveAt(i);
+            removed++;
+        }
 
-        return value;
+        if (removed > 0)
+            RaiseChange(changed);
+
+        return removed;
     }
 
-    private void RaiseChange(Enumeration layer)
+    private static void RaiseChange(TimeLayer layers)
     {
-        PRTimeScaleEvents.RaiseTimeScaleChange(layer, GetLayerValue(layer));
+        PRTimeScaleEvents.RaiseTimeScaleChange(layers);
     }
 
     /// <summary>
@@ -365,7 +238,7 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// </summary>
     private static float GetRealTime()
     {
-        return PRTime.Instance != null ? PRTime.Instance.RealTime : Time.realtimeSinceStartup;
+        return PRTime.HasInstance ? PRTime.Instance.RealTime : Time.realtimeSinceStartup;
     }
 
     #endregion

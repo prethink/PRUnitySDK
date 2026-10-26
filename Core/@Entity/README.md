@@ -21,7 +21,7 @@
 | `Player/` | `IPlayer`, `PlayerBase`, `PlayerTracker`, команды |
 | `Initialize/` | `ReadySignal` — сигнал готовности с подпиской «поздних» слушателей |
 | `Pickup/` | Интерфейсы подбора |
-| корень | `IEntity`, `EntityLink`, время жизни, параметры уничтожения, слой времени |
+| корень | `IEntity`, `EntityLink`, время жизни, параметры уничтожения, слои времени |
 
 ## Базовая сущность
 
@@ -60,7 +60,7 @@ public class Player : EntityBase<PlayerMetadata>
 | Описание | `Description` — имя, иконка, локализация и качество |
 | Уничтожение | `DestroyEntity()` с учётом пула и настройки `EntityDisposeAction` |
 | Пул | Реализация `IPoolable` через `PoolBehaviour` |
-| Пауза и время | Наследуется от `PRMonoBehaviour`; слой времени — `GetTimeScaleLayer()` |
+| Пауза и время | Наследуется от `PRMonoBehaviour`; слои времени — поле «Время» (`TimeLayer`, флаги), `GetTimeLayers()` |
 | Мониторы | Автоматически подхватывает `AnimatorPauseMonitor` |
 
 ### Какой базовый класс выбрать
@@ -333,7 +333,7 @@ public class HealthBar : PRMonoBehaviour
 `EntityLinkBase<T>` даёт `LinkedEntity` нужного типа и `TryGetEntity(out T)`.
 
 Это же основной способ для систем SDK связать компонент с сущностью — так работает,
-например, `EntityTimeScaleDriver`, который берёт слой времени из связанной сущности.
+например, `EntityTimeScaleDriver`, который берёт слои времени из связанной сущности.
 
 ## Позиция сущности
 

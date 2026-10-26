@@ -23,8 +23,8 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
     [Tooltip("Аниматор, которым управляет драйвер. Если пусто - берётся с этого объекта.")]
     [SerializeField] private Animator animator;
 
-    [Tooltip("Слой масштаба времени. Пусто - используется глобальный масштаб.")]
-    [SerializeField] private EnumerationReference<PRTimeScaleEnumerations> timeScaleLayer = new();
+    [Tooltip("Слои времени аниматора: какие замедления его задевают. По умолчанию — мир.")]
+    [SerializeField] private TimeLayer timeLayers = TimeLayer.World;
 
     [Tooltip("Возвращать аниматору автоматическое обновление при выключении компонента. " +
         "Включайте для объектов из пула, чтобы аниматор не остался замороженным.")]
@@ -97,24 +97,19 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
     #region Методы
 
     /// <summary>
-    /// Текущий масштаб времени для аниматора с учётом слоя.
+    /// Текущий масштаб времени для аниматора с учётом его слоёв.
     /// </summary>
     public float GetTimeScale()
     {
-        var layer = timeScaleLayer != null ? timeScaleLayer.ToEnumeration() : null;
-
-        return PRTimeScale.Instance.Resolve(layer);
+        return PRTimeScale.Instance.Resolve(timeLayers);
     }
 
     /// <summary>
-    /// Задать слой масштаба времени в рантайме.
+    /// Задать слои времени в рантайме.
     /// </summary>
-    public void SetTimeScaleLayer(Enumeration layer)
+    public void SetTimeLayers(TimeLayer layers)
     {
-        timeScaleLayer ??= new EnumerationReference<PRTimeScaleEnumerations>();
-
-        if (layer != null)
-            timeScaleLayer.Set(layer);
+        timeLayers = layers;
     }
 
     private void Attach()

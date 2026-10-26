@@ -20,10 +20,7 @@ public partial class PRProjectSettings
     [field: SerializeField] public ResolveStrategy ResolveStrategy { get; protected set; }
     [field: SerializeField] public PRMonobehaviourHostSettings PRMonobehaviourHost { get; protected set; }
 
-    [field: SerializeField] public bool PhysicsDebug { get; protected set; }
-
-    [field: SerializeField, Header("TimeScale")] 
-    public TimeScaleCombineMode TimeScaleCombineMode { get; protected set; }
+    [field: SerializeField] public bool PhysicsDebug { get; protected set; }
 }
 
 [Serializable]

@@ -438,7 +438,7 @@ public class EntityTrackerSearchTests
         public void GenerateId(Func<long> register) { Id = register(); EntityIdAssignments++; }
         public void DestroyEntity() => DestroyEntity(new EntityDestroyOptions());
         public void DestroyEntity(EntityDestroyOptions options) { DestroyCalls++; }
-        public Enumeration GetTimeScaleLayer() => PRTimeScaleEnumerations.Global;
+        public TimeLayer GetTimeLayers() => TimeLayer.World;
     }
 
     private class TestHealthEntity : TestEntity, IHealthProvider

@@ -84,7 +84,7 @@ public class PauseView : MonoBehaviour, IPauseStateListener
 // PlayerAnimationController
 private void ApplyTimeScale()
 {
-    var timeScale = PRTimeScale.Instance.Resolve(entity.GetTimeScaleLayer());
+    var timeScale = PRTimeScale.Instance.Resolve(entity.GetTimeLayers());
     AnimatorPauseMonitor.SetSpeed(animator, timeScale);
 }
 ```
@@ -96,7 +96,7 @@ private void ApplyTimeScale()
 обновления (`animator.enabled = false`) и продвигает его в `PRUpdate`:
 
 ```csharp
-var deltaTime = PRTime.Instance.RealDeltaTime * PRTimeScale.Instance.Resolve(layer);
+var deltaTime = PRTime.Instance.RealDeltaTime * PRTimeScale.Instance.Resolve(timeLayers);
 animator.Update(deltaTime);
 ```
 
@@ -107,7 +107,7 @@ animator.Update(deltaTime);
 | Поле | Назначение |
 | --- | --- |
 | `animator` | управляемый аниматор, по умолчанию берётся с этого объекта |
-| `timeScaleLayer` | слой масштаба времени; пусто — глобальный |
+| `timeLayers` | слои времени (`TimeLayer`, флаги); по умолчанию `World` |
 | `restoreOnDisable` | вернуть автообновление при выключении; нужно для объектов из пула |
 
 Когда выбирать драйвер: нужны разные скорости у разных сущностей (замедлить врага, но не

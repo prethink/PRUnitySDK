@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -12,7 +13,7 @@ public partial class PRDebugEditor
     private const float TimeScaleSliderMax = 2f;
 
     /// <summary>
-    /// Верхняя граница шкалы длительности временного изменения, в реальных секундах.
+    /// Верхняя граница шкалы длительности модификатора, в секундах <see cref="PRTime.RealTime"/>.
     /// </summary>
     private const float DurationSliderMax = 30f;
 
@@ -58,112 +59,88 @@ public partial class PRDebugEditor
         return $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}";
     }
 
+    /// <summary>
+    /// Масштаб времени по слоям, наложенные модификаторы и форма нового.
+    /// </summary>
     private void DrawTimeScale()
     {
         DrawSectionHeader("PRTimeScale");
-        DrawKeyValue("Combine mode", timeScaleCombineMode);
         DrawKeyValue("Event subscribers", timeScaleSubscriberCount);
 
-        using (new EditorGUI.DisabledScope(!PRUnitySDK.IsInitialized || timeScaleRows.Count == 0))
+        using (new EditorGUI.DisabledScope(!PRUnitySDK.IsInitialized))
         {
-            EditorGUILayout.LabelField("Persistent layer values", EditorStyles.miniLabel);
-            using (new EditorGUI.DisabledScope(hasActiveTemporaryTimeScales))
-            {
-                foreach (TimeScaleRow row in timeScaleRows.ToArray())
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(row.Layer.Value, GUILayout.MinWidth(65f), GUILayout.MaxWidth(110f));
-
-                    // Slider рисует и шкалу, и поле ввода: значение можно и тянуть мышью,
-                    // и вписать точно. Шкала ограничена TimeScaleSliderMax, поле - нет.
-                    EditorGUI.BeginChangeCheck();
-                    float value = EditorGUILayout.Slider(row.Value, 0f, TimeScaleSliderMax);
-                    if (EditorGUI.EndChangeCheck())
-                        SetTimeScale(row.Layer, value);
-
-                    GUILayout.Space(6f);
-                    EditorGUILayout.LabelField($"Resolved: {row.ResolvedValue:0.###}", EditorStyles.miniLabel,
-                        GUILayout.MinWidth(90f));
-                    EditorGUILayout.EndHorizontal();
-                }
-
-                if (GUILayout.Button("Reset persistent values", GUILayout.Width(145f)))
-                    ResetTimeScale();
-            }
-
+            DrawTimeScaleLayers();
             DrawTimeScaleModifiers();
+            DrawModifierForm();
+        }
+    }
 
-            EditorGUILayout.Space(3f);
-            EditorGUILayout.LabelField("Temporary global override", EditorStyles.miniBoldLabel);
-            temporaryGlobalTimeScale = DrawTimeScaleSlider("Scale", temporaryGlobalTimeScale,
-                0f, TimeScaleSliderMax);
-            temporaryGlobalDurationSeconds = DrawTimeScaleSlider("Duration (PRTime s)",
-                temporaryGlobalDurationSeconds, 0f, DurationSliderMax);
+    /// <summary>
+    /// Итоговый масштаб каждого слоя и во сколько раз слой идёт быстрее или медленнее мира.
+    /// </summary>
+    /// <remarks>
+    /// Отношение к миру — то, что драйверы добавляют телам и аниматорам поверх шага физики: при замедлении
+    /// «всего, кроме игрока» у Player оно больше единицы.
+    /// </remarks>
+    private void DrawTimeScaleLayers()
+    {
+        EditorGUILayout.LabelField("Layers", EditorStyles.miniBoldLabel);
 
+        foreach (TimeScaleRow row in timeScaleRows.ToArray())
+        {
             EditorGUILayout.BeginHorizontal();
-            DrawTemporaryGlobalTimeScalePreset("0", 0f);
-            DrawTemporaryGlobalTimeScalePreset(".25", 0.25f);
-            DrawTemporaryGlobalTimeScalePreset(".5", 0.5f);
-            DrawTemporaryGlobalTimeScalePreset("1", 1f);
-            DrawTemporaryGlobalTimeScalePreset("2", 2f);
-            GUILayout.FlexibleSpace();
-            using (new EditorGUI.DisabledScope(globalTemporaryTimeScaleActive))
-            {
-                if (GUILayout.Button(globalTemporaryTimeScaleActive ? "Active" : "Apply", GUILayout.Width(55f)))
-                    ApplyTemporaryGlobalTimeScale();
-            }
+            EditorGUILayout.LabelField(row.Layer.ToString(), GUILayout.MinWidth(65f), GUILayout.MaxWidth(110f));
+            EditorGUILayout.LabelField($"× {row.Value:0.###}", GUILayout.Width(70f));
+            if (row.Layer != TimeLayer.World)
+                EditorGUILayout.LabelField($"to world × {row.RelativeToWorld:0.###}", EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
         }
     }
 
     /// <summary>
-    /// Список наложенных модификаторов с их источниками.
-    /// <para>
-    /// Раньше по значению слоя нельзя было понять, кто именно его изменил, - теперь
-    /// видно каждый источник и оставшееся время, и любой можно снять по отдельности.
-    /// </para>
+    /// Список наложенных модификаторов: кого задевают, кто наложил, сколько осталось.
     /// </summary>
     private void DrawTimeScaleModifiers()
     {
         if (!PRUnitySDK.IsInitialized)
             return;
 
-        var provider = new PRTimeScaleEnumerations();
-        var hasAny = false;
+        IReadOnlyList<TimeScaleModifier> modifiers = PRTimeScale.Instance.Modifiers;
+        if (modifiers.Count == 0)
+            return;
 
-        foreach (Enumeration layer in provider.GetOptions())
+        EditorGUILayout.Space(3f);
+        EditorGUILayout.LabelField("Active modifiers", EditorStyles.miniBoldLabel);
+
+        foreach (TimeScaleModifier modifier in modifiers.ToArray())
         {
-            var layerModifiers = PRTimeScale.Instance.GetModifiers(layer);
-            if (layerModifiers.Count == 0)
-                continue;
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"× {modifier.Value:0.###}", GUILayout.Width(60f));
+            EditorGUILayout.LabelField(DescribeTargets(modifier), GUILayout.MinWidth(120f));
+            EditorGUILayout.LabelField(modifier.OwnerName, EditorStyles.miniLabel, GUILayout.MinWidth(70f));
+            EditorGUILayout.LabelField(GetModifierRemaining(modifier), EditorStyles.miniLabel, GUILayout.Width(70f));
 
-            if (!hasAny)
+            if (GUILayout.Button("×", GUILayout.Width(22f)))
             {
-                EditorGUILayout.Space(3f);
-                EditorGUILayout.LabelField("Active modifiers", EditorStyles.miniBoldLabel);
-                hasAny = true;
+                PRTimeScale.Instance.RemoveModifier(new TimeScaleModifierHandle(modifier.Id));
+                RefreshTimeScaleSnapshotDelayed();
             }
 
-            foreach (TimeScaleModifier modifier in layerModifiers.ToArray())
-            {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField($"{layer.Value} × {modifier.Value:0.###}",
-                    GUILayout.MinWidth(90f), GUILayout.MaxWidth(140f));
-                EditorGUILayout.LabelField(modifier.OwnerName, EditorStyles.miniLabel,
-                    GUILayout.MinWidth(70f));
-                EditorGUILayout.LabelField(GetModifierRemaining(modifier), EditorStyles.miniLabel,
-                    GUILayout.Width(70f));
-
-                if (GUILayout.Button("×", GUILayout.Width(22f)))
-                {
-                    PRTimeScale.Instance.RemoveModifier(
-                        new TimeScaleModifierHandle(modifier.Id, layer));
-                    RefreshTimeScaleSnapshotDelayed();
-                }
-
-                EditorGUILayout.EndHorizontal();
-            }
+            EditorGUILayout.EndHorizontal();
         }
+
+        if (GUILayout.Button("Remove all", GUILayout.Width(90f)))
+            ResetTimeScale();
+    }
+
+    /// <summary>
+    /// Кого задевает модификатор: «Global except Player, UI».
+    /// </summary>
+    private static string DescribeTargets(TimeScaleModifier modifier)
+    {
+        return modifier.Except == TimeLayer.None
+            ? modifier.Affects.ToString()
+            : $"{modifier.Affects} except {modifier.Except}";
     }
 
     private static string GetModifierRemaining(TimeScaleModifier modifier)
@@ -207,57 +184,68 @@ public partial class PRDebugEditor
         return value;
     }
 
-    private void DrawTemporaryGlobalTimeScalePreset(string label, float value)
+    /// <summary>
+    /// Форма нового модификатора: множитель, кого задеть, кого не трогать, срок.
+    /// </summary>
+    private void DrawModifierForm()
     {
-        if (GUILayout.Button(label, GUILayout.Width(34f)))
-            temporaryGlobalTimeScale = value;
+        EditorGUILayout.Space(3f);
+        EditorGUILayout.LabelField("Add modifier", EditorStyles.miniBoldLabel);
+
+        modifierScale = DrawTimeScaleSlider("Scale", modifierScale, 0f, TimeScaleSliderMax);
+        modifierAffects = (TimeLayer)EditorGUILayout.EnumFlagsField("Affects", modifierAffects);
+        modifierExcept = (TimeLayer)EditorGUILayout.EnumFlagsField("Except", modifierExcept);
+        modifierDurationSeconds = DrawTimeScaleSlider("Duration, s (0 = ∞)", modifierDurationSeconds, 0f, DurationSliderMax);
+
+        EditorGUILayout.BeginHorizontal();
+        // Кронос из Crash Bandicoot 4: мир и враги медленно, игрок и интерфейс — в обычном темпе.
+        DrawModifierPreset("Kronos", 0.3f, TimeLayer.Global, TimeLayer.Player | TimeLayer.UI, 5f);
+        DrawModifierPreset("Slow all", 0.5f, TimeLayer.Global, TimeLayer.None, 5f);
+        DrawModifierPreset("Freeze NPC", 0f, TimeLayer.NPC | TimeLayer.Enemy, TimeLayer.None, 3f);
+        GUILayout.FlexibleSpace();
+        if (GUILayout.Button("Apply", GUILayout.Width(55f)))
+            ApplyModifier();
+        EditorGUILayout.EndHorizontal();
     }
 
-    private void ApplyTemporaryGlobalTimeScale()
+    private void DrawModifierPreset(string label, float scale, TimeLayer affects, TimeLayer except, float duration)
     {
-        if (float.IsNaN(temporaryGlobalTimeScale) || float.IsInfinity(temporaryGlobalTimeScale)
-            || float.IsNaN(temporaryGlobalDurationSeconds) || float.IsInfinity(temporaryGlobalDurationSeconds)
-            || temporaryGlobalDurationSeconds <= 0f)
+        if (!GUILayout.Button(label, EditorStyles.miniButton))
+            return;
+
+        modifierScale = scale;
+        modifierAffects = affects;
+        modifierExcept = except;
+        modifierDurationSeconds = duration;
+    }
+
+    /// <summary>
+    /// Источник модификаторов, наложенных из окна отладки: так они видны в списке под своим именем.
+    /// </summary>
+    private sealed class DebugWindow
+    {
+    }
+
+    private static readonly DebugWindow DebugModifierOwner = new();
+
+    private void ApplyModifier()
+    {
+        if (float.IsNaN(modifierScale) || float.IsInfinity(modifierScale)
+            || float.IsNaN(modifierDurationSeconds) || float.IsInfinity(modifierDurationSeconds))
         {
-            snapshotError = "Temporary time scale requires finite values and a duration greater than zero.";
+            snapshotError = "Time scale modifier requires finite values.";
             return;
         }
 
         try
         {
-            temporaryGlobalTimeScale = Mathf.Max(0f, temporaryGlobalTimeScale);
-            PRTimeScale.Instance.SetGlobalTimeScaleTemporarily(
-                temporaryGlobalTimeScale,
-                temporaryGlobalDurationSeconds);
+            PRTimeScale.Instance.AddModifier(Mathf.Max(0f, modifierScale), modifierAffects, modifierExcept,
+                DebugModifierOwner, Mathf.Max(0f, modifierDurationSeconds));
             RefreshTimeScaleSnapshotDelayed();
         }
-        catch (System.Exception exception)
+        catch (Exception exception)
         {
-            snapshotError = $"Temporary time scale failed: {exception.GetType().Name}: {exception.Message}";
-        }
-    }
-
-    private void SetTimeScale(Enumeration layer, float value)
-    {
-        if (layer == null || float.IsNaN(value) || float.IsInfinity(value))
-        {
-            snapshotError = "Time scale must be a finite number.";
-            return;
-        }
-
-        try
-        {
-            value = Mathf.Max(0f, value);
-            if (layer == PRTimeScaleEnumerations.Global)
-                PRTimeScale.Instance.SetGlobalTimeScale(value);
-            else
-                PRTimeScale.Instance.SetTimeScale(layer, value);
-
-            RefreshTimeScaleSnapshotDelayed();
-        }
-        catch (System.Exception exception)
-        {
-            snapshotError = $"Time scale change failed: {exception.GetType().Name}: {exception.Message}";
+            snapshotError = $"Time scale modifier failed: {exception.GetType().Name}: {exception.Message}";
         }
     }
 
@@ -268,7 +256,7 @@ public partial class PRDebugEditor
             PRTimeScale.Instance.Reset();
             RefreshTimeScaleSnapshotDelayed();
         }
-        catch (System.Exception exception)
+        catch (Exception exception)
         {
             snapshotError = $"Time scale reset failed: {exception.GetType().Name}: {exception.Message}";
         }

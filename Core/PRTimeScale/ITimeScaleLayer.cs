@@ -1,17 +1,14 @@
-﻿/// <summary>
-/// Предоставляет информацию о слое времени, к которому относится объект.
-/// Используется для определения того, какой time-scale слой влияет на объект
-/// (например: Global, Player, NPC и т.д.).
+/// <summary>
+/// Объект, у которого есть свои слои времени.
 /// </summary>
+/// <remarks>
+/// По слоям <see cref="PRTimeScale"/> решает, какие модификаторы объект задевают. Слоёв может быть несколько:
+/// враг — <see cref="TimeLayer.NPC"/> и <see cref="TimeLayer.Enemy"/>.
+/// </remarks>
 public interface ITimeScaleLayer
 {
     /// <summary>
-    /// Возвращает слой времени, к которому относится текущий объект.
-    /// Этот слой используется системой TimeScale для вычисления итогового влияния времени
-    /// на объект (ускорение, замедление, остановка и т.д.).
+    /// Слои времени объекта.
     /// </summary>
-    /// <returns>
-    /// Enumeration, представляющий слой времени (например Global, Player, NPC).
-    /// </returns>
-    public Enumeration GetTimeScaleLayer();
+    public TimeLayer GetTimeLayers();
 }

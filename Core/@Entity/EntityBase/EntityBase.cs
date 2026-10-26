@@ -80,6 +80,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </summary>
     [SerializeField] protected EnumerationReference<EntityDisposeEnumerations> EntityDisposeAction = new();
 
+    [Header("Время")]
+    [Tooltip("Слои времени: какие замедления задевают сущность. Можно несколько — враг: NPC и Enemy. " +
+             "Только World — сущность идёт в темпе мира.")]
+    [SerializeField] protected TimeLayer timeLayers = TimeLayer.World;
+
     /// <summary>
     /// Место, поворот и размер, с которыми сущность появилась; к ним её возвращает
     /// восстановление.
@@ -466,9 +471,12 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     protected abstract void InitializeEntityMetadata();
 
-    public virtual Enumeration GetTimeScaleLayer()
+    /// <summary>
+    /// Слои времени сущности: какие модификаторы <see cref="PRTimeScale"/> её задевают.
+    /// </summary>
+    public virtual TimeLayer GetTimeLayers()
     {
-        return PRTimeScaleEnumerations.Global;
+        return timeLayers;
     }
 
     /// <summary>

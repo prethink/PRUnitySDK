@@ -86,10 +86,7 @@ public partial class PRDebugEditor
         hasLoadedSave = false;
         canStartSave = false;
         saveCooldownRemainingSeconds = 0;
-        timeScaleCombineMode = "-";
         timeScaleSubscriberCount = 0;
-        hasActiveTemporaryTimeScales = false;
-        globalTemporaryTimeScaleActive = false;
         initializationTotalMilliseconds = 0d;
     }
 
@@ -428,30 +425,24 @@ public partial class PRDebugEditor
             manager.IsMusicPaused, manager.IsTutorialPaused, manager.IsCutScenePaused);
     }
 
+    /// <summary>
+    /// Масштаб времени каждого слоя и его отношение к миру.
+    /// </summary>
     private void CaptureTimeScale()
     {
         PRTimeScale timeScale = PRTimeScale.Instance;
-        timeScaleCombineMode = PRUnitySDK.Settings.Project.TimeScaleCombineMode.ToString();
         timeScaleSubscriberCount = EventBus.GetSubscriberCount<IOnPRTimeScaleChange>();
-        hasActiveTemporaryTimeScales = timeScale.HasActiveTemporaryTimeScales;
-        globalTemporaryTimeScaleActive = timeScale.IsTimeScaleTemporaryActive(
-            PRTimeScaleEnumerations.Global);
 
-        foreach (Enumeration layer in new PRTimeScaleEnumerations().GetOptions()
-                     .Where(value => value != null)
-                     .GroupBy(value => value.Value, StringComparer.Ordinal)
-                     .Select(group => group.First())
-                     .OrderBy(value => value == PRTimeScaleEnumerations.Global ? 0 : 1)
-                     .ThenBy(value => value.Value, StringComparer.Ordinal))
-        {
-            float value = timeScale.GetTimeScale(layer);
-            float resolvedValue = layer == PRTimeScaleEnumerations.Global
-                ? timeScale.Resolve()
-                : timeScale.Resolve(layer);
-
-            timeScaleRows.Add(new TimeScaleRow(layer, value, resolvedValue));
-        }
+        foreach (TimeLayer layer in SingleTimeLayers)
+            timeScaleRows.Add(new TimeScaleRow(layer, timeScale.Resolve(layer), timeScale.RelativeToWorld(layer)));
     }
+
+    /// <summary>
+    /// Отдельные слои enum, без <see cref="TimeLayer.None"/> и <see cref="TimeLayer.Global"/>.
+    /// </summary>
+    private static readonly TimeLayer[] SingleTimeLayers = ((TimeLayer[])Enum.GetValues(typeof(TimeLayer)))
+        .Where(layer => layer != TimeLayer.None && layer != TimeLayer.Global)
+        .ToArray();
 
     private void CaptureSaveDiagnostics()
     {

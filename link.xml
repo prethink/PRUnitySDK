@@ -154,7 +154,6 @@
       <method name="SetDefaultGameStorageSettings" />
     </type>
     <type fullname="PRSaveData" preserve="all" />
-    <type fullname="PRTimeScaleEnumerations" preserve="all" />
     <type fullname="PRUnitySDK">
       <method name="InitializeBackgroundExperience" />
       <method name="InitializeBrainrotRewardGrantHandler" />

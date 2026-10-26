@@ -31,18 +31,15 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     /// Должен ли tween реагировать на паузу игры
     /// </param>
     /// <returns>Guid — идентификатор tween'а</returns>
-    public Guid Register(Tween tween, Enumeration layer = null, bool reactionOnPause = true)
+    public Guid Register(Tween tween, TimeLayer layers = TimeLayer.World, bool reactionOnPause = true)
     {
         if (tween == null)
             throw new ArgumentNullException(nameof(tween));
 
-        if (layer == null)
-            layer = PRTimeScaleEnumerations.Global;
-
         Guid guid = Guid.NewGuid();
 
         tween.SetId(guid);
-        tween.timeScale = PRTimeScale.Instance.Resolve(layer);
+        tween.timeScale = PRTimeScale.Instance.Resolve(layers);
 
         // Снимаем запись, только если она всё ещё указывает на ЭТОТ твин - защищает
         // от случая, когда для этого же guid успели зарегистрировать другой твин
@@ -56,7 +53,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
             }
         });
 
-        var dto = new TweenTimeScaleDTO(tween, layer);
+        var dto = new TweenTimeScaleDTO(tween, layers);
         if (reactionOnPause && PRUnitySDK.PauseManager.IsLogicPaused)
         {
             // Твин зарегистрирован во время паузы: он должен пойти, когда её снимут.
@@ -77,13 +74,10 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     /// новый tween был записан в tweens, и случайно удалить актуальную запись
     /// (гонка между Kill старого и записью нового под одним и тем же guid).
     /// </summary>
-    public Guid RegisterOrReplace(Guid guid, Tween tween, Enumeration layer = null, bool reactionOnPause = true)
+    public Guid RegisterOrReplace(Guid guid, Tween tween, TimeLayer layers = TimeLayer.World, bool reactionOnPause = true)
     {
         if (tween == null)
             throw new ArgumentNullException(nameof(tween));
-
-        if (layer == null)
-            layer = PRTimeScaleEnumerations.Global;
 
         if (tweens.TryGetValue(guid, out var existing))
         {
@@ -93,7 +87,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
         }
 
         tween.SetId(guid);
-        tween.timeScale = PRTimeScale.Instance.Resolve(layer);
+        tween.timeScale = PRTimeScale.Instance.Resolve(layers);
 
         tween.OnKill(() =>
         {
@@ -104,7 +98,7 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
             }
         });
 
-        var dto = new TweenTimeScaleDTO(tween, layer);
+        var dto = new TweenTimeScaleDTO(tween, layers);
         if (reactionOnPause && PRUnitySDK.PauseManager.IsLogicPaused)
         {
             // Твин зарегистрирован во время паузы: он должен пойти, когда её снимут.
@@ -192,23 +186,22 @@ public class DoTweenTracker : SingletonProviderBase<DoTweenTracker>, IPauseState
     }
 
     /// <summary>
-    /// Пересчитывает resolved time scale затронутых tween.
-    /// Изменение глобального слоя обновляет все зарегистрированные tween.
+    /// Пересчитывает масштаб времени tween, чьи слои задел модификатор.
     /// </summary>
-    public void OnPRTimeScaleChange(Enumeration layer, float value)
+    public void OnPRTimeScaleChange(TimeLayer layers)
     {
         foreach (var guid in new List<Guid>(tweens.Keys))
         {
             if (!tweens.TryGetValue(guid, out var dto))
                 continue;
 
-            if (layer != PRTimeScaleEnumerations.Global && dto.Layer != layer)
+            if ((dto.Layers & layers) == 0)
                 continue;
 
             if (dto.Tween == null || !dto.Tween.active)
                 continue;
 
-            dto.Tween.timeScale = PRTimeScale.Instance.Resolve(dto.Layer);
+            dto.Tween.timeScale = PRTimeScale.Instance.Resolve(dto.Layers);
         }
     }
 
@@ -234,9 +227,9 @@ public class TweenTimeScaleDTO
     public Tween Tween { get; }
 
     /// <summary>
-    /// Слой PRTimeScale анимации.
+    /// Слои времени анимации.
     /// </summary>
-    public Enumeration Layer { get; }
+    public TimeLayer Layers { get; }
 
     /// <summary>
     /// Была ли анимация запущена перед логической паузой.
@@ -246,9 +239,9 @@ public class TweenTimeScaleDTO
     /// <summary>
     /// Создаёт runtime-описание tween.
     /// </summary>
-    public TweenTimeScaleDTO(Tween tween, Enumeration layer)
+    public TweenTimeScaleDTO(Tween tween, TimeLayer layers)
     {
         Tween = tween;
-        Layer = layer;
+        Layers = layers;
     }
 }

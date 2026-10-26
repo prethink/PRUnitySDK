@@ -69,9 +69,9 @@ public class GameEventEntity : IEntity
 
     }
 
-    public Enumeration GetTimeScaleLayer()
+    public TimeLayer GetTimeLayers()
     {
-        return PRTimeScaleEnumerations.Global;
+        return TimeLayer.World;
     }
 
 

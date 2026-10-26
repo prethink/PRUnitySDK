@@ -3,9 +3,16 @@ using UnityEngine;
 /// <summary>
 /// Продвигает частицы вручную игровым временем; пауза останавливает их вместе с игрой.
 /// </summary>
+/// <remarks>
+/// Шаг — время своих слоёв (<see cref="PRTimeScale"/>): частицы в слое <see cref="TimeLayer.Effects"/> можно
+/// замедлять отдельно от мира или, наоборот, оставлять в обычном темпе.
+/// </remarks>
 [RequireComponent(typeof(ParticleSystem))]
 public sealed class ParticleTimeScaleDriver : PRMonoBehaviour
 {
+    [Tooltip("Слои времени частиц: какие замедления их задевают. По умолчанию — мир.")]
+    [SerializeField] private TimeLayer timeLayers = TimeLayer.World;
+
     private ParticleSystem target;
     private bool playOnAwake;
     private bool resumeAutomatic;
@@ -25,7 +32,7 @@ public sealed class ParticleTimeScaleDriver : PRMonoBehaviour
     protected override void PRUpdate()
     {
         base.PRUpdate();
-        Advance(PRTime.Instance.GameDeltaTime);
+        Advance(PRTime.Instance.RealDeltaTime * PRTimeScale.Instance.Resolve(timeLayers));
     }
 
     /// <summary>
@@ -37,6 +44,14 @@ public sealed class ParticleTimeScaleDriver : PRMonoBehaviour
         if (target == null || gameDeltaTime <= 0f || !target.gameObject.activeInHierarchy) return;
         // У дочерних систем свой драйвер: общий рекурсивный шаг продвинул бы их дважды.
         target.Simulate(gameDeltaTime, false, false, false);
+    }
+
+    /// <summary>
+    /// Задать слои времени в рантайме.
+    /// </summary>
+    public void SetTimeLayers(TimeLayer layers)
+    {
+        timeLayers = layers;
     }
 
     protected override void OnDisable()

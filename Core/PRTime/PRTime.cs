@@ -106,8 +106,13 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
     private void Update()
     {
+        // Пока SDK загружается, время не идёт, но отметку двигаем: иначе первый кадр после загрузки посчитал бы
+        // шагом всю загрузку, и секундные события выдали бы за неё доход и тики таймеров.
         if (!PRUnitySDK.IsInitialized)
+        {
+            this.LastRawTime = Time.realtimeSinceStartup;
             return;
+        }
 
         if (PRUnitySDK.PauseManager.IsLogicPaused)
         {
@@ -135,7 +140,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         else
         {
             RealFixedDeltaTime = Time.fixedDeltaTime;
-            GameFixedDeltaTime = RealFixedDeltaTime * PRTimeScale.Instance.GetGlobalTimeScale();
+            GameFixedDeltaTime = RealFixedDeltaTime * PRTimeScale.Instance.GetWorldTimeScale();
             //TODO: PROnFixedUpdateEvent
         }
     }
@@ -168,44 +173,31 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         this.LastRawTime = rawTime;
 
         CurrentRealSecond = Mathf.FloorToInt(this.RealTime);
-        if (CurrentRealSecond != lastRealSecond)
+
+        // По событию на каждую прошедшую секунду: обработчики считают «событие — секунда» (Timer, метрики), и при
+        // подвисании кадра одно событие за несколько секунд их теряло.
+        while (lastRealSecond < CurrentRealSecond)
         {
-            WarnSkippedSeconds("RealTime", lastRealSecond, CurrentRealSecond);
-            lastRealSecond = CurrentRealSecond;
-            EventBus.RaiseEvent<IOnRealSecondsEvent>(x => x.OnRealSecondTick(CurrentRealSecond));
+            long second = ++lastRealSecond;
+            EventBus.RaiseEvent<IOnRealSecondsEvent>(x => x.OnRealSecondTick(second));
         }
     }
 
     private void UpdateGameTime()
     {
-        float globalScale = PRTimeScale.Instance.Resolve();
-        GameDeltaTime = this.RealDeltaTime * globalScale;
+        // Игровое время идёт в темпе мира: замедление «всего, кроме игрока» его тоже замедляет.
+        GameDeltaTime = this.RealDeltaTime * PRTimeScale.Instance.GetWorldTimeScale();
         GameTime += GameDeltaTime;
 
         CurrentGameSecond = Mathf.FloorToInt(this.GameTime);
-        if (CurrentGameSecond != lastGameSecond)
-        {
-            WarnSkippedSeconds("GameTime", lastGameSecond, CurrentGameSecond);
-            lastGameSecond = CurrentGameSecond;
-            EventBus.RaiseEvent<IOnGameSecondsEvent>(x => x.OnGameSecondTick(CurrentGameSecond));
-        }
-    }
 
-    /// <summary>
-    /// В редакторе и отладочной сборке сообщает, что за кадр прошло больше одной целой секунды.
-    /// </summary>
-    /// <remarks>
-    /// Секундное событие публикуется раз в кадр, и обработчики, считающие «событие — секунда» (доход StealEgg,
-    /// <c>Timer</c>), лишние секунды теряют. Догонять их отдельными событиями нельзя без смены поведения в релизе,
-    /// поэтому только предупреждение: подвисание кадра или общий масштаб <see cref="PRTimeScale"/> выше 3 при ускорении
-    /// <see cref="PRDebugTime"/>. Первая секунда не проверяется: первый кадр после инициализации SDK отсчитывает
-    /// всю загрузку.
-    /// </remarks>
-    private void WarnSkippedSeconds(string clock, long previous, long current)
-    {
-        if (previous > 0 && current - previous > 1 && PRDebugTime.Allowed)
-            PRLog.WriteWarning(this, $"{clock}: за кадр прошло {current - previous} с, секундное событие одно — " +
-                                     $"пропущено {current - previous - 1} с. Подвисание кадра или общий масштаб PRTimeScale выше 3.");
+        // По событию на каждую прошедшую секунду: доход StealEgg и Timer считают «событие — секунда», а за кадр
+        // при подвисании или сильном ускорении проходит больше одной.
+        while (lastGameSecond < CurrentGameSecond)
+        {
+            long second = ++lastGameSecond;
+            EventBus.RaiseEvent<IOnGameSecondsEvent>(x => x.OnGameSecondTick(second));
+        }
     }
 
     #endregion
@@ -215,9 +207,22 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     /// <summary>
     /// Сбросить время.
     /// </summary>
+    /// <remarks>
+    /// Всё сразу — и реальное, и игровое время, и номера секунд: после частичного сброса номер текущей секунды
+    /// оказался бы меньше последнего опубликованного, и секундные события замолчали бы до прежнего значения.
+    /// Сроки модификаторов <see cref="PRTimeScale"/> отсчитываются по <see cref="RealTime"/>, поэтому они
+    /// снимаются тоже.
+    /// </remarks>
     public void Reset()
     {
         this.RealTime = 0f;
+        this.GameTime = 0f;
+        this.CurrentRealSecond = 0;
+        this.CurrentGameSecond = 0;
+        this.lastRealSecond = 0;
+        this.lastGameSecond = 0;
+
+        PRTimeScale.Instance.Reset();
 
         this.RealDeltaTime = 0f;
         this.GameDeltaTime = 0f;

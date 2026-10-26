@@ -28,7 +28,7 @@ DOTween должен быть установлен и настроен в про
 - `Play Animation On Start` — создать эффект автоматически в `Start()`;
 - `Ignore Pause Notify` — не приостанавливать эффект вместе с логической паузой.
 
-Созданные компоненты используют глобальный слой `PRTimeScale`. Для другого слоя переопределите `GetTimeScaleLayer()`.
+Слои времени эффекта задаёт поле `Time Layers` (`TimeLayer`, флаги; по умолчанию `World`, эффекту интерфейса — `UI`). Слои можно и вычислять, переопределив `GetTimeLayers()`.
 
 ### Превью сглаживания
 
@@ -166,19 +166,19 @@ scaleEffect.CreateAnimation();
 Скорость эффекта определяется через:
 
 ```csharp
-PRTimeScale.Instance.Resolve(GetTimeScaleLayer());
+PRTimeScale.Instance.Resolve(GetTimeLayers());
 ```
 
-При изменении соответствующего слоя `tween.timeScale` обновляется автоматически. Глобальный слой учитывается в resolved-значении.
+Когда модификатор задевает слои эффекта, `tween.timeScale` обновляется автоматически.
 
-Пример собственного слоя:
+Пример слоёв, вычисленных кодом:
 
 ```csharp
-public sealed class UiScaleEffect : DoTweenScaleMonoBehaviour
+public sealed class EnemyHitEffect : DoTweenScaleMonoBehaviour
 {
-    public override Enumeration GetTimeScaleLayer()
+    public override TimeLayer GetTimeLayers()
     {
-        return PRTimeScaleEnumerations.UI;
+        return TimeLayer.Enemy | TimeLayer.Effects;
     }
 }
 ```
@@ -194,7 +194,7 @@ Tween tween = transform
 
 Guid tweenId = PRUnitySDK.Trackers.DoTween.Register(
     tween,
-    layer: PRTimeScaleEnumerations.Player,
+    layers: TimeLayer.Player,
     reactionOnPause: true);
 ```
 
@@ -220,7 +220,7 @@ PRUnitySDK.Trackers.DoTween.Kill(tweenId);
 movementTweenId = PRUnitySDK.Trackers.DoTween.RegisterOrReplace(
     movementTweenId,
     transform.DOMove(targetPosition, duration),
-    PRTimeScaleEnumerations.Player);
+    TimeLayer.Player);
 ```
 
 Предыдущий tween с этим `Guid` будет убит и заменён новым.

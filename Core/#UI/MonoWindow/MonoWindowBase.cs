@@ -332,9 +332,9 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
     /// Замедляет мир, пока окно открыто.
     /// </summary>
     /// <remarks>
-    /// Множитель ложится на глобальный слой от имени окна: снимается ровно своё, а чужие
-    /// замедления (эффекты, отладка) остаются. Через этот слой замедляются физика,
-    /// игровое время и аниматоры.
+    /// Модификатор на всё, кроме интерфейса, от имени окна: снимается ровно своё, а чужие
+    /// замедления (эффекты, отладка) остаются. Замедляются физика, игровое время и аниматоры,
+    /// а анимации самого окна и остального UI идут в обычном темпе.
     /// </remarks>
     private void AcquireSlowTime()
     {
@@ -342,7 +342,7 @@ public abstract partial class MonoWindowBase : PRMonoBehaviour
             return;
 
         ownsSlowTime = true;
-        PRTimeScale.Instance.AddGlobalModifier(Mathf.Clamp01(SlowTimeScale), this);
+        PRTimeScale.Instance.AddModifier(Mathf.Clamp01(SlowTimeScale), TimeLayer.Global, TimeLayer.UI, this);
     }
 
     private void ReleaseSlowTime()

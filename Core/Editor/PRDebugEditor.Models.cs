@@ -37,15 +37,15 @@ public partial class PRDebugEditor
 
     private readonly struct TimeScaleRow
     {
-        public readonly Enumeration Layer;
+        public readonly TimeLayer Layer;
         public readonly float Value;
-        public readonly float ResolvedValue;
+        public readonly float RelativeToWorld;
 
-        public TimeScaleRow(Enumeration layer, float value, float resolvedValue)
+        public TimeScaleRow(TimeLayer layer, float value, float relativeToWorld)
         {
             Layer = layer;
             Value = value;
-            ResolvedValue = resolvedValue;
+            RelativeToWorld = relativeToWorld;
         }
     }
 

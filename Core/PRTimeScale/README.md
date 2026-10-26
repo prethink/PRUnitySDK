@@ -1,178 +1,139 @@
 # PRTimeScale
 
-`PRTimeScale` управляет независимыми слоями скорости времени. Глобальный слой влияет на
-весь игровой мир, а дополнительные слои позволяют отдельно замедлять игрока, NPC или UI.
-Система не изменяет `UnityEngine.Time.timeScale` автоматически.
+`PRTimeScale` управляет скоростью времени по слоям. Замедления и ускорения накладываются модификаторами: каждый
+задевает набор слоёв и может часть исключить. Так собираются и общее замедление, и выборочные эффекты — например,
+замедлить весь мир, кроме игрока, как маска Кроноса в Crash Bandicoot 4. Система не изменяет
+`UnityEngine.Time.timeScale` (его меняет только ускорение для проверки, см. [PRTime](../PRTime/README.md)).
 
-## Стандартные слои
+## Слои — флаги
 
-`PRTimeScaleEnumerations` объявляет:
+`TimeLayer` — обычный `[Flags] enum`:
 
-- `Global`;
-- `Player`;
-- `NPC`;
-- `UI`.
-
-Провайдер включает унаследованные значения, поэтому проект может расширить список своей
-реализацией `EnumerationProviderBase`.
-
-## Инициализация
-
-Во время `PRUnitySDK.InitializeSDK()` вызывается `PRTimeScale.SingletonInitialize()`.
-Все известные слои получают значение `1f`. До инициализации методы глобального разрешения
-возвращают `DefaultTimeScale`.
-
-## Установка значений
-
-```csharp
-PRTimeScale.Instance.SetGlobalTimeScale(0.5f);
-PRTimeScale.Instance.SetTimeScale(PRTimeScaleEnumerations.Player, 0.8f);
-```
-
-После изменения публикуется `IOnPRTimeScaleChange`:
-
-```csharp
-public class TimeScaleListener : MonoBehaviour, IOnPRTimeScaleChange
-{
-    private void OnEnable() => EventBus.Subscribe(this);
-    private void OnDisable() => EventBus.Unsubscribe(this);
-
-    public void OnPRTimeScaleChange(Enumeration layer, float value)
-    {
-        Debug.Log($"{layer}: {value}");
-    }
-}
-```
-
-## Получение итогового масштаба
-
-```csharp
-float playerScale = PRTimeScale.Instance.Resolve(
-    PRTimeScaleEnumerations.Player);
-```
-
-Результат зависит от `PRUnitySDK.Settings.Project.TimeScaleCombineMode`:
-
-| Режим | Результат |
+| Слой | Кто в нём |
 | --- | --- |
-| `Multiply` | `global * layer` |
-| `Max` | Максимальное из global и layer |
-| `Min` | Минимальное из global и layer |
-| `OverrideGlobal` | Значение layer без global |
+| `World` | мир: окружение, реквизит, всё без своего слоя. Задаёт шаг физики и `PRTime.GameDeltaTime` |
+| `Player` | игрок |
+| `NPC` | персонажи под управлением игры: боты, жители, охрана |
+| `Enemy` | враги |
+| `Projectile` | снаряды и всё летящее |
+| `Effects` | эффекты в мире: частицы, вспышки, твины объектов сцены |
+| `UI` | интерфейс |
+| `Global` | все слои сразу (`~0`), в том числе будущие |
 
-`Resolve()` без аргумента и `Resolve(PRTimeScaleEnumerations.Global)` возвращают
-само значение глобального scale. Глобальный слой не комбинируется сам с собой: при значении
-`0.5f` результат остаётся `0.5f`, а не `0.25f`. Режим комбинирования применяется только к
-дополнительным слоям. Незарегистрированный слой не роняет игру: `Resolve` пишет
-предупреждение и возвращает глобальное значение.
+Объект бывает в нескольких слоях: враг-бот — `NPC | Enemy`. В инспекторе поле `TimeLayer` рисуется списком
+с галочками.
+
+Новый слой добавляется в enum следующим свободным битом. Значения существующих не меняются: префабы хранят маску
+числом, и сдвиг битов перепутал бы слои у всех сохранённых объектов.
 
 ## Модификаторы
 
-Значение слоя складывается из базового значения и наложенных модификаторов:
-
-```
-итог слоя = базовое значение × произведение всех модификаторов
-```
-
-Базовое задаётся через `Set*`, модификаторы накладывают источники эффектов:
-
 ```csharp
-var handle = PRTimeScale.Instance.AddModifier(
-    PRTimeScaleEnumerations.Player,
-    value: 0.5f,
-    owner: this,
-    duration: 8f);                                   // 0 - бессрочный
+// всё медленнее в 2 раза на 5 секунд
+var handle = PRTimeScale.Instance.AddModifier(0.5f, owner: this, duration: 5f);
+
+// Кронос: мир и враги втрое медленнее, игрок и интерфейс — как обычно
+PRTimeScale.Instance.AddModifier(0.3f, TimeLayer.Global, except: TimeLayer.Player | TimeLayer.UI, owner: this, duration: 5f);
+
+// заморозить только врагов
+PRTimeScale.Instance.AddModifier(0f, TimeLayer.NPC | TimeLayer.Enemy, owner: this, duration: 3f);
 
 PRTimeScale.Instance.RemoveModifier(handle);
 PRTimeScale.Instance.RemoveModifiers(owner: this);   // снять все свои разом
 ```
 
-Модификаторы перемножаются: например, замедление от способности и от добивания складываются,
-а снятие одного не отменяет второе. Владелец виден в отладочном окне; `RemoveModifiers(owner)`
-снимает все наложения одного источника.
+Модификатор задевает объект, если у них есть хоть один общий слой (`affects` без `except`). Масштаб объекта —
+произведение всех задевших его модификаторов: замедление от способности и от добивания складываются, а снятие
+одного не отменяет второе. Владелец виден в окне отладки.
 
 | Метод | Назначение |
 | --- | --- |
-| `AddModifier(layer, value, owner, duration)` | наложить; возвращает ссылку для снятия |
-| `AddGlobalModifier(value, owner, duration)` | то же для глобального слоя |
+| `AddModifier(value, affects, except, owner, duration)` | наложить; по умолчанию на `Global`, без исключений, бессрочно |
+| `AddGlobalModifier(value, owner, duration)` | то же на всё |
 | `RemoveModifier(handle)` | снять своё наложение |
 | `RemoveModifiers(owner)` | снять все наложения источника |
-| `GetModifiers(layer)` | список наложенных на слой |
-| `GetBaseTimeScale(layer)` | базовое значение без модификаторов |
+| `Reset()` | снять все модификаторы |
+| `Modifiers` | наложенные модификаторы |
+| `HasActiveTemporaryTimeScales` | есть ли модификатор со сроком |
 
-`SetTimeScaleTemporarily` реализован модификатором со сроком действия, поэтому
-повторный вызов **не игнорируется**. Длительность считается по реальному времени.
+Длительность считается в секундах `PRTime.RealTime`: без пауз и не замедляясь от самого модификатора (иначе
+замедление продлевало бы само себя). При ускорении для проверки эти секунды тоже ускорены — как и всё в игре.
+Модификатор с истёкшим сроком перестаёт действовать сразу, даже если его ещё не сняли.
 
-`IsTimeScaleTemporaryActive(layer)` проверяет конкретный слой, а
-`HasActiveTemporaryTimeScales` сообщает о наличии любого модификатора со сроком.
-
-## Сброс
+## Получение масштаба
 
 ```csharp
-PRTimeScale.Instance.Reset();
+float scale = PRTimeScale.Instance.Resolve(entity.GetTimeLayers());   // масштаб объекта
+float world = PRTimeScale.Instance.GetWorldTimeScale();               // темп мира
+float k = PRTimeScale.Instance.RelativeToWorld(entity.GetTimeLayers()); // во сколько раз быстрее мира
 ```
 
-Все зарегистрированные слои возвращаются к `1f`, и для каждого публикуется событие.
+Объект без слоёв (`None`) считается частью мира.
 
-В Play Mode теми же операциями можно управлять через секцию `PRTimeScale` окна
-`PRUnitySDK/Windows/Debug Window`. Она отдельно показывает постоянные значения всех слоёв и
-временный global override со scale и длительностью. Presets заполняют временное значение,
-а `Apply` накладывает временный модификатор. Ниже — список активных модификаторов: слой,
-множитель, источник и остаток времени; любой снимается кнопкой, не задевая остальные.
-`Reset persistent values` недоступен, пока действует временная операция. Отрицательный scale ограничивается нулём, а `NaN` и
-бесконечность отклоняются. Счётчик `Event subscribers` помогает проверить, есть ли активные
-получатели `IOnPRTimeScaleChange`.
+Слои объекта отдаёт `ITimeScaleLayer.GetTimeLayers()`. У сущности это поле «Время» в инспекторе
+(`EntityBase`, по умолчанию `World`). Игрок всегда в `Player`, бот — в `NPC`; галочки из инспектора к ним
+добавляются, а `World` — нет: иначе модификатор «всё, кроме игрока» задел бы игрока через мир.
 
-## ITimeScaleLayer
+## Событие
 
-Компонент может сообщить, какой слой влияет на него:
+После наложения и снятия модификатора — в том числе автоматического по сроку — публикуется
+`IOnPRTimeScaleChange.OnPRTimeScaleChange(TimeLayer layers)`, где `layers` — слои, которые модификатор задевал.
+Подписчику со своими слоями достаточно проверить пересечение:
 
 ```csharp
-public class NPCUnit : MonoBehaviour, ITimeScaleLayer
+public void OnPRTimeScaleChange(TimeLayer layers)
 {
-    public Enumeration GetTimeScaleLayer()
-        => PRTimeScaleEnumerations.NPC;
+    if ((layers & myLayers) != 0)
+        animator.speed = PRTimeScale.Instance.Resolve(myLayers);
 }
 ```
 
-Затем потребитель получает итоговый scale через `Resolve(unit.GetTimeScaleLayer())`.
+Тело с драйвером и всё, что считает темп относительно мира, пересчитывается при любом событии: замедление мира
+меняет и его отношение к миру.
 
-## Связь с PRTime
+## Связь с PRTime и физикой
 
-`PRTime.GameDeltaTime` и `GameFixedDeltaTime` автоматически применяют только глобальный
-слой. Масштаб конкретного объекта нужно применять отдельно через `Resolve(layer)`.
+`PRTime.GameDeltaTime` и `GameFixedDeltaTime` идут в темпе мира (`World`). Хост тикает физику через
+`Physics.Simulate(GameFixedDeltaTime)`, поэтому замедление мира физика учитывает сама. Остальные слои PhysX не
+поддерживает: симуляция одна на сцену. Объекту в своём темпе нужен драйвер — он добавляет к темпу мира разницу.
+Тело без драйвера идёт в темпе мира, даже если у его сущности свой слой. Поэтому при «всё, кроме игрока» мир
+замедляется вместе с физикой, а игрок догоняет обычный темп через `RelativeToWorld` (множитель больше единицы).
 
-`PRTimeScale` намеренно не изменяет `UnityEngine.Time.timeScale`. Обычный Unity `Animator`
-реагирует на PR scale только через компонент-подписчик `IOnPRTimeScaleChange`, который
-устанавливает `Animator.speed = PRTimeScale.Instance.Resolve(layer)`. Событие публикуется
-одинаково при задании базового значения, наложении модификатора и его снятии — в том числе
-автоматическом по истечении срока.
+Аниматор, частицы и твины продвигаются своими драйверами: `AnimatorTimeScaleDriver`, `ParticleTimeScaleDriver`,
+DOTween-эффекты и `DoTweenTracker` — у каждого поле `TimeLayer` (см. [PauseSystem](../PauseSystem/README.md),
+[DOTweenEffects](../../Modules/DOTweenEffects/README.md)).
+
+## Окно отладки
+
+Вкладка `Time` окна `PRUnitySDK/Windows/Debug Window`, секция `PRTimeScale`:
+
+- **Layers** — итоговый масштаб каждого слоя и его отношение к миру;
+- **Active modifiers** — множитель, кого задевает («Global except Player, UI»), источник и остаток срока; любой
+  снимается кнопкой, все — `Remove all`;
+- **Add modifier** — множитель, `Affects` и `Except` галочками, срок (0 — бессрочно). Заготовки: `Kronos` (×0,3 на
+  всё, кроме игрока и UI, 5 с), `Slow all` (×0,5, 5 с), `Freeze NPC` (стоп для NPC и Enemy, 3 с).
 
 ## Физика отдельного тела
 
-Глобальный слой физика учитывает сама: хост тикает её через `Physics.Simulate(GameFixedDeltaTime)`,
-где шаг уже умножен на глобальный масштаб. А вот слои PhysX не поддерживает — симуляция одна
-на сцену, и гравитация для всех тел общая.
+Драйвер добавляет телу разницу между его слоями и миром. Логика — в `RigidbodyTimeScaleDriverBase`, наследники
+отличаются только источником слоёв:
 
-Драйвер добавляет телу разницу между его слоем и глобальным темпом. Вся логика лежит
-в `RigidbodyTimeScaleDriverBase`, наследники отличаются только источником слоя:
-
-| Компонент | Откуда берёт слой | Когда использовать |
+| Компонент | Откуда берёт слои | Когда использовать |
 | --- | --- | --- |
-| `EntityTimeScaleDriver` | `EntityBase.GetTimeScaleLayer()` | объект — сущность: персонаж, NPC, враг |
-| `RigidbodyTimeScaleDriver` | поле `timeScaleLayer` в инспекторе | снаряды, реквизит, платформы — всё без сущности |
+| `EntityTimeScaleDriver` | `EntityBase.GetTimeLayers()` | объект — сущность: персонаж, NPC, враг |
+| `RigidbodyTimeScaleDriver` | поле `timeLayers` в инспекторе | снаряды, реквизит, платформы — всё без сущности |
 
 ```csharp
-// сущность: слой берётся у неё, настраивать нечего
+// сущность: слои берутся у неё, настраивать нечего
 player.AddComponent<EntityTimeScaleDriver>();
 
-// объект без сущности: слой задаётся явно
-var driver = crate.AddComponent<RigidbodyTimeScaleDriver>();
-driver.SetTimeScaleLayer(PRTimeScaleEnumerations.Global);
+// объект без сущности: слои задаются явно
+var driver = rocket.AddComponent<RigidbodyTimeScaleDriver>();
+driver.SetTimeLayers(TimeLayer.Projectile);
 ```
 
-Для сущностей предпочтителен `EntityTimeScaleDriver`: он берёт слой у сущности, поэтому
-отдельное поле слоя не нужно держать в согласии с ней вручную.
+Для сущностей предпочтителен `EntityTimeScaleDriver`: отдельное поле слоёв не нужно держать в согласии с
+сущностью вручную.
 
 Сущность ищется в три шага, первый успешный побеждает:
 
@@ -181,25 +142,23 @@ driver.SetTimeScaleLayer(PRTimeScaleEnumerations.Global);
    когда оно лежит не на её корне;
 3. `EntityBase` в родителях.
 
-Значение линка читается при каждом запросе слоя, а не запоминается: линк можно переназначить
-в рантайме, например когда объект берут из пула. Явно заданная сущность имеет
-приоритет над линком, поэтому `SetEntity()` перекрывает автоматический поиск,
-а `SetEntityLink()` меняет источник.
+Значение линка читается при каждом запросе, а не запоминается: линк можно переназначить в рантайме, например
+когда объект берут из пула. Явно заданная сущность имеет приоритет над линком, поэтому `SetEntity()` перекрывает
+автоматический поиск, а `SetEntityLink()` меняет источник.
 
-Свой источник слоя добавляется наследованием от базы:
+Свой источник слоёв добавляется наследованием от базы:
 
 ```csharp
 public class WeaponTimeScaleDriver : RigidbodyTimeScaleDriverBase
 {
-    protected override Enumeration GetTimeScaleLayer() => weapon.Owner?.GetTimeScaleLayer();
+    protected override TimeLayer GetTimeLayers() => weapon.Owner != null ? weapon.Owner.GetTimeLayers() : TimeLayer.World;
 }
 ```
 
-`null` означает глобальный темп — драйвер в этом случае бездействует, потому что
-глобальный масштаб уже заложен в шаг симуляции.
+Только `World` — тело идёт в темпе мира, и драйвер бездействует: этот темп уже заложен в шаг симуляции.
 
-Драйвер прикладывает к гравитации поправку g·(k²-1): гравитация тела не отключается,
-при `k = 1` поправка равна нулю.
+Драйвер прикладывает к гравитации поправку g·(k²-1): гравитация тела не отключается, при `k = 1` поправка
+равна нулю.
 
 ### Импульсы и скорости
 
@@ -224,8 +183,8 @@ float k = rigidbody.GetRelativeTimeScale();
 
 ### Ограничения
 
-- **`drag` остаётся в общем темпе.** Для персонажа расхождение незаметно, для брошенных предметов может быть видно.
+- **`drag` остаётся в темпе мира.** Для персонажа расхождение незаметно, для брошенных предметов может быть видно.
 - **Столкновения разрешаются за один общий шаг.** При `k` около 0.5 это выглядит нормально,
   при `k = 0.1` отскок замедленного тела будет резким.
-- **Масштаб относительный.** Драйвер считает `Resolve(layer) / GetGlobalTimeScale()`:
-  глобальное замедление уже в шаге симуляции, и учитывать его второй раз нельзя.
+- **Масштаб относительный.** Драйвер считает `RelativeToWorld(layers)`: замедление мира уже в шаге симуляции,
+  и учитывать его второй раз нельзя.

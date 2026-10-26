@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Драйвер масштаба времени тела, берущий слой у сущности.
+/// Драйвер масштаба времени тела, берущий слои у сущности.
 /// <para>
-/// Сущность уже знает свой слой через <see cref="EntityBase.GetTimeScaleLayer"/> - тот же
-/// источник использует анимация и расчёт скорости. Отдельное поле слоя на драйвере
+/// Сущность уже знает свои слои через <see cref="EntityBase.GetTimeLayers"/> - тот же
+/// источник использует анимация и расчёт скорости. Отдельное поле слоёв на драйвере
 /// пришлось бы держать в согласии с сущностью вручную, и рассинхрон проявился бы
 /// как физика, идущая не в том темпе, что анимация.
 /// </para>
@@ -20,7 +20,7 @@ public class EntityTimeScaleDriver : RigidbodyTimeScaleDriverBase
     [SerializeField] private EntityLinkBase entityLink;
 
     /// <summary>
-    /// Сущность, у которой драйвер спрашивает слой.
+    /// Сущность, у которой драйвер спрашивает слои.
     /// </summary>
     public EntityBase Entity => GetEntity();
 
@@ -31,22 +31,22 @@ public class EntityTimeScaleDriver : RigidbodyTimeScaleDriverBase
         if (entity == null && entityLink == null)
         {
             PRLog.WriteWarning(this, $"{nameof(EntityTimeScaleDriver)} on '{name}' has no entity: " +
-                "the body will follow the global time scale.");
+                "the body will follow the world time scale.");
         }
 
         base.InitializationComponents();
     }
 
     /// <inheritdoc />
-    protected override Enumeration GetTimeScaleLayer()
+    protected override TimeLayer GetTimeLayers()
     {
         var target = GetEntity();
 
-        return target != null ? target.GetTimeScaleLayer() : null;
+        return target != null ? target.GetTimeLayers() : TimeLayer.World;
     }
 
     /// <summary>
-    /// Сущность, у которой берётся слой.
+    /// Сущность, у которой берутся слои.
     /// <para>
     /// Приоритет у явно заданной ссылки, затем у <see cref="EntityLinkBase"/>: линк
     /// переназначается в рантайме (объект из пула, смена владельца), поэтому его

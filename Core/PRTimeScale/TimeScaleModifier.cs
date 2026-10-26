@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 
 /// <summary>
 /// Наложенное изменение масштаба времени с известным владельцем.
 /// <para>
-/// Модификаторы одного слоя перемножаются, поэтому два независимых источника
-/// замедления не спорят за одно значение: снятие одного не отменяет второй.
+/// Модификаторы перемножаются, поэтому два независимых источника замедления не спорят за одно
+/// значение: снятие одного не отменяет второй.
 /// </para>
 /// </summary>
 public class TimeScaleModifier
@@ -15,12 +15,22 @@ public class TimeScaleModifier
     public Guid Id { get; }
 
     /// <summary>
-    /// Слой, на который действует модификатор.
+    /// На какие слои модификатор действует, как его наложили.
     /// </summary>
-    public Enumeration Layer { get; }
+    public TimeLayer Affects { get; }
 
     /// <summary>
-    /// Множитель к базовому значению слоя.
+    /// Какие слои модификатор не трогает, даже если они есть в <see cref="Affects"/>.
+    /// </summary>
+    public TimeLayer Except { get; }
+
+    /// <summary>
+    /// Слои, которые модификатор задевает на деле: <see cref="Affects"/> без <see cref="Except"/>.
+    /// </summary>
+    public TimeLayer Targets => Affects & ~Except;
+
+    /// <summary>
+    /// Множитель масштаба времени.
     /// </summary>
     public float Value { get; internal set; }
 
@@ -31,7 +41,7 @@ public class TimeScaleModifier
     public object Owner { get; }
 
     /// <summary>
-    /// Момент реального времени, когда модификатор снимается сам.
+    /// Момент <see cref="PRTime.RealTime"/>, когда модификатор снимается сам.
     /// Null - модификатор бессрочный и снимается только вручную.
     /// </summary>
     public float? EndRealTime { get; internal set; }
@@ -46,14 +56,25 @@ public class TimeScaleModifier
         _ => Owner.GetType().Name
     };
 
-    public TimeScaleModifier(Guid id, Enumeration layer, float value, object owner, float? endRealTime)
+    public TimeScaleModifier(Guid id, TimeLayer affects, TimeLayer except, float value, object owner, float? endRealTime)
     {
         Id = id;
-        Layer = layer;
+        Affects = affects;
+        Except = except;
         Value = value;
         Owner = owner;
         EndRealTime = endRealTime;
     }
+
+    /// <summary>
+    /// Задевает ли модификатор объект с этими слоями: есть хоть один общий.
+    /// </summary>
+    public bool Hits(TimeLayer layers) => (Targets & layers) != 0;
+
+    /// <summary>
+    /// Истёк ли срок к этому моменту.
+    /// </summary>
+    public bool IsExpired(float realTime) => EndRealTime.HasValue && realTime >= EndRealTime.Value;
 }
 
 /// <summary>
@@ -73,18 +94,12 @@ public readonly struct TimeScaleModifierHandle
     public Guid Id { get; }
 
     /// <summary>
-    /// Слой, на который наложен модификатор.
-    /// </summary>
-    public Enumeration Layer { get; }
-
-    /// <summary>
     /// Указывает ли ссылка на реальное наложение.
     /// </summary>
     public bool IsValid => Id != Guid.Empty;
 
-    public TimeScaleModifierHandle(Guid id, Enumeration layer)
+    public TimeScaleModifierHandle(Guid id)
     {
         Id = id;
-        Layer = layer;
     }
 }

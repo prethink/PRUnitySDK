@@ -30,6 +30,9 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     [SerializeField] protected bool playAnimationOnStart;
     [SerializeField] protected bool ignorePauseNotify;
 
+    [Tooltip("Слои времени эффекта: какие замедления его задевают. Эффект интерфейса — UI.")]
+    [SerializeField] protected TimeLayer timeLayers = TimeLayer.World;
+
     /// <summary>
     /// Устанавливает функцию сглаживания.
     /// </summary>
@@ -137,7 +140,7 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     {
         tween?.Play();
         if(tween != null)
-            tween.timeScale = PRTimeScale.Instance.Resolve(GetTimeScaleLayer());
+            tween.timeScale = PRTimeScale.Instance.Resolve(GetTimeLayers());
     }
 
     /// <summary>
@@ -164,21 +167,21 @@ public abstract class DoTweenBaseEffectMonoBehaviour : MonoBehaviour, IDoTweenEf
     public abstract Tween CreateAnimation();
 
     /// <summary>
-    /// Возвращает слой PRTimeScale, управляющий скоростью эффекта.
+    /// Слои времени, по которым идёт эффект.
     /// </summary>
-    public virtual Enumeration GetTimeScaleLayer()
+    public virtual TimeLayer GetTimeLayers()
     {
-        return PRTimeScaleEnumerations.Global;
+        return timeLayers;
     }
 
     /// <summary>
-    /// Обновляет скорость tween при изменении его слоя PRTimeScale.
+    /// Обновляет скорость tween, когда модификатор задел его слои.
     /// </summary>
-    public void OnPRTimeScaleChange(Enumeration layer, float value)
+    public void OnPRTimeScaleChange(TimeLayer layers)
     {
-        var effectLayer = GetTimeScaleLayer();
-        if (tween != null && (layer == PRTimeScaleEnumerations.Global || layer == effectLayer))
-            tween.timeScale = PRTimeScale.Instance.Resolve(effectLayer);
+        var effectLayers = GetTimeLayers();
+        if (tween != null && (effectLayers & layers) != 0)
+            tween.timeScale = PRTimeScale.Instance.Resolve(effectLayers);
     }
 
 
