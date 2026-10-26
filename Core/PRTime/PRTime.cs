@@ -162,8 +162,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
         // Ускорение для проверки (PRDebugTime): кадр проживается как несколько — и игровое, и реальное время,
         // а часы таймеров уходят вперёд на ту же величину. В релизе множитель всегда 1.
-        PRDebugTime.Advance(rawDelta);
-        rawDelta *= PRDebugTime.Speed;
+        rawDelta = PRDebugTime.Advance(rawDelta);
         this.RealDeltaTime = rawDelta;
         this.RealTime += RealDeltaTime;
         this.LastRawTime = rawTime;

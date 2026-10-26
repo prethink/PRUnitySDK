@@ -55,17 +55,30 @@ public static class PRDebugTime
     public static TimeSpan Offset { get; private set; }
 
     /// <summary>
-    /// Двигает часы таймеров: прошло <paramref name="realDelta"/> настоящих секунд, а игра прожила в <see cref="Speed"/> раз больше.
+    /// Сколько игра прожила за кадр в <paramref name="realDelta"/> настоящих секунд; часы таймеров уходят вперёд на разницу.
     /// </summary>
-    public static void Advance(float realDelta)
+    /// <remarks>
+    /// Не больше, чем за этот кадр прошла физика: Unity продвигает её не дальше <c>Time.maximumDeltaTime</c> за кадр
+    /// (0,333 с). Без предела при низком FPS доход, воздух и таймеры уходили бы вперёд движения, а за кадр проходило бы
+    /// несколько целых секунд — секундное событие же одно на кадр, и доход за остальные терялся.
+    /// </remarks>
+    public static float Advance(float realDelta)
     {
-        if (speed > 1f && realDelta > 0f)
-            Offset += TimeSpan.FromSeconds((speed - 1f) * realDelta);
+        if (speed <= 1f || realDelta <= 0f)
+            return realDelta;
+
+        float scaled = Mathf.Min(realDelta * speed, Mathf.Max(realDelta, Time.maximumDeltaTime));
+        Offset += TimeSpan.FromSeconds(scaled - realDelta);
+        return scaled;
     }
 
     /// <summary>
     /// Часы таймеров — снова настоящие.
     /// </summary>
+    /// <remarks>
+    /// Таймеры, поставленные при ускорении, хранят время окончания по ушедшим вперёд часам и после сброса
+    /// затянутся на весь сдвиг.
+    /// </remarks>
     public static void ResetClock() => Offset = TimeSpan.Zero;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

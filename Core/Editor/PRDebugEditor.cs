@@ -208,6 +208,7 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         var tabs = new (string name, Action draw)[]
         {
             ("Overview", DrawOverview),
+            ("Time", DrawTime),
             ($"Problems ({problems.Count})", DrawProblems),
             ($"Initialization ({initializationEntries.Count})", DrawInitialization),
             ($"Windows ({monoWindows.Count})", DrawMonoWindows),
@@ -227,7 +228,8 @@ public partial class PRDebugEditor : ExtendedEditorWindow
         // всегда выбирается списком.
         DrawTabsDropdown(tabs);
 
-        bool tableView = SelectedTabIndex != 0;
+        // Overview и Time — разделы с полями, а не таблицы: им не нужны ширина и горизонтальная прокрутка.
+        bool tableView = SelectedTabIndex > 1;
 
         // Вкладка Entities делит высоту между двумя своими списками и прокручивает их
         // сама: внешняя вертикальная прокрутка поверх этого дала бы две полосы подряд.
