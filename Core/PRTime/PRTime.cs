@@ -170,6 +170,7 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         CurrentRealSecond = Mathf.FloorToInt(this.RealTime);
         if (CurrentRealSecond != lastRealSecond)
         {
+            WarnSkippedSeconds("RealTime", lastRealSecond, CurrentRealSecond);
             lastRealSecond = CurrentRealSecond;
             EventBus.RaiseEvent<IOnRealSecondsEvent>(x => x.OnRealSecondTick(CurrentRealSecond));
         }
@@ -184,9 +185,27 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         CurrentGameSecond = Mathf.FloorToInt(this.GameTime);
         if (CurrentGameSecond != lastGameSecond)
         {
+            WarnSkippedSeconds("GameTime", lastGameSecond, CurrentGameSecond);
             lastGameSecond = CurrentGameSecond;
             EventBus.RaiseEvent<IOnGameSecondsEvent>(x => x.OnGameSecondTick(CurrentGameSecond));
         }
+    }
+
+    /// <summary>
+    /// В редакторе и отладочной сборке сообщает, что за кадр прошло больше одной целой секунды.
+    /// </summary>
+    /// <remarks>
+    /// Секундное событие публикуется раз в кадр, и обработчики, считающие «событие — секунда» (доход StealEgg,
+    /// <c>Timer</c>), лишние секунды теряют. Догонять их отдельными событиями нельзя без смены поведения в релизе,
+    /// поэтому только предупреждение: подвисание кадра или общий масштаб <see cref="PRTimeScale"/> выше 3 при ускорении
+    /// <see cref="PRDebugTime"/>. Первая секунда не проверяется: первый кадр после инициализации SDK отсчитывает
+    /// всю загрузку.
+    /// </remarks>
+    private void WarnSkippedSeconds(string clock, long previous, long current)
+    {
+        if (previous > 0 && current - previous > 1 && PRDebugTime.Allowed)
+            PRLog.WriteWarning(this, $"{clock}: за кадр прошло {current - previous} с, секундное событие одно — " +
+                                     $"пропущено {current - previous - 1} с. Подвисание кадра или общий масштаб PRTimeScale выше 3.");
     }
 
     #endregion
