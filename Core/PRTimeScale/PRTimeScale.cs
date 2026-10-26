@@ -77,18 +77,27 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
             layers = TimeLayer.World;
 
         float now = GetRealTime();
-        float value = DefaultTimeScale;
+
+        // Произведение — суммой логарифмов: оно не зависит от порядка наложения и не переполняется посреди счёта.
+        // Предел на каждом шаге делал бы итог зависимым от порядка (×1000000, ×0,000001 давало 0,001, а не 1), а
+        // голое умножение — уходило бы в бесконечность и с заморозкой давало NaN.
+        double logSum = 0d;
 
         for (int i = 0; i < modifiers.Count; i++)
         {
             TimeScaleModifier modifier = modifiers[i];
-            // Предел на каждом шаге, а не в конце: ушедшее в бесконечность произведение, умноженное на ноль
-            // следующего модификатора (заморозка), дало бы NaN вместо остановки.
-            if (modifier.Hits(layers) && !modifier.IsExpired(now))
-                value = Mathf.Min(value * modifier.Value, MaxTimeScale);
+            if (!modifier.Hits(layers) || modifier.IsExpired(now))
+                continue;
+
+            // Ноль останавливает при любых других множителях.
+            if (modifier.Value <= 0f)
+                return 0f;
+
+            logSum += Math.Log(modifier.Value);
         }
 
-        return value;
+        double value = Math.Exp(logSum);
+        return value >= MaxTimeScale ? MaxTimeScale : (float)value;
     }
 
     /// <summary>

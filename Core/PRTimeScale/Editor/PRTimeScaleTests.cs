@@ -161,6 +161,19 @@ public class PRTimeScaleTests
     }
 
     [Test]
+    public void Product_DoesNotDependOnOrder()
+    {
+        timeScale.AddModifier(1000000f, TimeLayer.World);
+        timeScale.AddModifier(0.000001f, TimeLayer.World);
+        Assert.AreEqual(1f, timeScale.GetWorldTimeScale(), 1e-4f);
+
+        timeScale.Reset();
+        timeScale.AddModifier(0.000001f, TimeLayer.World);
+        timeScale.AddModifier(1000000f, TimeLayer.World);
+        Assert.AreEqual(1f, timeScale.GetWorldTimeScale(), 1e-4f);
+    }
+
+    [Test]
     public void LayerClock_StaysContinuous_WhenLayersChange()
     {
         var clocks = new Dictionary<TimeLayer, float> { [TimeLayer.Player] = 100f, [TimeLayer.Player | TimeLayer.Enemy] = 40f };

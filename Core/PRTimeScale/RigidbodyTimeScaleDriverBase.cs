@@ -121,8 +121,7 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     /// </summary>
     /// <remarks>
     /// Выключенный драйвер событий не получает и ограничения при выключении снимает, поэтому без этого тело,
-    /// включённое посреди заморозки, двигалось бы свободно. Сохранённая скорость заморозки при этом не сбрасывается:
-    /// объекту из пула скорость задаёт код появления, и она перекрывает старую.
+    /// включённое посреди заморозки, двигалось бы свободно.
     /// </remarks>
     protected override void OnEnable()
     {
@@ -138,11 +137,18 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     }
 
     /// <summary>
-    /// Выключенный драйвер (объект ушёл в пул) не держит тело замороженным: ограничения возвращаются.
+    /// Выключенный драйвер (объект ушёл в пул) не держит тело замороженным: ограничения возвращаются, а скорость,
+    /// придержанная на время заморозки, забывается.
     /// </summary>
+    /// <remarks>
+    /// Unity и сама обнуляет скорость выключенного тела. Без сброса объект из пула, включённый снова и размороженный,
+    /// полетел бы со скоростью прошлой жизни.
+    /// </remarks>
     protected override void OnDisable()
     {
         UnlockBody();
+        frozenVelocity = Vector3.zero;
+        frozenAngularVelocity = Vector3.zero;
         base.OnDisable();
     }
 
