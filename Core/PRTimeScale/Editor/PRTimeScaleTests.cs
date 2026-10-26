@@ -148,6 +148,19 @@ public class PRTimeScaleTests
     }
 
     [Test]
+    public void Product_IsCappedAtMax()
+    {
+        timeScale.AddModifier(1e30f, TimeLayer.World);
+        timeScale.AddModifier(1e30f, TimeLayer.World);
+
+        Assert.AreEqual(PRTimeScale.MaxTimeScale, timeScale.GetWorldTimeScale(), 1e-3f);
+
+        // Заморозка поверх огромного ускорения — остановка, а не NaN.
+        timeScale.AddModifier(0f, TimeLayer.World);
+        Assert.AreEqual(0f, timeScale.GetWorldTimeScale());
+    }
+
+    [Test]
     public void LayerClock_StaysContinuous_WhenLayersChange()
     {
         var clocks = new Dictionary<TimeLayer, float> { [TimeLayer.Player] = 100f, [TimeLayer.Player | TimeLayer.Enemy] = 40f };

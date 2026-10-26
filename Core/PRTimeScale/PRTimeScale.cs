@@ -24,6 +24,12 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
 
     public const float DefaultTimeScale = 1f;
 
+    /// <summary>
+    /// Верхний предел итогового масштаба. Каждый множитель конечен, но произведение нескольких ускорений может уйти в
+    /// бесконечность — а масштабом умножают скорости тел и шаги времени.
+    /// </summary>
+    public const float MaxTimeScale = 1000f;
+
     private readonly List<TimeScaleModifier> modifiers = new();
 
     private bool isInitialize;
@@ -76,8 +82,10 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
         for (int i = 0; i < modifiers.Count; i++)
         {
             TimeScaleModifier modifier = modifiers[i];
+            // Предел на каждом шаге, а не в конце: ушедшее в бесконечность произведение, умноженное на ноль
+            // следующего модификатора (заморозка), дало бы NaN вместо остановки.
             if (modifier.Hits(layers) && !modifier.IsExpired(now))
-                value *= modifier.Value;
+                value = Mathf.Min(value * modifier.Value, MaxTimeScale);
         }
 
         return value;

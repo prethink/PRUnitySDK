@@ -117,6 +117,27 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     #endregion
 
     /// <summary>
+    /// Включённый снова драйвер догоняет масштаб, сменившийся без него, и фиксирует тело, если оно заморожено.
+    /// </summary>
+    /// <remarks>
+    /// Выключенный драйвер событий не получает и ограничения при выключении снимает, поэтому без этого тело,
+    /// включённое посреди заморозки, двигалось бы свободно. Сохранённая скорость заморозки при этом не сбрасывается:
+    /// объекту из пула скорость задаёт код появления, и она перекрывает старую.
+    /// </remarks>
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+
+        if (body == null)
+            return;
+
+        ApplyScaleChange();
+
+        if (IsFrozen && scaleVelocityOnChange)
+            LockBody();
+    }
+
+    /// <summary>
     /// Выключенный драйвер (объект ушёл в пул) не держит тело замороженным: ограничения возвращаются.
     /// </summary>
     protected override void OnDisable()
