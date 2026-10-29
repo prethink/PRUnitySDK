@@ -218,6 +218,7 @@
       <method name="InitializePromoCodeWindow" />
       <method name="InitializePunchUpgradesWindow" />
       <method name="InitializePurchaseWindow" />
+      <method name="InitializeQuestsWindow" />
       <method name="InitializeRebirthWindow" />
       <method name="InitializeReviewGiftWindow" />
       <method name="InitializeRewardForPointWindow" />
