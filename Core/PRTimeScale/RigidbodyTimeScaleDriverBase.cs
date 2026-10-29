@@ -235,9 +235,16 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     }
 
     /// <summary>
-    /// Пока тело заморожено, скорость, выданную ему мимо драйвера (появилось уже в заморозке, задали напрямую,
-    /// толкнули), забирает себе: тело стоит, а после разморозки движется с ней в новом темпе.
+    /// Пока тело заморожено, скорость, выданную ему мимо драйвера, забирает себе: тело стоит, а после разморозки
+    /// движется с ней — в новом темпе или, без <see cref="scaleVelocityOnChange"/>, как есть: тело, которому её задали
+    /// без заморозки, тоже не пересчитали бы.
     /// </summary>
+    /// <remarks>
+    /// Ловит скорость, выданную до фиксации (тело включили посреди заморозки — зовёт <see cref="LockBody"/>), и у тела,
+    /// которое не зафиксировано, потому что замерло кинематическим. Зафиксированному телу Unity скорость не задаёт
+    /// вовсе: <see cref="RigidbodyConstraints.FreezeAll"/> её отбрасывает, поэтому замороженному скорость дают
+    /// <see cref="SetScaledVelocity"/> и <see cref="AddScaledForce"/>.
+    /// </remarks>
     private void HoldFrozen()
     {
         if (!IsFrozen || body == null || body.isKinematic)
@@ -246,8 +253,17 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         if (body.velocity.sqrMagnitude <= 0f && body.angularVelocity.sqrMagnitude <= 0f)
             return;
 
-        frozenVelocity += body.velocity;
-        frozenAngularVelocity += body.angularVelocity;
+        if (scaleVelocityOnChange)
+        {
+            frozenVelocity += body.velocity;
+            frozenAngularVelocity += body.angularVelocity;
+        }
+        else
+        {
+            keptVelocity += body.velocity;
+            keptAngularVelocity += body.angularVelocity;
+        }
+
         body.velocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
     }
@@ -256,11 +272,16 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     /// Фиксирует замороженное тело: нулевая скорость не мешает PhysX сдвигать его толчками и столкновениями,
     /// а с ограничениями оно стоит на месте, и другие тела от него отскакивают.
     /// </summary>
+    /// <remarks>
+    /// <see cref="RigidbodyConstraints.FreezeAll"/> обнуляет скорость тела, поэтому выданную ему до фиксации
+    /// (тело включили посреди заморозки) сначала забирает <see cref="HoldFrozen"/>.
+    /// </remarks>
     private void LockBody()
     {
         if (locked || body == null || body.isKinematic)
             return;
 
+        HoldFrozen();
         savedConstraints = body.constraints;
         body.constraints = RigidbodyConstraints.FreezeAll;
         locked = true;

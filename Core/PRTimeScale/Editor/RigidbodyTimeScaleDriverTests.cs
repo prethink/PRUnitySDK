@@ -1,4 +1,5 @@
 #if PRSDK_TESTS
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -36,6 +37,8 @@ public class RigidbodyTimeScaleDriverTests
     [TearDown]
     public void TearDown()
     {
+        // Снять с PRUpdateRunner: OnEnable из теста ставит драйвер в его статические списки.
+        Call("OnDisable");
         Object.DestroyImmediate(gameObject);
         EventBus.Unsubscribe(timeScale);
         PRTimeScale.Override(previous);
@@ -115,6 +118,77 @@ public class RigidbodyTimeScaleDriverTests
         Assert.IsFalse(driver.IsFrozen);
         Assert.AreEqual(RigidbodyConstraints.None, body.constraints);
         Assert.AreEqual(10f, body.velocity.z, 1e-4f);
+    }
+
+    [TestCase(false, 7f)]
+    [TestCase(true, 3.5f)]
+    public void PoolReuse_SpawnedWhileFrozen_GetsSpawnVelocityAfterThaw(bool scaleVelocityOnChange, float expected)
+    {
+        Setup(scaleVelocityOnChange);
+        Call("OnEnable");
+        body.velocity = Vector3.forward * 10f;
+        var freeze = timeScale.AddModifier(0f, TimeLayer.Enemy);
+        driver.ApplyScaleChange();
+
+        // Ушёл в пул посреди заморозки: тело отпущено, скорость прошлой жизни забыта.
+        driver.enabled = false;
+        Call("OnDisable");
+        Assert.AreEqual(RigidbodyConstraints.None, body.constraints);
+        driver.OnPRTimeScaleChange(TimeLayer.Enemy);
+
+        // Код появления задал скорость и включил объект — заморозка ещё идёт.
+        body.velocity = Vector3.forward * 7f;
+        driver.enabled = true;
+        Call("OnEnable");
+        Assert.IsTrue(driver.IsFrozen);
+        Assert.AreEqual(RigidbodyConstraints.FreezeAll, body.constraints);
+
+        Call("PRFixedUpdate");
+        Assert.AreEqual(0f, body.velocity.magnitude, 1e-4f);
+
+        timeScale.RemoveModifier(freeze);
+        timeScale.AddModifier(0.5f, TimeLayer.Enemy);
+        driver.ApplyScaleChange();
+
+        // Без пересчёта скорость появления возвращается как есть, с пересчётом — в новом темпе.
+        Assert.AreEqual(RigidbodyConstraints.None, body.constraints);
+        Assert.AreEqual(expected, body.velocity.z, 1e-4f);
+    }
+
+    [Test]
+    public void PoolReuse_ThawedWhileInPool_KeepsSpawnVelocity()
+    {
+        Setup(scaleVelocityOnChange: true);
+        Call("OnEnable");
+        var freeze = timeScale.AddModifier(0f, TimeLayer.Enemy);
+        driver.ApplyScaleChange();
+
+        driver.enabled = false;
+        Call("OnDisable");
+
+        // Заморозку сняли, пока объект в пуле: выключенный драйвер этого не видит.
+        timeScale.RemoveModifier(freeze);
+        timeScale.AddModifier(0.5f, TimeLayer.Enemy);
+        driver.OnPRTimeScaleChange(TimeLayer.Enemy);
+
+        body.velocity = Vector3.forward * 7f;
+        driver.enabled = true;
+        Call("OnEnable");
+
+        // Включённый берёт текущий темп как новый: скорость появления не затёрта и не пересчитана.
+        Assert.IsFalse(driver.IsFrozen);
+        Assert.AreEqual(RigidbodyConstraints.None, body.constraints);
+        Assert.AreEqual(7f, body.velocity.z, 1e-4f);
+    }
+
+    /// <summary>
+    /// В редакторе Unity не зовёт OnEnable, OnDisable и PRFixedUpdate у обычных скриптов — тест зовёт их сам.
+    /// </summary>
+    private void Call(string method)
+    {
+        typeof(RigidbodyTimeScaleDriverBase)
+            .GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)
+            .Invoke(driver, null);
     }
 
     private void Setup(bool scaleVelocityOnChange)
