@@ -26,6 +26,6 @@ public class RigidbodyTimeScaleDriver : RigidbodyTimeScaleDriverBase
     public void SetTimeLayers(TimeLayer layers)
     {
         timeLayers = layers;
-        ApplyScaleChange();
+        ApplyScaleChangeIfEnabled();
     }
 }

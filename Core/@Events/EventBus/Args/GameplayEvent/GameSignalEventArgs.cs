@@ -18,10 +18,19 @@ public class GameSignalEventArgs : GameplayEventArgsBase
     /// </summary>
     public IEntity Source { get; }
 
-    public GameSignalEventArgs(Enumeration signal, IEntity source = null)
+    /// <summary>
+    /// Сколько раз случилось: «продано три питомца» — один сигнал со счётом 3. Не меньше единицы.
+    /// </summary>
+    /// <remarks>
+    /// Шагу обучения важен сам факт, счётчикам достижений и ежедневных целей — количество.
+    /// </remarks>
+    public long Count { get; }
+
+    public GameSignalEventArgs(Enumeration signal, IEntity source = null, long count = 1)
     {
         Signal = signal;
         Source = source;
+        Count = count < 1 ? 1 : count;
     }
 
     /// <inheritdoc />

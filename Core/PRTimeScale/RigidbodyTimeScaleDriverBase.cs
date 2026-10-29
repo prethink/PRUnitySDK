@@ -165,15 +165,12 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     /// Пересчёт при любом изменении, а не только своих слоёв: темп тела относителен к миру, и замедление мира
     /// его тоже меняет. Сам пересчёт ничего не делает, если масштаб не изменился.
     /// <para>
-    /// Подписка живёт от Awake до OnDestroy, поэтому событие приходит и выключенному драйверу. Его он пропускает:
-    /// иначе разморозка, случившаяся, пока объект в пуле, записала бы телу нулевую скорость, а заморозка — зафиксировала
-    /// бы его. Масштаб включённый драйвер возьмёт в OnEnable.
+    /// Подписка живёт от Awake до OnDestroy, поэтому событие приходит и выключенному драйверу.
     /// </para>
     /// </remarks>
     public void OnPRTimeScaleChange(TimeLayer layers)
     {
-        if (isActiveAndEnabled)
-            ApplyScaleChange();
+        ApplyScaleChangeIfEnabled();
     }
 
     #endregion
@@ -375,6 +372,19 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         }
 
         appliedScale = scale;
+    }
+
+    /// <summary>
+    /// Пересчитать масштаб, если драйвер включён. Так пересчитывают по событию и при смене слоёв в рантайме.
+    /// </summary>
+    /// <remarks>
+    /// Выключенный драйвер тело не трогает: иначе разморозка, случившаяся, пока объект в пуле, записала бы телу нулевую
+    /// скорость, а заморозка — зафиксировала бы его. Масштаб включённый драйвер возьмёт в OnEnable.
+    /// </remarks>
+    protected void ApplyScaleChangeIfEnabled()
+    {
+        if (isActiveAndEnabled)
+            ApplyScaleChange();
     }
 
     /// <summary>

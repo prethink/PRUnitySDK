@@ -87,7 +87,7 @@ public class EntityTimeScaleDriver : RigidbodyTimeScaleDriverBase
     public void SetEntity(EntityBase value)
     {
         entity = value;
-        ApplyScaleChange();
+        ApplyScaleChangeIfEnabled();
     }
 
     /// <summary>
@@ -96,6 +96,6 @@ public class EntityTimeScaleDriver : RigidbodyTimeScaleDriverBase
     public void SetEntityLink(EntityLinkBase value)
     {
         entityLink = value;
-        ApplyScaleChange();
+        ApplyScaleChangeIfEnabled();
     }
 }

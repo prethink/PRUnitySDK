@@ -156,6 +156,23 @@ public class RigidbodyTimeScaleDriverTests
     }
 
     [Test]
+    public void DisabledDriver_SetTimeLayersUnderFreeze_LeavesBodyAlone()
+    {
+        Setup(scaleVelocityOnChange: true);
+        driver.SetTimeLayers(TimeLayer.World);
+        driver.enabled = false;
+        body.velocity = Vector3.forward * 10f;
+
+        // Объект в пуле готовят к выдаче: слои задали, а для них идёт заморозка.
+        timeScale.AddModifier(0f, TimeLayer.Enemy);
+        driver.SetTimeLayers(TimeLayer.Enemy);
+
+        Assert.IsFalse(driver.IsFrozen);
+        Assert.AreEqual(RigidbodyConstraints.None, body.constraints);
+        Assert.AreEqual(10f, body.velocity.z, 1e-4f);
+    }
+
+    [Test]
     public void PoolReuse_ThawedWhileInPool_KeepsSpawnVelocity()
     {
         Setup(scaleVelocityOnChange: true);
