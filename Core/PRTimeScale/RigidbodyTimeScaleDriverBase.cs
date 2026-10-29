@@ -37,11 +37,20 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     private float appliedScale = 1f;
 
     /// <summary>
-    /// Скорости тела в обычном темпе на момент заморозки: при нуле их не из чего восстановить делением.
+    /// Скорости тела в обычном темпе, придержанные на время заморозки: при нуле их не из чего восстановить
+    /// делением. При разморозке умножаются на новый темп.
     /// </summary>
     private Vector3 frozenVelocity;
 
     private Vector3 frozenAngularVelocity;
+
+    /// <summary>
+    /// Скорости, с которыми тело замерло при выключенном <see cref="scaleVelocityOnChange"/>: возвращаются как есть.
+    /// Заморозка с разморозкой должны давать то же, что прямая смена масштаба, а без пересчёта она скорость не меняет.
+    /// </summary>
+    private Vector3 keptVelocity;
+
+    private Vector3 keptAngularVelocity;
 
     /// <summary>
     /// Ограничения тела до заморозки: на время заморозки драйвер ставит <see cref="RigidbodyConstraints.FreezeAll"/>.
@@ -85,11 +94,8 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         if (body == null)
             body = GetComponent<Rigidbody>();
 
+        // Фиксирует тело OnEnable: драйвер, выключенный с самого начала, тело не держит.
         appliedScale = RelativeTimeScale;
-
-        // Тело появилось уже в заморозке — фиксируем сразу, а скорость, которую ему выдадут, заберёт HoldFrozen.
-        if (IsFrozen)
-            LockBody();
 
         base.InitializationComponents();
     }
@@ -119,11 +125,11 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     #endregion
 
     /// <summary>
-    /// Включённый снова драйвер догоняет масштаб, сменившийся без него, и фиксирует тело, если оно заморожено.
+    /// Включённый драйвер начинает с текущего масштаба, как новый, и фиксирует тело, если оно заморожено.
     /// </summary>
     /// <remarks>
-    /// Выключенный драйвер событий не получает и ограничения при выключении снимает, поэтому без этого тело,
-    /// включённое посреди заморозки, двигалось бы свободно.
+    /// Скорость тела при этом не пересчитывается: её мог задать код появления до этого OnEnable, и задал он её
+    /// уже под нынешний темп. Замороженному телу её придержит <see cref="HoldFrozen"/> и вернёт при разморозке.
     /// </remarks>
     protected override void OnEnable()
     {
@@ -132,7 +138,7 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         if (body == null)
             return;
 
-        ApplyScaleChange();
+        appliedScale = RelativeTimeScale;
 
         if (IsFrozen)
             LockBody();
@@ -149,8 +155,7 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     protected override void OnDisable()
     {
         UnlockBody();
-        frozenVelocity = Vector3.zero;
-        frozenAngularVelocity = Vector3.zero;
+        ForgetHeldVelocity();
         base.OnDisable();
     }
 
@@ -159,10 +164,16 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     /// <remarks>
     /// Пересчёт при любом изменении, а не только своих слоёв: темп тела относителен к миру, и замедление мира
     /// его тоже меняет. Сам пересчёт ничего не делает, если масштаб не изменился.
+    /// <para>
+    /// Подписка живёт от Awake до OnDestroy, поэтому событие приходит и выключенному драйверу. Его он пропускает:
+    /// иначе разморозка, случившаяся, пока объект в пуле, записала бы телу нулевую скорость, а заморозка — зафиксировала
+    /// бы его. Масштаб включённый драйвер возьмёт в OnEnable.
+    /// </para>
     /// </remarks>
     public void OnPRTimeScaleChange(TimeLayer layers)
     {
-        ApplyScaleChange();
+        if (isActiveAndEnabled)
+            ApplyScaleChange();
     }
 
     #endregion
@@ -215,7 +226,10 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
             return;
 
         if (IsFrozen)
+        {
             frozenVelocity = velocity;
+            keptVelocity = Vector3.zero;
+        }
         else
             body.velocity = velocity * RelativeTimeScale;
     }
@@ -271,8 +285,9 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
     /// </summary>
     /// <remarks>
     /// Заморозка и разморозка выполняются всегда, <see cref="scaleVelocityOnChange"/> отключает только пересчёт
-    /// между ненулевыми масштабами. «Прежний темп до следующего толчка» при нуле не работает: толчки замороженному
-    /// драйвер придерживает, и тело летело бы в остановленном времени, пока его не разморозят.
+    /// скорости: без него тело после разморозки летит с той же скоростью, с какой замерло, как и при прямой смене
+    /// масштаба. «Прежний темп до следующего толчка» при нуле не работает: толчки замороженному драйвер
+    /// придерживает, и тело летело бы в остановленном времени, пока его не разморозят.
     /// <para>
     /// Масштаб запоминается и у кинематического тела: по нему <see cref="IsFrozen"/>, а
     /// <see cref="AddScaledForce"/> решает, придержать ли толчок до разморозки.
@@ -298,28 +313,36 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
             if (wasFrozen && !freezes)
             {
                 UnlockBody();
-                frozenVelocity = Vector3.zero;
-                frozenAngularVelocity = Vector3.zero;
+                ForgetHeldVelocity();
             }
         }
         else if (!wasFrozen && freezes)
         {
-            // Замирает: скорость в обычном темпе запоминаем, иначе после оттаивания тело стояло бы — из нуля
-            // делением прежнюю скорость не восстановить.
-            frozenVelocity = body.velocity / appliedScale;
-            frozenAngularVelocity = body.angularVelocity / appliedScale;
+            // Замирает: скорость запоминаем, иначе после оттаивания тело стояло бы — из нуля делением прежнюю
+            // скорость не восстановить. С пересчётом — в обычном темпе, чтобы вернуть её в новом; без пересчёта —
+            // как есть: смена масштаба через ноль не должна менять скорость, раз прямая смена её не меняет.
+            if (scaleVelocityOnChange)
+            {
+                frozenVelocity = body.velocity / appliedScale;
+                frozenAngularVelocity = body.angularVelocity / appliedScale;
+            }
+            else
+            {
+                keptVelocity = body.velocity;
+                keptAngularVelocity = body.angularVelocity;
+            }
+
             body.velocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             LockBody();
         }
         else if (wasFrozen && !freezes)
         {
-            // Оттаивает: летящее продолжает полёт в новом темпе.
+            // Оттаивает: летящее продолжает полёт, а придержанные толчки идут в новом темпе.
             UnlockBody();
-            body.velocity = frozenVelocity * scale;
-            body.angularVelocity = frozenAngularVelocity * scale;
-            frozenVelocity = Vector3.zero;
-            frozenAngularVelocity = Vector3.zero;
+            body.velocity = keptVelocity + frozenVelocity * scale;
+            body.angularVelocity = keptAngularVelocity + frozenAngularVelocity * scale;
+            ForgetHeldVelocity();
         }
         else if (!wasFrozen && scaleVelocityOnChange)
         {
@@ -331,6 +354,17 @@ public abstract class RigidbodyTimeScaleDriverBase : PRMonoBehaviour, IOnPRTimeS
         }
 
         appliedScale = scale;
+    }
+
+    /// <summary>
+    /// Забыть скорости, придержанные на время заморозки.
+    /// </summary>
+    private void ForgetHeldVelocity()
+    {
+        frozenVelocity = Vector3.zero;
+        frozenAngularVelocity = Vector3.zero;
+        keptVelocity = Vector3.zero;
+        keptAngularVelocity = Vector3.zero;
     }
 
     #endregion
