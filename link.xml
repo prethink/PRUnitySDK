@@ -211,11 +211,13 @@
       <method name="InitializePetInfoWindow" />
       <method name="InitializePetShopWindow" />
       <method name="InitializePromoCodeWindow" />
+      <method name="InitializePunchUpgradesWindow" />
       <method name="InitializePurchaseWindow" />
       <method name="InitializeRebirthWindow" />
       <method name="InitializeReviewGiftWindow" />
       <method name="InitializeRewardForPointWindow" />
       <method name="InitializeRewardNotifier" />
+      <method name="InitializeRewardNotifier3D" />
       <method name="InitializeScreenPopup" />
       <method name="InitializeSettingsWindow" />
       <method name="InitializeShopWindow" />
@@ -255,6 +257,7 @@
     <type fullname="ProjectProperties" preserve="all" />
     <type fullname="PromoCodeSaveData" preserve="all" />
     <type fullname="PromoCodeUsage" preserve="all" />
+    <type fullname="PunchEscapeRunData" preserve="all" />
     <type fullname="QualityCaseDatabase" preserve="all" />
     <type fullname="RatingScoreSubmitTask" preserve="all" />
     <type fullname="ResourceEnumerations" preserve="all" />
