@@ -134,7 +134,8 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable, 
     /// </summary>
     /// <remarks>
     /// Задачи с интервалом от тика и длиннее здесь не трогаются: их по-прежнему ведёт <see cref="PRTick"/>.
-    /// Двойного запуска нет: <see cref="TryExecute"/> сверяет время следующего запуска.
+    /// Нулевой интервал — тоже: он значит «на каждом тике», и покадрово такая задача крутилась бы каждый кадр,
+    /// а в кадре тика — дважды. У остальных двойного запуска нет: после запуска следующий срок уже в будущем.
     /// </remarks>
     public void PRUpdate()
     {
@@ -144,7 +145,7 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable, 
         float hostTick = PRMonoBehaviourHost.Instance.GetHostTick();
         fastBuffer.Clear();
         foreach (IBackgroundTask task in elements)
-            if (task != null && !task.IsNull() && task.RepeatSeconds < hostTick)
+            if (task != null && !task.IsNull() && task.RepeatSeconds > 0f && task.RepeatSeconds < hostTick)
                 fastBuffer.Add(task);
 
         foreach (IBackgroundTask task in fastBuffer)
