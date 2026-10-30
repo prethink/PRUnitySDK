@@ -131,6 +131,7 @@
       <method name="InitializeLevelUpNotification" />
       <method name="InitializeObjectPollManager" />
       <method name="InitializeOpenItemManager" />
+      <method name="InitializePerks" />
       <method name="InitializePlayerActivityEvents" />
       <method name="InitializePlayerDeathSound" />
       <method name="InitializePlayerDeathWatcher" />
@@ -213,6 +214,7 @@
       <method name="InitializeGameUpdatesWindow" />
       <method name="InitializeObbyCustomizationWindow" />
       <method name="InitializeOfflineIncomeWindow" />
+      <method name="InitializePerksWindow" />
       <method name="InitializePetInfoWindow" />
       <method name="InitializePetShopWindow" />
       <method name="InitializePromoCodeWindow" />
@@ -240,6 +242,8 @@
       <method name="InitializeXPPickup" />
       <method name="InitializeXPScreenPopup" />
     </type>
+    <type fullname="PerkStatEnumerations" preserve="all" />
+    <type fullname="PerksSaveData" preserve="all" />
     <type fullname="PetDatabase" preserve="all" />
     <type fullname="PetSaveProperties" preserve="all" />
     <type fullname="PetStatesEnumerations" preserve="all" />

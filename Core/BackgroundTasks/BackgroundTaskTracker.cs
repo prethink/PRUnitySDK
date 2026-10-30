@@ -10,10 +10,15 @@ using UnityEngine;
 /// поэтому их количество не влияет на число корутин.
 /// </summary>
 /// <remarks>
+/// Тик хоста редкий (в проектах — раз в секунду), и задача с интервалом короче тика срабатывала бы не чаще него:
+/// дорожка, которой хвост поставил 5 начислений в секунду, начисляла бы раз в секунду. Такие «быстрые» задачи
+/// трекер проверяет каждый кадр (<see cref="PRUpdate"/>); остальные — по тику, как раньше.
+/// </remarks>
+/// <remarks>
 /// Трекер работает с <see cref="IBackgroundTask"/>, поэтому в одном реестре живут
 /// и обычные задачи, и компоненты сцены.
 /// </remarks>
-public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable
+public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable, IPRUpdate
 {
     #region Поля и свойства
 
@@ -21,6 +26,11 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable
     /// Буфер обхода: позволяет регистрировать и снимать задачи прямо во время прохода.
     /// </summary>
     private readonly List<IBackgroundTask> runBuffer = new();
+
+    /// <summary>
+    /// Буфер покадрового обхода быстрых задач: отдельный, чтобы не мешать обходу по тику.
+    /// </summary>
+    private readonly List<IBackgroundTask> fastBuffer = new();
 
     /// <summary>
     /// Признак того, что трекер уже встал в тиковый цикл хоста.
@@ -111,6 +121,39 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable
         foreach (IBackgroundTask task in runBuffer)
             TryExecute(task);
     }
+
+    #endregion
+
+    #region IPRUpdate
+
+    /// <inheritdoc />
+    public int OrderTick => 0;
+
+    /// <summary>
+    /// Каждый кадр выполняет задачи с интервалом короче тика хоста, у которых наступило время.
+    /// </summary>
+    /// <remarks>
+    /// Задачи с интервалом от тика и длиннее здесь не трогаются: их по-прежнему ведёт <see cref="PRTick"/>.
+    /// Двойного запуска нет: <see cref="TryExecute"/> сверяет время следующего запуска.
+    /// </remarks>
+    public void PRUpdate()
+    {
+        if (!PRUnitySDK.IsInitialized || elements.Count == 0)
+            return;
+
+        float hostTick = PRMonoBehaviourHost.Instance.GetHostTick();
+        fastBuffer.Clear();
+        foreach (IBackgroundTask task in elements)
+            if (task != null && !task.IsNull() && task.RepeatSeconds < hostTick)
+                fastBuffer.Add(task);
+
+        foreach (IBackgroundTask task in fastBuffer)
+            TryExecute(task);
+    }
+
+    #endregion
+
+    #region Выполнение
 
     /// <summary>
     /// Выполняет одну задачу, если наступило её время и она к этому готова.
@@ -390,7 +433,8 @@ public class BackgroundTaskTracker : TrackerBase<IBackgroundTask>, IPRTickable
         if (registeredInHost)
             return;
 
-        PRMonoBehaviourHost.Instance.Register(this);
+        PRMonoBehaviourHost.Instance.Register((IPRTickable)this);
+        PRMonoBehaviourHost.Instance.Register((IPRUpdate)this);
         registeredInHost = true;
     }
 
