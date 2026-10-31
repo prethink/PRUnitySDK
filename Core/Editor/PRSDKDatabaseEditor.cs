@@ -874,11 +874,12 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             ? shownUnused
             : GetDatabaseItems(data).Concat(shownUnused).ToArray();
 
-        PruneSelection(sectionKey, shown);
+        AssetCardEntry[] visibleEntries = GetVisibleEntries(data, shownUnused, viewState, validationIssues);
+
+        PruneSelection(sectionKey, visibleEntries.Select(entry => entry.Asset));
         HandleGridShortcuts(sectionKey, data);
 
         UnityEngine.Object selected = ResolveSelectedAsset(sectionKey, shown);
-        AssetCardEntry[] visibleEntries = GetVisibleEntries(data, shownUnused, viewState, validationIssues);
         float panelHeight = Mathf.Max(380f, position.height - 210f);
         float availableWidth = Mathf.Max(580f, position.width - 24f);
         float leftWidth = Mathf.Clamp(
@@ -1565,9 +1566,9 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     /// <remarks>
     /// Каталог меняется и мимо окна — набором, кнопкой «Убрать null», правкой ассета.
     /// Выделение, пережившее такое изменение, привело бы к удалению не того. То же
-    /// с тем, что скрыто переключателем «Показать»: действие не должно задеть невидимое.
+    /// с тем, что скрыто переключателем «Показать» и фильтрами: действие не должно задеть невидимое.
     /// </remarks>
-    private void PruneSelection(string sectionKey, IEnumerable<UnityEngine.Object> shown)
+    private void PruneSelection(string sectionKey, IEnumerable<UnityEngine.Object> visible)
     {
         if (!selections.TryGetValue(sectionKey, out HashSet<UnityEngine.Object> selection)
             || selection.Count == 0)
@@ -1575,7 +1576,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             return;
         }
 
-        var present = new HashSet<UnityEngine.Object>(shown.Where(asset => asset != null));
+        var present = new HashSet<UnityEngine.Object>(visible.Where(asset => asset != null));
 
         selection.RemoveWhere(asset => asset == null || !present.Contains(asset));
     }
