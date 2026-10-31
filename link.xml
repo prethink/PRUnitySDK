@@ -110,6 +110,7 @@
     <type fullname="ObbyColorDatabase" preserve="all" />
     <type fullname="ObbyData" preserve="all" />
     <type fullname="ObbyEyesDatabase" preserve="all" />
+    <type fullname="ObbyFaceDatabase" preserve="all" />
     <type fullname="ObbyMouthDatabase" preserve="all" />
     <type fullname="ObbySkinDataBase" preserve="all" />
     <type fullname="ObjectStateGroupEnumerations" preserve="all" />

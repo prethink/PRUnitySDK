@@ -85,6 +85,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     private Vector2 scrollPosition;
     private GUIStyle cardNameStyle;
     private GUIStyle invalidBadgeStyle;
+    private GUIStyle unusedBadgeStyle;
     private bool resizeGridSplit;
 
     private enum AssetSortMode
@@ -94,8 +95,19 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         AddedDate
     }
 
+    /// <summary>
+    /// Какие элементы показывает сетка каталога.
+    /// </summary>
+    private enum AssetGridScope
+    {
+        InDatabase,
+        NotInDatabase,
+        All
+    }
+
     private sealed class AssetGridViewState
     {
+        public AssetGridScope Scope = AssetGridScope.InDatabase;
         public AssetSortMode SortMode = AssetSortMode.AddedDate;
         public bool SortDescending;
         public int QualityFilter = -1;
@@ -113,14 +125,21 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         public int DatabaseIndex { get; }
         public bool IsInvalid { get; }
 
+        /// <summary>
+        /// Ассет есть в проекте, но не входит в каталог этой базы.
+        /// </summary>
+        public bool IsUnused { get; }
+
         public AssetCardEntry(
             UnityEngine.Object asset,
             int databaseIndex,
-            bool isInvalid)
+            bool isInvalid,
+            bool isUnused = false)
         {
             Asset = asset;
             DatabaseIndex = databaseIndex;
             IsInvalid = isInvalid;
+            IsUnused = isUnused;
         }
     }
 
@@ -843,12 +862,23 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         Type elementType,
         IReadOnlyCollection<DatabaseValidationIssue> validationIssues)
     {
-        PruneSelection(sectionKey, data);
+        AssetGridViewState viewState = GetGridViewState(sectionKey);
+        HashSet<UnityEngine.Object> databaseAssets = CollectDatabaseAssets(data);
+        UnityEngine.Object[] unused = GetAvailableAssets(elementType)
+            .Where(asset => !databaseAssets.Contains(asset))
+            .ToArray();
+        UnityEngine.Object[] shownUnused = viewState.Scope == AssetGridScope.InDatabase
+            ? Array.Empty<UnityEngine.Object>()
+            : unused;
+        UnityEngine.Object[] shown = viewState.Scope == AssetGridScope.NotInDatabase
+            ? shownUnused
+            : GetDatabaseItems(data).Concat(shownUnused).ToArray();
+
+        PruneSelection(sectionKey, shown);
         HandleGridShortcuts(sectionKey, data);
 
-        UnityEngine.Object selected = ResolveSelectedAsset(sectionKey, data);
-        AssetGridViewState viewState = GetGridViewState(sectionKey);
-        AssetCardEntry[] visibleEntries = GetVisibleEntries(data, viewState, validationIssues);
+        UnityEngine.Object selected = ResolveSelectedAsset(sectionKey, shown);
+        AssetCardEntry[] visibleEntries = GetVisibleEntries(data, shownUnused, viewState, validationIssues);
         float panelHeight = Mathf.Max(380f, position.height - 210f);
         float availableWidth = Mathf.Max(580f, position.width - 24f);
         float leftWidth = Mathf.Clamp(
@@ -863,14 +893,14 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                        GUILayout.Height(panelHeight)))
             {
                 DrawSingleAssetField(sectionKey, data, elementType);
-                DrawAssetGridToolbar(viewState, visibleEntries.Length, data.arraySize, CollectCategories(data));
+                DrawAssetGridToolbar(viewState, visibleEntries.Length, data.arraySize, unused.Length, CollectCategories(shown));
 
                 Vector2 gridScroll = GetScrollPosition(gridScrollPositions, sectionKey);
                 using (var gridScrollView = new EditorGUILayout.ScrollViewScope(
                            gridScroll,
                            GUILayout.ExpandHeight(true)))
                 {
-                    DrawAssetCards(sectionKey, visibleEntries, leftWidth);
+                    DrawAssetCards(sectionKey, visibleEntries, leftWidth, gridScroll.y, panelHeight);
                     gridScroll = gridScrollView.scrollPosition;
                 }
 
@@ -889,7 +919,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                        GUILayout.ExpandWidth(true),
                        GUILayout.Height(panelHeight)))
             {
-                DrawSelectedAsset(sectionKey, data, selected);
+                DrawSelectedAsset(sectionKey, data, selected, databaseAssets);
             }
         }
     }
@@ -907,11 +937,25 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     private static void DrawAssetGridToolbar(
         AssetGridViewState state,
         int visibleCount,
-        int totalCount,
+        int databaseCount,
+        int unusedCount,
         string[] categories)
     {
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("Показать", GUILayout.Width(76f));
+                state.Scope = (AssetGridScope)EditorGUILayout.Popup(
+                    (int)state.Scope,
+                    new[]
+                    {
+                        $"В базе проекта ({databaseCount})",
+                        $"Не в базе проекта ({unusedCount})",
+                        $"Все ({databaseCount + unusedCount})"
+                    });
+            }
+
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField("Сортировка", GUILayout.Width(76f));
@@ -942,6 +986,13 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                     new GUIContent("Только с ошибками", "Показывать элементы с проблемами валидации."),
                     GUILayout.Width(142f));
                 GUILayout.FlexibleSpace();
+                int totalCount = state.Scope switch
+                {
+                    AssetGridScope.NotInDatabase => unusedCount,
+                    AssetGridScope.All => databaseCount + unusedCount,
+                    _ => databaseCount
+                };
+
                 EditorGUILayout.LabelField(
                     $"{visibleCount}/{totalCount}",
                     EditorStyles.miniLabel,
@@ -963,15 +1014,15 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     }
 
     /// <summary>
-    /// Виды, встречающиеся в каталоге.
+    /// Виды, встречающиеся среди показанного.
     /// </summary>
-    private static string[] CollectCategories(SerializedProperty data)
+    private static string[] CollectCategories(IEnumerable<UnityEngine.Object> assets)
     {
         var categories = new SortedSet<string>(StringComparer.Ordinal);
 
-        for (int index = 0; index < data.arraySize; index++)
+        foreach (UnityEngine.Object asset in assets)
         {
-            string category = GetAssetCategory(data.GetArrayElementAtIndex(index).objectReferenceValue);
+            string category = GetAssetCategory(asset);
 
             if (!string.IsNullOrEmpty(category))
                 categories.Add(category);
@@ -1041,39 +1092,51 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     private static AssetCardEntry[] GetVisibleEntries(
         SerializedProperty data,
+        IReadOnlyList<UnityEngine.Object> shownUnused,
         AssetGridViewState state,
         IReadOnlyCollection<DatabaseValidationIssue> validationIssues)
     {
         var invalidIndices = new HashSet<int>(validationIssues
             .Where(issue => issue != null && issue.Index >= 0)
             .Select(issue => issue.Index));
-        var entries = new List<AssetCardEntry>(data.arraySize);
+        var entries = new List<AssetCardEntry>(data.arraySize + shownUnused.Count);
 
-        for (int index = 0; index < data.arraySize; index++)
+        if (state.Scope != AssetGridScope.NotInDatabase)
         {
-            UnityEngine.Object asset = data.GetArrayElementAtIndex(index).objectReferenceValue;
-            bool isInvalid = invalidIndices.Contains(index);
-            if (state.InvalidOnly && !isInvalid)
-                continue;
-
-            if (state.QualityFilter >= 0 &&
-                (asset is not IQualityProvider qualityProvider ||
-                 (int)qualityProvider.Quality != state.QualityFilter))
+            for (int index = 0; index < data.arraySize; index++)
             {
-                continue;
-            }
+                UnityEngine.Object asset = data.GetArrayElementAtIndex(index).objectReferenceValue;
+                bool isInvalid = invalidIndices.Contains(index);
 
-            if (!string.IsNullOrEmpty(state.CategoryFilter) &&
-                GetAssetCategory(asset) != state.CategoryFilter)
+                if ((!state.InvalidOnly || isInvalid) && PassesFilters(asset, state))
+                    entries.Add(new AssetCardEntry(asset, index, isInvalid));
+            }
+        }
+
+        // Валидатор проверяет только каталог: об ассетах вне его сказать нечего.
+        if (!state.InvalidOnly)
+        {
+            for (int index = 0; index < shownUnused.Count; index++)
             {
-                continue;
+                if (PassesFilters(shownUnused[index], state))
+                    entries.Add(new AssetCardEntry(shownUnused[index], data.arraySize + index, false, isUnused: true));
             }
-
-            entries.Add(new AssetCardEntry(asset, index, isInvalid));
         }
 
         entries.Sort((left, right) => CompareEntries(left, right, state));
         return entries.ToArray();
+    }
+
+    private static bool PassesFilters(UnityEngine.Object asset, AssetGridViewState state)
+    {
+        if (state.QualityFilter >= 0 &&
+            (asset is not IQualityProvider qualityProvider ||
+             (int)qualityProvider.Quality != state.QualityFilter))
+        {
+            return false;
+        }
+
+        return string.IsNullOrEmpty(state.CategoryFilter) || GetAssetCategory(asset) == state.CategoryFilter;
     }
 
     private static int CompareEntries(
@@ -1149,31 +1212,34 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     private void DrawAssetCards(
         string sectionKey,
         IReadOnlyList<AssetCardEntry> entries,
-        float availableWidth)
+        float availableWidth,
+        float scrollY,
+        float viewHeight)
     {
         EnsureCardStyles();
-        int columnCount = Mathf.Max(1, Mathf.FloorToInt((availableWidth - 22f) / (CardWidth + 8f)));
-        int index = 0;
+        const float columnStep = CardWidth + 8f;
+        const float rowHeight = CardHeight + 8f;
+        int columnCount = Mathf.Max(1, Mathf.FloorToInt((availableWidth - 22f) / columnStep));
 
-        while (index < entries.Count)
+        // Рисуются только строки в окне прокрутки: со всеми ассетами проекта в сетке сотни
+        // карточек, и каждая спрашивает метки модулей на каждую перерисовку.
+        for (int first = 0; first < entries.Count; first += columnCount)
         {
-            using (new EditorGUILayout.HorizontalScope())
+            Rect row = GUILayoutUtility.GetRect(columnCount * columnStep, rowHeight, GUILayout.ExpandWidth(false));
+
+            if (Event.current.type == EventType.Layout || row.yMax < scrollY || row.y > scrollY + viewHeight)
+                continue;
+
+            for (int column = 0; column < columnCount && first + column < entries.Count; column++)
             {
-                for (int column = 0; column < columnCount && index < entries.Count; column++, index++)
-                {
-                    AssetCardEntry entry = entries[index];
-                    DrawAssetCard(
-                        sectionKey,
-                        entries,
-                        index,
-                        IsSelected(sectionKey, entry.Asset),
-                        entry.IsInvalid);
-                }
-
-                GUILayout.FlexibleSpace();
+                int index = first + column;
+                DrawAssetCard(
+                    new Rect(row.x + column * columnStep, row.y, CardWidth, CardHeight),
+                    sectionKey,
+                    entries,
+                    index,
+                    IsSelected(sectionKey, entries[index].Asset));
             }
-
-            EditorGUILayout.Space(5f);
         }
 
         if (entries.Count == 0)
@@ -1185,31 +1251,31 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     }
 
     private void DrawAssetCard(
+        Rect cardRect,
         string sectionKey,
         IReadOnlyList<AssetCardEntry> entries,
         int entryIndex,
-        bool selected,
-        bool isInvalid)
+        bool selected)
     {
         UnityEngine.Object asset = entries[entryIndex].Asset;
-
-        Rect cardRect = GUILayoutUtility.GetRect(
-            CardWidth,
-            CardHeight,
-            GUILayout.Width(CardWidth),
-            GUILayout.Height(CardHeight));
+        bool isInvalid = entries[entryIndex].IsInvalid;
+        bool isUnused = entries[entryIndex].IsUnused;
 
         Color accent = asset is IQualityProvider qualityProvider
             ? QualityUtils.GetColor(qualityProvider.Quality)
             : new Color(0.35f, 0.48f, 0.70f, 1f);
-        Color background = Color.Lerp(new Color(0.13f, 0.14f, 0.17f, 1f), accent, 0.18f);
+        Color background = Color.Lerp(new Color(0.13f, 0.14f, 0.17f, 1f), accent, isUnused ? 0.04f : 0.18f);
         EditorGUI.DrawRect(cardRect, background);
         DrawBorder(cardRect, selected ? accent : Color.Lerp(background, Color.white, 0.14f), selected ? 3f : 1f);
 
         string tooltip = asset != null ? AssetDatabase.GetAssetPath(asset) : "Пустая ссылка";
         if (isInvalid)
             tooltip += "\nЕсть проблемы валидации";
-        tooltip += "\nCtrl — добавить к выделению, Shift — диапазон, Del — убрать из базы";
+        if (isUnused)
+            tooltip += "\nНе входит в базу этого проекта";
+        tooltip += isUnused
+            ? "\nCtrl — добавить к выделению, Shift — диапазон"
+            : "\nCtrl — добавить к выделению, Shift — диапазон, Del — убрать из базы";
 
         if (GUI.Button(cardRect, new GUIContent(string.Empty, tooltip), GUIStyle.none))
             HandleCardClick(sectionKey, entries, entryIndex);
@@ -1219,7 +1285,11 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         Color? tint = ResolveIconTint(asset);
 
         if (icon != null)
-            DrawSprite(iconRect, icon, OpaqueTint(tint));
+        {
+            Color iconColor = OpaqueTint(tint);
+            iconColor.a = isUnused ? 0.55f : 1f;
+            DrawSprite(iconRect, icon, iconColor);
+        }
         else if (tint.HasValue)
             DrawColorSwatch(iconRect, tint.Value);
         else
@@ -1229,6 +1299,13 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         GUI.Label(labelRect, GetAssetName(asset), cardNameStyle);
 
         DrawCardBadges(cardRect, asset);
+
+        if (isUnused)
+        {
+            Rect stripRect = new(cardRect.x + 1f, cardRect.y + 1f, cardRect.width - 2f, 15f);
+            EditorGUI.DrawRect(stripRect, new Color(0f, 0f, 0f, 0.65f));
+            GUI.Label(stripRect, "Не в базе", unusedBadgeStyle);
+        }
 
         if (isInvalid)
         {
@@ -1487,9 +1564,10 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     /// </summary>
     /// <remarks>
     /// Каталог меняется и мимо окна — набором, кнопкой «Убрать null», правкой ассета.
-    /// Выделение, пережившее такое изменение, привело бы к удалению не того.
+    /// Выделение, пережившее такое изменение, привело бы к удалению не того. То же
+    /// с тем, что скрыто переключателем «Показать»: действие не должно задеть невидимое.
     /// </remarks>
-    private void PruneSelection(string sectionKey, SerializedProperty data)
+    private void PruneSelection(string sectionKey, IEnumerable<UnityEngine.Object> shown)
     {
         if (!selections.TryGetValue(sectionKey, out HashSet<UnityEngine.Object> selection)
             || selection.Count == 0)
@@ -1497,17 +1575,20 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             return;
         }
 
-        var present = new HashSet<UnityEngine.Object>();
-
-        for (int index = 0; index < data.arraySize; index++)
-        {
-            UnityEngine.Object value = data.GetArrayElementAtIndex(index).objectReferenceValue;
-
-            if (value != null)
-                present.Add(value);
-        }
+        var present = new HashSet<UnityEngine.Object>(shown.Where(asset => asset != null));
 
         selection.RemoveWhere(asset => asset == null || !present.Contains(asset));
+    }
+
+    private static IEnumerable<UnityEngine.Object> GetDatabaseItems(SerializedProperty data)
+    {
+        for (int index = 0; index < data.arraySize; index++)
+            yield return data.GetArrayElementAtIndex(index).objectReferenceValue;
+    }
+
+    private static HashSet<UnityEngine.Object> CollectDatabaseAssets(SerializedProperty data)
+    {
+        return new HashSet<UnityEngine.Object>(GetDatabaseItems(data).Where(asset => asset != null));
     }
 
     /// <summary>
@@ -1553,7 +1634,8 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     private void DrawSelectedAsset(
         string sectionKey,
         SerializedProperty data,
-        UnityEngine.Object selected)
+        UnityEngine.Object selected,
+        ICollection<UnityEngine.Object> databaseAssets)
     {
         EditorGUILayout.LabelField("Свойства", EditorStyles.boldLabel);
         using (new EditorGUI.DisabledScope(true))
@@ -1589,12 +1671,18 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                 EditorStyles.miniBoldLabel);
         }
 
-        string label = targets.Length > 1
-            ? $"Удалить из базы ({targets.Length})"
-            : "Удалить из базы";
+        // В режиме «Все» выделение бывает смешанным: каждая кнопка берёт своё.
+        UnityEngine.Object[] toRemove = targets.Where(databaseAssets.Contains).ToArray();
+        UnityEngine.Object[] toAdd = targets.Where(asset => !databaseAssets.Contains(asset)).ToArray();
 
-        if (GUILayout.Button(label))
-            RemoveAssets(sectionKey, data, targets);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (toAdd.Length > 0 && GUILayout.Button(toAdd.Length > 1 ? $"Добавить в базу ({toAdd.Length})" : "Добавить в базу"))
+                AddAssets(sectionKey, data, toAdd);
+
+            if (toRemove.Length > 0 && GUILayout.Button(toRemove.Length > 1 ? $"Удалить из базы ({toRemove.Length})" : "Удалить из базы"))
+                RemoveAssets(sectionKey, data, toRemove);
+        }
 
         EditorGUILayout.Space(4f);
         Vector2 detailsScroll = GetScrollPosition(detailsScrollPositions, sectionKey);
@@ -1652,6 +1740,29 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     }
 
     /// <summary>
+    /// Добавляет в каталог ассеты проекта, которых в нём нет.
+    /// </summary>
+    private void AddAssets(
+        string sectionKey,
+        SerializedProperty data,
+        IEnumerable<UnityEngine.Object> assets)
+    {
+        Undo.RecordObject(database, "Add database assets");
+
+        foreach (UnityEngine.Object asset in assets)
+        {
+            int index = data.arraySize;
+            data.InsertArrayElementAtIndex(index);
+            data.GetArrayElementAtIndex(index).objectReferenceValue = asset;
+        }
+
+        serializedDatabase.ApplyModifiedProperties();
+        EditorUtility.SetDirty(database);
+        selectionAnchors.Remove(sectionKey);
+        GUIUtility.ExitGUI();
+    }
+
+    /// <summary>
     /// Убирает выбранные элементы из каталога.
     /// </summary>
     /// <remarks>
@@ -1668,7 +1779,9 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         IReadOnlyCollection<UnityEngine.Object> assets,
         bool alwaysConfirm = false)
     {
+        // Delete идёт по всему выделению, а в нём могут быть ассеты не из базы.
         var targets = new HashSet<UnityEngine.Object>(assets.Where(asset => asset != null));
+        targets.IntersectWith(GetDatabaseItems(data));
 
         if (targets.Count == 0)
             return;
@@ -1704,20 +1817,17 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         GUIUtility.ExitGUI();
     }
 
-    private UnityEngine.Object ResolveSelectedAsset(string sectionKey, SerializedProperty data)
+    private UnityEngine.Object ResolveSelectedAsset(string sectionKey, IReadOnlyList<UnityEngine.Object> shown)
     {
-        if (selectedAssets.TryGetValue(sectionKey, out UnityEngine.Object selected))
+        if (selectedAssets.TryGetValue(sectionKey, out UnityEngine.Object selected)
+            && selected != null
+            && shown.Contains(selected))
         {
-            for (int index = 0; index < data.arraySize; index++)
-            {
-                if (data.GetArrayElementAtIndex(index).objectReferenceValue == selected)
-                    return selected;
-            }
+            return selected;
         }
 
-        for (int index = 0; index < data.arraySize; index++)
+        foreach (UnityEngine.Object asset in shown)
         {
-            UnityEngine.Object asset = data.GetArrayElementAtIndex(index).objectReferenceValue;
             if (asset == null)
                 continue;
 
@@ -1758,6 +1868,14 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                 alignment = TextAnchor.MiddleCenter
             };
             invalidBadgeStyle.normal.textColor = Color.white;
+        }
+        if (unusedBadgeStyle == null)
+        {
+            unusedBadgeStyle = new GUIStyle(EditorStyles.miniLabel)
+            {
+                alignment = TextAnchor.MiddleCenter
+            };
+            unusedBadgeStyle.normal.textColor = new Color(0.85f, 0.87f, 0.92f, 1f);
         }
     }
 
