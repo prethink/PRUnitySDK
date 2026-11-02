@@ -796,5 +796,28 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
         MaxHealth = maxHealth;
     }
 
+    /// <summary>
+    /// Задаёт запас здоровья и сразу приводит к нему текущее.
+    /// </summary>
+    /// <remarks>
+    /// Для игр со своим запасом поверх общего префаба: «три сердца» вместо сотни единиц. Живому
+    /// <paramref name="refill"/> заполняет запас целиком; без него текущее только урезается до нового запаса.
+    /// Подписчики <see cref="OnHealthChange"/> получают изменение, если оно было.
+    /// </remarks>
+    /// <param name="maxHealth">Новый запас.</param>
+    /// <param name="refill">Заполнить запас целиком (только живому).</param>
+    public virtual void SetMaxHealth(float maxHealth, bool refill)
+    {
+        float previous = Health;
+        MaxHealth = maxHealth;
+        Health = refill && IsAlive() ? maxHealth : Mathf.Min(Health, maxHealth);
+        if (Mathf.Approximately(previous, Health))
+            return;
+
+        var change = new HealthChangedEventArgsBase(previous, Health, MaxHealth);
+        NotifyListeners(OnHealthChange, listener => listener(change));
+        NotifyUnityEvent(() => OnHealthChangeUnity?.Invoke(change));
+    }
+
     #endregion
 }
