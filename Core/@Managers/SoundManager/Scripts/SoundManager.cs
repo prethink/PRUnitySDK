@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
-public class SoundManager : MonoBehaviour
+public class SoundManager : MonoBehaviour, IPauseStateListener
 {
     #region Поля и свойства
 
@@ -87,6 +87,19 @@ public class SoundManager : MonoBehaviour
     private readonly List<AudioSource> unlimitedPositionalEffectsPool = new();
 
     private readonly Dictionary<Guid, AudioSource> loopingEffectSources = new();
+
+    /// <summary>
+    /// Звуки мира, которые игра ведёт своими источниками (<see cref="RegisterWorldSource"/>).
+    /// </summary>
+    private readonly List<AudioSource> worldSources = new();
+
+    /// <summary>
+    /// Источники, поставленные на паузу вместе с логикой. Unity считает их неиграющими, а пул выдал бы такой
+    /// под новый звук — поэтому до снятия паузы они заняты.
+    /// </summary>
+    private readonly HashSet<AudioSource> pausedWorldSources = new();
+
+    private bool worldAudioPaused;
     private readonly Dictionary<string, Dictionary<string, AudioSet>> soundPool = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<AudioClip> backgroundMusic = new();
@@ -156,6 +169,16 @@ public class SoundManager : MonoBehaviour
     {
         if (!isInit)
             StartWork();
+    }
+
+    private void OnEnable()
+    {
+        EventBus.Subscribe(this);
+    }
+
+    private void OnDisable()
+    {
+        EventBus.Unsubscribe(this);
     }
 
     public void OnReadyGame()
@@ -359,7 +382,7 @@ public class SoundManager : MonoBehaviour
     {
         foreach (var source in unlimitedPositionalEffectsPool)
         {
-            if (source != null && !source.isPlaying)
+            if (source != null && !source.isPlaying && !pausedWorldSources.Contains(source))
                 return source;
         }
 
@@ -420,7 +443,8 @@ public class SoundManager : MonoBehaviour
 
         foreach (var pooled in positionalEffectsPool)
         {
-            if (pooled == null)
+            // Стоящий на паузе голос не звучит, но и не свободен: после паузы он доиграет.
+            if (pooled == null || pausedWorldSources.Contains(pooled))
                 continue;
 
             if (!pooled.isPlaying)
@@ -615,8 +639,9 @@ public class SoundManager : MonoBehaviour
     /// Включённый слушатель сцены.
     /// </summary>
     /// <remarks>
-    /// Слушатель переезжает вместе с камерой игрока, поэтому ищется заново, когда прежний выключен. Поиск
-    /// по сцене не чаще <see cref="ListenerSearchInterval"/>: без слушателя (загрузка, меню) иначе он шёл бы
+    /// Слушатель переезжает вместе с камерой игрока, поэтому ищется заново, когда прежний выключен или удалён, —
+    /// сразу, иначе до секунды после смены камеры дальние звуки играли бы впустую. Не нашли никого (загрузка,
+    /// меню) — следующий поиск не раньше чем через <see cref="ListenerSearchInterval"/>, иначе он шёл бы
     /// на каждый звук.
     /// </remarks>
     private Transform GetListener()
@@ -624,7 +649,10 @@ public class SoundManager : MonoBehaviour
         if (listener != null && listener.isActiveAndEnabled)
             return listener.transform;
 
-        if (Time.unscaledTime < nextListenerSearch)
+        // Был слушатель, но его выключили или удалили (ReferenceEquals: удалённый для Unity равен null).
+        bool lostListener = !ReferenceEquals(listener, null);
+
+        if (!lostListener && Time.unscaledTime < nextListenerSearch)
             return null;
 
         nextListenerSearch = Time.unscaledTime + ListenerSearchInterval;
@@ -667,7 +695,8 @@ public class SoundManager : MonoBehaviour
 
     public void PlayClipAtPoint(AudioClip sound, Vector3 soundPosition, float volume)
     {
-        if (IsMute() || sound == null || !TryGetPositionalSource(sound, 0, false, out AudioSource source))
+        if (IsMute() || sound == null || !IsAudibleAt(soundPosition)
+            || !TryGetPositionalSource(sound, 0, false, out AudioSource source))
             return;
 
         source.transform.position = soundPosition;
@@ -719,6 +748,9 @@ public class SoundManager : MonoBehaviour
 
         if (position != null)
         {
+            if (!IsAudibleAt(position.Value))
+                return;
+
             AudioClip positionalClip = audioCollection.AudioClips[UnityEngine.Random.Range(0, audioCollection.AudioClips.Count)];
 
             if (!TryGetPositionalSource(positionalClip, 0, false, out AudioSource positionalSource))
@@ -1090,6 +1122,78 @@ public class SoundManager : MonoBehaviour
             musicSource.Pause();
         else
             musicSource.UnPause();
+    }
+
+    #endregion
+
+    #region Пауза звуков мира
+
+    /// <summary>
+    /// Добавляет источник игры к звукам мира: он встаёт на логической паузе вместе с позиционными звуками.
+    /// </summary>
+    /// <remarks>
+    /// Для петель, которые игра ведёт сама (фон под водой, гул): обновляются они в <c>PRUpdate</c>, а его на паузе нет,
+    /// и источник звучал бы дальше. Убирать — <see cref="UnregisterWorldSource"/> при выключении.
+    /// </remarks>
+    public void RegisterWorldSource(AudioSource source)
+    {
+        if (source == null || worldSources.Contains(source))
+            return;
+
+        worldSources.Add(source);
+        if (worldAudioPaused)
+            PauseWorldSource(source);
+    }
+
+    public void UnregisterWorldSource(AudioSource source)
+    {
+        worldSources.Remove(source);
+        if (source != null && pausedWorldSources.Remove(source))
+            source.UnPause();
+    }
+
+    /// <summary>
+    /// Логическая пауза (окна, поимка, обучение) останавливает звуки мира: позиционные, долгие петли
+    /// (<see cref="PlayEffectWithLifetime"/>) и источники игры (<see cref="RegisterWorldSource"/>). Интерфейс, музыка
+    /// и обычные эффекты звучат: ими говорят окна и итоги. Снятие паузы продолжает звуки с того же места.
+    /// </summary>
+    /// <remarks>
+    /// Пауза площадки (реклама, свёрнутая вкладка) — отдельно: она глушит всё общей громкостью
+    /// (<see cref="AudioMixerManager"/>).
+    /// </remarks>
+    public void OnPauseStateChanged(PauseStateEventArgs args)
+    {
+        bool paused = PRUnitySDK.PauseManager != null && PRUnitySDK.PauseManager.IsLogicPaused;
+        if (paused == worldAudioPaused)
+            return;
+
+        worldAudioPaused = paused;
+        if (!paused)
+        {
+            foreach (AudioSource source in pausedWorldSources)
+            {
+                if (source != null)
+                    source.UnPause();
+            }
+
+            pausedWorldSources.Clear();
+            return;
+        }
+
+        foreach (AudioSource source in positionalEffectsPool) PauseWorldSource(source);
+        foreach (AudioSource source in unlimitedPositionalEffectsPool) PauseWorldSource(source);
+        foreach (AudioSource source in loopingEffectSources.Values) PauseWorldSource(source);
+        worldSources.RemoveAll(source => source == null);
+        foreach (AudioSource source in worldSources) PauseWorldSource(source);
+    }
+
+    private void PauseWorldSource(AudioSource source)
+    {
+        if (source == null || !source.isPlaying)
+            return;
+
+        source.Pause();
+        pausedWorldSources.Add(source);
     }
 
     #endregion

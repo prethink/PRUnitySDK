@@ -15,7 +15,7 @@ using UnityEngine;
 /// </para>
 /// </remarks>
 [RequireComponent(typeof(Animator))]
-public class AnimatorTimeScaleDriver : PRMonoBehaviour
+public class AnimatorTimeScaleDriver : PRMonoBehaviour, IEntityLodListener
 {
     #region Поля и свойства
 
@@ -30,8 +30,8 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
         "Включайте для объектов из пула, чтобы аниматор не остался замороженным.")]
     [SerializeField] private bool restoreOnDisable = true;
 
-    [Tooltip("Не продвигать аниматор, пока ни один меш под ним не виден ни одной камере. Как Cull Completely " +
-        "у обычного аниматора: вне кадра поза замирает и продолжается, когда объект снова в кадре. " +
+    [Tooltip("Не продвигать аниматор, пока сущность вне кадра и дальше ближней зоны камеры (EntityLod → Hidden). " +
+        "Как Cull Completely у обычного аниматора: поза замирает и продолжается, когда сущность снова в кадре. " +
         "Действует только у сущностей с детализацией (EntityLod) — NPC, ботов, питомцев. " +
         "Выключайте, если игра читает позу костей или ждёт событий анимации, когда объекта не видно.")]
     [SerializeField] private bool pauseWhenInvisible = true;
@@ -40,16 +40,32 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
     /// Аниматор принадлежит сущности с детализацией (<see cref="EntityLod"/>).
     /// </summary>
     /// <remarks>
-    /// Только тогда видимость решает, тикать ли. Меш, нарисованный в обход обычной отрисовки, Unity видимым
-    /// не считает: руки от первого лица рисует проход Render Objects, и с проверкой у всех аниматоров они
-    /// замирали.
+    /// Только тогда видимость решает, тикать ли. Видимость считает <see cref="EntityLodService"/> по сфере сущности,
+    /// а не по мешам: меш, нарисованный в обход обычной отрисовки, Unity видимым не считает (руки от первого лица
+    /// рисует проход Render Objects, и с проверкой у всех аниматоров они замирали), а меши, добавленные позже
+    /// (смена вида, объект из пула), список, собранный один раз, не видел бы.
     /// </remarks>
     private bool managedByLod;
 
     /// <summary>
-    /// Меши под аниматором, по которым решается, виден ли он.
+    /// Сущность вне кадра и дальше ближней зоны (<see cref="EntityLodLevel.Hidden"/>).
     /// </summary>
-    private Renderer[] renderers;
+    private bool lodHidden;
+
+    /// <summary>
+    /// Раз в сколько кадров продвигать аниматор: у дальних в кадре реже (<see cref="EntityLodLevel.Reduced"/>).
+    /// </summary>
+    private int frameStep = 1;
+
+    /// <summary>
+    /// Кадров с прошлого тика.
+    /// </summary>
+    private int skippedFrames;
+
+    /// <summary>
+    /// Время, накопленное за пропущенные кадры: анимация идёт реже, но не медленнее.
+    /// </summary>
+    private float pendingDeltaTime;
 
     /// <summary>
     /// Аниматор хоть раз продвинут после включения.
@@ -119,10 +135,20 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
         if (deltaTime <= 0f)
             return;
 
-        if (pauseWhenInvisible && managedByLod && hasEvaluated && !IsVisible())
+        if (pauseWhenInvisible && managedByLod && lodHidden && hasEvaluated)
+        {
+            pendingDeltaTime = 0f;
+            return;
+        }
+
+        pendingDeltaTime += deltaTime;
+
+        if (hasEvaluated && ++skippedFrames < frameStep)
             return;
 
-        animator.Update(deltaTime);
+        skippedFrames = 0;
+        animator.Update(pendingDeltaTime);
+        pendingDeltaTime = 0f;
         hasEvaluated = true;
     }
 
@@ -146,35 +172,27 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour
         timeLayers = layers;
     }
 
-    /// <summary>
-    /// Виден ли хоть один меш под аниматором какой-нибудь камере.
-    /// </summary>
+    /// <inheritdoc />
     /// <remarks>
-    /// Меши собираются один раз; если какой-то из них уничтожили (сменили вид), список собирается заново.
-    /// Без мешей аниматор считается видимым: решать не по чему.
+    /// Сущность с детализацией: вне кадра вдали аниматор стоит, дальние в кадре тикают раз в
+    /// <see cref="EntityLodSettings.ReducedAnimationStep"/> кадров. Чтобы дальние не тикали все в один кадр,
+    /// счёт у каждого начинается со своего места.
     /// </remarks>
-    private bool IsVisible()
+    public void OnEntityLodChanged(EntityLod lod)
     {
-        renderers ??= animator.GetComponentsInChildren<Renderer>(true);
+        managedByLod = lod.isActiveAndEnabled;
+        lodHidden = managedByLod && lod.Level == EntityLodLevel.Hidden;
 
-        bool lost = false;
+        EntityLodSettings settings = PRUnitySDK.Settings != null ? PRUnitySDK.Settings.EntityLod : null;
+        int step = managedByLod && lod.Level == EntityLodLevel.Reduced && settings != null
+            ? Mathf.Max(1, settings.ReducedAnimationStep)
+            : 1;
 
-        foreach (Renderer meshRenderer in renderers)
-        {
-            if (meshRenderer == null)
-            {
-                lost = true;
-                continue;
-            }
+        if (step == frameStep)
+            return;
 
-            if (meshRenderer.isVisible)
-                return true;
-        }
-
-        if (lost)
-            renderers = null;
-
-        return renderers != null && renderers.Length == 0;
+        frameStep = step;
+        skippedFrames = Random.Range(0, step);
     }
 
     private void Attach()

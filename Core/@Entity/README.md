@@ -668,3 +668,19 @@ PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
 - [GameRules](../GameRules/README.md) — глобальные ограничения статов
 - [PRTimeScale](../PRTimeScale/README.md) — слои времени и `EntityTimeScaleDriver`
 - [Enumeration](../Models/Enumeration/README.md) — ключи типов, статов и слоёв
+
+## Детализация вдали от камеры (`Lod/`)
+
+`EntityLod` на том, что движется (корень NPC и питомца, тело бота), получает от `EntityLodService` уровень по
+`CullingGroup` камеры `Camera.main`:
+
+| Уровень | Когда | Что упрощается |
+| --- | --- | --- |
+| `Full` | ближе `NearDistance` (15 м), видно или нет | ничего |
+| `Reduced` | дальше, в кадре | тени мешей, анимация раз в `ReducedAnimationStep` кадров |
+| `Hidden` | дальше, вне кадра | аниматор с `AnimatorTimeScaleDriver` стоит; при `HiddenSimulation.Simplified` — без сглаживания тела, вода, лестница и действия рядом ищутся реже. Ступеньки, стены и склоны проверяются полностью: от них зависит, где бот пройдёт |
+
+Компоненты упрощают себя сами через `IEntityLodListener` — уровень каждый кадр не проверяют. `NpcBrain`, `PetBrain` и
+`PlayerBotStateManager` ставят `EntityLod` себе (`EntityLod.Ensure`); руками — только для своих поведений или чтобы задать
+`HiddenSimulation` в префабе. Настройки — `PRSDKSettings → EntityLod`, выключатель там же.
+
