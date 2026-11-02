@@ -577,7 +577,7 @@ public class SoundManager : MonoBehaviour
     public void PlaySoundEffectAtPoint(AudioClip sound, Vector3 position, Vector2? randomPitch = null, float volume = 1f,
         int limitKey = 0, bool important = false, bool ignoreLimits = false)
     {
-        if (IsMute() || sound == null)
+        if (IsMute() || sound == null || !IsAudibleAt(position))
             return;
 
         AudioSource source;
@@ -590,6 +590,63 @@ public class SoundManager : MonoBehaviour
         source.pitch = randomPitch.HasValue ? randomPitch.Value.GetRandom() : 1f;
         source.PlayOneShot(sound, volume);
     }
+
+    /// <summary>
+    /// Слышен ли позиционный звук из этой точки.
+    /// </summary>
+    /// <remarks>
+    /// Затухание у позиционных источников линейное и на <see cref="positionalMaxDistance"/> доходит до нуля,
+    /// поэтому дальше звук не слышен и голос на него тратить незачем. Спрашивать стоит до того, как звук
+    /// подбирать: шаги ищут поверхность под ногами запросом к физике, а у пятидесяти ботов на карте он
+    /// почти весь уходил на тех, кого не слышно. Нет слушателя — слышно всё.
+    /// </remarks>
+    /// <param name="position">Точка звука в мире.</param>
+    public bool IsAudibleAt(Vector3 position)
+    {
+        Transform listener = GetListener();
+
+        if (listener == null)
+            return true;
+
+        return (position - listener.position).sqrMagnitude < positionalMaxDistance * positionalMaxDistance;
+    }
+
+    /// <summary>
+    /// Включённый слушатель сцены.
+    /// </summary>
+    /// <remarks>
+    /// Слушатель переезжает вместе с камерой игрока, поэтому ищется заново, когда прежний выключен. Поиск
+    /// по сцене не чаще <see cref="ListenerSearchInterval"/>: без слушателя (загрузка, меню) иначе он шёл бы
+    /// на каждый звук.
+    /// </remarks>
+    private Transform GetListener()
+    {
+        if (listener != null && listener.isActiveAndEnabled)
+            return listener.transform;
+
+        if (Time.unscaledTime < nextListenerSearch)
+            return null;
+
+        nextListenerSearch = Time.unscaledTime + ListenerSearchInterval;
+        listener = null;
+
+        foreach (AudioListener candidate in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
+        {
+            if (!candidate.isActiveAndEnabled)
+                continue;
+
+            listener = candidate;
+            return listener.transform;
+        }
+
+        return null;
+    }
+
+    private const float ListenerSearchInterval = 1f;
+
+    private AudioListener listener;
+
+    private float nextListenerSearch;
 
     #endregion
 

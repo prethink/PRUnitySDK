@@ -270,7 +270,6 @@
     <type fullname="ProjectProperties" preserve="all" />
     <type fullname="PromoCodeSaveData" preserve="all" />
     <type fullname="PromoCodeUsage" preserve="all" />
-    <type fullname="PunchEscapeRunData" preserve="all" />
     <type fullname="QualityCaseDatabase" preserve="all" />
     <type fullname="QuestProgress" preserve="all" />
     <type fullname="QuestsSaveData" preserve="all" />
