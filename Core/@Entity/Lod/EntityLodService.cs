@@ -94,6 +94,9 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
         if (camera == null)
         {
             SetAllFull();
+            // Включат снова — камера привяжется заново, и прошлые ответы CullingGroup не будут приняты за новые.
+            viewer = null;
+            hasLastCamera = false;
             return;
         }
 

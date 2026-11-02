@@ -27,7 +27,8 @@ public class EntityLod : PRMonoBehaviour
     [Tooltip("Отбрасывать тени только вблизи камеры. Тень дальней сущности почти не видна, а рисуется ещё одним проходом.")]
     [SerializeField] private bool shadowsOnlyNear = true;
 
-    [Tooltip("Радиус сферы, по которой решается, видна ли сущность. 0 — по мешам: при каждом включении и смене надетого.")]
+    [Tooltip("Радиус сферы, по которой решается, видна ли сущность, в единицах объекта: растёт вместе с его масштабом. " +
+             "0 — по мешам: при каждом включении и смене надетого.")]
     [SerializeField, Min(0f)] private float radius;
 
     [Tooltip("Центр сферы относительно объекта; действует вместе с заданным радиусом.")]
@@ -39,6 +40,9 @@ public class EntityLod : PRMonoBehaviour
     /// </summary>
     private Vector3 fittedCenter;
 
+    /// <summary>
+    /// Радиус по мешам в единицах объекта: увеличили NPC — сфера растёт вместе с ним без новой подгонки.
+    /// </summary>
     private float fittedRadius = 1f;
 
     /// <summary>
@@ -60,8 +64,18 @@ public class EntityLod : PRMonoBehaviour
     /// Сфера видимости в мире.
     /// </summary>
     public BoundingSphere WorldSphere => radius > 0f
-        ? new BoundingSphere(transform.TransformPoint(center), radius)
-        : new BoundingSphere(transform.TransformPoint(fittedCenter), fittedRadius);
+        ? new BoundingSphere(transform.TransformPoint(center), radius * MaxScale())
+        : new BoundingSphere(transform.TransformPoint(fittedCenter), fittedRadius * MaxScale());
+
+    /// <summary>
+    /// Наибольший масштаб объекта по осям: сфера должна накрыть его и при растяжении вдоль одной оси.
+    /// </summary>
+    private float MaxScale()
+    {
+        Vector3 scale = transform.lossyScale;
+        float max = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+        return max > 0.0001f ? max : 1f;
+    }
 
     /// <summary>
     /// Место в списке службы; −1 — не зарегистрирован.
@@ -230,8 +244,9 @@ public class EntityLod : PRMonoBehaviour
             return;
         }
 
+        // Границы мешей — в мире, радиус хранится в единицах объекта.
         fittedCenter = transform.InverseTransformPoint(bounds.center);
-        fittedRadius = Mathf.Max(0.5f, bounds.extents.magnitude);
+        fittedRadius = Mathf.Max(0.5f, bounds.extents.magnitude) / MaxScale();
     }
 
     /// <summary>
