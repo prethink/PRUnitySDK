@@ -201,6 +201,15 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour, IEntityLodListener
             return;
 
         hasEvaluated = false;
+        pendingDeltaTime = 0f;
+        skippedFrames = 0;
+
+        // Выключали только драйвер — детализация уровень не сменит и не разошлёт: берём его сами.
+        EntityLod lod = GetComponentInParent<EntityLod>();
+        if (lod != null && lod.isActiveAndEnabled)
+            OnEntityLodChanged(lod);
+        else
+            ResetLod();
 
         managedAnimators.Add(animator);
 
@@ -214,9 +223,18 @@ public class AnimatorTimeScaleDriver : PRMonoBehaviour, IEntityLodListener
             return;
 
         managedAnimators.Remove(animator);
+        pendingDeltaTime = 0f;
+        skippedFrames = 0;
 
         if (restoreOnDisable)
             animator.enabled = true;
+    }
+
+    private void ResetLod()
+    {
+        managedByLod = false;
+        lodHidden = false;
+        frameStep = 1;
     }
 
     #endregion

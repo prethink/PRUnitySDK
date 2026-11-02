@@ -174,6 +174,8 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
     private void OnEnable()
     {
         EventBus.Subscribe(this);
+        // Менеджер мог появиться уже на паузе: событие о ней прошло до подписки.
+        OnPauseStateChanged(null);
     }
 
     private void OnDisable()
@@ -547,6 +549,10 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
         newAudioSource.volume = effectsSource != null ? effectsSource.volume : 1f;
         newAudioSource.Play();
         loopingEffectSources.Add(guid, newAudioSource);
+
+        // Петля, начатая на паузе, ждёт её конца вместе с остальными звуками мира.
+        if (worldAudioPaused)
+            PauseWorldSource(newAudioSource);
     }
 
     public void RemoveEffect(Guid guid)
@@ -601,7 +607,7 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
     public void PlaySoundEffectAtPoint(AudioClip sound, Vector3 position, Vector2? randomPitch = null, float volume = 1f,
         int limitKey = 0, bool important = false, bool ignoreLimits = false)
     {
-        if (IsMute() || sound == null || !IsAudibleAt(position))
+        if (IsMute() || sound == null || worldAudioPaused || !IsAudibleAt(position))
             return;
 
         AudioSource source;
@@ -695,7 +701,7 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
 
     public void PlayClipAtPoint(AudioClip sound, Vector3 soundPosition, float volume)
     {
-        if (IsMute() || sound == null || !IsAudibleAt(soundPosition)
+        if (IsMute() || sound == null || worldAudioPaused || !IsAudibleAt(soundPosition)
             || !TryGetPositionalSource(sound, 0, false, out AudioSource source))
             return;
 
@@ -748,7 +754,7 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
 
         if (position != null)
         {
-            if (!IsAudibleAt(position.Value))
+            if (worldAudioPaused || !IsAudibleAt(position.Value))
                 return;
 
             AudioClip positionalClip = audioCollection.AudioClips[UnityEngine.Random.Range(0, audioCollection.AudioClips.Count)];
@@ -1159,11 +1165,16 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
     /// </summary>
     /// <remarks>
     /// Пауза площадки (реклама, свёрнутая вкладка) — отдельно: она глушит всё общей громкостью
-    /// (<see cref="AudioMixerManager"/>).
+    /// (<see cref="AudioMixerManager"/>). Пауза кат-сцены звуки мира не трогает: в ней они и звучат.
+    /// <para>
+    /// Новый позиционный однократный звук на паузе не играет: доиграв после закрытия окна, он был бы невпопад.
+    /// Петля, начатая на паузе, сразу встаёт и идёт после неё.
+    /// </para>
     /// </remarks>
     public void OnPauseStateChanged(PauseStateEventArgs args)
     {
-        bool paused = PRUnitySDK.PauseManager != null && PRUnitySDK.PauseManager.IsLogicPaused;
+        IPauseManager pause = PRUnitySDK.PauseManager;
+        bool paused = pause != null && pause.IsLogicPaused && !pause.IsCutScenePaused;
         if (paused == worldAudioPaused)
             return;
 

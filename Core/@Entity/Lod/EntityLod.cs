@@ -27,11 +27,19 @@ public class EntityLod : PRMonoBehaviour
     [Tooltip("Отбрасывать тени только вблизи камеры. Тень дальней сущности почти не видна, а рисуется ещё одним проходом.")]
     [SerializeField] private bool shadowsOnlyNear = true;
 
-    [Tooltip("Радиус сферы, по которой решается, видна ли сущность. 0 — по мешам при первом включении.")]
+    [Tooltip("Радиус сферы, по которой решается, видна ли сущность. 0 — по мешам: при каждом включении и смене надетого.")]
     [SerializeField, Min(0f)] private float radius;
 
-    [Tooltip("Центр сферы относительно объекта.")]
+    [Tooltip("Центр сферы относительно объекта; действует вместе с заданным радиусом.")]
     [SerializeField] private Vector3 center;
+
+    /// <summary>
+    /// Сфера по мешам (<see cref="FitToRenderers"/>): заданные в инспекторе поля она не трогает, поэтому подгонка
+    /// повторяется и после смены модели, а не только при первом включении.
+    /// </summary>
+    private Vector3 fittedCenter;
+
+    private float fittedRadius = 1f;
 
     /// <summary>
     /// Текущий уровень детализации.
@@ -51,7 +59,9 @@ public class EntityLod : PRMonoBehaviour
     /// <summary>
     /// Сфера видимости в мире.
     /// </summary>
-    public BoundingSphere WorldSphere => new(transform.TransformPoint(center), radius > 0f ? radius : 1f);
+    public BoundingSphere WorldSphere => radius > 0f
+        ? new BoundingSphere(transform.TransformPoint(center), radius)
+        : new BoundingSphere(transform.TransformPoint(fittedCenter), fittedRadius);
 
     /// <summary>
     /// Место в списке службы; −1 — не зарегистрирован.
@@ -67,6 +77,13 @@ public class EntityLod : PRMonoBehaviour
     /// становилась бы невидимой.
     /// </remarks>
     internal int SettleFrame { get; set; }
+
+    /// <summary>
+    /// Центр сферы в прошлом кадре: служба замечает телепорт и не верит видимости, посчитанной по старому месту.
+    /// </summary>
+    internal Vector3 LastCenter { get; set; }
+
+    internal bool HasLastCenter { get; set; }
 
     private readonly List<IEntityLodListener> listeners = new();
 
@@ -85,6 +102,7 @@ public class EntityLod : PRMonoBehaviour
         if (radius <= 0f)
             FitToRenderers();
 
+        HasLastCenter = false;
         RefreshListeners();
 
         EntityLodService service = EntityLodService.Instance;
@@ -159,7 +177,30 @@ public class EntityLod : PRMonoBehaviour
     }
 
     /// <summary>
-    /// Подгоняет сферу видимости под меши сущности.
+    /// Меши сущности сменились (надели вещь, сменили модель): сфера подгоняется заново, а пока тени выключены —
+    /// выключаются и у новых мешей.
+    /// </summary>
+    public void RefreshRenderers()
+    {
+        if (radius <= 0f)
+            FitToRenderers();
+
+        if (!shadowsHidden)
+            return;
+
+        foreach (Renderer meshRenderer in GetComponentsInChildren<Renderer>(true))
+        {
+            if (meshRenderer is not (MeshRenderer or SkinnedMeshRenderer)
+                || meshRenderer.shadowCastingMode == ShadowCastingMode.Off || shadowModes.ContainsKey(meshRenderer))
+                continue;
+
+            shadowModes[meshRenderer] = meshRenderer.shadowCastingMode;
+            meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        }
+    }
+
+    /// <summary>
+    /// Подгоняет сферу видимости под меши сущности. Заданные в инспекторе радиус и центр не меняет.
     /// </summary>
     public void FitToRenderers()
     {
@@ -184,13 +225,13 @@ public class EntityLod : PRMonoBehaviour
 
         if (!found)
         {
-            center = Vector3.zero;
-            radius = 1f;
+            fittedCenter = Vector3.zero;
+            fittedRadius = 1f;
             return;
         }
 
-        center = transform.InverseTransformPoint(bounds.center);
-        radius = Mathf.Max(0.5f, bounds.extents.magnitude);
+        fittedCenter = transform.InverseTransformPoint(bounds.center);
+        fittedRadius = Mathf.Max(0.5f, bounds.extents.magnitude);
     }
 
     /// <summary>

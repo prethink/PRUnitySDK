@@ -26,6 +26,16 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
     private Camera viewer;
 
     /// <summary>
+    /// Сдвиг за кадр, после которого видимость по прошлой отрисовке не в счёт: телепорт, респаун, прыжок камеры.
+    /// Обычный бег — доли метра за кадр.
+    /// </summary>
+    private const float JumpDistance = 4f;
+
+    private Vector3 lastCameraPosition;
+
+    private bool hasLastCamera;
+
+    /// <summary>
     /// Сколько сущностей под детализацией.
     /// </summary>
     public int Count => members.Count;
@@ -66,6 +76,7 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
             spheres[index] = spheres[last];
             moved.ServiceIndex = index;
             moved.SettleFrame = Time.frameCount + 1;
+            moved.HasLastCenter = false;
         }
 
         members.RemoveAt(last);
@@ -90,6 +101,17 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
 
         int frame = Time.frameCount;
 
+        // Камера прыгнула (респаун, смена вида): прошлая отрисовка видела другое — кадр всем полной детализации.
+        Vector3 cameraPosition = camera.transform.position;
+        if (hasLastCamera && (cameraPosition - lastCameraPosition).sqrMagnitude > JumpDistance * JumpDistance)
+        {
+            foreach (EntityLod member in members)
+                member.SettleFrame = frame + 1;
+        }
+
+        lastCameraPosition = cameraPosition;
+        hasLastCamera = true;
+
         for (int index = members.Count - 1; index >= 0; index--)
         {
             // Слушатель мог выключить сущность, и список сдвинулся.
@@ -97,10 +119,21 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
                 continue;
 
             EntityLod lod = members[index];
-            spheres[index] = lod.WorldSphere;
+            BoundingSphere sphere = lod.WorldSphere;
+            spheres[index] = sphere;
 
+            // CullingGroup отвечает по прошлой отрисовке: сущность, прыгнувшая за кадр, могла уйти в кадр из-за спины.
+            if (lod.HasLastCenter && (sphere.position - lod.LastCenter).sqrMagnitude > JumpDistance * JumpDistance)
+                lod.SettleFrame = frame + 1;
+            lod.LastCenter = sphere.position;
+            lod.HasLastCenter = true;
+
+            // Пока данных о новом месте нет — полная детализация: лишняя тень на кадр незаметна, замершая поза — заметна.
             if (frame < lod.SettleFrame)
+            {
+                lod.SetLevel(EntityLodLevel.Full);
                 continue;
+            }
 
             EntityLodLevel level = group.GetDistance(index) == 0
                 ? EntityLodLevel.Full
