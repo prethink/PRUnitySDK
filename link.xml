@@ -54,6 +54,7 @@
     <type fullname="EntitySideEnumerations" preserve="all" />
     <type fullname="EntityTypeEnumerations" preserve="all" />
     <type fullname="EnumerationProviderBase" preserve="all" />
+    <type fullname="FaceEmotionEnumerations" preserve="all" />
     <type fullname="FinDatabase" preserve="all" />
     <type fullname="FishingRodDatabase" preserve="all" />
     <type fullname="FlagsProviderBase" preserve="all" />
@@ -109,6 +110,7 @@
     <type fullname="NpcStateEnumerations" preserve="all" />
     <type fullname="ObbyColorDatabase" preserve="all" />
     <type fullname="ObbyData" preserve="all" />
+    <type fullname="ObbyEmotionDatabase" preserve="all" />
     <type fullname="ObbyEyesDatabase" preserve="all" />
     <type fullname="ObbyFaceDatabase" preserve="all" />
     <type fullname="ObbyMouthDatabase" preserve="all" />
