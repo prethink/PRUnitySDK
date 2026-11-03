@@ -802,16 +802,27 @@ public partial class HealthComponent : PRMonoBehaviour, IDamageable, IHealthEnti
     /// <remarks>
     /// Для игр со своим запасом поверх общего префаба: «три сердца» вместо сотни единиц. Живому
     /// <paramref name="refill"/> заполняет запас целиком; без него текущее только урезается до нового запаса.
-    /// Подписчики <see cref="OnHealthChange"/> получают изменение, если оно было.
+    /// Подписчики <see cref="OnHealthChange"/> получают изменение, если поменялось текущее здоровье
+    /// или запас: при новом запасе полоса показывает другую долю, даже если здоровье прежнее.
+    /// <para>
+    /// Заполнение не воскрешает: мёртвой по своему здоровью сущности (даже если
+    /// <see cref="SetOverrideIsAlive"/> считает её живой) запас только урезается —
+    /// возвращают её через <see cref="InitHealth"/>.
+    /// </para>
     /// </remarks>
-    /// <param name="maxHealth">Новый запас.</param>
+    /// <param name="maxHealth">Новый запас, больше нуля.</param>
     /// <param name="refill">Заполнить запас целиком (только живому).</param>
+    /// <exception cref="ArgumentException">Запас не больше нуля, бесконечен или NaN.</exception>
     public virtual void SetMaxHealth(float maxHealth, bool refill)
     {
+        if (!IsFiniteNonNegative(maxHealth) || maxHealth <= 0)
+            throw new ArgumentException("Максимальное здоровье должно быть больше 0!", nameof(maxHealth));
+
         float previous = Health;
+        float previousMax = MaxHealth;
         MaxHealth = maxHealth;
-        Health = refill && IsAlive() ? maxHealth : Mathf.Min(Health, maxHealth);
-        if (Mathf.Approximately(previous, Health))
+        Health = refill && isAlive && IsAlive() ? maxHealth : Mathf.Min(Health, maxHealth);
+        if (Mathf.Approximately(previous, Health) && Mathf.Approximately(previousMax, MaxHealth))
             return;
 
         var change = new HealthChangedEventArgsBase(previous, Health, MaxHealth);
