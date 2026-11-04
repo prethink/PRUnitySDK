@@ -71,7 +71,13 @@ public class PauseManager : IPauseManager
 
     /// <inheritdoc />
     public void SetFocusPaused(bool isPaused, object executer, bool isUserAction = false)
-        => SetPauseState(isPaused, executer, e => e.IsFocusStateChange = true, ref isFocusPaused, isUserAction);
+    {
+        // Автоматическая проверка идёт и без фокуса: окно Unity может быть в фоне.
+        if (isPaused && PRUnitySDK.IsAutomatedRun)
+            return;
+
+        SetPauseState(isPaused, executer, e => e.IsFocusStateChange = true, ref isFocusPaused, isUserAction);
+    }
 
     /// <inheritdoc />
     public void SetTutorialPause(bool isPaused, object executer, bool isUserAction = false)
