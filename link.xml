@@ -215,6 +215,7 @@
       <method name="InitializeExperienceShopWindow" />
       <method name="InitializeFreeGiftWindow" />
       <method name="InitializeGameUpdatesWindow" />
+      <method name="InitializeItemNotifier" />
       <method name="InitializeObbyCustomizationWindow" />
       <method name="InitializeOfflineIncomeWindow" />
       <method name="InitializePerksWindow" />
@@ -229,6 +230,7 @@
       <method name="InitializeRewardForPointWindow" />
       <method name="InitializeRewardNotifier" />
       <method name="InitializeRewardNotifier3D" />
+      <method name="InitializeRogueResultsWindow" />
       <method name="InitializeScreenPopup" />
       <method name="InitializeSettingsWindow" />
       <method name="InitializeShopWindow" />

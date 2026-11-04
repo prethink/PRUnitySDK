@@ -164,6 +164,47 @@ public static class HitBoxExtensions
     }
 
     /// <summary>
+    /// Зона тела на пути удара вместо оболочки: капсула NPC ближе, но важно, куда удар пришёлся.
+    /// </summary>
+    /// <remarks>
+    /// Ближайшая поверхность NPC — обычно капсула перемещения, а зоны лежат внутри неё. Берётся первая по пути зона той же
+    /// сущности, у которой задана часть тела; мимо всех зон остаётся сама поверхность. Чужая зона не подходит: иначе удар
+    /// по стоящему впереди врагу ушёл бы врагу за ним.
+    /// </remarks>
+    /// <param name="surface">Ближайшая поверхность.</param>
+    /// <param name="hits">Все попадания запроса, с триггерами.</param>
+    /// <param name="count">Сколько попаданий заполнено.</param>
+    /// <param name="nearest">Попадание по поверхности; заменяется попаданием по зоне.</param>
+    /// <returns>Зона либо сама поверхность.</returns>
+    public static Collider PreferZone(Collider surface, RaycastHit[] hits, int count, ref RaycastHit nearest)
+    {
+        if (surface == null || !surface.TryGetHealth(out HealthComponent health))
+            return surface;
+
+        if (surface.TryGetHitBox(out UnitHitBox own) && own.HitGroup != HitGroup.Generic)
+            return surface;
+
+        Collider zone = null;
+        float distance = float.MaxValue;
+        for (int i = 0; i < count; i++)
+        {
+            RaycastHit hit = hits[i];
+            if (hit.collider == null || hit.distance >= distance || !hit.collider.TryGetHitBox(out UnitHitBox box))
+                continue;
+
+            if (box.HitGroup == HitGroup.Generic || box.OwnerEntity == null
+                || !box.OwnerEntity.TryGetComponent(out HealthComponent owner) || owner != health)
+                continue;
+
+            zone = hit.collider;
+            nearest = hit;
+            distance = hit.distance;
+        }
+
+        return zone != null ? zone : surface;
+    }
+
+    /// <summary>
     /// Находит, кому наносить урон: хитбокс, а без него — здоровье.
     /// Подходит для аргумента <c>OnTriggerEnter</c> и результатов <c>Raycast</c>.
     /// </summary>
