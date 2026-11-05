@@ -12,6 +12,16 @@ public class CanvasGroupFadeCoroutine : PRCoroutineBase
 {
     private CanvasGroup canvasGroup;
     private float fadeDuration;
+
+    /// <summary>
+    /// Длительность затухания в секундах. Досрочное снятие гасит быстрее обычного ухода.
+    /// </summary>
+    public float FadeDuration
+    {
+        get => fadeDuration;
+        set => fadeDuration = Mathf.Max(0.01f, value);
+    }
+
     /// <summary>
     ///Задержка перед началом затухания в секундах.
     ///</summary>
