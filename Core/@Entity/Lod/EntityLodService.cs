@@ -108,7 +108,19 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
             return;
         }
 
-        SetupGroup(camera, settings != null ? settings.NearDistance : 15f);
+        Evaluate(camera, settings != null ? settings.NearDistance : 15f);
+    }
+
+    /// <summary>
+    /// Раздаёт уровни по камере и ответам <see cref="CullingGroup"/> с прошлой отрисовки.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="PRUpdate"/>, без настроек проекта и <see cref="Camera.main"/>: тесты зовут его
+    /// со своей камерой и ближней зоной.
+    /// </remarks>
+    internal void Evaluate(Camera camera, float nearDistance)
+    {
+        SetupGroup(camera, nearDistance);
 
         int frame = Time.frameCount;
 
@@ -168,6 +180,10 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
             group = new CullingGroup();
             group.SetBoundingSpheres(spheres);
             group.SetBoundingSphereCount(members.Count);
+
+            // Полосы — сразу у новой группы: сравнение ниже их не задало бы, совпади ближняя зона с начальным значением.
+            distanceBands[0] = nearDistance;
+            group.SetBoundingDistances(distanceBands);
         }
 
         if (viewer != camera)
