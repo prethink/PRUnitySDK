@@ -17,7 +17,15 @@ public class EntityLodService : PRMonoBehaviourSingletonBase<EntityLodService>
 {
     private readonly List<EntityLod> members = new();
 
-    private readonly float[] distanceBands = new float[1];
+    /// <summary>
+    /// Полосы расстояний: ближняя зона и всё, что дальше, до бесконечности.
+    /// </summary>
+    /// <remarks>
+    /// Вторая полоса обязательна: сферу за последней заданной дистанцией <see cref="CullingGroup"/> считает
+    /// невидимой даже в кадре. С одной полосой в 15 м любая сущность дальше уходила в <see cref="EntityLodLevel.Hidden"/>:
+    /// у NPC вставала анимация, у ботов выключалось сглаживание тела, и они двигались рывками.
+    /// </remarks>
+    private readonly float[] distanceBands = { 0f, float.PositiveInfinity };
 
     private BoundingSphere[] spheres = new BoundingSphere[64];
 
