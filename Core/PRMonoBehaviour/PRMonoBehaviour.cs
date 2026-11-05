@@ -28,11 +28,18 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     protected virtual void OnEnable()
     {
         PRUpdateRunner.Register(this);
+
+        // Слушатель детализации подписывается сам и сразу получает текущий уровень — когда бы он ни появился.
+        if (this is IEntityLodListener lodListener)
+            EntityLod.Subscribe(this, lodListener);
     }
 
     protected virtual void OnDisable()
     {
         PRUpdateRunner.Unregister(this);
+
+        if (this is IEntityLodListener lodListener)
+            EntityLod.Unsubscribe(lodListener);
     }
 
     protected virtual void OnValidate()

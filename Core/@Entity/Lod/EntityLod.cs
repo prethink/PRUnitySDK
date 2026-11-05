@@ -101,6 +101,11 @@ public class EntityLod : PRMonoBehaviour
 
     private readonly List<IEntityLodListener> listeners = new();
 
+    /// <summary>
+    /// На чью детализацию подписан слушатель: отписка не ищет её заново (объект могли переложить в другую сущность).
+    /// </summary>
+    private static readonly Dictionary<IEntityLodListener, EntityLod> subscriptions = new();
+
     private readonly Dictionary<Renderer, ShadowCastingMode> shadowModes = new();
 
     private bool shadowsHidden;
@@ -181,13 +186,70 @@ public class EntityLod : PRMonoBehaviour
     /// Заново находит компоненты, которые упрощают себя по уровню.
     /// </summary>
     /// <remarks>
-    /// Находятся при включении. Звать, если такой компонент появился под сущностью позже.
+    /// Зовётся при включении: подбирает слушателей, включившихся раньше самой детализации (её добавляют сущности
+    /// при создании — <see cref="Ensure"/>). Появившиеся позже подписываются сами (<see cref="Subscribe"/>), звать
+    /// это для них не нужно.
     /// </remarks>
     public void RefreshListeners()
     {
         listeners.Clear();
         GetComponentsInChildren(true, listeners);
+        foreach (IEntityLodListener listener in listeners)
+            subscriptions[listener] = this;
         Notify();
+    }
+
+    /// <summary>
+    /// Подписывает компонент на детализацию его сущности и сразу сообщает ему текущий уровень.
+    /// </summary>
+    /// <remarks>
+    /// Зовёт <see cref="PRMonoBehaviour"/> при включении любого <see cref="IEntityLodListener"/>, поэтому слушатель,
+    /// появившийся под сущностью позже детализации (новая модель, скин, вещь в руке, объект из пула), получает и
+    /// текущий уровень, и все следующие. Раньше слушатели собирались только при включении детализации: аниматор,
+    /// созданный после, узнавал уровень один раз и, попав на <see cref="EntityLodLevel.Hidden"/>, так и стоял.
+    /// Детализации над компонентом нет — ничего: появившись, она подберёт его сама (<see cref="RefreshListeners"/>).
+    /// </remarks>
+    /// <param name="owner">Компонент-слушатель: детализация ищется у него и выше.</param>
+    /// <param name="listener">Он же как слушатель.</param>
+    public static void Subscribe(Component owner, IEntityLodListener listener)
+    {
+        if (owner == null || owner is EntityLod)
+            return;
+
+        EntityLod lod = owner.GetComponentInParent<EntityLod>(true);
+        if (lod != null)
+            lod.AddListener(listener);
+    }
+
+    /// <summary>
+    /// Снимает подписку, сделанную <see cref="Subscribe"/> или <see cref="RefreshListeners"/>.
+    /// </summary>
+    public static void Unsubscribe(IEntityLodListener listener)
+    {
+        if (listener == null || !subscriptions.TryGetValue(listener, out EntityLod lod))
+            return;
+
+        subscriptions.Remove(listener);
+        if (lod != null)
+            lod.listeners.Remove(listener);
+    }
+
+    /// <summary>
+    /// Добавляет слушателя (повторно — не дублирует) и сразу сообщает ему текущий уровень.
+    /// </summary>
+    public void AddListener(IEntityLodListener listener)
+    {
+        if (listener == null)
+            return;
+
+        if (subscriptions.TryGetValue(listener, out EntityLod previous) && previous != this && previous != null)
+            previous.listeners.Remove(listener);
+
+        if (!listeners.Contains(listener))
+            listeners.Add(listener);
+
+        subscriptions[listener] = this;
+        listener.OnEntityLodChanged(this);
     }
 
     /// <summary>

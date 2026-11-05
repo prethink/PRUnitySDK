@@ -166,6 +166,7 @@
     </type>
     <type fullname="PRSaveData" preserve="all" />
     <type fullname="PRUnitySDK">
+      <method name="ApplyUIAuditDevice" />
       <method name="InitializeBackgroundExperience" />
       <method name="InitializeBrainrotRewardGrantHandler" />
       <method name="InitializeDamageRules" />
