@@ -129,6 +129,21 @@ public class EntityLod : PRMonoBehaviour
             service.Register(this);
     }
 
+    /// <summary>
+    /// Детализация уничтожена: её записи в общей таблице подписок снимаются, в том числе у выключенных слушателей.
+    /// </summary>
+    protected override void UnRegisterEventsOnDestroy()
+    {
+        foreach (IEntityLodListener listener in listeners)
+        {
+            if (listener != null && subscriptions.TryGetValue(listener, out EntityLod owner) && owner == this)
+                subscriptions.Remove(listener);
+        }
+
+        listeners.Clear();
+        base.UnRegisterEventsOnDestroy();
+    }
+
     protected override void OnDisable()
     {
         if (EntityLodService.HasInstance)
@@ -217,6 +232,28 @@ public class EntityLod : PRMonoBehaviour
             return;
 
         EntityLod lod = owner.GetComponentInParent<EntityLod>(true);
+        if (lod != null)
+            lod.AddListener(listener);
+    }
+
+    /// <summary>
+    /// Компонент переложили в другую иерархию: подписка переходит к детализации его новой сущности.
+    /// </summary>
+    /// <remarks>
+    /// Зовёт <see cref="PRMonoBehaviour"/> из <c>OnTransformParentChanged</c>: перенос через <c>SetParent</c> не
+    /// выключает объект, и без этого слушатель остался бы подписан на прежнюю сущность.
+    /// </remarks>
+    public static void Resubscribe(Component owner, IEntityLodListener listener)
+    {
+        if (owner == null || owner is EntityLod)
+            return;
+
+        EntityLod lod = owner.GetComponentInParent<EntityLod>(true);
+        subscriptions.TryGetValue(listener, out EntityLod current);
+        if (lod == current && current != null)
+            return;
+
+        Unsubscribe(listener);
         if (lod != null)
             lod.AddListener(listener);
     }

@@ -42,6 +42,20 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
             EntityLod.Unsubscribe(lodListener);
     }
 
+    /// <summary>
+    /// Объект переложили под другого родителя (прямо или выше по иерархии).
+    /// </summary>
+    /// <remarks>
+    /// Слушатель детализации переходит к детализации новой сущности (<see cref="EntityLod.Resubscribe"/>): перенос
+    /// через <c>SetParent</c> не выключает объект, и <see cref="OnEnable"/> не повторяется. Наследник, которому нужно
+    /// своё, переопределяет и зовёт базовый.
+    /// </remarks>
+    protected virtual void OnTransformParentChanged()
+    {
+        if (isActiveAndEnabled && this is IEntityLodListener lodListener)
+            EntityLod.Resubscribe(this, lodListener);
+    }
+
     protected virtual void OnValidate()
     {
 
