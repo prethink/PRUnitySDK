@@ -242,6 +242,10 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
 
     public async void StartSaveTask(bool isUserExecuter = false)
     {
+        // Подставленные данные проверки не пишутся: они затёрли бы прогресс игрока.
+        if (PRUnitySDK.IsTestData)
+            return;
+
         if (!CanStartSave(isUserExecuter))
             return;
 
@@ -469,7 +473,7 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
     /// <param name="ignoreCooldown">Сохранить не дожидаясь окончания кулдауна.</param>
     public void SaveGameSettingsData(bool ignoreCooldown = false)
     {
-        if (!CanStartSave(ignoreCooldown))
+        if (PRUnitySDK.IsTestData || !CanStartSave(ignoreCooldown))
             return;
 
         ExecuteImmediateSave(() => gameDataStorage.UpdateGameSettings(gameSettings, true));
@@ -600,10 +604,21 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         }
     }
 
+    /// <summary>
+    /// Стадия <see cref="MethodHook"/>: данные проекта прочитаны из хранилища, но ещё никому не розданы.
+    /// </summary>
+    /// <remarks>
+    /// Подписчик пишет в partial-файле <see cref="GameManager"/> метод <c>[MethodHook(ProjectDataLoadedStage)]</c> и
+    /// может заменить <c>projectData</c> целиком: так проверка интерфейса подставляет тестовый прогресс. Заменивший
+    /// ставит <see cref="PRUnitySDK.IsTestData"/>, иначе первая же запись унесёт подмену в сохранение игрока.
+    /// </remarks>
+    public const string ProjectDataLoadedStage = "GameManagerProjectDataLoaded";
+
     private void LoadingData()
     {
         gameSettings = gameDataStorage.GetGameSettings();
         projectData = gameDataStorage.GetProjectData();
+        this.RunMethodHooks(ProjectDataLoadedStage);
     }
 
     public ProjectData GetProjectData()

@@ -23,6 +23,8 @@ PRUnitySDK.Managers.Game.ReadySignal.SubscribeOnReady(() =>
 
 `GetProjectData()` и `GetGameSettings()` выбрасывают `InvalidOperationException`, если вызваны до загрузки.
 
+Сразу после чтения `ProjectData` из storage, до того как данные кто-то получил, вызывается стадия `MethodHook` `GameManager.ProjectDataLoadedStage`. Подписчик в partial-файле `GameManager` может заменить `projectData` целиком — так проверка интерфейса подставляет тестовый прогресс. Заменивший обязан поставить `PRUnitySDK.IsTestData`: пока признак стоит, `StartSaveTask()` и `SaveGameSettingsData()` ничего не пишут, и настоящее сохранение игрока не затирается.
+
 ## Сохранение
 
 Основной путь полного сохранения — `StartSaveTask()`:

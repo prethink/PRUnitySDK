@@ -63,6 +63,9 @@
     <type fullname="GameEventEnumerations" preserve="all" />
     <type fullname="GameEventHistory" preserve="all" />
     <type fullname="GameFlagsEnumerations" preserve="all" />
+    <type fullname="GameManager">
+      <method name="ApplyUIAuditProfile" />
+    </type>
     <type fullname="GameSettings" preserve="all" />
     <type fullname="GameSettingsEnumerations" preserve="all" />
     <type fullname="GameSignalEnumerations" preserve="all" />
