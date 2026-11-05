@@ -208,11 +208,27 @@ public class EntityLod : PRMonoBehaviour
     public void RefreshListeners()
     {
         listeners.Clear();
-        GetComponentsInChildren(true, listeners);
-        foreach (IEntityLodListener listener in listeners)
+        listenerBuffer.Clear();
+        GetComponentsInChildren(true, listenerBuffer);
+
+        foreach (IEntityLodListener listener in listenerBuffer)
+        {
+            // У слушателя во вложенной сущности своя, более близкая детализация: он её, а не этой.
+            if (listener is Component component && component.GetComponentInParent<EntityLod>(true) != this)
+                continue;
+
+            if (subscriptions.TryGetValue(listener, out EntityLod previous) && previous != this && previous != null)
+                previous.listeners.Remove(listener);
+
+            listeners.Add(listener);
             subscriptions[listener] = this;
+        }
+
+        listenerBuffer.Clear();
         Notify();
     }
+
+    private static readonly List<IEntityLodListener> listenerBuffer = new();
 
     /// <summary>
     /// Подписывает компонент на детализацию его сущности и сразу сообщает ему текущий уровень.
