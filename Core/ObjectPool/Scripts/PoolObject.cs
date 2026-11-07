@@ -41,8 +41,14 @@ public class PoolObject : IDisposable
         if(disposed) 
             return;
 
+        // В редакторе вне игры Destroy недоступен — так пул чистят проверки и окно отладки.
         if (InstanceGameObject != null)
-            MonoBehaviour.Destroy(InstanceGameObject);
+        {
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(InstanceGameObject);
+            else
+                UnityEngine.Object.DestroyImmediate(InstanceGameObject);
+        }
 
         disposed = true;
     }

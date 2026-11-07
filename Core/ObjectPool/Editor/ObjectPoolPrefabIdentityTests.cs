@@ -132,7 +132,19 @@ public class ObjectPoolPrefabIdentityTests
     }
 
     [Test]
-    public void ShowEntity_OldParentDestroyedWhileInPool_GivesNewInstance()
+    public void OnObjectDestroy_MovesInstanceBackToPoolContainer()
+    {
+        Entity prefab = CreatePrefab<Entity>("Returned");
+        Transform oldParent = new GameObject(Prefix + "OldParent").transform;
+
+        Entity shown = pool.ShowEntity(prefab, oldParent);
+        pool.OnObjectDestroy(shown.gameObject);
+
+        Assert.AreNotSame(oldParent, shown.transform.parent);
+    }
+
+    [Test]
+    public void ShowEntity_OldParentDestroyedWhileInPool_KeepsPooledInstance()
     {
         Entity prefab = CreatePrefab<Entity>("Orphan");
         var oldParent = new GameObject(Prefix + "OldParent");
@@ -143,7 +155,44 @@ public class ObjectPoolPrefabIdentityTests
 
         Entity again = pool.ShowEntity(prefab, Vector3.zero);
 
-        Assert.IsTrue(again != null);
+        Assert.AreSame(first, again, "Свободный экземпляр не должен погибнуть вместе с родителем прошлой выдачи.");
+        Assert.AreEqual(1, CountInstances(prefab));
+    }
+
+    [Test]
+    public void OnObjectDestroy_FullDestroy_DestroysInstance()
+    {
+        BoxCollider prefab = CreatePrefab<BoxCollider>("FullDestroy");
+
+        pool.ShowObject(prefab, Vector3.zero, out PoolObject poolObject);
+        pool.OnObjectDestroy(poolObject, fullDestroy: true);
+
+        Assert.AreEqual(0, CountInstances(prefab));
+    }
+
+    [Test]
+    public void RegisterEntityPool_CountsInstancesAlreadyShown()
+    {
+        Entity prefab = CreatePrefab<Entity>("Busy");
+
+        for (int i = 0; i < 3; i++)
+            pool.ShowEntity(prefab, Vector3.zero);
+
+        // Три экземпляра уже есть, хоть и выданы: прогреву до трёх создавать нечего.
+        pool.RegisterEntityPool(prefab, 3);
+
+        Assert.AreEqual(3, CountInstances(prefab));
+    }
+
+    [Test]
+    public void RegisterEntityPool_Repeated_DoesNotRestartFilling()
+    {
+        Entity prefab = CreatePrefab<Entity>("Twice");
+
+        // Первый прогрев создал один экземпляр и ждёт кадров на остальные два.
+        pool.RegisterEntityPool(prefab, 3);
+        pool.RegisterEntityPool(prefab, 3);
+
         Assert.AreEqual(1, CountInstances(prefab));
     }
 

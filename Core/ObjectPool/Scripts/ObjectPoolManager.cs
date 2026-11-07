@@ -79,6 +79,16 @@ public class ObjectPoolManager : MonoBehaviour
         public PoolKey Key;
         public readonly Queue<PoolObject> Queue = new();
         public List<GameObject> Prefabs;
+
+        /// <summary>
+        /// Сколько экземпляров ещё создать корутиной наполнения.
+        /// </summary>
+        public int Pending;
+
+        /// <summary>
+        /// Какой префаб из <see cref="Prefabs"/> создавать следующим: наполнение идёт по кругу.
+        /// </summary>
+        public int NextPrefab;
     }
 
     #endregion
@@ -239,17 +249,18 @@ public class ObjectPoolManager : MonoBehaviour
 
         if (pools.TryGetValue(key, out var entry))
         {
-            // Пул уже существует — при необходимости досоздаём недостающие объекты.
-            // Раньше эта проверка была недостижима из-за раннего return в начале метода.
-            var missing = count - entry.Queue.Count;
+            // Пул уже существует — досоздаём только недостающее. Считаются все живые экземпляры
+            // (свободные и выданные) и ещё не созданные: по одной свободной очереди повторный
+            // прогрев плодил лишние объекты, пока часть была выдана.
+            var missing = count * entry.Prefabs.Count - CountAlive(entry) - entry.Pending;
             if (missing > 0)
-                StartPoolInstantiation(entry, missing);
+                RequestInstances(entry, missing);
             return;
         }
 
         entry = new PoolEntry { Key = key, Prefabs = objects };
         pools[key] = entry;
-        StartPoolInstantiation(entry, count);
+        RequestInstances(entry, count * objects.Count);
     }
 
     #endregion
@@ -371,7 +382,13 @@ public class ObjectPoolManager : MonoBehaviour
             entry.Queue.Dequeue();
 
         if (entry.Queue.Count == 0)
+        {
+            // Созданный по требованию идёт в счёт заказанного прогрева, а не сверх него.
+            if (entry.Pending > 0)
+                entry.Pending--;
+
             CreateInstance(entry, RandomPrefab(entry));
+        }
 
         var poolObject = entry.Queue.Dequeue();
 
@@ -597,36 +614,53 @@ public class ObjectPoolManager : MonoBehaviour
     /// </summary>
     /// <param name="entry">Пул, в который добавляются объекты.</param>
     /// <param name="count">Количество объектов для создания.</param>
-    private IEnumerator InstantiateObjects(PoolEntry entry, int count)
+    private IEnumerator FillPool(PoolEntry entry)
     {
-        // Раньше здесь была отдельная проверка objects.Count == 0 без учёта null,
-        // что приводило к NullReferenceException, если objects == null.
-        if (count < 1 || entry?.Prefabs == null || entry.Prefabs.Count == 0)
+        while (entry.Pending > 0)
         {
-            PRLog.WriteError(this, "[ObjectPoolManager] Невозможно создать объекты пула: некорректные входные данные.");
-            yield break;
+            entry.Pending--;
+            CreateInstance(entry, entry.Prefabs[entry.NextPrefab++ % entry.Prefabs.Count]);
+            yield return null;
         }
 
-        for (var i = 0; i < count; i++)
-        {
-            foreach (var prefab in entry.Prefabs)
-            {
-                CreateInstance(entry, prefab);
-                yield return null;
-            }
-        }
-    }
-
-    private void StartPoolInstantiation(PoolEntry entry, int count)
-    {
-        StopPoolInstantiation(entry.Key);
-        poolCreationCoroutines[entry.Key] = StartCoroutine(InstantiateObjectsTracked(entry, count));
-    }
-
-    private IEnumerator InstantiateObjectsTracked(PoolEntry entry, int count)
-    {
-        yield return InstantiateObjects(entry, count);
         poolCreationCoroutines.Remove(entry.Key);
+    }
+
+    /// <summary>
+    /// Заказывает ещё экземпляры пула; создаются по одному за кадр.
+    /// </summary>
+    /// <remarks>
+    /// Идущее наполнение не перезапускается, а получает добавку: раньше новый заказ
+    /// останавливал корутину, и недоделанная часть прежнего пропадала.
+    /// </remarks>
+    private void RequestInstances(PoolEntry entry, int count)
+    {
+        entry.Pending += count;
+
+        if (!poolCreationCoroutines.ContainsKey(entry.Key))
+            poolCreationCoroutines[entry.Key] = StartCoroutine(FillPool(entry));
+    }
+
+    /// <summary>
+    /// Живые экземпляры пула: свободные и выданные.
+    /// </summary>
+    private int CountAlive(PoolEntry entry)
+    {
+        int alive = 0;
+
+        foreach (var poolObject in entry.Queue)
+        {
+            if (poolObject.InstanceGameObject != null)
+                alive++;
+        }
+
+        foreach (var poolObject in objectOnScene)
+        {
+            if (poolObject.InstanceGameObject != null && new PoolKey(poolObject.Type, poolObject.Category).Equals(entry.Key))
+                alive++;
+        }
+
+        return alive;
     }
 
     private void StopPoolInstantiation(PoolKey key)
@@ -712,7 +746,12 @@ public class ObjectPoolManager : MonoBehaviour
         }
 
         entry.Queue.Clear();
+        entry.Pending = 0;
         pools.Remove(key);
+
+        foreach (var prefabPool in prefabPools.Where(pair => ReferenceEquals(pair.Value, entry)).ToList())
+            prefabPools.Remove(prefabPool.Key);
+
         return true;
     }
 
@@ -764,9 +803,11 @@ public class ObjectPoolManager : MonoBehaviour
 
         bool wasOnScene = objectOnScene.Remove(poolObject);
         var key = new PoolKey(poolObject.Type, poolObject.Category);
-        if (pools.TryGetValue(key, out var entry))
+        pools.TryGetValue(key, out var entry);
+
+        if (fullDestroy)
         {
-            if (fullDestroy)
+            if (entry != null)
             {
                 int count = entry.Queue.Count;
                 for (int i = 0; i < count; i++)
@@ -776,21 +817,33 @@ public class ObjectPoolManager : MonoBehaviour
                         entry.Queue.Enqueue(queued);
                 }
             }
-            else if (!wasOnScene)
-            {
-                return;
-            }
 
-            if (poolObject.InstanceGameObject != null)
-                poolObject.InstanceGameObject.SetActive(false);
-
-            if (!fullDestroy)
-                entry.Queue.Enqueue(poolObject);
+            // Пул объект больше не учитывает — уничтожает его он же. Иначе выданный корень
+            // оставался бы висеть: сущность, вложенная в него, уничтожает только себя.
+            poolObject.Dispose();
+            return;
         }
-        else
+
+        if (entry == null)
         {
             PRLog.WriteError(this, $"[ObjectPoolManager] Не найден пул с ключом '{key}'.");
+            return;
         }
+
+        if (!wasOnScene)
+            return;
+
+        // Свободный объект лежит в контейнере пула, а не у родителя выдачи: иначе он двигался бы
+        // вместе с чужим объектом и погиб бы при его уничтожении, пока ждёт следующей выдачи.
+        // Возврат зовут явно (DestroyEntity, таймер жизни), не из OnDestroy/OnDisable, где
+        // менять иерархию Unity не даёт.
+        if (poolObject.InstanceGameObject != null)
+        {
+            poolObject.InstanceGameObject.SetActive(false);
+            poolObject.InstanceGameObject.transform.SetParent(ContainerOf(poolObject), false);
+        }
+
+        entry.Queue.Enqueue(poolObject);
     }
 
     /// <summary>
