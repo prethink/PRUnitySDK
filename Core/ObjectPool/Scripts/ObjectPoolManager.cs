@@ -271,19 +271,19 @@ public class ObjectPoolManager : MonoBehaviour
     /// Отображает объект на сцене.
     /// </summary>
     public PoolObject ShowObject(string category, Transform transform, Vector3 scaler)
-        => ShowObject(DefaultTypeKey, category, transform.position, transform.rotation, scaler, transform);
+        => ShowObject(DefaultTypeKey, category, Vector3.zero, Quaternion.identity, scaler, transform);
 
     /// <summary>
     /// Отображает объект на сцене.
     /// </summary>
     public PoolObject ShowObject(Type type, string category, Transform transform, Vector3 scaler)
-        => ShowObject(type.ToString(), category, transform.position, transform.rotation, scaler, transform);
+        => ShowObject(type.ToString(), category, Vector3.zero, Quaternion.identity, scaler, transform);
 
     /// <summary>
     /// Отображает объект на сцене.
     /// </summary>
     public PoolObject ShowObject(Type type, string category, Transform transform)
-        => ShowObject(type.ToString(), category, transform.position, transform.rotation, Vector3.one, transform);
+        => ShowObject(type.ToString(), category, Vector3.zero, Quaternion.identity, Vector3.one, transform);
 
     /// <summary>
     /// Отображает объект на сцене.
@@ -301,7 +301,7 @@ public class ObjectPoolManager : MonoBehaviour
     /// Отображает объект на сцене.
     /// </summary>
     public PoolObject ShowObject(Component component, string category, Transform transform, Vector3 scaler)
-        => ShowObject(TypeKeyOf(component), category, transform.position, transform.rotation, scaler, transform);
+        => ShowObject(TypeKeyOf(component), category, Vector3.zero, Quaternion.identity, scaler, transform);
 
     /// <summary>
     /// Отображает объект на сцене.
@@ -325,7 +325,7 @@ public class ObjectPoolManager : MonoBehaviour
     /// Отображает объект на сцене.
     /// </summary>
     public PoolObject ShowObject(string category, Transform transform)
-        => ShowObject(DefaultTypeKey, category, transform.position, transform.rotation, Vector3.one, transform);
+        => ShowObject(DefaultTypeKey, category, Vector3.zero, Quaternion.identity, Vector3.one, transform);
 
     /// <summary>
     /// Отображает объект на сцене.
@@ -350,8 +350,8 @@ public class ObjectPoolManager : MonoBehaviour
     /// </summary>
     /// <param name="type">Тип, используемый как ключ пула.</param>
     /// <param name="category">Категория объекта.</param>
-    /// <param name="position">Локальная позиция.</param>
-    /// <param name="rotation">Локальное вращение.</param>
+    /// <param name="position">Позиция: мировая без родителя, локальная — с родителем.</param>
+    /// <param name="rotation">Поворот: мировой без родителя, локальный — с родителем.</param>
     /// <param name="scaler">Локальный размер.</param>
     /// <param name="parent">Родительский transform (может быть null).</param>
     /// <returns>Объект пула, либо null, если пул с таким ключом не зарегистрирован.</returns>
@@ -403,9 +403,20 @@ public class ObjectPoolManager : MonoBehaviour
 
         poolObject.InstanceGameObject.transform.SetParent(parent != null ? parent : ContainerOf(poolObject));
 
+        // Без родителя позиция мировая: контейнер пула не обязан стоять в начале координат (менеджер
+        // создаётся из префаба со сдвинутым корнем), и локальная позиция в нём увела бы объект в сторону.
+        // С родителем — локальная относительно него.
         var t = poolObject.InstanceGameObject.transform;
-        t.localPosition = position;
-        t.localRotation = rotation;
+        if (parent != null)
+        {
+            t.localPosition = position;
+            t.localRotation = rotation;
+        }
+        else
+        {
+            t.SetPositionAndRotation(position, rotation);
+        }
+
         t.localScale = scaler;
 
         objectOnScene.Add(poolObject);
@@ -512,8 +523,8 @@ public class ObjectPoolManager : MonoBehaviour
     /// <param name="type">Тип ключа пула.</param>
     /// <param name="readableCategory">Читаемая часть категории: её видно в отладочном отчёте пулов.</param>
     /// <param name="prefab">Префаб, экземпляр которого нужен.</param>
-    /// <param name="position">Локальная позиция.</param>
-    /// <param name="rotation">Локальное вращение.</param>
+    /// <param name="position">Позиция: мировая без родителя, локальная — с родителем.</param>
+    /// <param name="rotation">Поворот: мировой без родителя, локальный — с родителем.</param>
     /// <param name="scale">Локальный размер.</param>
     /// <param name="parent">Родитель либо <c>null</c>.</param>
     private PoolObject ShowPrefab(string type, string readableCategory, GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent)

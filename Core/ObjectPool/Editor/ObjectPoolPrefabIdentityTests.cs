@@ -232,11 +232,79 @@ public class ObjectPoolPrefabIdentityTests
         pool.RegisterPoolObject(Prefix + "Type", "Turn", new System.Collections.Generic.List<GameObject> { first, second }, 2);
         pool.ShowObject(Prefix + "Type", "Turn", Vector3.zero, Quaternion.identity, Vector3.one, null);
 
-        // Случайный выбор для этого зерна дал бы первый префаб.
-        Random.InitState(SeedPickingFirstOfTwo());
-        PoolObject onDemand = pool.ShowObject(Prefix + "Type", "Turn", Vector3.zero, Quaternion.identity, Vector3.one, null);
+        // Случайный выбор для этого зерна дал бы первый префаб. Общий генератор возвращаем как был:
+        // от него могут зависеть другие проверки.
+        Random.State saved = Random.state;
+        PoolObject onDemand;
+
+        try
+        {
+            Random.InitState(SeedPickingFirstOfTwo());
+            onDemand = pool.ShowObject(Prefix + "Type", "Turn", Vector3.zero, Quaternion.identity, Vector3.one, null);
+        }
+        finally
+        {
+            Random.state = saved;
+        }
 
         Assert.AreEqual(second.name + "(Clone)", onDemand.InstanceGameObject.name);
+    }
+
+    [Test]
+    public void ShowObject_WithoutParent_PlacesAtWorldPosition()
+    {
+        // Менеджер пула создаётся из префаба со сдвинутым корнем: контейнер не в начале координат.
+        MovePoolContainer(new Vector3(-14f, 3f, -65f));
+        BoxCollider prefab = CreatePrefab<BoxCollider>("World");
+        var target = new Vector3(1f, 2f, 3f);
+
+        BoxCollider first = pool.ShowObject(prefab, target, out _);
+        Vector3 firstPosition = first.transform.position;
+        pool.OnObjectDestroy(first.gameObject);
+        BoxCollider again = pool.ShowObject(prefab, target, out _);
+
+        Assert.AreEqual(target, firstPosition);
+        Assert.AreEqual(target, again.transform.position);
+    }
+
+    [Test]
+    public void ShowEntity_WithoutParent_PlacesAtWorldPosition()
+    {
+        MovePoolContainer(new Vector3(-14f, 3f, -65f));
+        Entity prefab = CreatePrefab<Entity>("WorldEntity");
+        var target = new Vector3(1f, 2f, 3f);
+
+        Entity shown = pool.ShowEntity(prefab, target);
+
+        Assert.AreEqual(target, shown.transform.position);
+    }
+
+    [Test]
+    public void ShowObject_AtTransform_BecomesChildAtItsPlace()
+    {
+        GameObject prefab = CreatePrefab<Transform>("AtTransform").gameObject;
+        Transform anchor = new GameObject(Prefix + "Anchor").transform;
+        anchor.position = new Vector3(5f, 0f, 0f);
+
+        pool.RegisterPoolObject(Prefix + "Anchored", prefab);
+        PoolObject shown = pool.ShowObject(Prefix + "Anchored", anchor);
+
+        Assert.AreSame(anchor, shown.InstanceGameObject.transform.parent);
+        Assert.AreEqual(anchor.position, shown.InstanceGameObject.transform.position);
+    }
+
+    /// <summary>
+    /// Ставит контейнер свободных объектов пула в заданную точку, как у созданного из префаба менеджера.
+    /// </summary>
+    private void MovePoolContainer(Vector3 position)
+    {
+        Transform container = new GameObject(Prefix + "Container").transform;
+        container.position = position;
+
+        var serialized = new SerializedObject(pool);
+        serialized.FindProperty("gameObjects").objectReferenceValue = container;
+        serialized.FindProperty("particles").objectReferenceValue = container;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static int SeedPickingFirstOfTwo()

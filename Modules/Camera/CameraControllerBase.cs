@@ -163,14 +163,28 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     /// Очистка при уничтожении. Свой OnDestroy не объявлять: он скроет
     /// PRMonoBehaviour.OnDestroy, и отписка от EventBus не выполнится.
     /// </summary>
+    /// <remarks>
+    /// Признак «текущая» запоминается до <see cref="ClearCamera"/>: она его сбрасывает, и проверка
+    /// после неё никогда не срабатывала — уничтоженный крупный план оставлял игрока без его камеры.
+    /// Восстановление идёт через трекер, а не через <see cref="Restore"/>: наследники переопределяют
+    /// его для внешних вызовов и на уничтожении глушат.
+    /// <para>
+    /// На выходе из игры и при выгрузке сцены соседние контроллеры уничтожаются тут же,
+    /// переключаться на них незачем.
+    /// </para>
+    /// </remarks>
     protected override void UnRegisterEventsOnDestroy()
     {
+        bool wasCurrent = IsCurrent;
         ClearCamera();
 
-        // Если мы были активной камерой, пытаемся восстановить предыдущую
-        if (IsCurrent)
+        CameraTracker cameras = CameraTracker.Instance;
+        if (cameras != null)
         {
-            Restore();
+            cameras.RemoveFromStack(this);
+
+            if (wasCurrent && !ApplicationLifetime.IsQuitting && gameObject.scene.isLoaded)
+                cameras.RestorePreviousCamera();
         }
 
         base.UnRegisterEventsOnDestroy();

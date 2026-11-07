@@ -336,6 +336,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
             if (_cameraStack.Count == 0)
             {
                 PRLog.WriteDebug(this, "Стек камер пуст, показываем игровые камеры");
+                ClearCurrent();
                 ShowPlayerCameras();
                 return;
             }
@@ -346,6 +347,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
             if (previous == null)
             {
                 PRLog.WriteWarning(this, "Не найдено живых контроллеров камер в стеке");
+                ClearCurrent();
                 ShowPlayerCameras();
                 return;
             }
@@ -355,5 +357,22 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
             // Активируем найденную камеру
             previous.SetMain(pushInStack: false);
         }
+    }
+
+    /// <summary>
+    /// Забывает текущий контроллер, когда в стеке не осталось ни одного.
+    /// </summary>
+    /// <remarks>
+    /// Без этого <see cref="Current"/> указывал бы на камеру закрытого контроллера, а сам он
+    /// считал бы себя текущим и продолжал вести камеру. Контроллера нет — нет и текущей камеры:
+    /// читающие <see cref="Current"/> уже обрабатывают <c>null</c>. Вызывать под <c>_lock</c>.
+    /// </remarks>
+    private void ClearCurrent()
+    {
+        if (_currentController != null)
+            _currentController.SetCurrent(false);
+
+        _currentController = null;
+        Current = null;
     }
 }

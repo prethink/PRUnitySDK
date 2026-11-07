@@ -14,5 +14,13 @@ public class CameraControllerTestDouble : CameraControllerBase
     protected override void HandleCamera()
     {
     }
+
+    /// <summary>
+    /// То, что Unity делает при уничтожении: в редакторе без Awake её OnDestroy не зовётся.
+    /// </summary>
+    public void DestroyForTest()
+    {
+        UnRegisterEventsOnDestroy();
+    }
 }
 #endif
