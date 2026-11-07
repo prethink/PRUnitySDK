@@ -30,8 +30,9 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     /// и сохранять незачем — после выхода из игры редактор вернёт её сам. Действует независимо
     /// от <see cref="BootstrapSettings.StartFromEditorScene"/>.
     /// <para>
-    /// Одноразовая: <c>Bootstrap</c> снимает её при первой же загрузке сцены. Ставить прямо перед входом в Play;
-    /// тот, кто ставит, снимает её и сам, если Play так и не начался.
+    /// Одноразовая: <c>Bootstrap</c> снимает её при первой же загрузке сцены, а <c>PlayFromBootstrap</c> — при любом
+    /// выходе из Play (остановили раньше загрузки). Ставить прямо перед входом в Play; тот, кто ставит, снимает её и
+    /// сам, если Play так и не начался.
     /// </para>
     /// </remarks>
     public static string EditorSceneOverride

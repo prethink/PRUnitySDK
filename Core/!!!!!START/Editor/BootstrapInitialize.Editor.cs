@@ -40,6 +40,10 @@ public static class PlayFromBootstrap
         if (state == PlayModeStateChange.EnteredEditMode)
         {
             Bootstrap.EditorStartScenePath = string.Empty;
+
+            // Подмена одноразовая, но Play могли остановить раньше, чем Bootstrap её израсходовал (сбой
+            // запуска SDK, ручная остановка). Тогда её взял бы следующий обычный Play — снимаем при любом выходе.
+            Bootstrap.EditorSceneOverride = string.Empty;
             return;
         }
 
