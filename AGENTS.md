@@ -339,6 +339,11 @@ Partial-поля Settings и Database не требуют ручного доб�
 
 ## Что появилось в ядре последним
 
+- **Пул — по префабу.** `ObjectPool.ShowEntity(prefab)` и `ShowObject(prefab)` держат у каждого префаба свой пул
+  (категория — читаемая часть + `GetInstanceID()` префаба). Раньше ключом был `GetPoolKey()` (у префаба сущности
+  всегда `Unknown`), тип компонента или имя, и второй префаб получал экземпляры первого. Разные префабы одного типа
+  через пул выдавать теперь можно; игроков по-прежнему создавать `Instantiate` — `PlayerBase.DestroyEntity` идёт
+  мимо пула (MAINT-019, тест `ObjectPoolPrefabIdentityTests`).
 - **Слои времени — флаги `TimeLayer`.** `PRTimeScale` без базовых значений и режима смешивания: только модификаторы
   `AddModifier(value, affects, except, owner, duration)`, исключение — по объекту. `World` — шаг физики и
   `GameDeltaTime`; своё время — `PRTime.GetDeltaTime(слои)` / `GetTime(слои)`, слои компонента —
@@ -620,4 +625,5 @@ Test Framework: без обёртки тесты там не собрались 
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceDataTests` | запись экземпляра: цикл сохранения, снимок, самостоятельная копия, событие изменения |
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceSpawnTests` | передача записи при создании: одна сущность, дочерние и соседние, вложенные вызовы, чужое определение |
 | `Core/@Entity/EntityInstance/Editor/EntityInstanceLifeTests` | запись на настоящей сущности: выключенный объект, вложенная сущность, повторная выдача из пула, занятый экземпляр; сущность для них — в `EntityInstance/Testing` (компонент из `Editor` на объект не вешается) |
+| `Core/ObjectPool/Editor/ObjectPoolPrefabIdentityTests` | пул выдаёт экземпляр запрошенного префаба, когда у разных префабов совпадает `GetPoolKey()` (у префаба сущности он всегда `Unknown`), тип компонента или имя; возврат в пул не отдаёт экземпляр чужому префабу |
 | `Core/@Entity/EntityManager/Editor/EntityTrackerSearchTests` | поиск сущностей по флагам, типу и описанию, общий учёт в трекерах сущностей и игроков, здоровье игрока; сущности для них — в `EntityManager/Testing` |

@@ -363,8 +363,7 @@ public class ObjectPoolManager : MonoBehaviour
     public T ShowEntity<T>(T prefab, Vector3 position, Quaternion rotation, Transform transform)
         where T : EntityBase
     {
-        RegisterPoolObject("Entity", prefab.GetPoolKey(), prefab.gameObject);
-        var poolObject = ShowObject("Entity", prefab.GetPoolKey(), position, rotation, prefab.transform.localScale, transform);
+        var poolObject = ShowPrefab(EntityTypeKey, prefab.GetPoolKey(), prefab.gameObject, position, rotation, prefab.transform.localScale, transform);
         var entity = poolObject.InstanceGameObject.GetComponent<T>();
         if (entity == null)
             return null;
@@ -382,54 +381,71 @@ public class ObjectPoolManager : MonoBehaviour
     public T ShowObject<T>(T prefab, Vector3 position, Quaternion rotation, Transform transform, out PoolObject poolObject)
         where T : Component
     {
-        RegisterPoolObject(nameof(GameObject), prefab.GetType().ToString(), prefab.gameObject);
-        poolObject = ShowObject(nameof(GameObject), prefab.GetType().ToString(), position, rotation, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, position, rotation, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public T ShowObject<T>(T prefab, Vector3 position, Transform transform, out PoolObject poolObject)
         where T : Component
     {
-        RegisterPoolObject(nameof(GameObject), prefab.GetType().ToString(), prefab.gameObject);
-        poolObject = ShowObject(nameof(GameObject), prefab.GetType().ToString(), position, Quaternion.identity, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, position, Quaternion.identity, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public T ShowObject<T>(T prefab, Transform transform, out PoolObject poolObject)
         where T : Component
     {
-        RegisterPoolObject(nameof(GameObject), prefab.GetType().ToString(), prefab.gameObject);
-        poolObject = ShowObject(nameof(GameObject), prefab.GetType().ToString(), Vector3.zero, Quaternion.identity, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, Vector3.zero, Quaternion.identity, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public T ShowObject<T>(T prefab, Vector3 position, out PoolObject poolObject)
         where T : Component
     {
-        RegisterPoolObject(nameof(GameObject), prefab.GetType().ToString(), prefab.gameObject);
-        poolObject = ShowObject(typeof(GameObject), prefab.GetType().ToString(), position);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, position, Quaternion.identity, Vector3.one, null);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public GameObject ShowObject(GameObject prefab, Vector3 position, out PoolObject poolObject)
     {
-        RegisterPoolObject(typeof(GameObject), prefab.name, prefab);
-        poolObject = ShowObject(typeof(GameObject), prefab.name, position);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab, position, Quaternion.identity, Vector3.one, null);
         return poolObject.InstanceGameObject;
     }
 
     public GameObject ShowObject(GameObject prefab, Vector3 position, Vector3 scale, out PoolObject poolObject)
     {
-        RegisterPoolObject(typeof(GameObject), prefab.name, prefab);
-        poolObject = ShowObject(typeof(GameObject), prefab.name, position, scale);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab, position, Quaternion.identity, scale, null);
         return poolObject.InstanceGameObject;
     }
 
     public GameObject ShowObject(GameObject prefab, Vector3 position, Quaternion rotation, Transform transform, out PoolObject poolObject)
     {
-        RegisterPoolObject(nameof(GameObject), prefab.name, prefab);
-        poolObject = ShowObject(nameof(GameObject), prefab.name, position, rotation, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab, position, rotation, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject;
+    }
+
+    /// <summary>
+    /// Выдаёт экземпляр именно этого префаба, заводя ему пул при первом обращении.
+    /// </summary>
+    /// <remarks>
+    /// Категория пула привязана к самому префабу (<see cref="PrefabCategory"/>), а не только к его
+    /// имени, типу компонента или <see cref="EntityBase.GetPoolKey"/>: всё это у разных префабов
+    /// совпадает. У префаба сущности нет метаданных — они ставятся в <c>Awake</c>, а ассет не
+    /// просыпается, — и ключ у всех <c>Unknown</c>. С общим пулом второй префаб молча получал
+    /// экземпляры первого: под одним ключом регистрируется только первый набор префабов.
+    /// </remarks>
+    /// <param name="type">Тип ключа пула.</param>
+    /// <param name="readableCategory">Читаемая часть категории: её видно в отладочном отчёте пулов.</param>
+    /// <param name="prefab">Префаб, экземпляр которого нужен.</param>
+    /// <param name="position">Локальная позиция.</param>
+    /// <param name="rotation">Локальное вращение.</param>
+    /// <param name="scale">Локальный размер.</param>
+    /// <param name="parent">Родитель либо <c>null</c>.</param>
+    private PoolObject ShowPrefab(string type, string readableCategory, GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent)
+    {
+        string category = PrefabCategory(readableCategory, prefab);
+        RegisterPoolObject(type, category, prefab);
+        return ShowObject(type, category, position, rotation, scale, parent);
     }
 
     #endregion
@@ -440,6 +456,28 @@ public class ObjectPoolManager : MonoBehaviour
     /// Строковый ключ типа по умолчанию — используется, когда вызывающий код не привязан к конкретному компоненту.
     /// </summary>
     private static string DefaultTypeKey { get; } = typeof(MonoBehaviour).ToString();
+
+    /// <summary>
+    /// Тип ключа для пулов сущностей, заведённых по префабу.
+    /// </summary>
+    private const string EntityTypeKey = "Entity";
+
+    /// <summary>
+    /// Тип ключа для пулов обычных объектов, заведённых по префабу.
+    /// </summary>
+    private const string PrefabTypeKey = nameof(GameObject);
+
+    /// <summary>
+    /// Категория пула одного префаба: читаемое имя плюс идентификатор самого префаба.
+    /// </summary>
+    /// <remarks>
+    /// Идентификатор объекта не меняется и за сеанс редактора или игры не выдаётся повторно,
+    /// поэтому ключ не укажет на другой префаб даже после уничтожения прежнего.
+    /// Читаемую часть оставляем: переопределения <see cref="EntityBase.GetPoolKey"/> разводят
+    /// по пулам экземпляры одного префаба с разным содержимым (контейнеры с разными предметами).
+    /// </remarks>
+    private static string PrefabCategory(string readableCategory, GameObject prefab) =>
+        $"{readableCategory}#{prefab.GetInstanceID()}";
 
     private static string TypeKeyOf(Component component) => component.GetType().ToString();
 
