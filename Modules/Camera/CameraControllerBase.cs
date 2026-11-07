@@ -170,7 +170,9 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     /// его для внешних вызовов и на уничтожении глушат.
     /// <para>
     /// На выходе из игры и при выгрузке сцены соседние контроллеры уничтожаются тут же,
-    /// переключаться на них незачем.
+    /// переключаться на них незачем: трекер только забывает этот контроллер как текущий, чтобы
+    /// не держать камеру выгруженной сцены. Трекер берётся существующий — создавать его ради
+    /// уходящего контроллера незачем.
     /// </para>
     /// </remarks>
     protected override void UnRegisterEventsOnDestroy()
@@ -178,15 +180,24 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
         bool wasCurrent = IsCurrent;
         ClearCamera();
 
-        CameraTracker cameras = CameraTracker.Instance;
-        if (cameras != null)
+        if (CameraTracker.TryGetInstance(out CameraTracker cameras))
         {
             cameras.RemoveFromStack(this);
 
-            if (wasCurrent && !ApplicationLifetime.IsQuitting && gameObject.scene.isLoaded)
+            if (wasCurrent && CanRestoreOnDestroy)
                 cameras.RestorePreviousCamera();
+            else
+                cameras.ClearCurrentIf(this);
         }
 
         base.UnRegisterEventsOnDestroy();
     }
+
+    /// <summary>
+    /// Можно ли при уничтожении переключиться на предыдущую камеру.
+    /// </summary>
+    /// <remarks>
+    /// Нельзя на выходе из игры и при выгрузке сцены: соседние контроллеры уходят вместе с этим.
+    /// </remarks>
+    protected virtual bool CanRestoreOnDestroy => !ApplicationLifetime.IsQuitting && gameObject.scene.isLoaded;
 }

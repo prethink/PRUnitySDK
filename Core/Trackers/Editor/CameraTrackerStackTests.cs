@@ -120,6 +120,77 @@ public class CameraTrackerStackTests
         Assert.IsTrue(tracker.IsMainCameraActive, "Уничтожение не текущей камеры ничего не переключает.");
     }
 
+    [Test]
+    public void DestroyingCurrentAboveAnother_RestoresTheOne()
+    {
+        Camera camera = SetSceneCamera();
+        CameraControllerTestDouble below = Create("Below");
+        CameraControllerTestDouble above = Create("Above");
+
+        // A → B: B текущий поверх A.
+        tracker.Push(below);
+        tracker.Push(above);
+        MakeCurrent(above, camera);
+
+        above.DestroyForTest();
+
+        Assert.AreSame(below, tracker.Peek());
+        Assert.AreEqual(1, tracker.Count);
+        Assert.IsTrue(below.IsCurrent, "После уничтожения верхней текущей должна стать нижняя.");
+        Assert.IsFalse(above.IsCurrent);
+        Assert.AreSame(camera, tracker.Current);
+        Assert.IsTrue(tracker.IsMainCameraActive);
+    }
+
+    [Test]
+    public void DestroyingCurrentWithoutRestore_ClearsCurrentOnly()
+    {
+        Camera camera = SetSceneCamera();
+        CameraControllerTestDouble below = Create("Below");
+        CameraControllerTestDouble above = Create("Above");
+
+        tracker.Push(below);
+        tracker.Push(above);
+        MakeCurrent(above, camera);
+        tracker.HidePlayerCameras();
+
+        // Выход из игры или выгрузка сцены: переключаться не на кого, но и держать уходящего нельзя.
+        above.RestoreOnDestroyOverride = false;
+        above.DestroyForTest();
+
+        Assert.IsNull(tracker.Current, "Трекер не должен держать камеру уходящего контроллера.");
+        Assert.IsFalse(below.IsCurrent, "Без восстановления нижняя не включается.");
+        Assert.AreSame(below, tracker.Peek());
+        Assert.IsTrue(tracker.IsMainCameraActive, "Без восстановления камеры не переключаются.");
+    }
+
+    [Test]
+    public void DestroyingController_WithoutTracker_DoesNotCreateOne()
+    {
+        CameraControllerTestDouble controller = Create("Lonely");
+        CameraTracker.Override(null);
+
+        controller.DestroyForTest();
+
+        Assert.IsFalse(CameraTracker.TryGetInstance(out _), "Уничтожение не должно поднимать трекер заново.");
+    }
+
+    /// <summary>
+    /// Камера сцены для трекера: восстановление включает именно её.
+    /// </summary>
+    private Camera SetSceneCamera()
+    {
+        var camera = new GameObject("CameraTrackerStackTests_SceneCamera").AddComponent<Camera>();
+        created.Add(camera.gameObject);
+
+        // SetMainCamera внутренний, как и SetCurrent: тестовая сборка его не видит.
+        typeof(CameraTracker).GetProperty(nameof(CameraTracker.MainCamera))
+            .GetSetMethod(nonPublic: true)
+            .Invoke(tracker, new object[] { camera });
+
+        return camera;
+    }
+
     /// <summary>
     /// Делает контроллер текущим так же, как <c>SetMain</c>, но без камеры сцены и событий.
     /// </summary>

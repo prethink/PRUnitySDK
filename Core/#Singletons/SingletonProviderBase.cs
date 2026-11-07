@@ -29,6 +29,19 @@ public abstract class SingletonProviderBase<T>
     #region Методы
 
     /// <summary>
+    /// Отдаёт экземпляр, только если он уже создан.
+    /// </summary>
+    /// <remarks>
+    /// Для кода уничтожения и выхода из игры: <see cref="Instance"/> создал бы экземпляр
+    /// заново, хотя тому, кто уходит, сообщать уже некому.
+    /// </remarks>
+    public static bool TryGetInstance(out T existing)
+    {
+        existing = instance;
+        return existing != null;
+    }
+
+    /// <summary>
     /// Установить новый экземпляр глобальных настроек.
     /// </summary>
     /// <param name="newInstance"></param>

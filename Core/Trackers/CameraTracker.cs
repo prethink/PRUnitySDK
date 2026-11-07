@@ -360,6 +360,24 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
     }
 
     /// <summary>
+    /// Забывает контроллер как текущий, не переключаясь ни на какую камеру.
+    /// </summary>
+    /// <remarks>
+    /// Для уничтожения без восстановления (выход из игры, выгрузка сцены): трекер живёт дольше сцены
+    /// и иначе держал бы камеру выгруженной сцены в <see cref="Current"/>. Чужой текущий контроллер не трогается.
+    /// </remarks>
+    public void ClearCurrentIf(CameraControllerBase controller)
+    {
+        lock (_lock)
+        {
+            if (!ReferenceEquals(_currentController, controller))
+                return;
+
+            ClearCurrent();
+        }
+    }
+
+    /// <summary>
     /// Забывает текущий контроллер, когда в стеке не осталось ни одного.
     /// </summary>
     /// <remarks>

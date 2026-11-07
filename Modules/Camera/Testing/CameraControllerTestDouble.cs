@@ -16,6 +16,15 @@ public class CameraControllerTestDouble : CameraControllerBase
     }
 
     /// <summary>
+    /// Подменяет ответ «можно ли восстановить камеру при уничтожении»: выход из игры и выгрузку
+    /// сцены в EditMode не воспроизвести. <c>null</c> — как у настоящего контроллера.
+    /// </summary>
+    public bool? RestoreOnDestroyOverride;
+
+    /// <inheritdoc />
+    protected override bool CanRestoreOnDestroy => RestoreOnDestroyOverride ?? base.CanRestoreOnDestroy;
+
+    /// <summary>
     /// То, что Unity делает при уничтожении: в редакторе без Awake её OnDestroy не зовётся.
     /// </summary>
     public void DestroyForTest()

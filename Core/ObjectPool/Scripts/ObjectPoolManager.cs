@@ -306,8 +306,19 @@ public class ObjectPoolManager : MonoBehaviour
     /// <summary>
     /// Отображает объект на сцене.
     /// </summary>
+    /// <remarks>
+    /// Как и остальные перегрузки с <see cref="Transform"/>: объект становится его дочерним в его точке.
+    /// Раньше эта одна ставила объект в мировые координаты без родителя — поведение зависело от того,
+    /// передан тип или компонент. Нужна точка без родителя — перегрузка с позицией и поворотом.
+    /// </remarks>
     public PoolObject ShowObject(Component component, string category, Transform transform)
-        => ShowObject(TypeKeyOf(component), category, transform.position, transform.rotation, Vector3.one, null);
+        => ShowObject(TypeKeyOf(component), category, Vector3.zero, Quaternion.identity, Vector3.one, transform);
+
+    /// <summary>
+    /// Отображает объект в мировой точке без родителя.
+    /// </summary>
+    public PoolObject ShowObject(Component component, string category, Vector3 position, Quaternion rotation)
+        => ShowObject(TypeKeyOf(component), category, position, rotation, Vector3.one, null);
 
     /// <summary>
     /// Отображает объект на сцене.

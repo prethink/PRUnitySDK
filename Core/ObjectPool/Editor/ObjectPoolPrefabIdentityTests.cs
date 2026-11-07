@@ -280,17 +280,52 @@ public class ObjectPoolPrefabIdentityTests
     }
 
     [Test]
-    public void ShowObject_AtTransform_BecomesChildAtItsPlace()
+    public void ShowObject_EveryTransformOverload_BecomesChildAtItsPlace()
     {
+        MovePoolContainer(new Vector3(-14f, 3f, -65f));
         GameObject prefab = CreatePrefab<Transform>("AtTransform").gameObject;
         Transform anchor = new GameObject(Prefix + "Anchor").transform;
-        anchor.position = new Vector3(5f, 0f, 0f);
+        anchor.SetPositionAndRotation(new Vector3(5f, 0f, 0f), Quaternion.Euler(0f, 90f, 0f));
 
-        pool.RegisterPoolObject(Prefix + "Anchored", prefab);
-        PoolObject shown = pool.ShowObject(Prefix + "Anchored", anchor);
+        // Каждая перегрузка регистрируется своим ключом: тип по умолчанию, Type, компонент.
+        pool.RegisterPoolObject(Prefix + "ByName", prefab);
+        pool.RegisterPoolObject(typeof(BoxCollider), Prefix + "ByType", prefab);
+        pool.RegisterPoolObject(anchor, Prefix + "ByComponent", prefab);
 
-        Assert.AreSame(anchor, shown.InstanceGameObject.transform.parent);
-        Assert.AreEqual(anchor.position, shown.InstanceGameObject.transform.position);
+        var shown = new (string Overload, PoolObject Result)[]
+        {
+            ("(category, Transform)", pool.ShowObject(Prefix + "ByName", anchor)),
+            ("(category, Transform, scale)", pool.ShowObject(Prefix + "ByName", anchor, Vector3.one)),
+            ("(Type, category, Transform)", pool.ShowObject(typeof(BoxCollider), Prefix + "ByType", anchor)),
+            ("(Type, category, Transform, scale)", pool.ShowObject(typeof(BoxCollider), Prefix + "ByType", anchor, Vector3.one)),
+            ("(Component, category, Transform)", pool.ShowObject(anchor, Prefix + "ByComponent", anchor)),
+            ("(Component, category, Transform, scale)", pool.ShowObject(anchor, Prefix + "ByComponent", anchor, Vector3.one)),
+        };
+
+        foreach ((string overload, PoolObject result) in shown)
+        {
+            Transform placed = result.InstanceGameObject.transform;
+            Assert.AreSame(anchor, placed.parent, overload + ": не дочерний");
+            Assert.AreEqual(anchor.position, placed.position, overload + ": не в точке");
+            Assert.IsTrue(Quaternion.Angle(anchor.rotation, placed.rotation) < 0.01f, overload + ": не тем поворотом");
+        }
+    }
+
+    [Test]
+    public void ShowObject_ComponentWithPositionAndRotation_PlacesWithoutParent()
+    {
+        MovePoolContainer(new Vector3(-14f, 3f, -65f));
+        GameObject prefab = CreatePrefab<Transform>("AtPoint").gameObject;
+        Transform owner = new GameObject(Prefix + "Owner").transform;
+        var target = new Vector3(1f, 2f, 3f);
+        Quaternion rotation = Quaternion.Euler(0f, 45f, 0f);
+
+        pool.RegisterPoolObject(owner, Prefix + "AtPoint", prefab);
+        Transform placed = pool.ShowObject(owner, Prefix + "AtPoint", target, rotation).InstanceGameObject.transform;
+
+        Assert.AreNotSame(owner, placed.parent);
+        Assert.AreEqual(target, placed.position);
+        Assert.IsTrue(Quaternion.Angle(rotation, placed.rotation) < 0.01f);
     }
 
     /// <summary>
