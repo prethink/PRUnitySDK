@@ -222,6 +222,33 @@ public class ObjectPoolPrefabIdentityTests
         Assert.AreEqual(1, CountInstances(prefab));
     }
 
+    [Test]
+    public void ShowObject_DuringFilling_TakesNextPrefabInTurn()
+    {
+        GameObject first = CreatePrefab<Transform>("TurnA").gameObject;
+        GameObject second = CreatePrefab<Transform>("TurnB").gameObject;
+
+        // По два каждого: наполнение успело создать первый, следующий по кругу — второй.
+        pool.RegisterPoolObject(Prefix + "Type", "Turn", new System.Collections.Generic.List<GameObject> { first, second }, 2);
+        pool.ShowObject(Prefix + "Type", "Turn", Vector3.zero, Quaternion.identity, Vector3.one, null);
+
+        // Случайный выбор для этого зерна дал бы первый префаб.
+        Random.InitState(SeedPickingFirstOfTwo());
+        PoolObject onDemand = pool.ShowObject(Prefix + "Type", "Turn", Vector3.zero, Quaternion.identity, Vector3.one, null);
+
+        Assert.AreEqual(second.name + "(Clone)", onDemand.InstanceGameObject.name);
+    }
+
+    private static int SeedPickingFirstOfTwo()
+    {
+        for (int seed = 0; ; seed++)
+        {
+            Random.InitState(seed);
+            if (Random.Range(0, 2) == 0)
+                return seed;
+        }
+    }
+
     private static int CountInstances(Component prefab)
     {
         string name = prefab.name + "(Clone)";

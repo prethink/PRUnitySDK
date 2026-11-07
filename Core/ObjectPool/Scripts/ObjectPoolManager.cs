@@ -383,11 +383,20 @@ public class ObjectPoolManager : MonoBehaviour
 
         if (entry.Queue.Count == 0)
         {
-            // Созданный по требованию идёт в счёт заказанного прогрева, а не сверх него.
+            // Пока идёт наполнение, созданный по требованию — его очередной шаг: в счёт заказа и тем же
+            // префабом по кругу, иначе прогрев «по N каждого» перекосился бы в пользу случайного.
+            GameObject prefab;
             if (entry.Pending > 0)
+            {
                 entry.Pending--;
+                prefab = NextPrefabInTurn(entry);
+            }
+            else
+            {
+                prefab = RandomPrefab(entry);
+            }
 
-            CreateInstance(entry, RandomPrefab(entry));
+            CreateInstance(entry, prefab);
         }
 
         var poolObject = entry.Queue.Dequeue();
@@ -610,6 +619,12 @@ public class ObjectPoolManager : MonoBehaviour
         entry.Prefabs[UnityEngine.Random.Range(0, entry.Prefabs.Count)];
 
     /// <summary>
+    /// Следующий префаб заказанного наполнения: по кругу, чтобы каждого вышло поровну.
+    /// </summary>
+    private static GameObject NextPrefabInTurn(PoolEntry entry) =>
+        entry.Prefabs[entry.NextPrefab++ % entry.Prefabs.Count];
+
+    /// <summary>
     /// Корутина создания объектов в пуле.
     /// </summary>
     /// <param name="entry">Пул, в который добавляются объекты.</param>
@@ -619,7 +634,7 @@ public class ObjectPoolManager : MonoBehaviour
         while (entry.Pending > 0)
         {
             entry.Pending--;
-            CreateInstance(entry, entry.Prefabs[entry.NextPrefab++ % entry.Prefabs.Count]);
+            CreateInstance(entry, NextPrefabInTurn(entry));
             yield return null;
         }
 

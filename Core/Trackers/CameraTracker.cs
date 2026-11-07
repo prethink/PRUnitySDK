@@ -60,8 +60,12 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
     public bool IsMainCameraActive => _isMainCameraActive;
 
     /// <summary>
-    /// Добавляет камеру в стек, если она не уже на вершине.
+    /// Кладёт камеру на вершину стека; уже лежащая ниже переносится наверх.
     /// </summary>
+    /// <remarks>
+    /// Камера в стеке одна: иначе после «A → B → снова A» закрытие A оставило бы её
+    /// копию под B, и восстановление вернуло бы уже закрытую камеру.
+    /// </remarks>
     public void Push(CameraControllerBase cameraController)
     {
         if (cameraController == null)
@@ -75,6 +79,7 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
             if (_cameraStack.Count > 0 && _cameraStack.Peek() == cameraController)
                 return;
 
+            RemoveAllFromStack(cameraController);
             _cameraStack.Push(cameraController);
         }
     }
@@ -293,20 +298,29 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
 
         lock (_lock)
         {
-            // Преобразуем в список, удаляем контроллер, восстанавливаем стек
-            var tempList = _cameraStack.ToList();
-            tempList.Remove(controller);
-
-            _cameraStack.Clear();
-
-            // Восстанавливаем в обратном порядке (стек работает LIFO)
-            for (int i = tempList.Count - 1; i >= 0; i--)
-            {
-                _cameraStack.Push(tempList[i]);
-            }
-
+            RemoveAllFromStack(controller);
             PRLog.WriteDebug(this, $"Удален контроллер из стека. Осталось: {_cameraStack.Count}");
         }
+    }
+
+    /// <summary>
+    /// Убирает из стека все вхождения контроллера, сохраняя порядок остальных.
+    /// </summary>
+    /// <remarks>
+    /// Все, а не первое: стек мог достаться с повтором от прежнего кода, и закрытая камера не должна
+    /// всплыть из-под других при восстановлении. Вызывать под <c>_lock</c>.
+    /// </remarks>
+    private void RemoveAllFromStack(CameraControllerBase controller)
+    {
+        if (!_cameraStack.Contains(controller))
+            return;
+
+        // ToList идёт от вершины к низу; обратно кладём с низа, чтобы вершина осталась вершиной.
+        var remaining = _cameraStack.Where(item => !ReferenceEquals(item, controller)).ToList();
+        _cameraStack.Clear();
+
+        for (int i = remaining.Count - 1; i >= 0; i--)
+            _cameraStack.Push(remaining[i]);
     }
 
     /// <summary>
