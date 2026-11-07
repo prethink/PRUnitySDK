@@ -360,6 +360,39 @@ public partial class CameraTracker : SingletonProviderBase<CameraTracker>
     }
 
     /// <summary>
+    /// Восстанавливает камеру, когда текущий контроллер уходит вместе со своей сценой.
+    /// </summary>
+    /// <remarks>
+    /// Контроллеры из выгружаемой сцены уничтожаются вслед за этим — переключаться на них нельзя. А пережить
+    /// выгрузку могут: <c>PlayerCamerasStack</c> живёт в <c>DontDestroyOnLoad</c>. Без восстановления игрок,
+    /// ушедший со сцены посреди крупного плана, остался бы без своих камер. Поэтому берётся первый живой
+    /// контроллер не из этой сцены; нет такого — как при пустом стеке: текущий сбрасывается, камеры игрока
+    /// показываются (живые — включатся, уходящие со сценой — пропускаются).
+    /// </remarks>
+    /// <param name="unloading">Сцена, которая выгружается.</param>
+    public void RestoreSurvivingCamera(UnityEngine.SceneManagement.Scene unloading)
+    {
+        lock (_lock)
+        {
+            CleanDeadReferences();
+
+            CameraControllerBase survivor = _cameraStack.FirstOrDefault(controller =>
+                controller != null && controller.gameObject.scene != unloading);
+
+            if (survivor == null)
+            {
+                PRLog.WriteDebug(this, $"Сцена {unloading.name} выгружается, переживших её камер в стеке нет: показываем игровые камеры");
+                ClearCurrent();
+                ShowPlayerCameras();
+                return;
+            }
+
+            PRLog.WriteDebug(this, $"Сцена {unloading.name} выгружается, восстанавливаем камеру: {survivor.gameObject.name}");
+            survivor.SetMain(pushInStack: false);
+        }
+    }
+
+    /// <summary>
     /// Забывает контроллер как текущий, не переключаясь ни на какую камеру.
     /// </summary>
     /// <remarks>

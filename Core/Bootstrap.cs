@@ -21,6 +21,20 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         get => UnityEditor.SessionState.GetString("PRUnitySDK.Bootstrap.EditorStartScenePath", string.Empty);
         set => UnityEditor.SessionState.SetString("PRUnitySDK.Bootstrap.EditorStartScenePath", value ?? string.Empty);
     }
+
+    /// <summary>
+    /// Сцена, которую Play загрузит вместо открытой в редакторе; пусто — обычный порядок.
+    /// </summary>
+    /// <remarks>
+    /// Для Play-тестов механизмов: им нужна своя чистая сцена, а сцену пользователя открывать
+    /// и сохранять незачем — после выхода из игры редактор вернёт её сам. Действует независимо
+    /// от <see cref="BootstrapSettings.StartFromEditorScene"/>. Кто ставит, тот и снимает.
+    /// </remarks>
+    public static string EditorSceneOverride
+    {
+        get => UnityEditor.SessionState.GetString("PRUnitySDK.Bootstrap.EditorSceneOverride", string.Empty);
+        set => UnityEditor.SessionState.SetString("PRUnitySDK.Bootstrap.EditorSceneOverride", value ?? string.Empty);
+    }
 #endif
 
     /// <summary>
@@ -237,9 +251,11 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
             loadingScreen = BootstrapLoadingScreen.TryCreate();
 
 #if UNITY_EDITOR
-        string editorScenePath = EditorStartScenePath;
+        string editorScenePath = !string.IsNullOrEmpty(EditorSceneOverride)
+            ? EditorSceneOverride
+            : Settings.StartFromEditorScene ? EditorStartScenePath : null;
 
-        if (Settings.StartFromEditorScene && !string.IsNullOrEmpty(editorScenePath))
+        if (!string.IsNullOrEmpty(editorScenePath))
         {
             var parameters = new UnityEngine.SceneManagement.LoadSceneParameters(
                 UnityEngine.SceneManagement.LoadSceneMode.Single);

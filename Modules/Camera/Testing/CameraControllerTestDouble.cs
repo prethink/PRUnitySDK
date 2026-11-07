@@ -25,6 +25,19 @@ public class CameraControllerTestDouble : CameraControllerBase
     protected override bool CanRestoreOnDestroy => RestoreOnDestroyOverride ?? base.CanRestoreOnDestroy;
 
     /// <summary>
+    /// Была ли сцена загружена, когда контроллер последний раз уничтожался, — для Play-теста выгрузки:
+    /// по этому признаку контроллер отличает выгрузку сцены от обычного уничтожения.
+    /// </summary>
+    public static bool? SceneLoadedAtLastDestroy;
+
+    /// <inheritdoc />
+    protected override void UnRegisterEventsOnDestroy()
+    {
+        SceneLoadedAtLastDestroy = gameObject.scene.isLoaded;
+        base.UnRegisterEventsOnDestroy();
+    }
+
+    /// <summary>
     /// То, что Unity делает при уничтожении: в редакторе без Awake её OnDestroy не зовётся.
     /// </summary>
     public void DestroyForTest()

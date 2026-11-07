@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Стек камер: закрытая камера уходит из стека целиком и не возвращается при восстановлении.
@@ -29,8 +31,12 @@ public class CameraTrackerStackTests
     {
         CameraTracker.Override(previous);
 
+        // Объекты из закрытой дополнительной сцены уже уничтожены вместе с ней.
         foreach (Object item in created)
-            Object.DestroyImmediate(item);
+        {
+            if (item != null)
+                Object.DestroyImmediate(item);
+        }
 
         created.Clear();
     }
@@ -173,6 +179,61 @@ public class CameraTrackerStackTests
         controller.DestroyForTest();
 
         Assert.IsFalse(CameraTracker.TryGetInstance(out _), "Уничтожение не должно поднимать трекер заново.");
+    }
+
+    [Test]
+    public void RestoreSurvivingCamera_SkipsControllersOfUnloadingScene()
+    {
+        SetSceneCamera();
+        CameraControllerTestDouble survivor = Create("Survivor");
+        // Отдельная сцена: Test Runner работает в несохранённой, и дополнительную к ней не создать.
+        Scene leaving = EditorSceneManager.NewPreviewScene();
+
+        try
+        {
+            CameraControllerTestDouble neighbour = Create("Neighbour");
+            SceneManager.MoveGameObjectToScene(neighbour.gameObject, leaving);
+
+            // Выжившая (как PlayerCamerasStack в DontDestroyOnLoad) внизу, сосед из уходящей сцены над ней.
+            tracker.Push(survivor);
+            tracker.Push(neighbour);
+
+            tracker.RestoreSurvivingCamera(leaving);
+
+            Assert.IsTrue(survivor.IsCurrent, "Включиться должна камера, пережившая выгрузку.");
+            Assert.IsFalse(neighbour.IsCurrent, "Контроллер уходящей сцены включать нельзя.");
+        }
+        finally
+        {
+            EditorSceneManager.ClosePreviewScene(leaving);
+        }
+    }
+
+    [Test]
+    public void RestoreSurvivingCamera_NoSurvivor_ShowsPlayerCamerasAndClearsCurrent()
+    {
+        Camera camera = SetSceneCamera();
+        // Отдельная сцена: Test Runner работает в несохранённой, и дополнительную к ней не создать.
+        Scene leaving = EditorSceneManager.NewPreviewScene();
+
+        try
+        {
+            CameraControllerTestDouble neighbour = Create("Neighbour");
+            SceneManager.MoveGameObjectToScene(neighbour.gameObject, leaving);
+            tracker.Push(neighbour);
+            MakeCurrent(neighbour, camera);
+            tracker.HidePlayerCameras();
+
+            tracker.RestoreSurvivingCamera(leaving);
+
+            Assert.IsFalse(tracker.IsMainCameraActive, "Без переживших камер возвращаются камеры игрока.");
+            Assert.IsNull(tracker.Current);
+            Assert.IsFalse(neighbour.IsCurrent);
+        }
+        finally
+        {
+            EditorSceneManager.ClosePreviewScene(leaving);
+        }
     }
 
     /// <summary>

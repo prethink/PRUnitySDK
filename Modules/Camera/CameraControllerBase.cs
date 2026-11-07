@@ -169,9 +169,10 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
     /// Восстановление идёт через трекер, а не через <see cref="Restore"/>: наследники переопределяют
     /// его для внешних вызовов и на уничтожении глушат.
     /// <para>
-    /// На выходе из игры и при выгрузке сцены соседние контроллеры уничтожаются тут же,
-    /// переключаться на них незачем: трекер только забывает этот контроллер как текущий, чтобы
-    /// не держать камеру выгруженной сцены. Трекер берётся существующий — создавать его ради
+    /// При выгрузке сцены соседние по сцене контроллеры уходят вместе с этим, но пережить её могут другие
+    /// (<c>PlayerCamerasStack</c> в <c>DontDestroyOnLoad</c>): трекер переключается на первый из переживших
+    /// (<see cref="CameraTracker.RestoreSurvivingCamera"/>). На выходе из игры не переключается ничего —
+    /// трекер только забывает этот контроллер как текущий. Трекер берётся существующий — создавать его ради
     /// уходящего контроллера незачем.
     /// </para>
     /// </remarks>
@@ -184,20 +185,22 @@ public abstract class CameraControllerBase : PRMonoBehaviour, IGameplayEvent
         {
             cameras.RemoveFromStack(this);
 
-            if (wasCurrent && CanRestoreOnDestroy)
+            if (!wasCurrent || !CanRestoreOnDestroy)
+                cameras.ClearCurrentIf(this);
+            else if (gameObject.scene.isLoaded)
                 cameras.RestorePreviousCamera();
             else
-                cameras.ClearCurrentIf(this);
+                cameras.RestoreSurvivingCamera(gameObject.scene);
         }
 
         base.UnRegisterEventsOnDestroy();
     }
 
     /// <summary>
-    /// Можно ли при уничтожении переключиться на предыдущую камеру.
+    /// Можно ли при уничтожении переключиться на другую камеру.
     /// </summary>
     /// <remarks>
-    /// Нельзя на выходе из игры и при выгрузке сцены: соседние контроллеры уходят вместе с этим.
+    /// Нельзя на выходе из игры: уничтожается всё, переключаться не на что.
     /// </remarks>
-    protected virtual bool CanRestoreOnDestroy => !ApplicationLifetime.IsQuitting && gameObject.scene.isLoaded;
+    protected virtual bool CanRestoreOnDestroy => !ApplicationLifetime.IsQuitting;
 }
