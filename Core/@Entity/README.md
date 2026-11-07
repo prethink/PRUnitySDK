@@ -59,7 +59,7 @@ public class Player : EntityBase<PlayerMetadata>
 | Вид | `EntityType` из описания; сущности с определением задают его в коде |
 | Описание | `Description` — имя, иконка, локализация и качество |
 | Уничтожение | `DestroyEntity()` с учётом пула и настройки `EntityDisposeAction` |
-| Пул | Реализация `IPoolable` через `PoolBehaviour`; `ObjectPool.ShowEntity(prefab)` держит у каждого префаба свой пул, `GetPoolKey()` только дополнительно делит его (контейнеры с разными предметами) |
+| Пул | Реализация `IPoolable` через `PoolBehaviour`; `ObjectPool.ShowEntity(prefab)` держит у каждого префаба свой пул, `GetPoolKey()` только дополнительно делит его (контейнеры с разными предметами); прогрев — `ObjectPool.RegisterEntityPool(prefab, n)` |
 | Пауза и время | Наследуется от `PRMonoBehaviour`; слои времени — поле «Время» (`TimeLayer`, флаги), `GetTimeLayers()` |
 | Мониторы | Автоматически подхватывает `AnimatorPauseMonitor` |
 

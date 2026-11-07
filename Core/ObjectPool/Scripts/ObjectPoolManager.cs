@@ -41,6 +41,37 @@ public class ObjectPoolManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Пул одного префаба: тип ключа, читаемая категория и идентификатор самого префаба.
+    /// </summary>
+    /// <remarks>
+    /// Идентификатор — отдельным полем, а не частью строки: так найденный пул ищется без
+    /// сборки строки на каждую выдачу. Строковая категория остаётся у <see cref="PoolKey"/>
+    /// для отчёта пулов и <see cref="ClearPool(string, string)"/>.
+    /// </remarks>
+    private readonly struct PrefabPoolId : IEquatable<PrefabPoolId>
+    {
+        public readonly string Type;
+        public readonly string ReadableCategory;
+        public readonly int PrefabId;
+
+        public PrefabPoolId(string type, string readableCategory, int prefabId)
+        {
+            Type = type;
+            ReadableCategory = readableCategory;
+            PrefabId = prefabId;
+        }
+
+        public bool Equals(PrefabPoolId other) =>
+            PrefabId == other.PrefabId &&
+            string.Equals(Type, other.Type, StringComparison.Ordinal) &&
+            string.Equals(ReadableCategory, other.ReadableCategory, StringComparison.Ordinal);
+
+        public override bool Equals(object obj) => obj is PrefabPoolId other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Type, ReadableCategory, PrefabId);
+    }
+
+    /// <summary>
     /// Данные одного зарегистрированного пула: очередь свободных объектов и исходные префабы.
     /// </summary>
     private class PoolEntry
@@ -68,6 +99,12 @@ public class ObjectPoolManager : MonoBehaviour
     /// Все зарегистрированные пулы, ключ — тип + категория.
     /// </summary>
     private readonly Dictionary<PoolKey, PoolEntry> pools = new();
+
+    /// <summary>
+    /// Пулы, заведённые по префабу, — быстрый путь выдачи. Источник истины — <see cref="pools"/>:
+    /// запись здесь действительна, только пока тот же пул лежит и там.
+    /// </summary>
+    private readonly Dictionary<PrefabPoolId, PoolEntry> prefabPools = new();
 
     /// <summary>
     /// Объекты, вытянутые из очереди и находящиеся на сцене.
@@ -316,6 +353,19 @@ public class ObjectPoolManager : MonoBehaviour
             return null;
         }
 
+        return ShowFromEntry(entry, position, rotation, scaler, parent);
+    }
+
+    /// <summary>
+    /// Выдаёт объект из уже найденного пула.
+    /// </summary>
+    /// <remarks>
+    /// Родитель ставится при каждой выдаче, в том числе пустой: объект из пула помнит
+    /// родителя прошлой выдачи, и без сброса выданный «без родителя» остался бы дочерним
+    /// у прежнего — с его трансформацией и уничтожением вместе с ним.
+    /// </remarks>
+    private PoolObject ShowFromEntry(PoolEntry entry, Vector3 position, Quaternion rotation, Vector3 scaler, Transform parent)
+    {
         // Если очередь пуста или объект был уничтожен извне (например, при смене сцены) — досоздаём один экземпляр.
         while (entry.Queue.Count > 0 && entry.Queue.Peek().InstanceGameObject == null)
             entry.Queue.Dequeue();
@@ -325,8 +375,7 @@ public class ObjectPoolManager : MonoBehaviour
 
         var poolObject = entry.Queue.Dequeue();
 
-        if (parent != null)
-            poolObject.InstanceGameObject.transform.SetParent(parent);
+        poolObject.InstanceGameObject.transform.SetParent(parent != null ? parent : ContainerOf(poolObject));
 
         var t = poolObject.InstanceGameObject.transform;
         t.localPosition = position;
@@ -381,28 +430,28 @@ public class ObjectPoolManager : MonoBehaviour
     public T ShowObject<T>(T prefab, Vector3 position, Quaternion rotation, Transform transform, out PoolObject poolObject)
         where T : Component
     {
-        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, position, rotation, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab.gameObject, position, rotation, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public T ShowObject<T>(T prefab, Vector3 position, Transform transform, out PoolObject poolObject)
         where T : Component
     {
-        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, position, Quaternion.identity, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab.gameObject, position, Quaternion.identity, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public T ShowObject<T>(T prefab, Transform transform, out PoolObject poolObject)
         where T : Component
     {
-        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, Vector3.zero, Quaternion.identity, prefab.transform.localScale, transform);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab.gameObject, Vector3.zero, Quaternion.identity, prefab.transform.localScale, transform);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
     public T ShowObject<T>(T prefab, Vector3 position, out PoolObject poolObject)
         where T : Component
     {
-        poolObject = ShowPrefab(PrefabTypeKey, prefab.GetType().ToString(), prefab.gameObject, position, Quaternion.identity, Vector3.one, null);
+        poolObject = ShowPrefab(PrefabTypeKey, prefab.name, prefab.gameObject, position, Quaternion.identity, Vector3.one, null);
         return poolObject.InstanceGameObject.GetComponent<T>();
     }
 
@@ -443,9 +492,62 @@ public class ObjectPoolManager : MonoBehaviour
     /// <param name="parent">Родитель либо <c>null</c>.</param>
     private PoolObject ShowPrefab(string type, string readableCategory, GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent)
     {
+        PoolEntry entry = GetOrRegisterPrefabPool(type, readableCategory, prefab, 1);
+        return ShowFromEntry(entry, position, rotation, scale, parent);
+    }
+
+    /// <summary>
+    /// Заранее создаёт экземпляры сущности для <see cref="ShowEntity{T}(T, Vector3, Quaternion, Transform)"/>.
+    /// </summary>
+    /// <remarks>
+    /// Регистрировать пул сущности через <see cref="RegisterPoolObject(string, string, GameObject, int)"/>
+    /// бесполезно: <c>ShowEntity</c> ищет пул по ключу самого префаба и такой пул не увидит.
+    /// Экземпляры создаются по одному за кадр.
+    /// </remarks>
+    /// <param name="prefab">Префаб сущности.</param>
+    /// <param name="count">Сколько экземпляров держать в пуле.</param>
+    public void RegisterEntityPool<T>(T prefab, int count)
+        where T : EntityBase
+        => GetOrRegisterPrefabPool(EntityTypeKey, prefab.GetPoolKey(), prefab.gameObject, count);
+
+    /// <summary>
+    /// Заранее создаёт экземпляры объекта для перегрузок <c>ShowObject</c>, принимающих префаб.
+    /// </summary>
+    /// <remarks>
+    /// Один пул на префаб, как бы его ни выдавали: самим <see cref="GameObject"/> или его компонентом.
+    /// Экземпляры создаются по одному за кадр.
+    /// </remarks>
+    /// <param name="prefab">Префаб объекта.</param>
+    /// <param name="count">Сколько экземпляров держать в пуле.</param>
+    public void RegisterPrefabPool(GameObject prefab, int count)
+        => GetOrRegisterPrefabPool(PrefabTypeKey, prefab.name, prefab, count);
+
+    /// <summary>
+    /// Находит пул префаба или заводит его; при заказе больше одного экземпляра — дополняет.
+    /// </summary>
+    /// <remarks>
+    /// Выдача идёт сюда на каждое появление объекта, поэтому найденный пул берётся из
+    /// <see cref="prefabPools"/> без новых строк и списков. Повторная регистрация на каждой
+    /// выдаче к тому же сбивала прогрев: при пустой очереди она останавливала корутину
+    /// наполнения и заводила новую на один экземпляр.
+    /// </remarks>
+    private PoolEntry GetOrRegisterPrefabPool(string type, string readableCategory, GameObject prefab, int count)
+    {
+        var id = new PrefabPoolId(type, readableCategory, prefab.GetInstanceID());
+
+        // Пул могли снять через ClearPool: тогда ссылка в кэше устарела и пул заводится заново.
+        if (count <= 1 &&
+            prefabPools.TryGetValue(id, out PoolEntry cached) &&
+            pools.TryGetValue(cached.Key, out PoolEntry live) &&
+            ReferenceEquals(cached, live))
+            return cached;
+
         string category = PrefabCategory(readableCategory, prefab);
-        RegisterPoolObject(type, category, prefab);
-        return ShowObject(type, category, position, rotation, scale, parent);
+        RegisterPoolObject(type, category, prefab, count);
+
+        PoolEntry entry = pools[new PoolKey(type, category)];
+        prefabPools[id] = entry;
+        return entry;
     }
 
     #endregion
@@ -478,6 +580,12 @@ public class ObjectPoolManager : MonoBehaviour
     /// </remarks>
     private static string PrefabCategory(string readableCategory, GameObject prefab) =>
         $"{readableCategory}#{prefab.GetInstanceID()}";
+
+    /// <summary>
+    /// Контейнер, в котором объект пула лежит без своего родителя.
+    /// </summary>
+    private Transform ContainerOf(PoolObject poolObject) =>
+        poolObject.PoolObjectType == PoolObjectType.Particles ? particles : gameObjects;
 
     private static string TypeKeyOf(Component component) => component.GetType().ToString();
 
@@ -543,8 +651,7 @@ public class ObjectPoolManager : MonoBehaviour
         if (instance.TryGetComponent<IPoolable>(out var poolable))
             poolable.RegisterPoolObject(poolObject);
 
-        poolObject.InstanceGameObject.transform.SetParent(
-            poolObject.PoolObjectType == PoolObjectType.Particles ? particles : gameObjects);
+        poolObject.InstanceGameObject.transform.SetParent(ContainerOf(poolObject));
 
         instance.SetActive(false);
         entry.Queue.Enqueue(poolObject);
@@ -570,6 +677,7 @@ public class ObjectPoolManager : MonoBehaviour
 
         poolCreationCoroutines.Clear();
         pools.Clear();
+        prefabPools.Clear();
         objectOnScene.Clear();
     }
 
