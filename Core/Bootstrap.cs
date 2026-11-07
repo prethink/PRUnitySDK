@@ -28,7 +28,11 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     /// <remarks>
     /// Для Play-тестов механизмов: им нужна своя чистая сцена, а сцену пользователя открывать
     /// и сохранять незачем — после выхода из игры редактор вернёт её сам. Действует независимо
-    /// от <see cref="BootstrapSettings.StartFromEditorScene"/>. Кто ставит, тот и снимает.
+    /// от <see cref="BootstrapSettings.StartFromEditorScene"/>.
+    /// <para>
+    /// Одноразовая: <c>Bootstrap</c> снимает её при первой же загрузке сцены. Ставить прямо перед входом в Play;
+    /// тот, кто ставит, снимает её и сам, если Play так и не начался.
+    /// </para>
     /// </remarks>
     public static string EditorSceneOverride
     {
@@ -251,8 +255,13 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
             loadingScreen = BootstrapLoadingScreen.TryCreate();
 
 #if UNITY_EDITOR
-        string editorScenePath = !string.IsNullOrEmpty(EditorSceneOverride)
-            ? EditorSceneOverride
+        // Подмена одноразовая: снимается тут же, при первой загрузке. Иначе после сбоя теста следующий
+        // обычный Play пользователя снова открыл бы тестовую сцену.
+        string sceneOverride = EditorSceneOverride;
+        EditorSceneOverride = string.Empty;
+
+        string editorScenePath = !string.IsNullOrEmpty(sceneOverride)
+            ? sceneOverride
             : Settings.StartFromEditorScene ? EditorStartScenePath : null;
 
         if (!string.IsNullOrEmpty(editorScenePath))
