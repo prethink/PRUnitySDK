@@ -29,7 +29,11 @@
 | [`GameRules`](Core/GameRules/README.md) | Глобальные ограничения характеристик поверх персональных модификаторов |
 | [`Conditions`](Core/@Conditions/README.md) | Настраиваемые правила «когда это разрешено»: ассетом или прямо в инспекторе |
 | [`GameDataStorage`](Core/GameDataStorage/README.md) | Сохранение прогресса и [состояния объектов сцены](Core/GameDataStorage/ObjectState/README.md) между запусками |
-| State / Damage | Переиспользуемые игровые модули |
+| [`Statistics`](Core/Statistics/README.md) | Числа об игроке за всё время: заходы, время в игре, полученные ресурсы |
+| Purchase / Metrics / RemoteFlags / Review / ServerTime | Контракты площадки: интеграция подставляет свою реализацию, без неё работает локальная |
+| [`ModuleSystem`](Core/ModuleSystem/README.md) | Модули и интеграции, которые вырезаются из сборки |
+| [`Reflection`](Core/Reflection/README.md) | Реестр типов, которые SDK находит по контракту, вместо перебора сборки при запуске |
+| State / Damage / [GameSessions](Modules/GameSessions/README.md) | Переиспользуемые игровые модули |
 | Quality / Localization / Logging | Качество предметов, переводы и структурированное логирование |
 
 ## Карта фреймворка
@@ -42,8 +46,14 @@ graph TD
     Facade["PRUnitySDK<br/>facade, ServiceResolver"]
     Hooks["HookSystem<br/>MethodHook и стадии"]
 
+    Load["LoadingScreen, Scene<br/>экран загрузки, SceneChanger,<br/>ScreenFade"]
+    Refl["Reflection<br/>реестр типов по контракту"]
+    ModSys["ModuleSystem<br/>окно «Модули», вырезание<br/>из сборки"]
+
     Boot --> Facade
+    Boot --> Load
     Facade --> Hooks
+    Facade --> Refl
 
     subgraph BASE["Базис"]
         Models["Models<br/>Enumeration, ProjectData"]
@@ -63,10 +73,15 @@ graph TD
         Storage["GameDataStorage<br/>ProjectData, ObjectState"]
         Db["#Database<br/>PRSDKDatabase, PRSDKSettings"]
         Paths["ResourcePaths"]
+        Stats["Statistics<br/>заходы, время в игре"]
+    end
+
+    subgraph PLAT["Контракты площадки"]
+        Contracts["Purchase, Metrics, RemoteFlags,<br/>Review, ServerTime, Rating,<br/>DeviceInfo"]
     end
 
     subgraph WORLD["Модель мира"]
-        Entity["@Entity<br/>EntityBase, Metadata,<br/>Stats, Player"]
+        Entity["@Entity<br/>EntityBase, Metadata,<br/>Stats, Player, Sides"]
         Items["Items"]
         Wallet["Wallet"]
         Reward["Reward"]
@@ -95,9 +110,19 @@ graph TD
         Cam["Camera"]
         Tr["Translate"]
         Tween["DOTweenEffects"]
+        Sessions["GameSessions"]
     end
 
+    Integr["#Integrations<br/>YG2, GamePush, VK,<br/>Pikabu, Steam"]
+
     Editor["Core/Editor<br/>окна Database и PRUnitySDKDebug"]
+
+    Facade --> Contracts
+    Integr --> Contracts
+    Integr --> Hooks
+    Stats --> Storage
+    Stats --> Bg
+    Bg --> Refl
 
     Mono --> Pause
     Mono --> Time
@@ -134,12 +159,19 @@ graph TD
     Damage --> Items
     HitBox --> Damage
     Tween --> Time
+    Sessions --> Entity
+    Sessions --> Bus
 
     Editor --> Entity
     Editor --> Db
     Editor --> Wnd
     Editor --> Bg
+    Editor --> ModSys
+    ModSys -.->|вырезает| MODS
+    ModSys -.->|вырезает| Integr
 ```
+
+Пунктир — не зависимость: окно «Модули» убирает модуль или интеграцию из компиляции, ядро не трогает.
 
 Игра к фреймворку не подмешивается: зависимость всегда направлена от игры к нему.
 Как именно к нему подключаться — в разделе [«Какой механизм расширения выбрать»](#какой-механизм-расширения-выбрать).
@@ -150,9 +182,11 @@ graph TD
 | --- | --- |
 | `Assets/PRUnitySDK` | сам фреймворк: общее для любой игры |
 | `Assets/PRUnitySDKPrivate` | проектный слой: механики конкретной игры, надстроенные над фреймворком |
-| `Assets/PRUnityData` | данные игры: каталоги, настройки, проекты |
+| `Assets/PRUnitySDKPrivate/#MiniGames/<Игра>/Data` | данные игры: её проект `PRSDKProject`, база, настройки, копии настроек площадок |
+| `Assets/PRUnityData` | только указатель на активный проект и сгенерированный реестр типов; не под git |
 
-Какая из игр собирается сейчас, указывает `PRSDKProject` — окно `PRUnitySDK/Project`. Подробности — в [PRUnityData/README.md](../PRUnityData/README.md).
+Каждая игра — свой проект SDK. Какая из них собирается сейчас, указывает `PRSDKActiveProject` в `PRUnityData` —
+окно `PRUnitySDK/Project`. Подробности — в [PRUnityData/README.md](../PRUnityData/README.md).
 
 Опыт и уровни живут в проектном слое: `XPManager`, фоновое начисление и бустеры опыта — в [PRUnitySDKPrivate/Modules/@ProgressionModule](../PRUnitySDKPrivate/Modules/@ProgressionModule/README.md).
 
@@ -164,7 +198,10 @@ graph TD
 
 Некоторые интеграции имеют дополнительные зависимости:
 
-- `YG2.Integration` требует YG2 Plugin и соответствующие модули YG2.
+- `YG2.Integration` требует YG2 Plugin и соответствующие модули YG2;
+- `GamePush.Integration` требует плагин GamePush;
+- `Steam.Integration` требует Steamworks.NET (`Assets/com.rlabrecque.steamworks.net`);
+- `VK.Integration` и `Pikabu.Integration` сторонних плагинов не требуют: VK Bridge и SDK Пикабу подключаются шаблоном WebGL.
 
 ## Установка
 
@@ -559,7 +596,7 @@ PRUnitySDK/
 ├── Resources/                  # Runtime-ресурсы фреймворка (данные игры — в PRUnityData)
 ├── Utils/                      # Дополнительные утилиты
 ├── Plugins/                    # Сторонние плагины (SerializedCollections)
-└── #Integrations/*.Integration/ # Интеграции площадок: YG2, GamePush и другие
+└── #Integrations/*.Integration/ # Интеграции площадок: YG2, GamePush, VK, Pikabu, Steam
 ```
 
 ## Дополнительная документация
@@ -569,7 +606,8 @@ PRUnitySDK/
 - [SDK](Core/SDK/README.md) — facade, инициализация и service resolver
 - [ResourcePaths](Core/ResourcePaths/README.md) — канонические пути к runtime-ресурсам и правила расширения
 - [Окна Database и Settings](Core/Editor/README.md) — секции с описанием и сбросом, поиск, заполнение каталогов, валидация definitions
-  и [наборы состава базы](Core/Editor/DATABASE-PRESETS.md) для разных игр
+  и [наборы состава базы](Core/Editor/DATABASE-PRESETS.md) для разных игр; база своих окон —
+  [ExtendedEditorWindow](Core/Editor/ExtendedEditorWindow/README.md)
 - [Attributes](Core/@Attributes/README.md) — method hooks, переопределение сервисов и расширение Inspector
 - [Actions](Core/@Actions/README.md) — переиспользуемые действия с единым контрактом проверки и выполнения
 - [Conditions](Core/@Conditions/README.md) — переиспользуемые правила «когда это разрешено». Действие совершает поступок, условие только спрашивает. Оттуда же берут подпись для игрока: чего не хватает, чтобы условие выполнилось
@@ -585,7 +623,8 @@ PRUnitySDK/
 - [PauseSystem](Core/PauseSystem/README.md) — раздельные причины паузы и мониторы аниматоров и физических тел
 - [PRTime](Core/PRTime/README.md) — источник времени: реальное, игровое и учёт паузы
 - [PRTimeScale](Core/PRTimeScale/README.md) — слои скорости времени, модификаторы с владельцами и драйверы для анимации и физики
-- [BackgroundTasks](Core/BackgroundTasks/README.md) — фоновые задачи по расписанию и наблюдение за значениями
+- [BackgroundTasks](Core/BackgroundTasks/README.md) — фоновые задачи по расписанию и наблюдение за значениями;
+  [рабочий пример](Examples/BackgroundTasks/README.md)
 
 ### Менеджеры
 
@@ -604,6 +643,7 @@ PRUnitySDK/
 ### Модели, сервисы и утилиты
 
 - [Entity](Core/@Entity/README.md) — сущности игрового мира: идентификаторы, описание, реестр и пул
+- [Свой-чужой](Core/@Entity/Sides/README.md) — стороны сущностей и матрица «кто кого бьёт»
 - [EntityStats](Core/@Entity/EntityStats/README.md) — характеристики сущности: базовые значения, персональные модификаторы и расчёт итоговых
 - [Ввод](Core/Input/README.md) — состояние ввода игрока или бота и его маршрутизация по `InputGuid`
 - [Фабрики MonoBehaviour](Core/Factories/README.md) — обычные prefab, singleton-компоненты, MonoWindow и Notifier
@@ -641,6 +681,12 @@ PRUnitySDK/
 - [DOTweenEffects](Modules/DOTweenEffects/README.md) — связь DOTween с логической паузой и `PRTimeScale`
 - [YG2 Integration](%23Integrations/YG2.Integration/README.md) — облачные сохранения, реклама и платформенные возможности Яндекс Игр
 - [GamePush Integration](%23Integrations/GamePush.Integration/README.md) — те же контракты на плагине GamePush
+- [VK Integration](%23Integrations/VK.Integration/README.md) — ВКонтакте и Одноклассники через VK Bridge напрямую: запуск, облачное сохранение, имя, язык, пауза
+- [Pikabu Integration](%23Integrations/Pikabu.Integration/README.md) — Пикабу Игры через их SDK напрямую, без GamePush
+- [Steam Integration](%23Integrations/Steam.Integration/README.md) — PC-сборка в Steam на Steamworks.NET; достижения и лидерборды — в проектном слое
+
+Реклама, покупки и прочие возможности площадок, завязанные на модули проектного слоя, лежат в
+`PRUnitySDKPrivate/#Integrations` и относятся к тем же модулям: отключаются вместе с публичной частью.
 
 ## Текущие ограничения
 

@@ -218,6 +218,8 @@
       <method name="InitializeEmoteWheel" />
       <method name="InitializeExperienceShopWindow" />
       <method name="InitializeFreeGiftWindow" />
+      <method name="InitializeGameEventsWindow" />
+      <method name="InitializeGameResultsWindow" />
       <method name="InitializeGameUpdatesWindow" />
       <method name="InitializeItemNotifier" />
       <method name="InitializeObbyCustomizationWindow" />
@@ -234,7 +236,6 @@
       <method name="InitializeRewardForPointWindow" />
       <method name="InitializeRewardNotifier" />
       <method name="InitializeRewardNotifier3D" />
-      <method name="InitializeRogueResultsWindow" />
       <method name="InitializeScreenPopup" />
       <method name="InitializeSettingsWindow" />
       <method name="InitializeShopWindow" />
@@ -248,6 +249,7 @@
       <method name="InitializeTrailShopWindow" />
       <method name="InitializeTrailsWindow" />
       <method name="InitializeWheelOfFortuneWindow" />
+      <method name="InitializeWorldsWindow" />
       <method name="InitializeXPPickup" />
       <method name="InitializeXPScreenPopup" />
     </type>
