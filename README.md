@@ -209,7 +209,7 @@ graph TD
 
 | Интеграция | Сборка | Что подставляет | Что нужно поставить |
 | --- | --- | --- | --- |
-| [YG2](%23Integrations/YG2.Integration/README.md) — Яндекс Игры | WebGL | сохранение, устройство, время площадки, флаги, оценку, рейтинг, метрику, язык, имя игрока | [YG2 Plugin](https://max-games.ru/plugin-yg/) |
+| [YG2](%23Integrations/YG2.Integration/README.md) — Яндекс Игры и [другие площадки плагина](#площадки-внутри-yg2-plugin) | WebGL | сохранение, устройство, время площадки, флаги, оценку, рейтинг, метрику, язык, имя игрока | [YG2 Plugin](https://max-games.ru/plugin-yg/) |
 | [GamePush](%23Integrations/GamePush.Integration/README.md) | WebGL | те же контракты на плагине GamePush, кроме рейтинга | плагин GamePush |
 | [VK](%23Integrations/VK.Integration/README.md) — ВКонтакте и Одноклассники | WebGL | сохранение, устройство, имя, язык, пауза при сворачивании | ничего: VK Bridge подключает шаблон WebGL модуля |
 | [Pikabu](%23Integrations/Pikabu.Integration/README.md) — Пикабу Игры | WebGL | сохранение, устройство, имя, язык, пауза на скрытой вкладке | ничего: SDK Пикабу подключает шаблон WebGL модуля |
@@ -217,6 +217,33 @@ graph TD
 
 Реклама, покупки, достижения и лидерборды площадок в публичный SDK не входят: они завязаны на модули
 проектного слоя и подключаются там.
+
+### Площадки внутри YG2 Plugin
+
+YG2 Plugin — не только Яндекс Игры. Площадка в нём — отдельный модуль (в его дефайне есть
+слово `Platform`): он скачивается в окне плагина и выбирается полем `Platform` в разделе Basic Settings его настроек.
+Код игры при этом обращается к тому же API `YG2`. Каталог модулей плагина (v2.0092, сентябрь 2026) предлагает площадки и мобильную рекламу:
+
+| Модуль YG2 | Что это |
+| --- | --- |
+| [YandexGames](https://max-games.ru/plugin-yg/yandexgames/) | Яндекс Игры — площадка по умолчанию |
+| [CrazyGames](https://max-games.ru/crazy/) | веб-портал CrazyGames |
+| [GamePix](https://max-games.ru/gamepix/) | веб-портал GamePix |
+| [GameDistribution](https://max-games.ru/game-distribution/) | GameDistribution — раздача игры на сайты-партнёры |
+| [GameMonetize](https://max-games.ru/gamemonetize/) | GameMonetize — раздача игры на сайты-партнёры |
+| [Y8](https://max-games.ru/y8/) | веб-портал Y8 |
+| [WelwiseGames](https://max-games.ru/plugin-yg/welwise/) | площадка Welwise Games |
+| EmptyWebGL | WebGL-сборка без SDK площадки |
+| [YandexMobileAds](https://max-games.ru/plugin-yg/doc/Yandex-Mobile-Ads/) | реклама Яндекса в мобильной сборке |
+| [Appodeal](https://max-games.ru/appodeal/) | мобильная реклама через медиацию Appodeal |
+
+Актуальный список — в окне модулей YG2 Plugin: площадки добавляются с версиями плагина.
+
+> [!NOTE]
+> `YG2.Integration` собрана и проверена на модуле **YandexGames**. На других площадках YG2 работает тот же
+> код, но часть возможностей у площадки может отсутствовать — например, валюта `Yan` в покупках,
+> Метрика или флаги. Перед выпуском на новой площадке сверьте с документацией её модуля, какие функции YG2
+> она поддерживает.
 
 ## Установка
 

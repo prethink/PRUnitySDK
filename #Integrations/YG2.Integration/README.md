@@ -10,6 +10,10 @@
 - PRUnitySDK.Core
 - [YG2 Plugin](https://max-games.ru/plugin-yg/) в `Assets/PluginYourGames`
 
+YG2 Plugin поддерживает и другие площадки — CrazyGames, GamePix, GameDistribution, GameMonetize, Y8, Welwise Games
+и сборку без площадки, — каждую отдельным модулем плагина. Полный список и оговорки — в разделе
+[«Площадки внутри YG2 Plugin»](../../README.md#площадки-внутри-yg2-plugin). Интеграция проверена на Яндекс Играх.
+
 | Раздел | Что подменяет | Модуль YG2 |
 | --- | --- | --- |
 | `Bootstrap.YGPlugin` | SDK собирается после `YG2.onGetSDKData`; о готовности игры (`GameReadyAPI`) площадке сообщается, когда убран экран загрузки, — `autoGRA` в настройках YG2 выключен | ядро плагина |
