@@ -9,5 +9,4 @@
 - [Translate](Translate/README.md) — локализация: провайдеры, база переводов, живой перевод
 - `Camera` — основа контроллеров камеры (`CameraControllerBase`)
 
-Машина состояний (`StateManager`) живёт в проектном слое:
-[PRUnitySDKPrivate/Modules/StateManager](../../PRUnitySDKPrivate/Modules/StateManager/README.md).
+Машина состояний (`StateManager`) живёт в проектном слое и в публичный SDK не входит.

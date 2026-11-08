@@ -282,8 +282,7 @@ protected override MonoWindowTransition GetTransition() =>
 | `MonoWindowBase.HiddenStage` | окно скрывается или выключается; один раз на показ, что бы ни закрыло его первым |
 
 Так справка ставит кнопку «?»: текст окна — `HelpText` (поле `helpText` в инспекторе или переопределение
-свойства), пусто — кнопки нет. Сама справка — в проектном слое:
-[Windows/MonoWindows/Help](../../../../PRUnitySDKPrivate/Windows/MonoWindows/Help/README.md).
+свойства), пусто — кнопки нет. Само окно справки в публичный SDK не входит: его даёт проектный слой игры.
 
 ## Рекомендации
 

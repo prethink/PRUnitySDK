@@ -18,5 +18,5 @@
 Реализации живут в проектном слое и в интеграциях площадок: службу создаёт
 `PRManagerContainer.InitializePurchaseService` (`PRUnitySDK.Managers.PurchaseService`), без интеграции остаётся
 `UnavailablePurchaseService`. Потребители ищут её через `PRUnitySDK.TryResolve(out IPurchaseService service)`.
-Подробности — в [PRUnitySDKPrivate/Modules/Purchase](../../../PRUnitySDKPrivate/Modules/Purchase/README.md).
+Реализации на площадках, окна магазина и выдача товаров — в проектном слое, в публичный SDK они не входят.
 Advertising использует контракт только для опциональной покупки Remove Ads.

@@ -122,7 +122,7 @@ if (PRUnitySDK.TryResolve<IMyService>(out var optionalService))
 2. если проект не выбран или этой части в нём нет — в `Resources` по
    `PRUnitySDK.ResourcePaths.CorePath`.
 
-Второй шаг оставлен намеренно: игра без перехода на проекты работает без правок. Подробности о проектах — в [PRUnityData/README.md](../../../PRUnityData/README.md).
+Второй шаг оставлен намеренно: игра без перехода на проекты работает без правок. Проект — это ссылки на базу и настройки; указатель на активный проект лежит в `Assets/PRUnityData/Resources/PRUnitySDK/PRSDKActiveProject.asset`.
 
 Если asset отсутствует:
 

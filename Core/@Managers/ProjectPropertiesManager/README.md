@@ -39,8 +39,7 @@ properties.SetValue(SpeedOverride, 1.25f);
 properties.RemoveProperty(SpeedOverride);
 ```
 
-Пример с `GrowthFactor` и автоматическим пересчётом есть в
-[документации опыта](../../../../PRUnitySDKPrivate/Modules/%40ProgressionModule/README.md#кривые-уровней).
+Пример с `GrowthFactor` и автоматическим пересчётом — кривые уровней опыта в проектном слое (в публичный SDK не входит).
 
 ### Какой тип брать для чисел
 
