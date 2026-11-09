@@ -42,6 +42,7 @@
     <type fullname="DailyGoalsSaveData" preserve="all" />
     <type fullname="DamageEffectHandler" preserve="all" />
     <type fullname="Database`1" preserve="all" />
+    <type fullname="DefenseStatEnumerations" preserve="all" />
     <type fullname="DumbbellDatabase" preserve="all" />
     <type fullname="EggDatabase" preserve="all" />
     <type fullname="EntityBase">
@@ -292,6 +293,8 @@
     <type fullname="RewardTeleportPlatformEntity">
       <method name="CreateRewardPlate" />
     </type>
+    <type fullname="RogueBossStateEnumerations" preserve="all" />
+    <type fullname="RogueGunStateEnumerations" preserve="all" />
     <type fullname="SceneObjectState" preserve="all" />
     <type fullname="SelectableItemConverter" preserve="all" />
     <type fullname="ShopDatabase" preserve="all" />

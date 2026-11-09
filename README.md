@@ -467,7 +467,7 @@ public class CoinsView : MonoBehaviour, IResourceValueChangedEvent { }
 отменить действие. Обработчики идут цепочкой в порядке `Order`.
 
 ```csharp
-public class DamageResistanceComponent : PRMonoBehaviour, IHookListener<DamageHookEvent> { }
+public class DamageDefenseComponent : PRMonoBehaviour, IHookListener<DamageHookEvent> { }
 ```
 
 **`FlagsSystem` — «можно ли сейчас?».** Когда на один вопрос («можно ли прыгать») влияют

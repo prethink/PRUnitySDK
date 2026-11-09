@@ -2,14 +2,18 @@ using System;
 
 /// <summary>
 /// Вид урона. Флаги комбинируются: один удар может быть одновременно взрывным,
-/// огненным и критическим, а <see cref="DamageResistanceComponent"/> сработает,
-/// если совпал хотя бы один флаг правила.
+/// огненным и критическим. Броня и сопротивления (<see cref="DamageDefenseComponent"/>)
+/// у такого удара бьют в самое слабое место: берётся сопротивление того типа, который
+/// пропускает больше урона (<see cref="DefenseMath.Calculate"/>).
+/// Пометки <see cref="AreaOfEffect"/>, <see cref="Critical"/> и <see cref="TimeBased"/>
+/// типами урона не считаются и на защиту не влияют.
 /// </summary>
 [Flags]
 public enum DamageType
 {
     /// <summary>
-    /// Вид не указан. Совпадает только с правилами сопротивления, где тоже указан Generic.
+    /// Вид не указан: обычный удар кулаком или оружием. Сопротивления у него нет, броня его закрывает
+    /// (<see cref="DefenseSettings.ArmorAppliesToGeneric"/>).
     /// </summary>
     Generic = 0,
 
