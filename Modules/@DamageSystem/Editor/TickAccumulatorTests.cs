@@ -52,9 +52,20 @@ public class TickAccumulatorTests
         var ticks = new TickAccumulator(0.5f, 5);
 
         Assert.AreEqual(5, ticks.Add(10f));
-        Assert.LessOrEqual(ticks.Elapsed, 0.5f);
-        Assert.AreEqual(1, ticks.Add(0f));
-        Assert.AreEqual(0, ticks.Add(0f));
+        Assert.Less(ticks.Elapsed, 0.5f, "после предела целый интервал не копится");
+        Assert.AreEqual(0, ticks.Add(0f), "следующий кадр не добивает отложенный тик");
+    }
+
+    [Test]
+    public void CappedFrame_KeepsOnlyPhaseOfInterval()
+    {
+        // Подвисание 3,2 с при тике 0,5 с: пять тиков, остаток 0,2 с — следующий тик через 0,3 с, а не сразу.
+        var ticks = new TickAccumulator(0.5f, 5);
+
+        Assert.AreEqual(5, ticks.Add(3.2f));
+        Assert.AreEqual(0.2f, ticks.Elapsed, 1e-3f);
+        Assert.AreEqual(0, ticks.Add(0.25f));
+        Assert.AreEqual(1, ticks.Add(0.05f));
     }
 
     [Test]

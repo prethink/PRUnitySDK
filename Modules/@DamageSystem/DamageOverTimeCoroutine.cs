@@ -94,13 +94,21 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     private int ticksLeft;
     private int countedFrame = -1;
 
+    /// <summary>
+    /// Идёт выдача тиков: обработчик урона (смерть, снятие статуса) может синхронно позвать <see cref="Finish"/>.
+    /// </summary>
+    private bool dealing;
+
     protected override IEnumerator InternalExecute()
     {
         IsFinished = false;
         TicksDone = 0;
         ticksLeft = tickCount;
         ticks = new TickAccumulator(tickInterval, MaxTicksPerFrame);
-        countedFrame = -1;
+
+        // Кадр наложения уже прошёл до эффекта: его шаг в урон не идёт — ни здесь, ни в Finish того же кадра. Иначе яд,
+        // наложенный в длинном кадре (шаг 0,6 при тике 0,5), бил бы сразу, а не через интервал.
+        countedFrame = Time.frameCount;
 
         while (ticksLeft != 0 && !IsFinished)
         {
@@ -143,9 +151,29 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     }
 
     /// <returns><c>false</c> — бить больше некого.</returns>
+    /// <remarks>
+    /// Повторный вход (обработчик урона позвал <see cref="Finish"/>) ничего не выдаёт: тики этого кадра уже раздаёт
+    /// внешний вызов, а после <see cref="Complete"/> он останавливается — удар, который снял эффект, последний.
+    /// </remarks>
     private bool DealTicks(int due)
     {
-        for (int i = 0; i < due && ticksLeft != 0; i++)
+        if (dealing)
+            return true;
+
+        dealing = true;
+        try
+        {
+            return DealTicksUnguarded(due);
+        }
+        finally
+        {
+            dealing = false;
+        }
+    }
+
+    private bool DealTicksUnguarded(int due)
+    {
+        for (int i = 0; i < due && ticksLeft != 0 && !IsFinished; i++)
         {
             // Спрашиваем перед каждым тиком, а не один раз при запуске: за интервал цель
             // успевает умереть, спрятаться или уйти в пул.

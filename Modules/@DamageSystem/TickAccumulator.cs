@@ -54,9 +54,15 @@ public sealed class TickAccumulator
             due++;
         }
 
-        // Предел догнали — остаток не копим, иначе следующие шаги отдали бы его пачкой.
+        // Предел догнали — отложенные целые интервалы отбрасываем, оставляем только фазу текущего. Прежнее
+        // Min(Elapsed, interval) сохраняло целый интервал, и следующий же кадр добивал ещё один тик (Play-тест «Время»,
+        // «Урон по времени»: шесть ударов при пределе пять).
         if (due == MaxPerStep)
-            Elapsed = Mathf.Min(Elapsed, interval);
+        {
+            Elapsed %= interval;
+            if (Elapsed + Tolerance >= interval)
+                Elapsed = 0f;
+        }
 
         return due;
     }
