@@ -70,6 +70,16 @@ public static class DefenseMath
     }
 
     /// <summary>
+    /// Гасит ли иммунитет удар целиком: все типы удара под иммунитетом. Удар нескольких типов бьёт в самое слабое место,
+    /// поэтому огненный взрыв по цели с иммунитетом только к огню проходит. У удара без типа иммунитета нет.
+    /// </summary>
+    public static bool IsImmune(DamageType damageType, DamageType immunities)
+    {
+        DamageType kinds = KindsOf(damageType);
+        return kinds != DamageType.Generic && (kinds & ~immunities) == 0;
+    }
+
+    /// <summary>
     /// Закрывает ли броня удар этого типа.
     /// </summary>
     public static bool IsArmorApplicable(DamageType damageType, DefenseSettings settings)
@@ -133,7 +143,7 @@ public static class DefenseMath
                 }
             }
 
-            immune = resistanceMultiplier <= 0f && (immunities & weakest) != 0;
+            immune = IsImmune(damageType, immunities);
         }
 
         float armorReduction = IsArmorApplicable(damageType, settings)

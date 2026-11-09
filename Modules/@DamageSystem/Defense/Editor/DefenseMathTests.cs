@@ -82,6 +82,18 @@ public class DefenseMathTests
         Assert.AreEqual(1f, result.ResistanceMultiplier, Tolerance);
     }
 
+    [TestCase(DamageType.Fire, DamageType.Fire, true)]
+    [TestCase(DamageType.Fire | DamageType.Critical, DamageType.Fire, true)]
+    [TestCase(DamageType.Fire | DamageType.Explosion, DamageType.Fire, false)]
+    [TestCase(DamageType.Fire | DamageType.Explosion, DamageType.Fire | DamageType.Explosion, true)]
+    [TestCase(DamageType.Generic, DamageType.Fire, false)]
+    [TestCase(DamageType.Critical, DamageType.Fire | DamageType.Ice, false)]
+    public void IsImmune_RequiresEveryKind(DamageType damageType, DamageType immunities, bool expected)
+    {
+        Assert.AreEqual(expected, DefenseMath.IsImmune(damageType, immunities));
+        Assert.AreEqual(expected, DefenseMath.Calculate(damageType, _ => 0f, immunities, 0f, 0f, 0f, Settings).IsImmune);
+    }
+
     [Test]
     public void Armor_CoversGenericAndPhysicalOnly()
     {

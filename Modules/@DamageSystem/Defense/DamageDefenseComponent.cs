@@ -162,9 +162,10 @@ public sealed class DamageDefenseComponent : PRMonoBehaviour, IHookListener<Dama
     }
 
     /// <summary>
-    /// Есть ли иммунитет к типу урона.
+    /// Гасит ли иммунитет удар этого типа целиком: все его типы под иммунитетом (<see cref="DefenseMath.IsImmune"/>).
+    /// Огненный взрыв по цели с иммунитетом только к огню — <c>false</c>: удар бьёт в самое слабое место.
     /// </summary>
-    public bool IsImmune(DamageType kind) => (immunities & kind) != 0;
+    public bool IsImmune(DamageType damageType) => DefenseMath.IsImmune(damageType, immunities);
 
     /// <summary>
     /// Считает защиту от удара, ничего не меняя: для подсказок, окна характеристик, предпросмотра.
