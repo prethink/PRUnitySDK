@@ -16,6 +16,7 @@
 | `LateFixedUpdateCoroutine` | Callback после каждого `WaitForFixedUpdate` |
 | `WaitForEndOfFrameCoroutine` | Callback после каждого `WaitForEndOfFrame` |
 | `CanvasGroupFadeCoroutine` | Ожидание и последующее затухание CanvasGroup |
+| `RepeatSecondsCoroutine` | Вызов раз в N секунд по выбранным часам (`GameClock` — мир, `UiClock` — окна и обучение, идёт на логической паузе, `UiLayerClock` — интерфейс в мире, или по слоям сущности) — вместо счётчика в `Update` |
 
 ## Владелец корутины
 

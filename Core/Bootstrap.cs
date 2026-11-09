@@ -164,7 +164,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     private void SetStage(BootstrapStage stage)
     {
         Stage = stage;
-        stageStartTimes[(int)stage] = Time.realtimeSinceStartup;
+        stageStartTimes[(int)stage] = PRTime.WallTime;
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         int total = Mathf.Max(1, PRUnitySDK.InitializationStepCount);
         int done = 0;
         float budget = Settings.FrameBudgetSeconds;
-        float sliceStartedAt = Time.realtimeSinceStartup;
+        float sliceStartedAt = PRTime.WallTime;
 
         while (steps.MoveNext())
         {
@@ -231,11 +231,11 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
             if (loadingScreen != null)
                 loadingScreen.SetInitializationProgress(done / (float)total);
 
-            if (Time.realtimeSinceStartup - sliceStartedAt < budget)
+            if (PRTime.WallTime - sliceStartedAt < budget)
                 continue;
 
             yield return null;
-            sliceStartedAt = Time.realtimeSinceStartup;
+            sliceStartedAt = PRTime.WallTime;
         }
     }
 

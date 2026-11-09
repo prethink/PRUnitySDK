@@ -17,6 +17,7 @@
     <type fullname="BackgroundExperienceSourceTask" preserve="all" />
     <type fullname="BackgroundTask" preserve="all" />
     <type fullname="BackgroundTaskKeyEnumerations" preserve="all" />
+    <type fullname="BarbellDatabase" preserve="all" />
     <type fullname="BlockPetDatabase" preserve="all" />
     <type fullname="Bootstrap">
       <method name="OnDisableYG" />

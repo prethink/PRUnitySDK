@@ -94,7 +94,7 @@ public sealed class BootstrapProbe : MonoBehaviour
         backgroundColor = settings.ProbeBackgroundColor;
         summarySeconds = settings.ProbeSummarySeconds;
 
-        engineSeconds = Time.realtimeSinceStartup;
+        engineSeconds = PRTime.WallTime;
 
         // Зонд переживает смену сцены, чтобы показать итог уже поверх игры.
         bootScene = gameObject.scene;
@@ -156,7 +156,7 @@ public sealed class BootstrapProbe : MonoBehaviour
 
         if (firstUpdateAt < 0f)
         {
-            firstUpdateAt = Time.realtimeSinceStartup;
+            firstUpdateAt = PRTime.WallTime;
             Debug.Log($"[BootstrapProbe] first frame of the engine at {firstUpdateAt:0.00}s");
         }
 
@@ -165,11 +165,11 @@ public sealed class BootstrapProbe : MonoBehaviour
             // Первый кадр игровой сцены: в него попадает всё, что сцена делает на старте.
             if (firstFrameAt < 0f)
             {
-                firstFrameAt = Time.realtimeSinceStartup;
+                firstFrameAt = PRTime.WallTime;
                 BuildSummary();
             }
 
-            if (Time.realtimeSinceStartup - firstFrameAt >= summarySeconds)
+            if (PRTime.WallTime - firstFrameAt >= summarySeconds)
                 Destroy(gameObject);
 
             return;
@@ -184,7 +184,7 @@ public sealed class BootstrapProbe : MonoBehaviour
         if (sceneLoadedAt >= 0f || scene == bootScene)
             return;
 
-        sceneLoadedAt = Time.realtimeSinceStartup;
+        sceneLoadedAt = PRTime.WallTime;
         stage = BootstrapStage.LoadingScene;
 
         if (cameraObject != null)
@@ -255,7 +255,7 @@ public sealed class BootstrapProbe : MonoBehaviour
 
         if (sceneLoadedAt < 0f)
         {
-            float now = Time.realtimeSinceStartup;
+            float now = PRTime.WallTime;
             float stageStart = Bootstrap.StageStartTimes[(int)stage];
 
             // Вверху экрана, а не по центру: в центре стоит экран загрузки.

@@ -123,7 +123,7 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     {
         if (syncInFlight)
         {
-            if (UnityEngine.Time.realtimeSinceStartup - syncStartedAt < SyncTimeoutSeconds)
+            if (PRTime.WallTime - syncStartedAt < SyncTimeoutSeconds)
             {
                 // Переданное плагину уйдёт следующей синхронизацией: она отправит всё поле целиком.
                 syncQueued = true;
@@ -144,7 +144,7 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     {
         startedSyncs++;
         syncInFlight = true;
-        syncStartedAt = UnityEngine.Time.realtimeSinceStartup;
+        syncStartedAt = PRTime.WallTime;
         GP_Player.Sync();
         StartWatchdog(startedSyncs);
     }

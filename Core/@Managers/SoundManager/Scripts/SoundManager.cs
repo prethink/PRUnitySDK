@@ -416,7 +416,8 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
         bool touch = IsTouchDevice();
         SoundLimitSettings limits = Limits;
         float clipInterval = limits.GetSameClipInterval(touch);
-        float now = Time.unscaledTime;
+        // Звуки окон и кнопок звучат и на паузе, поэтому прореживание идёт по часам интерфейса.
+        float now = PRTime.UiNow;
 
         if (clip != null && clipInterval > 0f &&
             positionalClipTimes.TryGetValue(clip, out float lastClipTime) && now - lastClipTime < clipInterval)
@@ -658,10 +659,10 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
         // Был слушатель, но его выключили или удалили (ReferenceEquals: удалённый для Unity равен null).
         bool lostListener = !ReferenceEquals(listener, null);
 
-        if (!lostListener && Time.unscaledTime < nextListenerSearch)
+        if (!lostListener && PRTime.UiNow < nextListenerSearch)
             return null;
 
-        nextListenerSearch = Time.unscaledTime + ListenerSearchInterval;
+        nextListenerSearch = PRTime.UiNow + ListenerSearchInterval;
         listener = null;
 
         foreach (AudioListener candidate in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
@@ -983,7 +984,7 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
     {
         float from = musicFade;
 
-        for (float time = 0f; time < MusicOverrideFadeSeconds; time += Time.unscaledDeltaTime)
+        for (float time = 0f; time < MusicOverrideFadeSeconds; time += PRTime.Instance.UiDeltaTime)
         {
             SetMusicFade(Mathf.Lerp(from, 0f, time / MusicOverrideFadeSeconds));
             yield return null;
@@ -992,7 +993,7 @@ public class SoundManager : MonoBehaviour, IPauseStateListener
         SetMusicFade(0f);
         swap();
 
-        for (float time = 0f; time < MusicOverrideFadeSeconds; time += Time.unscaledDeltaTime)
+        for (float time = 0f; time < MusicOverrideFadeSeconds; time += PRTime.Instance.UiDeltaTime)
         {
             SetMusicFade(time / MusicOverrideFadeSeconds);
             yield return null;

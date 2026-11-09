@@ -187,6 +187,19 @@ public sealed class DamageDefenseComponent : PRMonoBehaviour, IHookListener<Dama
     }
 
     /// <summary>
+    /// Пробивание брони атакующего, % (0–100). Для своей защиты в обход компонента — панциря босса с окном и подобного:
+    /// предмет на пробивание должен действовать и на неё.
+    /// </summary>
+    public static float ArmorPenetrationOf(IEntity attacker) =>
+        Mathf.Clamp(Stat(DefenseStatEnumerations.ArmorPenetration, FindCollector(attacker), 0f), 0f, 100f);
+
+    /// <summary>
+    /// Пробивание сопротивлений атакующего, %.
+    /// </summary>
+    public static float ResistancePenetrationOf(IEntity attacker) =>
+        Mathf.Max(0f, Stat(DefenseStatEnumerations.ResistancePenetration, FindCollector(attacker), 0f));
+
+    /// <summary>
     /// Задаёт базовую броню — сборщику уровня или масштабированию врага по этажу.
     /// Временные прибавки (бафф, предмет) — модификатором <see cref="StatModifierCollector"/>, а не здесь.
     /// </summary>

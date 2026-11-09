@@ -99,7 +99,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
 
         while (elapsed < duration)
         {
-            elapsed += Time.unscaledDeltaTime;
+            elapsed += PRTime.Instance.UiDeltaTime;
             SetProgress(Mathf.Lerp(start, target, elapsed / duration), settings);
             yield return null;
         }
@@ -223,7 +223,7 @@ public class ScreenFade : PRMonoBehaviourSingletonBase<ScreenFade>
     {
         while (progress > 0f && pattern != null && pattern.isActiveAndEnabled)
         {
-            patternOffset += settings.PatternSpeed * Time.unscaledDeltaTime;
+            patternOffset += settings.PatternSpeed * PRTime.Instance.UiDeltaTime;
             patternOffset.x = Mathf.Repeat(patternOffset.x, 1f);
             patternOffset.y = Mathf.Repeat(patternOffset.y, 1f);
             Vector2 size = pattern.rectTransform.rect.size;

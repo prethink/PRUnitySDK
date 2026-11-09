@@ -84,27 +84,56 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     /// Первый тик приходит не сразу, а через интервал: эффект ставят вместе с попаданием,
     /// и мгновенный тик выглядел бы как двойной урон от одного удара.
     /// </remarks>
+    /// <summary>
+    /// Сколько тиков догонять за один кадр. Длинный кадр (WebGL, вкладка в фоне) урон не теряет, но после долгой
+    /// заморозки он не приходит лавиной.
+    /// </summary>
+    public const int MaxTicksPerFrame = 5;
+
     protected override IEnumerator InternalExecute()
     {
         IsFinished = false;
         TicksDone = 0;
 
         int ticksLeft = tickCount;
+        float elapsed = 0f;
+        bool stopped = false;
 
-        while (ticksLeft != 0)
+        while (ticksLeft != 0 && !stopped)
         {
-            yield return WaitInterval();
+            yield return WaitPause.Instance;
 
-            // Спрашиваем перед каждым тиком, а не один раз при запуске: за интервал цель
-            // успевает умереть, спрятаться или уйти в пул.
-            if (!CanDamage())
-                break;
+            elapsed += DeltaTime();
+            int due = 0;
+            while (elapsed >= tickInterval && due < MaxTicksPerFrame)
+            {
+                elapsed -= tickInterval;
+                due++;
+            }
 
-            target.TakeDamage(attacker, weapon, BuildTickDamage());
-            TicksDone++;
+            // Предел догнали — остаток не копим, иначе следующие кадры отдали бы его пачкой.
+            if (due == MaxTicksPerFrame)
+                elapsed = Mathf.Min(elapsed, tickInterval);
 
-            if (ticksLeft > 0)
-                ticksLeft--;
+            for (int i = 0; i < due && ticksLeft != 0; i++)
+            {
+                // Спрашиваем перед каждым тиком, а не один раз при запуске: за интервал цель
+                // успевает умереть, спрятаться или уйти в пул.
+                if (!CanDamage())
+                {
+                    stopped = true;
+                    break;
+                }
+
+                target.TakeDamage(attacker, weapon, BuildTickDamage());
+                TicksDone++;
+
+                if (ticksLeft > 0)
+                    ticksLeft--;
+            }
+
+            if (!stopped && ticksLeft != 0)
+                yield return null;
         }
 
         IsFinished = true;
@@ -112,34 +141,15 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     }
 
     /// <summary>
-    /// Ждёт интервал между тиками.
+    /// Шаг кадра по часам слоёв цели: замедленная цель горит медленнее, замороженная — не горит.
+    /// Цель без сущности — по времени мира.
     /// </summary>
-    /// <remarks>
-    /// На логической паузе ожидание стоит, а не сбрасывается: после её снятия отсчёт
-    /// продолжается с того же места, и меню не превращается в лишний тик.
-    /// </remarks>
-    private IEnumerator WaitInterval()
+    private float DeltaTime()
     {
-        float left = tickInterval;
-
-        while (left > 0f)
-        {
-            yield return WaitPause.Instance;
-
-            left -= PRTime.Instance.GameDeltaTime;
-
-            yield return null;
-        }
+        EntityBase entity = target != null ? target.Entity : null;
+        return entity != null ? PRTime.Instance.GetDeltaTime(entity.GetTimeLayers()) : PRTime.Instance.GameDeltaTime;
     }
 
-    /// <summary>
-    /// Можно ли ещё наносить урон этой цели.
-    /// </summary>
-    /// <remarks>
-    /// <c>TakeDamage</c> отказал бы и сам, но эффект должен не просто промахиваться,
-    /// а закончиться: иначе горение мёртвой сущности тикало бы вхолостую до конца
-    /// сцены, а у бесконечного эффекта — вечно.
-    /// </remarks>
     private bool CanDamage()
     {
         // Unity-null: сущность могли уничтожить, а корутина на глобальном хосте

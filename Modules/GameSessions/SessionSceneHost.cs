@@ -69,7 +69,7 @@ namespace PRGameSessions
         protected override void PRUpdate()
         {
             if (service != null && ownedSessionId != Guid.Empty && service.SessionId == ownedSessionId)
-                service.Tick(Time.deltaTime);
+                service.Tick(PRTime.Instance.GameDeltaTime);
         }
 
         private void OnSceneUnloaded(Scene scene)

@@ -99,6 +99,17 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
 
     private float targetProgress;
     private float shownProgress;
+
+    /// <summary>
+    /// Шаг текущего кадра по настоящему времени (<see cref="PRTime.WallTime"/>), не длиннее <see cref="MaxFrameSeconds"/>.
+    /// </summary>
+    /// <remarks>
+    /// Экран живёт до запуска SDK, поэтому шаг считается сам, без экземпляра PRTime: создать его здесь значило бы
+    /// поменять порядок загрузки.
+    /// </remarks>
+    private float frameDelta;
+
+    private float lastFrameAt = -1f;
     private bool shown;
 
     /// <summary>
@@ -432,7 +443,7 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
 
         while (group != null && elapsed < FadeSeconds)
         {
-            elapsed += Mathf.Min(Time.unscaledDeltaTime, MaxFrameSeconds);
+            elapsed += frameDelta;
             group.alpha = 1f - Mathf.Clamp01(elapsed / FadeSeconds);
             yield return null;
         }
@@ -448,7 +459,10 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
 
     private void Update()
     {
-        float delta = Mathf.Min(Time.unscaledDeltaTime, MaxFrameSeconds);
+        float now = PRTime.WallTime;
+        frameDelta = lastFrameAt < 0f ? 0f : Mathf.Clamp(now - lastFrameAt, 0f, MaxFrameSeconds);
+        lastFrameAt = now;
+        float delta = frameDelta;
 
         // Значок, отданный странице, крутит она.
         if (spinner != null && !pageSpinnerShown)

@@ -61,6 +61,50 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
     public float GameFixedDeltaTime { get; private set; }
 
     /// <summary>
+    /// Шаг кадра интерфейса, который идёт и на логической паузе, но стоит на паузе проекта.
+    /// </summary>
+    /// <remarks>
+    /// Окна и обучение сами ставят логическую паузу, а их анимации, затемнение экрана, кнопки и подсказки должны
+    /// идти — поэтому <see cref="RealDeltaTime"/> и <see cref="GetDeltaTime"/> им не подходят. Пауза проекта
+    /// (<see cref="IPauseManager.IsProjectPaused"/>: нет фокуса, реклама, покупка площадки) останавливает всю игру,
+    /// и эти часы тоже. Темп — слоя <see cref="TimeLayer.UI"/>; ускорение <see cref="PRDebugTime"/> не входит.
+    /// <para>
+    /// Интерфейсу в мире (полоски здоровья, всплывающие числа), который на паузе должен стоять вместе с миром, —
+    /// <c>GetDeltaTime(TimeLayer.UI)</c>.
+    /// </para>
+    /// </remarks>
+    public float UiDeltaTime { get; private set; }
+
+    /// <summary>
+    /// Часы интерфейса «до момента»: идут на логической паузе, стоят на паузе проекта.
+    /// </summary>
+    /// <remarks>
+    /// Кулдауны и интервалы окон, обучения, звуков интерфейса. Моменты сравнивать только с этими же часами.
+    /// </remarks>
+    public float UiTime { get; private set; }
+
+    /// <summary>
+    /// Настоящее время: идёт всегда — и на любой паузе, и во время загрузки.
+    /// </summary>
+    /// <remarks>
+    /// Для того, что считает настоящие секунды, пока вся игра стоит: ожидание сигналов рекламы (реклама ставит паузу
+    /// проекта), таймауты сети и площадки, ограничение частоты запросов. Игровой логике и интерфейсу не годится.
+    /// Статическое: экземпляр PRTime не нужен и не создаётся — годится и до запуска SDK, и в редакторе.
+    /// </remarks>
+    public static float WallTime => Time.realtimeSinceStartup;
+
+    /// <summary>
+    /// <see cref="UiTime"/> для кода, который зовут и вне игры (таблички, превью в редакторе): там — ноль,
+    /// и PRTime на сцене не появляется.
+    /// </summary>
+    public static float UiNow => Application.isPlaying ? Instance.UiTime : 0f;
+
+    /// <summary>
+    /// Отметка <c>Time.realtimeSinceStartup</c> прошлого кадра для <see cref="UiDeltaTime"/>.
+    /// </summary>
+    private float lastUiRawTime;
+
+    /// <summary>
     /// Последнее значение количества полных секунд, прошедших с момента инициализации PRTime, при котором было вызвано событие OnNextSecond.
     /// </summary>
     private long lastRealSecond;
@@ -114,10 +158,13 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
         // Следующий кадр отсчитывает время от этого момента, а не от прошлого кадра.
         LastRawTime = Time.realtimeSinceStartup;
+        lastUiRawTime = Time.realtimeSinceStartup;
     }
 
     private void Update()
     {
+        AdvanceUiTime();
+
         // Пока SDK загружается, время не идёт, но отметку двигаем: иначе первый кадр после загрузки посчитал бы
         // шагом всю загрузку, и секундные события выдали бы за неё доход и тики таймеров.
         if (!PRUnitySDK.IsInitialized)
@@ -222,6 +269,25 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         EventBus.RaiseEvent<IOnPRUpdateEvent>(x => x.OnPRUpdateEvent());
     }
 
+    /// <summary>
+    /// Шаг часов интерфейса: каждый кадр, на логической паузе и во время загрузки тоже; на паузе проекта — ноль.
+    /// </summary>
+    private void AdvanceUiTime()
+    {
+        float rawTime = Time.realtimeSinceStartup;
+        float rawDelta = Mathf.Max(0f, rawTime - lastUiRawTime);
+        lastUiRawTime = rawTime;
+
+        if (PRUnitySDK.IsInitialized && PRUnitySDK.PauseManager.IsProjectPaused)
+        {
+            UiDeltaTime = 0f;
+            return;
+        }
+
+        UiDeltaTime = rawDelta * PRTimeScale.Instance.Resolve(TimeLayer.UI);
+        UiTime += UiDeltaTime;
+    }
+
     private void UpdateRealTime()
     {
         float rawTime = Time.realtimeSinceStartup;
@@ -296,6 +362,10 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
         this.GameFixedDeltaTime = 0f;
 
         this.LastRawTime = Time.realtimeSinceStartup;
+
+        // Часы интерфейса сброс не трогает: по ним идут кулдауны окон, и обнуление посреди отсчёта растянуло бы его.
+        // Сдвигаем только отметку, чтобы первый кадр не посчитал шагом время до сброса.
+        lastUiRawTime = Time.realtimeSinceStartup;
     }
 
     #endregion

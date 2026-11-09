@@ -294,7 +294,8 @@ public class PRTimeScale : SingletonProviderBase<PRTimeScale>, ISingletonInitial
     /// </summary>
     private static float GetRealTime()
     {
-        return PRTime.HasInstance ? PRTime.Instance.RealTime : Time.realtimeSinceStartup;
+        // Без PRTime — настоящее время; модификаторы, поставленные до его запуска, PRTime.Reset всё равно снимает.
+        return PRTime.HasInstance ? PRTime.Instance.RealTime : PRTime.WallTime;
     }
 
     #endregion
