@@ -62,7 +62,9 @@ public class RepeatSecondsCoroutine : PRCoroutineBase
 
     /// <inheritdoc />
     /// <remarks>
-    /// За длинный кадр вызов приходит один раз, а не пачкой: это опрос состояния, догонять пропущенные незачем.
+    /// За длинный кадр вызов приходит один раз, а не пачкой: это опрос состояния, догонять пропущенные незачем. Перелёт
+    /// за интервал переносится в следующий: обнуление теряло его каждый раз, и при ускорении ×5 повтор отставал от игры
+    /// на треть кадра за интервал (Play-тест «Время», «Ускорение 5×»). Целые пропущенные интервалы отбрасываются.
     /// </remarks>
     protected override IEnumerator InternalExecute()
     {
@@ -75,10 +77,11 @@ public class RepeatSecondsCoroutine : PRCoroutineBase
             yield return null;
 
             elapsed += deltaTime();
-            if (elapsed < Mathf.Max(0.0001f, interval))
+            float step = Mathf.Max(0.0001f, interval);
+            if (elapsed < step)
                 continue;
 
-            elapsed = 0f;
+            elapsed %= step;
             callback();
         }
     }

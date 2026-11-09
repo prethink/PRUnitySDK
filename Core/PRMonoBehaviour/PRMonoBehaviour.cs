@@ -13,12 +13,32 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     protected virtual void Start()  
     {
         MarkStarted();
+        StartFrameCoroutines();
+    }
 
+    /// <summary>
+    /// Корутины <see cref="PRLateFixedUpdate"/> и <see cref="PREndOfFrame"/>, если наследник их просит.
+    /// </summary>
+    private LateFixedUpdateCoroutine lateFixedUpdateCoroutine;
+
+    private WaitForEndOfFrameCoroutine endOfFrameCoroutine;
+
+    /// <summary>
+    /// Запускает корутины кадра: первый раз — в <see cref="Start"/>, потом — при каждом включении.
+    /// </summary>
+    /// <remarks>
+    /// Unity обрывает корутины объекта, когда его выключают, и сама их не возобновляет. Раньше они запускались только в
+    /// <c>Start</c>, и после первого выключения (возрождение, пул, смена режима) <c>PRLateFixedUpdate</c> мотора игрока
+    /// и платформ больше не приходил. Выключение одного компонента корутины не обрывает, поэтому прежний запуск
+    /// останавливается явно — иначе их стало бы две. Проверка — Play-тест «Время», сценарий «Выключение и включение».
+    /// </remarks>
+    private void StartFrameCoroutines()
+    {
         if (UseCoroutineLateFixedUpdate())
-            new LateFixedUpdateCoroutine(() => PRLateFixedUpdate(), this).Execute();
+            (lateFixedUpdateCoroutine ??= new LateFixedUpdateCoroutine(() => PRLateFixedUpdate(), this)).StopAndExecute();
 
         if (UseCoroutineWaitForEndOfFrame())
-            new WaitForEndOfFrameCoroutine(() => PREndOfFrame(), this).Execute();
+            (endOfFrameCoroutine ??= new WaitForEndOfFrameCoroutine(() => PREndOfFrame(), this)).StopAndExecute();
     }
 
     // Update, LateUpdate и FixedUpdate здесь намеренно не объявлены: Unity вызывала бы их
@@ -29,6 +49,10 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     {
         PRUpdateRunner.Register(this);
 
+        // Первый запуск — в Start: до него объект не готов. Дальше включение возвращает корутины, оборванные выключением.
+        if (HasStarted)
+            StartFrameCoroutines();
+
         // Слушатель детализации подписывается сам и сразу получает текущий уровень — когда бы он ни появился.
         if (this is IEntityLodListener lodListener)
             EntityLod.Subscribe(this, lodListener);
@@ -37,6 +61,8 @@ public abstract partial class PRMonoBehaviour : MonoBehaviour, IPauseStateListen
     protected virtual void OnDisable()
     {
         PRUpdateRunner.Unregister(this);
+        lateFixedUpdateCoroutine?.Stop();
+        endOfFrameCoroutine?.Stop();
 
         if (this is IEntityLodListener lodListener)
             EntityLod.Unsubscribe(lodListener);

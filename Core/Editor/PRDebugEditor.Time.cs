@@ -18,24 +18,46 @@ public partial class PRDebugEditor
     private const float DurationSliderMax = 30f;
 
     /// <summary>
-    /// Вкладка Time: ускорение для проверки (<see cref="PRDebugTime"/>), часы <see cref="PRTime"/> и слои
-    /// <see cref="PRTimeScale"/>.
+    /// Как часто перерисовывать вкладку Time в игре, секунды: часы на ней живые, а снимок окна — раз в секунду.
+    /// </summary>
+    private const double TimeTabRepaintInterval = 0.1d;
+
+    private double nextTimeTabRepaint;
+
+    /// <summary>
+    /// Вкладка Time: ускорение для проверки (<see cref="PRDebugTime"/>), все часы <see cref="PRTime"/>, причины паузы и
+    /// слои <see cref="PRTimeScale"/>.
     /// </summary>
     private void DrawTime()
     {
-        DrawTabDescription("Всё о течении времени в игре: ускорение для проверки idle-механик, текущие часы и масштаб " +
-                           "времени по слоям — замедления, хитстоп, слоу-мо и кто их наложил.");
+        DrawTabDescription("Всё о течении времени в игре: ускорение для проверки idle-механик, все часы и их шаг кадра, " +
+                           "что сейчас стоит и кто поставил паузу, масштаб времени по слоям — замедления, хитстоп, слоу-мо " +
+                           "и кто их наложил. Значения живые. Проверка правил времени целиком — меню PRUnitySDK → Play-тесты → Время.");
 
         DrawSectionHeader("Скорость времени");
         PRDebugTimeSection.Draw(EditorApplication.isPlaying);
 
         DrawClock();
 
+        DrawPauseReasons();
+
         DrawTimeScale();
     }
 
     /// <summary>
-    /// Часы <see cref="PRTime"/> и масштаб времени Unity, через который идёт ускорение.
+    /// Перерисовывает вкладку Time чаще снимка: часы и шаг кадра на ней меняются каждый кадр.
+    /// </summary>
+    private void RepaintLiveTimeTab()
+    {
+        if (!EditorApplication.isPlaying || SelectedTabIndex != 1 || EditorApplication.timeSinceStartup < nextTimeTabRepaint)
+            return;
+
+        nextTimeTabRepaint = EditorApplication.timeSinceStartup + TimeTabRepaintInterval;
+        Repaint();
+    }
+
+    /// <summary>
+    /// Все часы SDK: что меряют, шаг кадра и что их останавливает.
     /// </summary>
     private void DrawClock()
     {
@@ -45,18 +67,151 @@ public partial class PRDebugEditor
 
         PRTime time = PRTime.Instance;
 
-        DrawSectionHeader("PRTime");
-        DrawKeyValue("Game time", FormatClock(time.GameTime));
-        DrawKeyValue("Real time", FormatClock(time.RealTime));
-        DrawKeyValue("Game delta", time.GameDeltaTime.ToString("0.0000"));
+        DrawSectionHeader("Часы");
+        DrawClockHeader();
+        DrawClockRow("GameTime", time.GameTime, time.GameDeltaTime, "мир: стоит на любой паузе, темп слоя World");
+        DrawClockRow("RealTime", time.RealTime, time.RealDeltaTime, "без масштаба слоёв: стоит на любой паузе");
+        DrawClockRow("UiTime", time.UiTime, time.UiDeltaTime, "окна и обучение: идёт на логической паузе, стоит на паузе проекта");
+        DrawClockRow("WallTime", PRTime.WallTime, null, "настоящее время: идёт всегда (реклама, сеть, лимиты)");
+
+        // Часы масок, которые кто-то уже спросил: игрок, боты, питомцы, интерфейс в мире. Окно их не заводит — иначе
+        // само создало бы часы, которых в игре нет. Свои у каждой маски: сравнивать только с ними же.
+        foreach (KeyValuePair<TimeLayer, float> clock in time.LayerClocks.ToArray())
+        {
+            DrawClockRow($"GetTime({clock.Key})", clock.Value, time.GetDeltaTime(clock.Key),
+                $"часы маски: темп × {PRTimeScale.Instance.Resolve(clock.Key):0.###}, стоит на любой паузе");
+        }
+
+        EditorGUILayout.Space(3f);
+        DrawKeyValue("Fixed: game / real", $"{time.GameFixedDeltaTime:0.0000} / {time.RealFixedDeltaTime:0.0000}");
+        DrawKeyValue("Seconds: game / real", $"{time.CurrentGameSecond} / {time.CurrentRealSecond}");
         DrawKeyValue("Unity timeScale", Time.timeScale.ToString("0.##"));
+
+        if (PRUnitySDK.ServerTime != null)
+            DrawKeyValue("ServerTime (таймеры)", PRUnitySDK.ServerTime.GetNow().ToLocalTime().ToString("dd.MM HH:mm:ss"));
+    }
+
+    private static void DrawClockHeader()
+    {
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Часы", EditorStyles.miniBoldLabel, GUILayout.Width(150f));
+        EditorGUILayout.LabelField("Значение", EditorStyles.miniBoldLabel, GUILayout.Width(80f));
+        EditorGUILayout.LabelField("Шаг кадра", EditorStyles.miniBoldLabel, GUILayout.Width(70f));
+        EditorGUILayout.LabelField("Когда идёт", EditorStyles.miniBoldLabel, GUILayout.MinWidth(80f));
+        EditorGUILayout.EndHorizontal();
+    }
+
+    private static void DrawClockRow(string name, float value, float? delta, string note)
+    {
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField(name, GUILayout.Width(150f));
+        EditorGUILayout.LabelField(FormatClock(value), GUILayout.Width(80f));
+
+        // Нулевой шаг — часы сейчас стоят: так видно паузу и заморозку слоя, не читая причины.
+        GUIStyle style = delta.HasValue && delta.Value <= 0f ? StoppedStyle : EditorStyles.label;
+        EditorGUILayout.LabelField(delta.HasValue ? delta.Value.ToString("0.0000") : "—", style, GUILayout.Width(70f));
+        EditorGUILayout.LabelField(note, EditorStyles.miniLabel, GUILayout.MinWidth(80f));
+        EditorGUILayout.EndHorizontal();
+    }
+
+    private static GUIStyle stoppedStyle;
+
+    /// <summary>
+    /// Выделение того, что сейчас стоит: нулевой шаг часов, включённая пауза.
+    /// </summary>
+    private static GUIStyle StoppedStyle => stoppedStyle ??= new GUIStyle(EditorStyles.label)
+    {
+        normal = { textColor = new Color(0.95f, 0.6f, 0.25f) },
+        fontStyle = FontStyle.Bold,
+    };
+
+    /// <summary>
+    /// Что сейчас стоит и почему: каждая пауза, кто её поставил и что она останавливает.
+    /// </summary>
+    /// <remarks>
+    /// Пауза — набор флагов, у каждого свой источник (<see cref="PauseManager"/> помнит последнего, кто флаг поставил).
+    /// Сводка сверху отвечает на главный вопрос «почему мир или интерфейс стоит», ниже — по флагу.
+    /// </remarks>
+    private void DrawPauseReasons()
+    {
+        if (!EditorApplication.isPlaying || !PRUnitySDK.IsInitialized || PRUnitySDK.PauseManager == null)
+            return;
+
+        IPauseManager pause = PRUnitySDK.PauseManager;
+        var manager = pause as PauseManager;
+
+        // Флаги по отдельности: IsProjectPaused включает фокус, IsLogicPaused — всё сразу.
+        bool project = manager != null ? manager.ProjectPausedBy != null : pause.IsProjectPaused && !pause.IsFocusPaused;
+        bool logic = manager != null ? manager.LogicPausedBy != null : pause.IsLogicPaused;
+
+        var world = new List<string>();
+        var ui = new List<string>();
+        AddReason(project, "проект", world, ui);
+        AddReason(pause.IsFocusPaused, "нет фокуса", world, ui);
+        AddReason(logic, "логика", world, null);
+        AddReason(pause.IsTutorialPaused, "обучение", world, null);
+        AddReason(pause.IsCutScenePaused, "катсцена", world, null);
+
+        DrawSectionHeader("Пауза");
+        DrawKeyValue("Мир стоит", pause.IsLogicPaused ? "да — " + (world.Count > 0 ? string.Join(", ", world) : "причина не записана") : "нет");
+        DrawKeyValue("Интерфейс стоит", pause.IsProjectPaused ? "да — " + string.Join(", ", ui) : "нет");
+        bool music = manager != null ? manager.MusicPausedBy != null : pause.IsMusicPaused && !pause.IsProjectPaused;
+        AddReason(music, "музыка", ui, null);
+        DrawKeyValue("Музыка стоит", pause.IsMusicPaused ? "да — " + string.Join(", ", ui) : "нет");
+
+        EditorGUILayout.Space(3f);
+        DrawPauseRow("Project", project, manager?.ProjectPausedBy, "мир и интерфейс; реклама, покупка");
+        DrawPauseRow("Focus", pause.IsFocusPaused, manager?.FocusPausedBy, "мир и интерфейс; окно без фокуса");
+        DrawPauseRow("Logic", logic, manager?.LogicPausedBy, "мир; окна, награды");
+        DrawPauseRow("Tutorial", pause.IsTutorialPaused, manager?.TutorialPausedBy, "мир; шаг обучения");
+        DrawPauseRow("Cutscene", pause.IsCutScenePaused, manager?.CutScenePausedBy, "мир; катсцена");
+        DrawPauseRow("Music", music, manager?.MusicPausedBy, "только музыка");
+    }
+
+    private static void AddReason(bool active, string kind, List<string> world, List<string> ui)
+    {
+        if (!active)
+            return;
+
+        // В сводке — только вид паузы: источники стоят в строках ниже, а длинное имя обрезалось бы.
+        world.Add(kind);
+        ui?.Add(kind);
+    }
+
+    private static void DrawPauseRow(string name, bool active, object executer, string stops)
+    {
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField(name, GUILayout.Width(70f));
+        EditorGUILayout.LabelField(active ? "ON" : "—", active ? StoppedStyle : EditorStyles.label, GUILayout.Width(35f));
+        EditorGUILayout.LabelField(active ? DescribeExecuter(executer) : string.Empty, GUILayout.MinWidth(120f));
+        EditorGUILayout.LabelField(stops, EditorStyles.miniLabel, GUILayout.MinWidth(80f));
+        EditorGUILayout.EndHorizontal();
+    }
+
+    /// <summary>
+    /// Кто поставил паузу: тип и имя объекта сцены, тип — для статических вызовов, иначе описание источника.
+    /// </summary>
+    private static string DescribeExecuter(object executer)
+    {
+        switch (executer)
+        {
+            case null:
+                return "не записан";
+            case UnityEngine.Object unityObject:
+                return unityObject != null ? $"{unityObject.GetType().Name} «{unityObject.name}»" : $"{unityObject.GetType().Name} (уничтожен)";
+            case Type type:
+                return type.Name;
+        }
+
+        string text = executer.ToString();
+        return text == executer.GetType().ToString() ? executer.GetType().Name : text;
     }
 
     private static string FormatClock(float seconds)
     {
-        TimeSpan span = TimeSpan.FromSeconds(seconds);
+        TimeSpan span = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
 
-        return $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}";
+        return $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}.{span.Milliseconds / 100}";
     }
 
     /// <summary>

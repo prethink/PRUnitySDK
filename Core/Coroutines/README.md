@@ -66,6 +66,19 @@ new WaitRealSecondsCoroutine(callback, 1f, this).Execute();
 - `GameDeltaTime` учитывает глобальный слой `PRTimeScale`;
 - `RealDeltaTime` не применяет игровой time scale.
 
+Отсчёт идёт со следующего кадра после запуска и вычитает шаг каждого кадра, в том числе подвисшего.
+
+**`yield return WaitPause.Instance` стоит кадра и без паузы.** В цикле отсчёта ждать паузу только когда она есть:
+
+```csharp
+while (WaitPause.Instance.keepWaiting)
+    yield return null;
+left -= PRTime.Instance.GameDeltaTime;
+```
+
+Иначе цикл идёт через кадр: ожидание длится вдвое дольше, а шаг пропущенного кадра теряется (так было у
+`WaitSecondsCoroutineBase`, `DamageOverTimeCoroutine` и `CanvasGroupFadeCoroutine` до 09.11.2026 — нашёл Play-тест «Время»).
+
 ## Периодические корутины
 
 `LateFixedUpdateCoroutine` и `WaitForEndOfFrameCoroutine` работают бесконечно:

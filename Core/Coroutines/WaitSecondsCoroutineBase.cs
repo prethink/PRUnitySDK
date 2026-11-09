@@ -7,6 +7,12 @@ using UnityEngine;
 ///источник delta time, определяемый наследником, учитывает <see cref="WaitPause"/>
 ///и по завершении один раз вызывает callback.
 ///</summary>
+/// <remarks>
+/// Каждый кадр вычитает шаг этого кадра, начиная со следующего за запуском: шаг кадра запуска прошёл до него.
+/// Паузу ждёт, только когда она есть: <c>yield return WaitPause.Instance</c> стоит кадра и без паузы, и раньше отсчёт
+/// шёл через кадр — ожидание длилось вдвое дольше, а шаг пропущенного кадра (в том числе подвисшего) терялся.
+/// Проверка — Play-тест «Время» (сценарии «Ускорение 5×» и «Длинный кадр»).
+/// </remarks>
 public abstract class WaitSecondsCoroutineBase : PRCoroutineBase
 {
     private Action callback;
@@ -14,12 +20,15 @@ public abstract class WaitSecondsCoroutineBase : PRCoroutineBase
 
     protected override IEnumerator InternalExecute()
     {
-        float fadeTime = duration;
-        while (fadeTime > 0)
+        float left = duration;
+        while (left > 0)
         {
-            yield return WaitPause.Instance;
-            fadeTime -= GetTime();
             yield return null;
+
+            while (WaitPause.Instance.keepWaiting)
+                yield return null;
+
+            left -= GetTime();
         }
 
         callback?.Invoke();

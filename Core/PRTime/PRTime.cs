@@ -125,6 +125,11 @@ public class PRTime : PRMonoBehaviourSingletonBase<PRTime>
 
     private readonly List<TimeLayer> layerClockKeys = new();
 
+    /// <summary>
+    /// Часы слоёв, которые уже кто-то спросил (<see cref="GetTime"/>), — для вкладки Time окна отладки.
+    /// </summary>
+    public IReadOnlyDictionary<TimeLayer, float> LayerClocks => layerClocks;
+
     #region MonoBehaviour
 
     /// <inheritdoc />

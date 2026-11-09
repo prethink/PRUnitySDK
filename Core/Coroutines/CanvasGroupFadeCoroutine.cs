@@ -57,8 +57,9 @@ public class CanvasGroupFadeCoroutine : PRCoroutineBase
         float fadeTime = fadeDuration;
         while (fadeTime > 0)
         {
-            if (!IgnorePause)
-                yield return WaitPause.Instance;
+            // Паузу ждём, только когда она есть: yield WaitPause стоит кадра и без неё, и затухание шло бы вдвое дольше.
+            while (!IgnorePause && WaitPause.Instance.keepWaiting)
+                yield return null;
 
             // На паузе игровая дельта нулевая, поэтому мимо паузы идём по часам интерфейса.
             fadeTime -= IgnorePause ? PRTime.Instance.UiDeltaTime : PRTime.Instance.GetDeltaTime(TimeLayer.UI);

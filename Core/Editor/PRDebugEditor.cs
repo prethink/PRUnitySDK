@@ -167,6 +167,8 @@ public partial class PRDebugEditor : ExtendedEditorWindow
 
     private void AutoRefresh()
     {
+        RepaintLiveTimeTab();
+
         if (eventHistoryDirty)
         {
             eventHistoryDirty = false;

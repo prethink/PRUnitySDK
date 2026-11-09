@@ -104,7 +104,10 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
 
         while (ticksLeft != 0 && !IsFinished)
         {
-            yield return WaitPause.Instance;
+            // Паузу ждём, только когда она есть: yield WaitPause стоит кадра и без неё — тики шли бы через кадр,
+            // вдвое реже заявленного, а шаг пропущенного кадра (и подвисшего) терялся.
+            while (WaitPause.Instance.keepWaiting)
+                yield return null;
 
             if (!DealTicks(ticks.Add(FrameDeltaTime())))
                 break;
