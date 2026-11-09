@@ -5,12 +5,13 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 
 /// <summary>
-/// Список сцен сборки по проекту: стартовая сцена, за ней сцена игры проекта.
+/// Список сцен сборки по проекту: стартовая сцена, за ней сцена игры проекта, за ней его второстепенные сцены.
 /// </summary>
 /// <remarks>
 /// Стартовая сцена — та, что сейчас первая в списке сборки: с неё запускается игра (<c>PlayFromBootstrap</c>
 /// берёт номер 0), сцена игры — сразу за ней: стартовая грузит её номером <c>Bootstrap.GameSceneIndex</c> (1).
-/// Остальные сцены остаются в списке выключенными, порядок их не меняется:
+/// Второстепенные сцены проекта (<see cref="PRSDKProject.ExtraSceneGuids"/>, уровни) встают следом, включёнными и по порядку:
+/// игра переходит на них по имени. Остальные сцены остаются в списке выключенными, порядок их не меняется:
 /// чтобы вернуть прежнюю игру, достаточно сделать активным её проект.
 /// <para>
 /// Проект без сцены (<see cref="PRSDKProject.GameSceneGuid"/> пуст) список не трогает. При смене проекта или его сцены она
@@ -39,11 +40,26 @@ public static class PRSDKProjectScenes
 
         int gameIndex = GameSceneIndexOf(project);
         string loaded = gameIndex >= 0 && gameIndex < enabledScenes.Count ? enabledScenes[gameIndex] : null;
-        if (loaded == gamePath)
-            return null;
+        if (loaded != gamePath)
+            return $"стартовая сцена грузит номер {gameIndex} ({(loaded ?? "такой сцены в сборке нет")}), а сцена игры проекта «{project.Title}» — {gamePath}. " +
+                   "Поправьте Bootstrap → Game Scene Index или сделайте проект активным заново в окне проектов";
 
-        return $"стартовая сцена грузит номер {gameIndex} ({(loaded ?? "такой сцены в сборке нет")}), а сцена игры проекта «{project.Title}» — {gamePath}. " +
-               "Поправьте Bootstrap → Game Scene Index или сделайте проект активным заново в окне проектов";
+        foreach (string extraGuid in project.ExtraSceneGuids)
+        {
+            if (string.IsNullOrEmpty(extraGuid))
+                continue;
+
+            string extraPath = AssetDatabase.GUIDToAssetPath(extraGuid);
+            if (string.IsNullOrEmpty(extraPath))
+                return $"второстепенная сцена проекта «{project.Title}» не найдена (GUID {extraGuid})";
+
+            // Выключенная сцена в сборку не попадает, и переход на уровень по имени упал бы уже в игре.
+            if (!enabledScenes.Contains(extraPath))
+                return $"второстепенная сцена проекта «{project.Title}» {extraPath} выключена в списке сборки. " +
+                       "Сделайте проект активным заново в окне проектов";
+        }
+
+        return null;
     }
 
     [InitializeOnLoadMethod]
@@ -69,12 +85,12 @@ public static class PRSDKProjectScenes
             return;
 
         string sceneGuid = AssetDatabase.AssetPathToGUID(scenePath);
-        if (sceneGuid == active.GameSceneGuid)
+        if (active.OwnsScene(sceneGuid))
             return;
 
         PRSDKProject owner = AssetDatabase.FindAssets("t:" + nameof(PRSDKProject))
             .Select(guid => AssetDatabase.LoadAssetAtPath<PRSDKProject>(AssetDatabase.GUIDToAssetPath(guid)))
-            .FirstOrDefault(project => project != null && project != active && project.GameSceneGuid == sceneGuid);
+            .FirstOrDefault(project => project != null && project != active && project.OwnsScene(sceneGuid));
         if (owner == null)
             return;
 
@@ -118,15 +134,45 @@ public static class PRSDKProjectScenes
             Debug.LogError($"[PRUnitySDK] У проекта «{project.Title}» стартовая сцена грузит сцену номер {gameIndex}, а сцена игры встаёт номером {GameSceneBuildIndex}: " +
                            "поправьте Bootstrap → Game Scene Index, иначе сборка остановится.");
 
+        List<string> extraPaths = ResolveExtraPaths(project, bootstrapPath, gamePath);
         var result = new List<EditorBuildSettingsScene> { new(bootstrapPath, true), new(gamePath, true) };
-        result.AddRange(scenes.Skip(1).Where(scene => scene.path != gamePath).Select(scene => new EditorBuildSettingsScene(scene.path, false)));
+        result.AddRange(extraPaths.Select(path => new EditorBuildSettingsScene(path, true)));
+        result.AddRange(scenes.Skip(1)
+            .Where(scene => scene.path != gamePath && !extraPaths.Contains(scene.path))
+            .Select(scene => new EditorBuildSettingsScene(scene.path, false)));
 
         if (Same(scenes, result))
             return true;
 
         EditorBuildSettings.scenes = result.ToArray();
-        Debug.Log($"[PRUnitySDK] Сцены сборки по проекту «{project.Title}»: {bootstrapPath} → {gamePath}.");
+        string extras = extraPaths.Count > 0 ? " → " + string.Join(" → ", extraPaths) : string.Empty;
+        Debug.Log($"[PRUnitySDK] Сцены сборки по проекту «{project.Title}»: {bootstrapPath} → {gamePath}{extras}.");
         return true;
+    }
+
+    /// <summary>
+    /// Пути второстепенных сцен проекта по порядку: без пустых, ненайденных, повторов и без стартовой и сцены игры.
+    /// </summary>
+    private static List<string> ResolveExtraPaths(PRSDKProject project, string bootstrapPath, string gamePath)
+    {
+        var result = new List<string>();
+        foreach (string guid in project.ExtraSceneGuids)
+        {
+            if (string.IsNullOrEmpty(guid))
+                continue;
+
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (string.IsNullOrEmpty(path) || AssetDatabase.LoadAssetAtPath<SceneAsset>(path) == null)
+            {
+                Debug.LogWarning($"[PRUnitySDK] У проекта «{project.Title}» второстепенная сцена не найдена (GUID {guid}): в сборку не встала.");
+                continue;
+            }
+
+            if (path != bootstrapPath && path != gamePath && !result.Contains(path))
+                result.Add(path);
+        }
+
+        return result;
     }
 
     /// <summary>

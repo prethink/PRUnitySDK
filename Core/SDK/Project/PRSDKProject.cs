@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -38,6 +39,12 @@ public class PRSDKProject : ScriptableObject
              "за ней эта, остальные выключаются. Пусто — список сборки не трогается.")]
     private string gameScene;
 
+    [SerializeField, SceneGuid]
+    [Tooltip("Второстепенные сцены игры: уровни, отдельные арены. Когда проект становится активным, они встают в список " +
+             "сборки сразу за сценой игры, по порядку, и включаются. Переход на них в игре — SceneChanger.SceneChange(имя сцены). " +
+             "Без сцены игры не действуют.")]
+    private List<string> extraScenes = new();
+
     /// <summary>
     /// Название проекта; пусто — имя ассета.
     /// </summary>
@@ -75,6 +82,21 @@ public class PRSDKProject : ScriptableObject
     /// по нему в редакторе собирается список сцен сборки (<c>PRSDKProjectScenes</c>).
     /// </remarks>
     public string GameSceneGuid => gameScene;
+
+    /// <summary>
+    /// GUID второстепенных сцен по порядку: уровни и прочее, куда игра переходит из сцены игры.
+    /// </summary>
+    /// <remarks>
+    /// Как и <see cref="GameSceneGuid"/>, читается только в редакторе: по ним собирается список сцен сборки. Какие из них
+    /// уровни и в каком порядке их проходить, решает сама игра — проект только кладёт их в сборку.
+    /// </remarks>
+    public IReadOnlyList<string> ExtraSceneGuids => extraScenes;
+
+    /// <summary>
+    /// Сцена принадлежит проекту: это его сцена игры или одна из второстепенных.
+    /// </summary>
+    public bool OwnsScene(string sceneGuid) =>
+        !string.IsNullOrEmpty(sceneGuid) && (sceneGuid == gameScene || extraScenes.Contains(sceneGuid));
 
     /// <summary>
     /// Ассет проекта нужного вида либо <see langword="null"/>.

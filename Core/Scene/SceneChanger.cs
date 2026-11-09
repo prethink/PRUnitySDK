@@ -44,6 +44,20 @@ public class SceneChanger : SingletonProviderBase<SceneChanger>
     }
 
     /// <summary>
+    /// Переходит на сцену по имени, с затемнением по настройкам.
+    /// </summary>
+    /// <remarks>
+    /// Для второстепенных сцен проекта (уровней, <c>PRSDKProject.ExtraSceneGuids</c>): их номер в сборке зависит от
+    /// активного проекта, а имя — нет. Сцена должна быть включена в сборке — это делает смена проекта.
+    /// </remarks>
+    /// <param name="sceneName">Имя сцены без пути и расширения.</param>
+    /// <param name="onShown">Когда сцена загружена и видна.</param>
+    public void SceneChange(string sceneName, Action onShown = null)
+    {
+        SceneChange(() => SceneManager.LoadScene(sceneName), onShown);
+    }
+
+    /// <summary>
     /// Выполняет загрузку сцены под настроенным затемнением.
     /// </summary>
     /// <param name="onShown">

@@ -25,6 +25,7 @@ public static class PRSDKActiveProjectWatcher
     private static PRSDKDatabase lastDatabase;
     private static PRSDKSettings lastSettings;
     private static string lastScene;
+    private static string lastExtraScenes;
 
     static PRSDKActiveProjectWatcher()
     {
@@ -55,6 +56,7 @@ public static class PRSDKActiveProjectWatcher
         lastDatabase = lastProject != null ? lastProject.Database : null;
         lastSettings = lastProject != null ? lastProject.Settings : null;
         lastScene = lastProject != null ? lastProject.GameSceneGuid : null;
+        lastExtraScenes = ExtraScenesKey(lastProject);
     }
 
     private static void Check()
@@ -73,8 +75,9 @@ public static class PRSDKActiveProjectWatcher
 
         bool projectChanged = project != lastProject;
         bool sceneChanged = (project != null ? project.GameSceneGuid : null) != lastScene;
+        bool extraScenesChanged = ExtraScenesKey(project) != lastExtraScenes;
 
-        if (!projectChanged && !databaseChanged && !settingsChanged && !sceneChanged)
+        if (!projectChanged && !databaseChanged && !settingsChanged && !sceneChanged && !extraScenesChanged)
             return;
 
         Remember();
@@ -86,7 +89,8 @@ public static class PRSDKActiveProjectWatcher
             ScriptableObjectSingleton<PRSDKSettings>.ResetInstance();
 
         // Сцена игры из проекта встаёт в сборку за стартовой: и при смене проекта, и когда её выбрали у активного.
-        if ((projectChanged || sceneChanged) && project != null)
+        // Второстепенные сцены — только в сборку: открывать их незачем, игра начинается со сцены игры.
+        if ((projectChanged || sceneChanged || extraScenesChanged) && project != null)
             PRSDKProjectScenes.Apply(project);
 
         // Сменили проект или его сцену — сразу открыть её, сохранив текущие.
@@ -95,6 +99,12 @@ public static class PRSDKActiveProjectWatcher
 
         InternalEditorUtility.RepaintAllViews();
     }
+
+    /// <summary>
+    /// Состав второстепенных сцен одной строкой: заметить, что их добавили, убрали или переставили.
+    /// </summary>
+    private static string ExtraScenesKey(PRSDKProject project) =>
+        project != null ? string.Join("|", project.ExtraSceneGuids) : null;
 
     /// <summary>
     /// Возвращает указатель проекту, с которым идёт игра.
