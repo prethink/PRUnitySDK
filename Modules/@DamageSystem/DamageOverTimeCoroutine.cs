@@ -90,54 +90,87 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     /// </summary>
     public const int MaxTicksPerFrame = 5;
 
+    private TickAccumulator ticks;
+    private int ticksLeft;
+    private int countedFrame = -1;
+
     protected override IEnumerator InternalExecute()
     {
         IsFinished = false;
         TicksDone = 0;
+        ticksLeft = tickCount;
+        ticks = new TickAccumulator(tickInterval, MaxTicksPerFrame);
+        countedFrame = -1;
 
-        int ticksLeft = tickCount;
-        float elapsed = 0f;
-        bool stopped = false;
-
-        while (ticksLeft != 0 && !stopped)
+        while (ticksLeft != 0 && !IsFinished)
         {
             yield return WaitPause.Instance;
 
-            elapsed += DeltaTime();
-            int due = 0;
-            while (elapsed >= tickInterval && due < MaxTicksPerFrame)
-            {
-                elapsed -= tickInterval;
-                due++;
-            }
+            if (!DealTicks(ticks.Add(FrameDeltaTime())))
+                break;
 
-            // Предел догнали — остаток не копим, иначе следующие кадры отдали бы его пачкой.
-            if (due == MaxTicksPerFrame)
-                elapsed = Mathf.Min(elapsed, tickInterval);
-
-            for (int i = 0; i < due && ticksLeft != 0; i++)
-            {
-                // Спрашиваем перед каждым тиком, а не один раз при запуске: за интервал цель
-                // успевает умереть, спрятаться или уйти в пул.
-                if (!CanDamage())
-                {
-                    stopped = true;
-                    break;
-                }
-
-                target.TakeDamage(attacker, weapon, BuildTickDamage());
-                TicksDone++;
-
-                if (ticksLeft > 0)
-                    ticksLeft--;
-            }
-
-            if (!stopped && ticksLeft != 0)
+            if (ticksLeft != 0)
                 yield return null;
         }
 
+        Complete();
+    }
+
+    /// <summary>
+    /// Эффект кончился раньше, чем корутина досчитала кадр (статус снят тем же кадром, когда наступает последний тик):
+    /// отдать уже наступивший тик и остановиться. Неполный интервал урона не даёт. <see cref="Stop"/> — без досчёта.
+    /// </summary>
+    public void Finish()
+    {
+        if (IsFinished || ticks == null)
+            return;
+
+        Stop();
+        DealTicks(ticks.Finish(FrameDeltaTime()));
+        Complete();
+    }
+
+    private void Complete()
+    {
+        if (IsFinished)
+            return;
+
         IsFinished = true;
         completed?.Invoke();
+    }
+
+    /// <returns><c>false</c> — бить больше некого.</returns>
+    private bool DealTicks(int due)
+    {
+        for (int i = 0; i < due && ticksLeft != 0; i++)
+        {
+            // Спрашиваем перед каждым тиком, а не один раз при запуске: за интервал цель
+            // успевает умереть, спрятаться или уйти в пул.
+            if (!CanDamage())
+                return false;
+
+            target.TakeDamage(attacker, weapon, BuildTickDamage());
+            TicksDone++;
+
+            if (ticksLeft > 0)
+                ticksLeft--;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Время этого кадра — один раз за кадр: <see cref="Finish"/> в том же кадре, что и шаг корутины, его не удваивает.
+    /// Номер кадра — счётчик, а не время, поэтому <c>Time.frameCount</c> здесь законен.
+    /// </summary>
+    private float FrameDeltaTime()
+    {
+        int frame = Time.frameCount;
+        if (frame == countedFrame)
+            return 0f;
+
+        countedFrame = frame;
+        return DeltaTime();
     }
 
     /// <summary>
