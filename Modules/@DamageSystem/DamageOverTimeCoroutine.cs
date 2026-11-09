@@ -99,9 +99,15 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     /// </summary>
     private bool dealing;
 
+    /// <summary>
+    /// <see cref="Finish"/> позвали во время выдачи тиков: завершить после того, как текущий удар посчитан.
+    /// </summary>
+    private bool finishRequested;
+
     protected override IEnumerator InternalExecute()
     {
         IsFinished = false;
+        finishRequested = false;
         TicksDone = 0;
         ticksLeft = tickCount;
         ticks = new TickAccumulator(tickInterval, MaxTicksPerFrame);
@@ -131,12 +137,24 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
     /// Эффект кончился раньше, чем корутина досчитала кадр (статус снят тем же кадром, когда наступает последний тик):
     /// отдать уже наступивший тик и остановиться. Неполный интервал урона не даёт. <see cref="Stop"/> — без досчёта.
     /// </summary>
+    /// <remarks>
+    /// Позванный из обработчика урона (смерть, снятие статуса во время тика) не завершает сразу: <c>TakeDamage</c>
+    /// ещё не вернулся, и подписчик <c>completed</c> увидел бы <see cref="TicksDone"/> без этого удара. Завершение
+    /// откладывается до конца текущего удара — счётчики уже обновлены, событие приходит не изнутри обработчика урона.
+    /// </remarks>
     public void Finish()
     {
-        if (IsFinished || ticks == null)
+        if (IsFinished || finishRequested || ticks == null)
             return;
 
         Stop();
+
+        if (dealing)
+        {
+            finishRequested = true;
+            return;
+        }
+
         DealTicks(ticks.Finish(FrameDeltaTime()));
         Complete();
     }
@@ -152,28 +170,38 @@ public class DamageOverTimeCoroutine : PRCoroutineBase
 
     /// <returns><c>false</c> — бить больше некого.</returns>
     /// <remarks>
-    /// Повторный вход (обработчик урона позвал <see cref="Finish"/>) ничего не выдаёт: тики этого кадра уже раздаёт
-    /// внешний вызов, а после <see cref="Complete"/> он останавливается — удар, который снял эффект, последний.
+    /// Повторный вход ничего не выдаёт: тики этого кадра уже раздаёт внешний вызов. <see cref="Finish"/> из обработчика
+    /// урона останавливает выдачу после текущего удара, и завершение (<see cref="Complete"/>) приходит уже здесь, когда
+    /// <see cref="TicksDone"/> и остаток тиков обновлены, — удар, который снял эффект, последний.
     /// </remarks>
     private bool DealTicks(int due)
     {
         if (dealing)
             return true;
 
+        bool result;
         dealing = true;
         try
         {
-            return DealTicksUnguarded(due);
+            result = DealTicksUnguarded(due);
         }
         finally
         {
             dealing = false;
         }
+
+        if (finishRequested)
+        {
+            finishRequested = false;
+            Complete();
+        }
+
+        return result;
     }
 
     private bool DealTicksUnguarded(int due)
     {
-        for (int i = 0; i < due && ticksLeft != 0 && !IsFinished; i++)
+        for (int i = 0; i < due && ticksLeft != 0 && !IsFinished && !finishRequested; i++)
         {
             // Спрашиваем перед каждым тиком, а не один раз при запуске: за интервал цель
             // успевает умереть, спрятаться или уйти в пул.
