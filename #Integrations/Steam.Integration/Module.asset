@@ -19,6 +19,7 @@ MonoBehaviour:
   isRequired: 0
   dependencies: []
   platform: StandaloneWindows64, StandaloneWindows, StandaloneLinux64, StandaloneOSX
+  codeOnlyOnPlatform: 1
   slot: "Магазин"
   pluginFolder: Assets/com.rlabrecque.steamworks.net
   pluginModulesFile:

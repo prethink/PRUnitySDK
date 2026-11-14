@@ -36,6 +36,12 @@ public sealed class PRModuleValidator : IProjectValidator
                 "Оставьте один в окне модулей.", slot.First().Manifest);
         }
 
+        // Символы модулей общие на все платформы: веб-площадка, оставленная включённой, попала бы в сборку под PC
+        // или Android и заняла сервисы, которых у интеграции этой платформы нет.
+        BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
+        foreach (PRModuleManifest foreign in PRModulePlatformCheck.FindForeign(modules.Select(module => module.Manifest), disabled, target))
+            yield return new ProjectValidationIssue(MessageType.Error, PRModulePlatformCheck.Describe(foreign, target), foreign);
+
         foreach (PRModulePart part in PRModuleCatalog.FindOrphanParts(modules))
         {
             yield return new ProjectValidationIssue(MessageType.Warning,

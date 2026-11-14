@@ -45,6 +45,11 @@ public sealed class PRModuleManifest : ScriptableObject
              "если включённая не подходит к активной платформе. Пусто — любая платформа.")]
     [SerializeField] private string platform;
 
+    [Tooltip("Код интеграции собирается только под свою платформу: её скрипты обёрнуты в символ платформы " +
+             "(UNITY_ANDROID, UNITY_STANDALONE_*). Такая интеграция в сборке другой платформы безвредна. Без отметки " +
+             "включённая интеграция останавливает сборку не своей платформы: её сервисы попали бы туда.")]
+    [SerializeField] private bool codeOnlyOnPlatform;
+
     [Tooltip("Слот интеграции, например «Площадка». Из модулей с одним слотом включён не больше чем один. Пусто — модуль ни с кем не конкурирует.")]
     [SerializeField] private string slot;
 
@@ -114,6 +119,11 @@ public sealed class PRModuleManifest : ScriptableObject
     /// <summary>
     /// Интеграция подходит к платформе сборки.
     /// </summary>
+    /// <summary>
+    /// Код интеграции собирается только под свою платформу и в сборку другой не попадает.
+    /// </summary>
+    public bool CodeOnlyOnPlatform => codeOnlyOnPlatform;
+
     public bool SupportsPlatform(BuildTarget target) =>
         Platform.Length == 0 || Platform.Split(',').Any(name => string.Equals(name.Trim(), target.ToString(), System.StringComparison.OrdinalIgnoreCase));
 
