@@ -876,6 +876,10 @@ public class ObjectPoolManager : MonoBehaviour
         // менять иерархию Unity не даёт.
         if (poolObject.InstanceGameObject != null)
         {
+            // Объект узнаёт о возврате, пока ещё включён: сущность по этой отметке заканчивает жизнь.
+            if (poolObject.InstanceGameObject.TryGetComponent<IPoolable>(out var poolable))
+                poolable.PoolBehaviour?.MarkReturned();
+
             poolObject.InstanceGameObject.SetActive(false);
             poolObject.InstanceGameObject.transform.SetParent(ContainerOf(poolObject), false);
         }

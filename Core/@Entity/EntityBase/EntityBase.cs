@@ -99,13 +99,56 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     private EntityWireVisual wireVisual;
 
+    /// <summary>
+    /// Идёт событие уничтожения: состояние уже сменилось, а объект ещё не спрятан и не уничтожен.
+    /// </summary>
+    private bool endingLife;
+
     #endregion
 
     #region IEntity
 
+    /// <summary>
+    /// Жизнь сущности закончилась. Подписка действует весь срок компонента.
+    /// </summary>
+    /// <remarks>
+    /// Возврат в пул подписчиков не снимает: сущность из пула приходит снова, и тот, кто подписался один раз
+    /// на экземпляр (спавнер, раздача оружия), получает событие в конце каждой её жизни. Подписку на одну
+    /// жизнь даёт <see cref="OnLifeEnded"/>.
+    /// <para>
+    /// Приходит один раз на жизнь и только когда жизнь закончила игра: <c>DestroyEntity</c> или возврат в пул.
+    /// Объект, уничтоженный Unity (выгрузка сцены, очистка пула), события не поднимает.
+    /// </para>
+    /// </remarks>
     public event Action<EntityBase> OnEntityDestroy;
-    
+
+    /// <summary>
+    /// Текущая жизнь сущности закончилась. Подписка действует одну жизнь.
+    /// </summary>
+    /// <remarks>
+    /// После вызова список подписчиков пуст: следующая выдача из пула или возврат спрятанной прежних
+    /// подписчиков не помнит. Для того, что привязано к одной жизни, — привязка к сессии, занятое место,
+    /// владелец предмета. Отписываться самому не нужно; подписка, сделанная из обработчика, относится
+    /// уже к следующей жизни. Приходит перед <see cref="OnEntityDestroy"/>, у игрока тоже.
+    /// Уничтожение объекта Unity подписчиков снимает без вызова.
+    /// </remarks>
+    public event Action<EntityBase> OnLifeEnded;
+
     public long Id { get; protected set; }
+
+    /// <summary>
+    /// Что сейчас с логической жизнью сущности.
+    /// </summary>
+    /// <remarks>
+    /// Состояние хранится, а не выводится из активности объекта и настройки: выключить объект может кто угодно,
+    /// а уничтожение Unity откладывает до конца кадра.
+    /// </remarks>
+    public EntityLifeState LifeState { get; private set; } = EntityLifeState.Created;
+
+    /// <summary>
+    /// Жизнь сущности закончилась: она спрятана, лежит в пуле или уничтожена.
+    /// </summary>
+    public bool IsLifeOver => LifeState is EntityLifeState.Hidden or EntityLifeState.Pooled or EntityLifeState.Destroyed;
 
     public abstract Enumeration EntityType { get; }
 
@@ -212,66 +255,214 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
         DestroyEntity(new EntityDestroyOptions());
     }
 
+    /// <summary>
+    /// Заканчивает жизнь сущности: прячет, возвращает в пул или уничтожает — по её настройке.
+    /// </summary>
+    /// <remarks>
+    /// Повторный вызов безопасен: жизнь заканчивается один раз, и <see cref="OnEntityDestroy"/> приходит один раз —
+    /// даже если второй вызов пришёл из обработчика события или до конца кадра, пока Unity ещё не уничтожила
+    /// объект. Состояние меняется до события именно поэтому.
+    /// <para>
+    /// Полное уничтожение сущности, чья жизнь уже закончилась (спрятана, лежит в пуле), убирает объект
+    /// без нового события: умирать второй раз нечему.
+    /// </para>
+    /// </remarks>
     public virtual void DestroyEntity(EntityDestroyOptions options)
     {
-        if (!options.FullDestroy && InPool)
-            return;
+        bool fullDestroy = options != null && options.FullDestroy;
 
-        OnEntityDestroy?.Invoke(this);
+        AcceptReturnByHand();
 
-        if(options.FullDestroy)
+        if (IsLifeOver)
         {
-            ClearWireVisual();
-            OnDestroyPool(true);
-            Destroy(this.gameObject);
-            return;
-        }
-
-        Enumeration disposeAction = DisposeAction;
-
-        if (disposeAction == EntityDisposeEnumerations.Destroy)
-        {
-            ClearWireVisual();
-            OnDestroyPool(true);
-            Destroy(this.gameObject);
-            return;
-        }
-        // Условия на activeSelf нет: у спрятанной сущности иначе не остаётся подходящей
-        // ветки, и она доходит до предупреждения про пул с полным уничтожением.
-        else if (disposeAction == EntityDisposeEnumerations.Hide)
-        {
-            EntityGameObject.SetActive(false);
-            return;
-        }
-        else if (disposeAction == EntityDisposeEnumerations.HideWire ||
-                 disposeAction == EntityDisposeEnumerations.HideWirePolygons)
-        {
-            if (EntityGameObject.activeSelf)
+            if (fullDestroy && LifeState != EntityLifeState.Destroyed)
             {
-                EntityWireStyle style = disposeAction == EntityDisposeEnumerations.HideWirePolygons
-                    ? EntityWireStyle.Polygons
-                    : EntityWireStyle.Triangles;
-
-                wireVisual = EntityWireVisual.Create(EntityGameObject, style, GetWireScale());
-                EntityGameObject.SetActive(false);
+                LifeState = EntityLifeState.Destroyed;
+                DestroyObject();
             }
 
             return;
         }
-        else if (disposeAction == EntityDisposeEnumerations.HideInPool && !InPool && PoolBehaviour.IsInitialize)
-        {
+
+        EntityLifeState end = ResolveEndState(fullDestroy);
+
+        TryEndLife(end);
+        RaiseEntityDestroyed();
+
+        // Обработчик мог довести дело до другого конца (уничтожить спрятанную целиком): тогда он уже всё сделал.
+        if (LifeState != end)
+            return;
+
+        if (end == EntityLifeState.Destroyed)
+            DestroyObject();
+        else if (end == EntityLifeState.Pooled)
             OnDestroyPool();
+        else
+            HideObject();
+    }
+
+    /// <summary>
+    /// Спрятанную сущность включили напрямую, мимо <c>RestoreHideEntities</c>: для игры она снова на сцене.
+    /// </summary>
+    /// <remarks>
+    /// Так делает существующий код игр (вещь кладут в контейнер и включают её объект). Без этого шага
+    /// такая сущность считалась бы спрятанной и повторное уничтожение молча не срабатывало бы.
+    /// Пока идёт событие уничтожения, объект ещё включён — это не возврат.
+    /// </remarks>
+    private void AcceptReturnByHand()
+    {
+        if (!endingLife && LifeState == EntityLifeState.Hidden && EntityGameObject.activeSelf)
+            LifeState = EntityLifeState.Active;
+    }
+
+    /// <summary>
+    /// Заканчивает жизнь, если она ещё идёт.
+    /// </summary>
+    /// <remarks>
+    /// Для наследника, который уничтожает сущность своим путём (игрок убирает корень и о выходе сообщает
+    /// своим событием): так его путь тоже становится безопасным при повторном вызове.
+    /// </remarks>
+    /// <param name="end">Чем жизнь закончилась: спрятана, в пуле или уничтожена.</param>
+    /// <returns><c>false</c>, если жизнь уже закончилась раньше.</returns>
+    protected bool TryEndLife(EntityLifeState end)
+    {
+        if (IsLifeOver)
+            return false;
+
+        LifeState = end;
+
+        // Список забирается до вызова: подписка из обработчика остаётся на следующую жизнь.
+        Action<EntityBase> lifeEnded = OnLifeEnded;
+        OnLifeEnded = null;
+        Notify(lifeEnded);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Сообщает о конце жизни. Зовётся один раз на жизнь, сразу после смены состояния.
+    /// </summary>
+    private void RaiseEntityDestroyed()
+    {
+        Notify(OnEntityDestroy);
+    }
+
+    /// <summary>
+    /// Зовёт обработчиков конца жизни, пометив, что объект ещё не спрятан и не уничтожен.
+    /// </summary>
+    private void Notify(Action<EntityBase> handlers)
+    {
+        if (handlers == null)
             return;
-        }
-        else if ((disposeAction == EntityDisposeEnumerations.HideInPool && InPool)
-                 || (!InPool && !PoolBehaviour.IsInitialize))
+
+        bool wasEnding = endingLife;
+        endingLife = true;
+
+        try
         {
+            handlers.Invoke(this);
+        }
+        finally
+        {
+            endingLife = wasEnding;
+        }
+    }
+
+    /// <summary>
+    /// Чем закончится жизнь при нынешней настройке сущности.
+    /// </summary>
+    /// <remarks>
+    /// Решается до события уничтожения: о негодной настройке сообщаем, пока сущность ещё цела,
+    /// а не бросаем исключение посреди уничтожения.
+    /// </remarks>
+    private EntityLifeState ResolveEndState(bool fullDestroy)
+    {
+        if (fullDestroy)
+            return EntityLifeState.Destroyed;
+
+        Enumeration disposeAction = DisposeAction;
+
+        if (disposeAction == EntityDisposeEnumerations.Destroy)
+            return EntityLifeState.Destroyed;
+
+        if (IsHideAction(disposeAction))
+            return EntityLifeState.Hidden;
+
+        if (disposeAction == EntityDisposeEnumerations.HideInPool)
+        {
+            if (PoolBehaviour.IsInitialize)
+                return EntityLifeState.Pooled;
+
             PRLog.WriteWarning(this, $"Entity {EntityType} - {Name} использует настройку {nameof(EntityDisposeEnumerations.HideInPool)}, но при этом создается не через pool system. Объект полностью уничтожен.");
-            Destroy(this.gameObject);
-            return;
+
+            return EntityLifeState.Destroyed;
         }
 
-        throw new NotImplementedException();
+        PRLog.WriteError(this, $"Entity {EntityType} - {Name}: для действия при уничтожении '{disposeAction}' нет обработки. Объект полностью уничтожен.");
+
+        return EntityLifeState.Destroyed;
+    }
+
+    private static bool IsHideAction(Enumeration disposeAction)
+    {
+        return disposeAction == EntityDisposeEnumerations.Hide ||
+               disposeAction == EntityDisposeEnumerations.HideWire ||
+               disposeAction == EntityDisposeEnumerations.HideWirePolygons;
+    }
+
+    /// <summary>
+    /// Выключает объект сущности; в каркасных режимах оставляет на его месте каркас.
+    /// </summary>
+    private void HideObject()
+    {
+        Enumeration disposeAction = DisposeAction;
+
+        bool wire = disposeAction == EntityDisposeEnumerations.HideWire ||
+                    disposeAction == EntityDisposeEnumerations.HideWirePolygons;
+
+        // Каркас снимается с видимого объекта: у уже выключенного копировать нечего.
+        if (wire && EntityGameObject.activeSelf)
+        {
+            EntityWireStyle style = disposeAction == EntityDisposeEnumerations.HideWirePolygons
+                ? EntityWireStyle.Polygons
+                : EntityWireStyle.Triangles;
+
+            wireVisual = EntityWireVisual.Create(EntityGameObject, style, GetWireScale());
+        }
+
+        EntityGameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// Убирает объект сущности совсем: каркас, учёт в пуле и сам объект.
+    /// </summary>
+    private void DestroyObject()
+    {
+        ClearWireVisual();
+
+        // Пул выданный корень уничтожает сам: сущность бывает вложена в него и уничтожила бы только себя.
+        OnDestroyPool(true);
+
+        // В редакторе пул уничтожает объект сразу.
+        if (this == null)
+            return;
+
+        DestroyEntityObject();
+    }
+
+    /// <summary>
+    /// Уничтожает объект Unity, на котором стоит сущность.
+    /// </summary>
+    /// <remarks>
+    /// В игре уничтожение отложено до конца кадра — до тех пор сущность ещё на сцене в состоянии
+    /// <see cref="EntityLifeState.Destroyed"/>. Вне игры <c>Destroy</c> недоступен, объект убирается сразу.
+    /// </remarks>
+    protected virtual void DestroyEntityObject()
+    {
+        if (Application.isPlaying)
+            Destroy(gameObject);
+        else
+            DestroyImmediate(gameObject);
     }
 
     protected virtual void RegisterEntity()
@@ -331,13 +522,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     protected override void OnEnable()
     {
-        PoolBehaviour.OnInitializeObject += InitializeFromPool;
         base.OnEnable();
     }
 
     protected override void OnDisable()
     {
-        PoolBehaviour.OnInitializeObject -= InitializeFromPool;
         base.OnDisable();
     }
 
@@ -358,6 +547,7 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     protected override void Start()
     {
         RegisterEntity();
+        EntityInstanceOwners.Forget(this);
         base.Start();
 
         this.RunMethodHooks(EntityRegisteredStage);
@@ -365,6 +555,12 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
     protected override void UnRegisterEventsOnDestroy()
     {
+        // Объект уничтожила Unity. Если жизнь ещё шла (выгрузка сцены, прямой Destroy, очистка пула), события
+        // уничтожения нет: это не смерть в игре, и обработчикам нечего делать на выходе со сцены.
+        LifeState = EntityLifeState.Destroyed;
+        OnLifeEnded = null;
+        EntityInstanceOwners.Forget(this);
+
         ClearWireVisual();
         UnregisterEntity();
         base.UnRegisterEventsOnDestroy();
@@ -381,11 +577,37 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     public virtual void RegisterPoolObject(PoolObject poolObject)
     {
         PoolBehaviour.RegisterPoolObject(poolObject);
+
+        PoolBehaviour.OnReturnedToPool -= OnReturnedByPool;
+        PoolBehaviour.OnReturnedToPool += OnReturnedByPool;
     }
 
+    /// <summary>
+    /// Пул выдал объект.
+    /// </summary>
+    /// <remarks>
+    /// Повторная выдача начинает новую жизнь прямо отсюда, а не по подписке из <c>OnEnable</c>: с выключенным
+    /// компонентом подписки не было, и сущность выходила из пула с состоянием и записью прошлой жизни.
+    /// </remarks>
     public virtual void InitializationPoolObject()
     {
+        bool shownAgain = PoolBehaviour.InPool;
+
         PoolBehaviour.InitializationPoolObject();
+        InitializeFromPool(isFirstPool: !shownAgain);
+    }
+
+    /// <summary>
+    /// Пул забрал объект сам: по таймеру жизни или прямым вызовом, мимо <see cref="DestroyEntity()"/>.
+    /// </summary>
+    /// <remarks>
+    /// Для игры это тот же конец жизни, что и возврат через <c>DestroyEntity</c>: событие приходит, а следующая
+    /// выдача начинает жизнь заново. Если сущность вернулась сама, жизнь уже закончена и повторного события нет.
+    /// </remarks>
+    private void OnReturnedByPool()
+    {
+        if (TryEndLife(EntityLifeState.Pooled))
+            RaiseEntityDestroyed();
     }
 
     public virtual void OnDestroyPool(bool fullDestroy = false)
@@ -425,6 +647,16 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </param>
     private void BeginEntityLife(bool newInstance, bool keepAssignedInstance = false)
     {
+        // Объект уже уничтожается: новой жизни у него не будет.
+        if (LifeState == EntityLifeState.Destroyed)
+            return;
+
+        LifeState = EntityLifeState.Active;
+
+        // До Start сущности нет в трекере, а запись у неё уже есть: владение записью ищут и здесь.
+        if (!HasStarted && this is IEntityInstance)
+            EntityInstanceOwners.TrackBeforeStart(this);
+
         if (newInstance && this is IEntityInstance instance)
         {
             bool assigned = keepAssignedInstance && instance.Instance != null;
@@ -494,10 +726,8 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// </remarks>
     public virtual void RestoreHideEvent(RestoreHideEntitiesEventArgs e)
     {
-        Enumeration disposeAction = DisposeAction;
-        if (disposeAction != EntityDisposeEnumerations.Hide &&
-            disposeAction != EntityDisposeEnumerations.HideWire &&
-            disposeAction != EntityDisposeEnumerations.HideWirePolygons)
+        // Уничтоженную (в том числе ждущую уничтожения до конца кадра) возвращать некуда.
+        if (LifeState == EntityLifeState.Destroyed || !IsHideAction(DisposeAction))
             return;
 
         ClearWireVisual();

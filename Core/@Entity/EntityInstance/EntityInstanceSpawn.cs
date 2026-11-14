@@ -99,6 +99,10 @@ public static class EntityInstanceSpawn
         if (owner == null || ReferenceEquals(owner.Instance, record))
             return entity;
 
+        // Объект создан выключенным: жизнь он не начинал и о себе не сообщал, а запись сейчас получит.
+        if (owner is EntityBase { LifeState: EntityLifeState.Created } sleeping)
+            EntityInstanceOwners.TrackBeforeStart(sleeping);
+
         // Сущность не начинала жизнь внутри create (объект создан выключенным) либо запись
         // у неё перехватили: ставится следом. Но только своей: запись кирки питомцу не нужна.
         string ownerDefinition = owner.CreateInstance()?.DefinitionId;

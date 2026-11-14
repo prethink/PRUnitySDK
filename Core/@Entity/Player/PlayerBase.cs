@@ -74,6 +74,10 @@ public abstract class PlayerBase : EntityBase<EntityMetadata>, IPlayer, IReadySi
 
     public override void DestroyEntity(EntityDestroyOptions options)
     {
+        // Destroy отложен до конца кадра: повторный вызов и вызов из обработчика о выходе второй раз не сообщают.
+        if (!TryEndLife(EntityLifeState.Destroyed))
+            return;
+
         OnPlayerDestroy?.Invoke(this);
 
         // О выходе из сессии сообщает трекер при снятии регистрации:
