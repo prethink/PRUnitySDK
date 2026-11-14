@@ -128,24 +128,125 @@ public class PRModulePlatformCheckTests
             PRModuleDefines.ReadDisabledIds(EditorUserBuildSettings.activeBuildTarget));
     }
 
+    private static readonly Regex PlatformSymbol = new(@"(?<!!\s*)\bUNITY_(ANDROID|IOS|STANDALONE\w*)\b");
+
+    private static readonly Regex SelfConnecting =
+        new(@"\[\s*(OverrideProperty|OverrideBootstrap|RuntimeInitializeOnLoadMethod|MethodHook)\b");
+
+    /// <summary>
+    /// Строки скрипта, которые подключают его сами (переопределение сервиса, часть загрузчика, автозапуск, хук) и при
+    /// этом не лежат внутри условия с символом платформы.
+    /// </summary>
+    /// <remarks>
+    /// Разбирает вложенность <c>#if</c> / <c>#elif</c> / <c>#else</c> / <c>#endif</c>: наличия символа платформы
+    /// где-то в файле мало — подключение должно стоять под ним. Ветка <c>#else</c> и условие с отрицанием
+    /// (<c>!UNITY_ANDROID</c>) защитой не считаются. Комментарии пропускаются.
+    /// </remarks>
+    private static List<string> UnguardedConnections(string text)
+    {
+        var unguarded = new List<string>();
+        var guards = new Stack<bool>();
+        string[] lines = text.Replace("\r\n", "\n").Split('\n');
+
+        for (int index = 0; index < lines.Length; index++)
+        {
+            string line = lines[index].Trim();
+
+            if (line.StartsWith("#if"))
+                guards.Push(PlatformSymbol.IsMatch(line));
+            else if (line.StartsWith("#elif") && guards.Count > 0)
+            {
+                guards.Pop();
+                guards.Push(PlatformSymbol.IsMatch(line));
+            }
+            else if (line.StartsWith("#else") && guards.Count > 0)
+            {
+                guards.Pop();
+                guards.Push(false);
+            }
+            else if (line.StartsWith("#endif") && guards.Count > 0)
+                guards.Pop();
+            else if (!line.StartsWith("//") && SelfConnecting.IsMatch(line) && !guards.Contains(true))
+                unguarded.Add($"{index + 1}: {line}");
+        }
+
+        return unguarded;
+    }
+
+    [Test]
+    public void ConnectionOutsidePlatformConditionIsFound()
+    {
+        const string leaking =
+            "#if !PRSDK_DISABLE_X\n" +
+            "#if UNITY_ANDROID\n" +
+            "public class Guarded { [MethodHook(MethodHookStage.SDK)] void A() { } }\n" +
+            "#endif\n" +
+            "public partial class PRUnitySDK\n" +
+            "{\n" +
+            "    [OverrideProperty(typeof(IAdManager), 4)]\n" +
+            "    private static void Leak() { }\n" +
+            "}\n" +
+            "#endif\n";
+
+        List<string> found = UnguardedConnections(leaking);
+
+        Assert.AreEqual(1, found.Count, string.Join("; ", found));
+        StringAssert.StartsWith("7:", found[0]);
+    }
+
+    [Test]
+    public void ConnectionInsidePlatformConditionIsFine()
+    {
+        const string guarded =
+            "#if !PRSDK_DISABLE_X\n" +
+            "#if UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX\n" +
+            "public partial class Bootstrap\n" +
+            "{\n" +
+            "#if UNITY_EDITOR\n" +
+            "    [OverrideBootstrap]\n" +
+            "#endif\n" +
+            "    [MethodHook(MethodHookStage.PostOnEnable)]\n" +
+            "    private void OnEnableSteam() { }\n" +
+            "}\n" +
+            "#endif\n" +
+            "#endif\n";
+
+        CollectionAssert.IsEmpty(UnguardedConnections(guarded));
+    }
+
+    [TestCase("#if UNITY_ANDROID\n#else\n[OverrideProperty(typeof(IAdManager), 4)]\n#endif\n", TestName = "ElseBranchIsNotAGuard")]
+    [TestCase("#if !UNITY_ANDROID\n[OverrideProperty(typeof(IAdManager), 4)]\n#endif\n", TestName = "NegatedSymbolIsNotAGuard")]
+    [TestCase("#if UNITY_WEBGL\n[RuntimeInitializeOnLoadMethod]\n#endif\n", TestName = "OtherPlatformIsNotAGuard")]
+    [TestCase("#if UNITY_ANDROID\n#endif\n[MethodHook(MethodHookStage.SDK)]\n", TestName = "ClosedConditionIsNotAGuard")]
+    [TestCase("#if UNITY_EDITOR\n#elif UNITY_WEBGL\n[OverrideBootstrap]\n#endif\n", TestName = "ElifOtherPlatformIsNotAGuard")]
+    public void ConnectionWithoutPlatformGuardIsFound(string text)
+    {
+        Assert.AreEqual(1, UnguardedConnections(text).Count);
+    }
+
+    [Test]
+    public void CommentedConnectionIsIgnored()
+    {
+        CollectionAssert.IsEmpty(UnguardedConnections("// [OverrideProperty(typeof(IAdManager), 4)]\n"));
+    }
+
     /// <summary>
     /// Отметка «код только под свою платформу» — обещание манифеста; здесь оно сверяется с файлами.
     /// </summary>
     /// <remarks>
-    /// Скрипт такой интеграции либо обёрнут в символ платформы, либо ничего не подключает сам: ни переопределения
-    /// сервиса, ни части загрузчика, ни автозапуска. Иначе он попал бы в чужую сборку вопреки отметке, а проверка
-    /// сборки его пропустила бы. Настройки не обёрнуты намеренно — их поля должны жить на любой платформе.
+    /// Каждое подключение в скриптах такой интеграции — переопределение сервиса, часть загрузчика, автозапуск, хук —
+    /// должно лежать внутри условия с символом платформы. Иначе оно попало бы в чужую сборку вопреки отметке, а
+    /// проверка сборки его пропустила бы. Настройки не обёрнуты намеренно — их поля должны жить на любой платформе,
+    /// и подключений в них нет.
     /// </remarks>
     [Test]
     public void CodeOnlyOnPlatformIsTrueForTheScripts()
     {
-        var platformGuard = new Regex(@"^\s*#if\b.*\bUNITY_(ANDROID|IOS|STANDALONE\w*)\b", RegexOptions.Multiline);
-        var selfConnecting = new Regex(@"\[\s*(OverrideProperty|OverrideBootstrap|RuntimeInitializeOnLoadMethod|MethodHook)\b");
-
         List<PRModuleInfo> marked = PRModuleCatalog.Load().Where(module => module.Manifest.CodeOnlyOnPlatform).ToList();
         Assert.IsNotEmpty(marked, "В проекте нет интеграций с отметкой.");
 
         var violations = new List<string>();
+        int checkedConnections = 0;
 
         foreach (PRModuleInfo module in marked)
         {
@@ -154,13 +255,15 @@ public class PRModulePlatformCheckTests
             foreach (string script in module.Scripts.Where(path => !path.Contains("/Editor/")))
             {
                 string text = File.ReadAllText(script);
+                checkedConnections += SelfConnecting.Matches(text).Count;
 
-                if (!platformGuard.IsMatch(text) && selfConnecting.IsMatch(text))
-                    violations.Add($"{module.Id}: {script}");
+                foreach (string line in UnguardedConnections(text))
+                    violations.Add($"{module.Id}: {script}:{line}");
             }
         }
 
-        CollectionAssert.IsEmpty(violations, "Скрипты подключают себя сами, но не обёрнуты в символ платформы.");
+        Assert.Greater(checkedConnections, 0, "Проверка ничего не нашла: в помеченных интеграциях нет ни одного подключения.");
+        CollectionAssert.IsEmpty(violations, "Подключения вне условия с символом платформы.");
     }
 
     /// <summary>
