@@ -25,6 +25,13 @@ public sealed class BootstrapSettings
              "Выключено — открыть Game Scene Index. В билде всегда используется индекс.")]
     private bool startFromEditorScene;
 
+    [Header("Площадка")]
+    [SerializeField, Min(0f)]
+    [Tooltip("Сколько секунд загрузчик ждёт ответа SDK площадки. Не дождался — игра запускается без площадки: " +
+             "её сохранение не читается и не пишется до конца запуска, остальные сервисы работают как без неё. " +
+             "Ноль — ждать без предела.")]
+    private float platformWaitSeconds = 20f;
+
     [Header("Сборка SDK")]
     [SerializeField]
     [Tooltip("Собирать SDK порциями, пропуская между ними кадры: экран загрузки при этом виден с самого начала " +
@@ -67,6 +74,11 @@ public sealed class BootstrapSettings
     /// После Bootstrap в редакторе открывается сцена, активная перед Play; в билде используется индекс.
     /// </summary>
     public bool StartFromEditorScene => startFromEditorScene;
+
+    /// <summary>
+    /// Сколько секунд ждать ответа SDK площадки, прежде чем запустить игру без неё; ноль — без предела.
+    /// </summary>
+    public float PlatformWaitSeconds => Mathf.Max(0f, platformWaitSeconds);
 
     /// <summary>
     /// SDK собирается порциями с кадрами между ними.

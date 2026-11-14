@@ -9,7 +9,7 @@ using System.Diagnostics;
 /// (<see cref="ReadRaw"/>, <see cref="WriteRaw"/>). Всё остальное одинаково: версия и шифрование
 /// (<see cref="SaveDataVersioning"/>), даты, копии данных для игры, сигнал готовности.
 /// <para>
-/// Строка сохранения есть, но не прочиталась — хранилище до конца запуска не пишет
+/// Строка сохранения есть, но не прочиталась (в том числе сорвался шаг преобразования версии) — хранилище до конца запуска не пишет
 /// (<see cref="IsWriteBlocked"/>). Игра при этом идёт с новыми данными, как при первом запуске, а сохранение
 /// игрока остаётся нетронутым: прочитать его сможет исправленная сборка. Без этого первая же запись
 /// заменила бы прогресс пустым.
@@ -43,6 +43,11 @@ public abstract class GameDataStorageBase : IGameDataStorage, IGameDataStorageSa
     /// <remarks>
     /// <see cref="GameManager"/> по этому признаку решает, состоялась ли запись: о несостоявшейся подписчики
     /// события сохранения узнать не должны — списание покупок ждёт именно записанного.
+    /// <para>
+    /// «Приняло» — данные переданы хранилищу или SDK площадки, а не «сервер подтвердил». Подтверждение облака —
+    /// отдельный вопрос каждой площадки (очередь синхронизации GamePush, <c>Flush</c> Пикабу); у Яндекса его нет вовсе:
+    /// плагин итог отправки не сообщает.
+    /// </para>
     /// </remarks>
     public bool LastSaveWritten { get; private set; }
 
@@ -57,6 +62,17 @@ public abstract class GameDataStorageBase : IGameDataStorage, IGameDataStorageSa
         : saveData.UpdateDate != default
             ? saveData.UpdateDate
             : CreationDate;
+
+    /// <summary>
+    /// Сохранение лежит у площадки: в запуске, не дождавшемся её (<see cref="Bootstrap.StartedWithoutPlatform"/>),
+    /// хранилище не читает и не пишет.
+    /// </summary>
+    /// <remarks>
+    /// Площадка могла ответить уже после сторожа загрузчика. Записать в неё теперь значило бы положить прогресс
+    /// этого запуска поверх настоящего. Хранилище, которому площадка не нужна (диск, PlayerPrefs), отвечает
+    /// <see langword="false"/>.
+    /// </remarks>
+    protected virtual bool NeedsPlatform => true;
 
     /// <summary>
     /// Строка сохранения из хранилища; пусто, если сохранения ещё нет или хранилище недоступно.
@@ -106,7 +122,13 @@ public abstract class GameDataStorageBase : IGameDataStorage, IGameDataStorageSa
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         unavailableOnLoad = false;
-        bool loaded = ReadSave(out saveData, out bool unreadable);
+        bool unreadable = false;
+        bool loaded = false;
+
+        if (NeedsPlatform && Bootstrap.StartedWithoutPlatform)
+            MarkUnavailable();
+        else
+            loaded = ReadSave(out saveData, out unreadable);
 
         // В сохранении эти части могли записаться пустыми; игра ждёт их всегда.
         saveData ??= new PRSaveData();

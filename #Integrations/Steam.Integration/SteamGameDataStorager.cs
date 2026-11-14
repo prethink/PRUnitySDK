@@ -18,6 +18,11 @@ using UnityEngine;
 /// единственная) — запись до конца запуска выключена (<see cref="GameDataStorageBase.IsWriteBlocked"/>).
 /// </para>
 /// <para>
+/// Файл на диске есть, но не открылся (занят, нет прав) — это не «сохранения нет»: что в нём, неизвестно, оно может
+/// быть новее облачного. Запись в таком запуске выключена, игра идёт с облачной копией, если она есть.
+/// На диск сохранение пишется через временный файл: оборванная запись не портит прежнее.
+/// </para>
+/// <para>
 /// Стратегия сохранения из настроек здесь не важна: данные всегда идут строкой, как при <see cref="SaveStrategy.Serialize"/>.
 /// </para>
 /// </remarks>
@@ -36,12 +41,21 @@ public class SteamGameDataStorager : GameDataStorageBase
                                     !(Application.isEditor && PRUnitySDK.Settings.Steam.AppId == SteamSettings.SpacewarAppId);
 
     /// <remarks>
+    /// Сохранение лежит и на диске: без Steam игра читает и пишет его там.
+    /// </remarks>
+    protected override bool NeedsPlatform => false;
+
+    /// <remarks>
     /// Строкой здесь не обойтись: копий две, и выбирать между ними нужно по дате внутри сохранения.
     /// </remarks>
     protected override bool ReadSave(out PRSaveData data, out bool unreadable)
     {
         bool cloudLoaded = SaveDataVersioning.TryReadRaw(ReadCloud(), out PRSaveData cloud, out bool cloudUnreadable);
-        bool localLoaded = SaveDataVersioning.TryReadRaw(ReadLocal(), out PRSaveData local, out bool localUnreadable);
+        bool localLoaded = SaveDataVersioning.TryReadRaw(ReadLocal(out bool localFailed), out PRSaveData local, out bool localUnreadable);
+
+        // Файл не открылся: его содержимое неизвестно, и запись этого запуска могла бы заменить более новое.
+        if (localFailed)
+            MarkUnavailable();
 
         if (cloudLoaded && localLoaded)
         {
@@ -70,7 +84,7 @@ public class SteamGameDataStorager : GameDataStorageBase
     protected override string ReadRaw()
     {
         string cloud = ReadCloud();
-        return string.IsNullOrEmpty(cloud) ? ReadLocal() : cloud;
+        return string.IsNullOrEmpty(cloud) ? ReadLocal(out _) : cloud;
     }
 
     /// <returns><see langword="true"/>, если сохранение легло хотя бы в одно место.</returns>
@@ -81,7 +95,16 @@ public class SteamGameDataStorager : GameDataStorageBase
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(LocalPath)!);
-            File.WriteAllText(LocalPath, raw, Encoding.UTF8);
+
+            // Через временный файл: оборванная запись (выключили питание, закрыли игру) не портит прежнее сохранение.
+            string temporary = LocalPath + ".tmp";
+            File.WriteAllText(temporary, raw, Encoding.UTF8);
+
+            if (File.Exists(LocalPath))
+                File.Replace(temporary, LocalPath, null);
+            else
+                File.Move(temporary, LocalPath);
+
             written = true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -115,15 +138,19 @@ public class SteamGameDataStorager : GameDataStorageBase
         return read > 0 ? Encoding.UTF8.GetString(bytes, 0, read) : string.Empty;
     }
 
-    private static string ReadLocal()
+    /// <param name="failed">Файл есть, но прочитать его не удалось: это не то же, что «файла нет».</param>
+    private static string ReadLocal(out bool failed)
     {
+        failed = false;
+
         try
         {
             return File.Exists(LocalPath) ? File.ReadAllText(LocalPath, Encoding.UTF8) : string.Empty;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            PRLog.WriteWarning(typeof(SteamGameDataStorager), $"Сохранение не прочитано с диска: {exception.Message}");
+            failed = true;
+            PRLog.WriteError(typeof(SteamGameDataStorager), $"Сохранение не прочитано с диска: {exception.Message}");
             return string.Empty;
         }
     }

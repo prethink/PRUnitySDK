@@ -16,6 +16,9 @@ public class PlayerPrefsSaveLoadManager : GameDataStorageBase
     public const string SaveDataKey = "PRSaveData";
 
     /// <inheritdoc />
+    protected override bool NeedsPlatform => false;
+
+    /// <inheritdoc />
     protected override string ReadRaw()
     {
         return PlayerPrefs.GetString(SaveDataKey, string.Empty);

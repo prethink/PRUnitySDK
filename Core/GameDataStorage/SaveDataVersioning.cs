@@ -105,6 +105,24 @@ public static class SaveDataVersioning
     /// <returns><c>false</c>, если сохранение нужно отбросить.</returns>
     public static bool Upgrade(JObject root, int currentVersion, SaveVersionMismatchAction action, Func<IReadOnlyDictionary<int, ISaveMigration>> getSteps)
     {
+        return Upgrade(root, currentVersion, action, getSteps, out _);
+    }
+
+    /// <summary>
+    /// Доводит JSON сохранения до текущей версии и сообщает, сорвался ли шаг преобразования.
+    /// </summary>
+    /// <remarks>
+    /// «Отбросить» бывает двух видов. По настройке <see cref="SaveVersionMismatchAction.StartNew"/> — решение проекта:
+    /// начинается новое сохранение. Исключение в шаге — ошибка в коде шага: сохранение игрока цело, и заменять его
+    /// новым нельзя. Такое сохранение считается нечитаемым, и хранилище до конца запуска не пишет.
+    /// </remarks>
+    /// <param name="getSteps">Шаги преобразования по версии, из которой они переводят. Запрашиваются, только когда нужны.</param>
+    /// <param name="migrationFailed"><c>true</c>, если сохранение отброшено из-за исключения в шаге.</param>
+    /// <returns><c>false</c>, если сохранение нельзя загружать.</returns>
+    public static bool Upgrade(JObject root, int currentVersion, SaveVersionMismatchAction action,
+        Func<IReadOnlyDictionary<int, ISaveMigration>> getSteps, out bool migrationFailed)
+    {
+        migrationFailed = false;
         int savedVersion = ReadVersion(root);
 
         if (savedVersion == currentVersion)
@@ -136,7 +154,9 @@ public static class SaveDataVersioning
             }
             catch (Exception ex)
             {
-                PRLog.WriteError(typeof(SaveDataVersioning), $"Шаг {migration.GetType().Name} ({version} → {version + 1}) не преобразовал сохранение, начинается новое: {ex}");
+                PRLog.WriteError(typeof(SaveDataVersioning), $"Шаг {migration.GetType().Name} ({version} → {version + 1}) не преобразовал сохранение: " +
+                                                             $"оно не загружено и не будет перезаписано. {ex}");
+                migrationFailed = true;
                 return false;
             }
         }
@@ -247,12 +267,42 @@ public static class SaveDataVersioning
         return Read(root, out data);
     }
 
+    /// <summary>
+    /// Читает сохранение из разобранного JSON по заданным правилам версии — без настроек проекта.
+    /// </summary>
+    /// <remarks>
+    /// Та же логика, что у <see cref="TryReadRaw(string, out PRSaveData, out bool)"/> после разбора строки; настройки
+    /// проекта туда подставляются, а здесь задаются явно — для проверки и для хранилища со своими правилами.
+    /// </remarks>
+    /// <param name="data">Прочитанное сохранение. Если прочитать не удалось или сохранение отброшено из-за версии, новое.</param>
+    /// <param name="unreadable"><c>true</c>, если сохранение есть, но не прочиталось: хранилище его не перезапишет.</param>
+    /// <returns><c>true</c>, если прочитано существующее сохранение.</returns>
+    public static bool TryReadJson(JObject root, int currentVersion, SaveVersionMismatchAction action,
+        Func<IReadOnlyDictionary<int, ISaveMigration>> getSteps, out PRSaveData data, out bool unreadable)
+    {
+        SaveReadResult result = Read(root, currentVersion, action, getSteps, out PRSaveData loaded);
+        unreadable = result == SaveReadResult.Failed;
+
+        return Complete(result, loaded, out data);
+    }
+
     private static SaveReadResult Read(JObject root, out PRSaveData data)
     {
-        if (!Upgrade(root, CurrentVersion, Settings.VersionMismatchAction, GetMigrations))
+        return Read(root, CurrentVersion, Settings.VersionMismatchAction, GetMigrations, out data);
+    }
+
+    private static SaveReadResult Read(JObject root, int currentVersion, SaveVersionMismatchAction action,
+        Func<IReadOnlyDictionary<int, ISaveMigration>> getSteps, out PRSaveData data)
+    {
+        if (!Upgrade(root, currentVersion, action, getSteps, out bool migrationFailed))
+            return Discard(migrationFailed, out data);
+
+        // Чтение пропускает ошибку отдельного поля и оставляет его по умолчанию. Для главных частей сохранения
+        // это значило бы «прочитано», хотя прогресса в нём нет, — и следующая запись заменила бы его пустым.
+        if (!IsObjectOrAbsent(root, nameof(PRSaveData.ProjectData)) || !IsObjectOrAbsent(root, nameof(PRSaveData.GameSettings)))
         {
-            data = new PRSaveData();
-            return SaveReadResult.Discarded;
+            data = null;
+            return SaveReadResult.Failed;
         }
 
         try
@@ -266,6 +316,39 @@ public static class SaveDataVersioning
         }
 
         return data != null ? SaveReadResult.Loaded : SaveReadResult.Failed;
+    }
+
+    /// <summary>
+    /// Чем считать сохранение, которое не прошло проверку версии.
+    /// </summary>
+    /// <remarks>
+    /// Сорвавшийся шаг — нечитаемое сохранение (<see cref="SaveReadResult.Failed"/>): хранилище его не перезапишет.
+    /// Отброшенное по настройке — новое сохранение (<see cref="SaveReadResult.Discarded"/>).
+    /// </remarks>
+    private static SaveReadResult Discard(bool migrationFailed, out PRSaveData data)
+    {
+        if (migrationFailed)
+        {
+            data = null;
+            return SaveReadResult.Failed;
+        }
+
+        data = new PRSaveData();
+        return SaveReadResult.Discarded;
+    }
+
+    /// <summary>
+    /// Часть сохранения записана объектом либо её нет вовсе (тогда она останется по умолчанию).
+    /// </summary>
+    private static bool IsObjectOrAbsent(JObject root, string field)
+    {
+        JToken token = root[field];
+
+        if (token == null || token.Type == JTokenType.Null || token.Type == JTokenType.Object)
+            return true;
+
+        PRLog.WriteError(typeof(SaveDataVersioning), $"В сохранении {field} записано как {token.Type}, а не объектом: сохранение не прочитано.");
+        return false;
     }
 
     private static IReadOnlyDictionary<int, ISaveMigration> GetMigrations()

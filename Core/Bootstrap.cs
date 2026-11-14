@@ -40,6 +40,32 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
         get => UnityEditor.SessionState.GetString("PRUnitySDK.Bootstrap.EditorSceneOverride", string.Empty);
         set => UnityEditor.SessionState.SetString("PRUnitySDK.Bootstrap.EditorSceneOverride", value ?? string.Empty);
     }
+
+    /// <summary>
+    /// Следующий запуск игры идёт так, будто площадка не ответила: её сигнал готовности загрузчик пропускает.
+    /// </summary>
+    /// <remarks>
+    /// Для Play-теста запуска: в редакторе площадка отвечает всегда, а проверить нужно ожидание, которое не дождалось.
+    /// Одноразовая, как <see cref="EditorSceneOverride"/>: загрузчик снимает её в <c>Awake</c>. Действует, только когда
+    /// площадка подключена, — без неё загрузчик никого не ждёт.
+    /// </remarks>
+    public static bool EditorSilentPlatform
+    {
+        get => UnityEditor.SessionState.GetBool("PRUnitySDK.Bootstrap.EditorSilentPlatform", false);
+        set => UnityEditor.SessionState.SetBool("PRUnitySDK.Bootstrap.EditorSilentPlatform", value);
+    }
+
+    /// <summary>
+    /// Сколько секунд ждать площадку в следующем запуске вместо настройки проекта; ноль — по настройке.
+    /// </summary>
+    /// <remarks>
+    /// Play-тест ставит короче, чтобы не ждать настоящий срок. Одноразовая, снимается в <c>Awake</c>.
+    /// </remarks>
+    public static float EditorPlatformWaitOverride
+    {
+        get => UnityEditor.SessionState.GetFloat("PRUnitySDK.Bootstrap.EditorPlatformWaitOverride", 0f);
+        set => UnityEditor.SessionState.SetFloat("PRUnitySDK.Bootstrap.EditorPlatformWaitOverride", value);
+    }
 #endif
 
     /// <summary>
@@ -72,6 +98,27 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     /// Сборка SDK уже запущена: площадка может сообщить о готовности данных больше одного раза.
     /// </summary>
     private bool initializationStarted;
+
+    /// <summary>
+    /// Сигнал готовности площадки в этом запуске пропускается (<c>EditorSilentPlatform</c>).
+    /// </summary>
+    private bool platformSilenced;
+
+    /// <summary>
+    /// Сколько секунд ждать площадку в этом запуске; ноль — без предела.
+    /// </summary>
+    private float platformWaitSeconds;
+
+    /// <summary>
+    /// Игра запущена, не дождавшись площадки: её SDK не ответил за отведённое время.
+    /// </summary>
+    /// <remarks>
+    /// Сервисы площадки в таком запуске работают как без неё. Хранилище площадки при этом не читает и не пишет
+    /// (<see cref="GameDataStorageBase"/>): сохранение игрока не получено, и если площадка ответит позже, запись
+    /// этого запуска легла бы поверх настоящего прогресса. Статическое по той же причине, что и время стадий:
+    /// загрузчик исчезает вместе со своей сценой.
+    /// </remarks>
+    public static bool StartedWithoutPlatform { get; private set; }
 
     private BootstrapLoadingScreen loadingScreen;
 
@@ -125,12 +172,28 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
 
         System.Array.Clear(stageStartTimes, 0, stageStartTimes.Length);
         gameShownSignal.ResetReady();
+        StartedWithoutPlatform = false;
         SetStage(BootstrapStage.WaitingPlatform);
 
         TryOverrideBootstrap();
 
+        platformWaitSeconds = Settings.PlatformWaitSeconds;
+
+#if UNITY_EDITOR
+        // Обе подмены одноразовые: снимаются здесь, чтобы следующий обычный Play шёл как всегда.
+        platformSilenced = isOverriden && EditorSilentPlatform;
+        EditorSilentPlatform = false;
+
+        if (EditorPlatformWaitOverride > 0f)
+            platformWaitSeconds = EditorPlatformWaitOverride;
+
+        EditorPlatformWaitOverride = 0f;
+#endif
+
         if (!isOverriden)
             InitializeSDK();
+        else if (platformWaitSeconds > 0f)
+            StartCoroutine(WaitPlatformRoutine());
     }
 
     private void OnEnable()
@@ -185,6 +248,44 @@ public partial class Bootstrap : MonoBehaviour, ISDKEvents
     /// игроку нечего показать. Без экрана растягивать незачем, и сборка идёт одним вызовом.
     /// </remarks>
     private void InitializeSDK()
+    {
+        if (platformSilenced)
+        {
+            PRLog.WriteWarning(this, "Сигнал площадки пропущен: проверяется запуск без её ответа.");
+            return;
+        }
+
+        StartSDK();
+    }
+
+    /// <summary>
+    /// Ждёт площадку отведённое время и, не дождавшись, запускает игру без неё.
+    /// </summary>
+    /// <remarks>
+    /// SDK площадки может не ответить ни успехом, ни ошибкой: скрипт загрузился, а обещание запуска не завершилось.
+    /// Ветка «без площадки» у интеграций есть, но попадает в неё только явная ошибка, — без этого сторожа игрок
+    /// остался бы на экране загрузки навсегда. Время — настоящее (<see cref="PRTime.WallTime"/>): игра ещё не идёт.
+    /// </remarks>
+    private IEnumerator WaitPlatformRoutine()
+    {
+        float deadline = PRTime.WallTime + platformWaitSeconds;
+
+        while (!initializationStarted && PRTime.WallTime < deadline)
+            yield return null;
+
+        if (initializationStarted)
+            yield break;
+
+        StartedWithoutPlatform = true;
+        PRLog.WriteError(this, $"Площадка не ответила за {platformWaitSeconds:0.#} с: игра запускается без неё. " +
+                               "Сохранение площадки не прочитано, запись до конца запуска выключена.");
+        StartSDK();
+    }
+
+    /// <summary>
+    /// Начинает сборку SDK. Повторный вызов ничего не делает: площадка может ответить и после сторожа.
+    /// </summary>
+    private void StartSDK()
     {
         if (initializationStarted)
             return;

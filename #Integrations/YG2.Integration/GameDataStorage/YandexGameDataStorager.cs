@@ -68,6 +68,10 @@ public class YandexGameDataStorager : GameDataStorageBase
         }
     }
 
+    /// <returns>
+    /// <see langword="true"/> — сохранение передано плагину. Дошло ли оно до облака, плагин не сообщает: этот признак
+    /// нельзя считать подтверждением сервера.
+    /// </returns>
     private static bool SendToPlatform()
     {
         if (!YG2.isSDKEnabled)

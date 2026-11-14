@@ -195,16 +195,15 @@ public class GameDataStorageBaseTests
     }
 
     /// <remarks>
-    /// Так выглядит сохранение после обновления, в котором у поля сменили тип. Чтение такую ошибку пропускает
-    /// (<c>PRJsonUtils.GetJsonYandexSettings</c>): поле остаётся по умолчанию, остальное загружается. Сохранение
-    /// поэтому читаемое, и запись не блокируется.
+    /// Чтение пропускает ошибку отдельного поля (<c>PRJsonUtils.GetJsonYandexSettings</c>): оно остаётся по умолчанию,
+    /// остальное загружается. Сохранение поэтому читаемое, и запись не блокируется.
     /// </remarks>
     [Test]
-    public void SaveWithWrongFieldTypeLoadsWithoutThatField()
+    public void WrongTypeInsideProjectDataLoadsWithoutThatField()
     {
         IgnoreLoggedErrors();
 
-        var storage = new MemoryStorage { Raw = "{\"SaveId\":\"a\",\"ProjectData\":123}" };
+        var storage = new MemoryStorage { Raw = "{\"SaveId\":\"a\",\"ProjectData\":{\"Resources\":5}}" };
 
         storage.TryLoad();
 
@@ -216,6 +215,28 @@ public class GameDataStorageBaseTests
         storage.Save();
 
         Assert.AreEqual(1, storage.Writes);
+    }
+
+    /// <remarks>
+    /// Главная часть сохранения записана не объектом: пропустить такую ошибку значило бы признать прочитанным
+    /// сохранение без прогресса.
+    /// </remarks>
+    [TestCase("{\"SaveId\":\"a\",\"ProjectData\":123}")]
+    [TestCase("{\"SaveId\":\"a\",\"ProjectData\":[1,2]}")]
+    [TestCase("{\"SaveId\":\"a\",\"ProjectData\":{},\"GameSettings\":\"x\"}")]
+    public void MainPartOfWrongTypeIsUnreadable(string raw)
+    {
+        IgnoreLoggedErrors();
+
+        var storage = new MemoryStorage { Raw = raw };
+
+        Assert.IsFalse(storage.TryLoad());
+        Assert.IsTrue(storage.IsWriteBlocked);
+
+        storage.Save();
+
+        Assert.AreEqual(0, storage.Writes);
+        Assert.AreEqual(raw, storage.Raw);
     }
 
     [Test]

@@ -95,6 +95,73 @@ public class SaveDataVersioningTests
         Assert.IsFalse(SaveDataVersioning.Upgrade(JObject.Parse("{}"), 1, SaveVersionMismatchAction.Convert, Steps(new FailingMigration())));
     }
 
+    /// <remarks>
+    /// Исключение в шаге — ошибка кода, а не решение проекта: сохранение игрока цело, и хранилище не должно
+    /// заменить его новым. Поэтому сорвавшийся шаг отличим от намеренного <see cref="SaveVersionMismatchAction.StartNew"/>.
+    /// </remarks>
+    [Test]
+    public void FailedStepIsToldApartFromStartNew()
+    {
+        LogAssert.Expect(LogType.Error, new Regex("FailingMigration"));
+
+        Assert.IsFalse(SaveDataVersioning.Upgrade(JObject.Parse("{}"), 1, SaveVersionMismatchAction.Convert,
+            Steps(new FailingMigration()), out bool failedStep));
+        Assert.IsTrue(failedStep);
+
+        LogAssert.Expect(LogType.Warning, new Regex(".*"));
+        Assert.IsFalse(SaveDataVersioning.Upgrade(JObject.Parse("{}"), 1, SaveVersionMismatchAction.StartNew,
+            Steps(), out bool startNew));
+        Assert.IsFalse(startNew);
+
+        Assert.IsTrue(SaveDataVersioning.Upgrade(JObject.Parse("{}"), 1, SaveVersionMismatchAction.Convert,
+            Steps(), out bool converted));
+        Assert.IsFalse(converted);
+    }
+
+    /// <summary>
+    /// Сорвавшийся шаг делает сохранение нечитаемым (хранилище его не перезапишет), намеренный сброс — начинает новое.
+    /// </summary>
+    [Test]
+    public void FailedStepMakesSaveUnreadableStartNewGivesNewSave()
+    {
+        IServerTime previous = PRUnitySDK.ServerTime;
+        PRUnitySDK.ServerTime = new LocalServerTime();
+
+        try
+        {
+            LogAssert.Expect(LogType.Error, new Regex("FailingMigration"));
+
+            bool loaded = SaveDataVersioning.TryReadJson(JObject.Parse("{\"SaveId\":\"player\"}"), 1,
+                SaveVersionMismatchAction.Convert, Steps(new FailingMigration()), out PRSaveData afterFailure, out bool unreadable);
+
+            Assert.IsFalse(loaded);
+            Assert.IsTrue(unreadable, "Сорвавшийся шаг: сохранение игрока цело, перезаписывать его нельзя.");
+            Assert.IsNotNull(afterFailure, "Данные для игры есть всегда.");
+            Assert.AreNotEqual("player", afterFailure.SaveId);
+
+            LogAssert.Expect(LogType.Warning, new Regex(".*"));
+
+            loaded = SaveDataVersioning.TryReadJson(JObject.Parse("{\"SaveId\":\"player\"}"), 1,
+                SaveVersionMismatchAction.StartNew, Steps(), out PRSaveData afterReset, out unreadable);
+
+            Assert.IsFalse(loaded);
+            Assert.IsFalse(unreadable, "Намеренный сброс: новое сохранение записывать можно.");
+            Assert.IsNotNull(afterReset);
+
+            loaded = SaveDataVersioning.TryReadJson(JObject.Parse("{\"SaveId\":\"player\"}"), 1,
+                SaveVersionMismatchAction.Convert, Steps(), out PRSaveData converted, out unreadable);
+
+            Assert.IsTrue(loaded);
+            Assert.IsFalse(unreadable);
+            Assert.AreEqual("player", converted.SaveId);
+            Assert.AreEqual(1, converted.Version);
+        }
+        finally
+        {
+            PRUnitySDK.ServerTime = previous;
+        }
+    }
+
     [Test]
     public void KeepLoadsOlderSaveWithoutSteps()
     {
