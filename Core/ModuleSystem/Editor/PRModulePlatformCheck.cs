@@ -62,7 +62,7 @@ public sealed class PRModulePlatformBuildCheck : IPreprocessBuildWithReport
     {
         BuildTarget target = report.summary.platform;
         List<PRModuleManifest> foreign = PRModulePlatformCheck.FindForeign(
-            PRModuleCatalog.Load().Select(module => module.Manifest), PRModuleDefines.ReadDisabledIds(), target);
+            PRModuleCatalog.Load().Select(module => module.Manifest), PRModuleDefines.ReadDisabledIds(target), target);
 
         if (foreign.Count > 0)
             throw new BuildFailedException(string.Join("\n", foreign.Select(manifest => PRModulePlatformCheck.Describe(manifest, target))));

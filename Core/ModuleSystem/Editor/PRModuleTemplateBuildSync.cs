@@ -19,7 +19,7 @@ public sealed class PRModuleTemplateBuildSync : IPreprocessBuildWithReport
         if (report.summary.platform != BuildTarget.WebGL)
             return;
 
-        var errors = PRModulePlugins.SyncTemplates(PRModuleCatalog.Load(), PRModuleDefines.ReadDisabledIds());
+        var errors = PRModulePlugins.SyncTemplates(PRModuleCatalog.Load(), PRModuleDefines.ReadDisabledIds(report.summary.platform));
         AssetDatabase.Refresh();
 
         if (errors.Count > 0)

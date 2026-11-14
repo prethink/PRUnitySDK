@@ -21,11 +21,31 @@ public static class PRModuleDefines
         return ReadDisabledIds(NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
     }
 
-    private static HashSet<string> ReadDisabledIds(NamedBuildTarget target)
+    /// <summary>
+    /// Отключённые модули платформы сборки — по её символам, а не по символам платформы, выбранной в редакторе.
+    /// </summary>
+    /// <remarks>
+    /// Обычно наборы совпадают: окно модулей пишет символы во все платформы. Но сборку запускают и скриптом под
+    /// другую платформу, а символы правят руками и сливают в git — проверке сборки нужен набор именно собираемой.
+    /// </remarks>
+    public static HashSet<string> ReadDisabledIds(BuildTarget target)
     {
-        return new HashSet<string>(Split(PlayerSettings.GetScriptingDefineSymbols(target))
+        return ReadDisabledIds(NamedBuildTarget.FromBuildTargetGroup(BuildPipeline.GetBuildTargetGroup(target)));
+    }
+
+    /// <summary>
+    /// Идентификаторы отключённых модулей из строки символов Player Settings.
+    /// </summary>
+    public static HashSet<string> ParseDisabledIds(string symbols)
+    {
+        return new HashSet<string>(Split(symbols)
             .Where(IsModuleSymbol)
             .Select(symbol => symbol.Substring(PRModuleManifest.DefinePrefix.Length)));
+    }
+
+    private static HashSet<string> ReadDisabledIds(NamedBuildTarget target)
+    {
+        return ParseDisabledIds(PlayerSettings.GetScriptingDefineSymbols(target));
     }
 
     /// <summary>
