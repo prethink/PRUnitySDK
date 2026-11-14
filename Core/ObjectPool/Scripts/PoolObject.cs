@@ -13,6 +13,11 @@ public class PoolObject : IDisposable
 
     private bool disposed;
 
+    /// <summary>
+    /// Объект пула уничтожен: в очередь его возвращать нельзя.
+    /// </summary>
+    public bool IsDisposed => disposed;
+
     public void UpdateData()
     {
         UpdateData(this);

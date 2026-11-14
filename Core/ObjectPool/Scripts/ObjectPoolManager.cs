@@ -880,6 +880,11 @@ public class ObjectPoolManager : MonoBehaviour
             if (poolObject.InstanceGameObject.TryGetComponent<IPoolable>(out var poolable))
                 poolable.PoolBehaviour?.MarkReturned();
 
+            // Отметка поднимает событие конца жизни, а его обработчик мог уничтожить объект целиком (FullDestroy).
+            // В игре Destroy отложен, и объект выглядит живым до конца кадра — в очередь он попасть не должен.
+            if (poolObject.IsDisposed)
+                return;
+
             poolObject.InstanceGameObject.SetActive(false);
             poolObject.InstanceGameObject.transform.SetParent(ContainerOf(poolObject), false);
         }

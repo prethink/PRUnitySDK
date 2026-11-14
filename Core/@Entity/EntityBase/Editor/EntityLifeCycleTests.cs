@@ -1,4 +1,6 @@
 #if PRSDK_TESTS
+using System;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -12,6 +14,10 @@ using UnityEngine.TestTools;
 /// эти моменты проверка запускает сама (<see cref="EntityLifeTestEntity"/>). Объект, которому в игре
 /// досталось бы отложенное уничтожение, здесь остаётся жить — как раз то окно, в котором приходит
 /// повторный вызов.
+/// <para>
+/// Ошибки в логе не подавляются: тест, который сам вызывает отказ или исключение, ждёт именно это сообщение
+/// (<see cref="ExpectRecordRefused"/>, <see cref="ExpectHandlerError"/>), любое другое его роняет.
+/// </para>
 /// </remarks>
 public class EntityLifeCycleTests
 {
@@ -46,10 +52,10 @@ public class EntityLifeCycleTests
         foreach (GameObject item in Resources.FindObjectsOfTypeAll<GameObject>())
         {
             if (item != null && item.name.StartsWith(Prefix) && !EditorUtility.IsPersistent(item))
-                Object.DestroyImmediate(item);
+                UnityEngine.Object.DestroyImmediate(item);
         }
 
-        Object.DestroyImmediate(metadata);
+        UnityEngine.Object.DestroyImmediate(metadata);
     }
 
     #region Повторное уничтожение
@@ -171,6 +177,71 @@ public class EntityLifeCycleTests
 
         Assert.AreEqual(1, destroyed);
         Assert.IsTrue(entity == null);
+    }
+
+    #endregion
+
+    #region Исключение в обработчике
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void HandlerThrows_HideIsStillApplied(bool lifeScoped)
+    {
+        EntityLifeTestEntity entity = Add(EntityDisposeEnumerations.Hide);
+        int reached = 0;
+        Subscribe(entity, lifeScoped, _ => throw new InvalidOperationException("EntityLifeCycleTests"));
+        Subscribe(entity, lifeScoped, _ => reached++);
+        entity.OnEntityDestroy += _ => reached++;
+
+        ExpectHandlerError();
+        Assert.DoesNotThrow(() => entity.DestroyEntity());
+
+        // Состояние сменилось до события: без доведения до конца объект остался бы включённым «спрятанным».
+        Assert.AreEqual(EntityLifeState.Hidden, entity.LifeState);
+        Assert.IsFalse(entity.gameObject.activeSelf);
+        Assert.AreEqual(2, reached, "Остальные обработчики своё событие получили.");
+    }
+
+    [Test]
+    public void HandlerThrows_DestroyIsStillApplied()
+    {
+        EntityLifeTestEntity entity = Add(EntityDisposeEnumerations.Destroy);
+        entity.OnEntityDestroy += _ => throw new InvalidOperationException("EntityLifeCycleTests");
+
+        ExpectHandlerError();
+        entity.DestroyEntity();
+
+        Assert.AreEqual(EntityLifeState.Destroyed, entity.LifeState);
+        Assert.AreEqual(1, entity.DestroyObjectRequests);
+    }
+
+    [Test]
+    public void HandlerThrows_EntityStillReturnsToPool()
+    {
+        EntityLifeTestEntity prefab = Prefab();
+        EntityLifeTestEntity entity = Show(prefab);
+        entity.OnLifeEnded += _ => throw new InvalidOperationException("EntityLifeCycleTests");
+
+        ExpectHandlerError();
+        entity.DestroyEntity();
+
+        Assert.IsTrue(entity.InPool);
+        Assert.IsFalse(entity.gameObject.activeSelf);
+        Assert.AreSame(entity, pool.ShowEntity(prefab, Vector3.zero), "Сущность лежит в очереди пула и выдаётся снова.");
+    }
+
+    [Test]
+    public void HandlerThrows_WhenPoolTakesEntityItself_PoolFinishesReturn()
+    {
+        EntityLifeTestEntity prefab = Prefab();
+        EntityLifeTestEntity entity = Show(prefab);
+        entity.OnEntityDestroy += _ => throw new InvalidOperationException("EntityLifeCycleTests");
+
+        ExpectHandlerError();
+        Assert.DoesNotThrow(() => pool.OnObjectDestroy(entity.gameObject));
+
+        Assert.IsFalse(entity.gameObject.activeSelf);
+        Assert.AreSame(entity, pool.ShowEntity(prefab, Vector3.zero));
     }
 
     #endregion
@@ -379,6 +450,46 @@ public class EntityLifeCycleTests
     }
 
     [Test]
+    public void Pool_FullDestroyFromHandlerWhilePoolTakesEntity_IsNotQueued()
+    {
+        EntityLifeTestEntity prefab = Prefab();
+        EntityLifeTestEntity entity = Show(prefab);
+        GameObject entityObject = entity.gameObject;
+        int destroyed = 0;
+
+        entity.OnEntityDestroy += value =>
+        {
+            destroyed++;
+            value.DestroyEntity(new EntityDestroyOptions { FullDestroy = true });
+        };
+
+        // Пул возвращает объект, а обработчик конца жизни посреди возврата уничтожает его целиком.
+        Assert.DoesNotThrow(() => pool.OnObjectDestroy(entityObject));
+        EntityLifeTestEntity next = pool.ShowEntity(prefab, Vector3.zero);
+
+        Assert.AreEqual(1, destroyed);
+        Assert.IsTrue(entityObject == null);
+        Assert.IsNotNull(next, "Уничтоженный объект в очередь не попал: выдан новый.");
+        Assert.IsTrue(next != null && next.gameObject.activeSelf);
+    }
+
+    [Test]
+    public void Pool_FullDestroyFromHandlerOnDestroyEntity_IsNotQueued()
+    {
+        EntityLifeTestEntity prefab = Prefab();
+        EntityLifeTestEntity entity = Show(prefab);
+        GameObject entityObject = entity.gameObject;
+
+        entity.OnEntityDestroy += value => value.DestroyEntity(new EntityDestroyOptions { FullDestroy = true });
+
+        entity.DestroyEntity();
+        EntityLifeTestEntity next = pool.ShowEntity(prefab, Vector3.zero);
+
+        Assert.IsTrue(entityObject == null);
+        Assert.IsTrue(next != null && next.gameObject.activeSelf);
+    }
+
+    [Test]
     public void Pool_ClearData_DestroysEntitiesWithoutEvent()
     {
         EntityLifeTestEntity prefab = Prefab();
@@ -565,6 +676,7 @@ public class EntityLifeCycleTests
         EntityLifeTestEntity first = EntityInstanceSpawn.Create(record, () => Add(EntityDisposeEnumerations.Destroy));
         bool factoryCalled = false;
 
+        ExpectRecordRefused();
         EntityInstanceSpawn.Create(record, () =>
         {
             factoryCalled = true;
@@ -584,6 +696,7 @@ public class EntityLifeCycleTests
             () => Add(EntityDisposeEnumerations.Destroy, awake: false));
         bool factoryCalled = false;
 
+        ExpectRecordRefused();
         EntityInstanceSpawn.Create(record, () =>
         {
             factoryCalled = true;
@@ -617,6 +730,7 @@ public class EntityLifeCycleTests
         owner.StartForTest();
 
         owner.DestroyEntity();
+        ExpectRecordRefused();
         EntityLifeTestEntity next = EntityInstanceSpawn.Create(record, () => Add(EntityDisposeEnumerations.Hide));
 
         // Спрятанную сущность вернут тем же экземпляром, поэтому запись остаётся за ней.
@@ -642,12 +756,32 @@ public class EntityLifeCycleTests
 
     #endregion
 
+    /// <summary>
+    /// Ждёт отказ <see cref="EntityInstanceSpawn"/>: экземпляр уже принадлежит сущности на сцене.
+    /// </summary>
+    private static void ExpectRecordRefused()
+    {
+        LogAssert.Expect(LogType.Error, new Regex("уже принадлежит сущности на сцене"));
+    }
+
+    /// <summary>
+    /// Ждёт сообщение о том, что обработчик конца жизни бросил исключение.
+    /// </summary>
+    private static void ExpectHandlerError()
+    {
+        LogAssert.Expect(LogType.Error, new Regex("Обработчик конца жизни сущности бросил исключение"));
+    }
+
+    private static void Subscribe(EntityLifeTestEntity entity, bool lifeScoped, Action<EntityBase> handler)
+    {
+        if (lifeScoped)
+            entity.OnLifeEnded += handler;
+        else
+            entity.OnEntityDestroy += handler;
+    }
+
     private EntityLifeTestEntity Add(Enumeration dispose, bool awake = true, Transform parent = null)
     {
-        // Уничтожение в редакторе пишет ошибку «Destroy may not be called from edit mode», отказ в записи —
-        // ошибку SDK. Флаг действует только на текущий тест, поэтому ставится из его тела.
-        LogAssert.ignoreFailingMessages = true;
-
         var gameObject = new GameObject(Prefix + "Entity");
 
         if (parent != null)
@@ -670,8 +804,6 @@ public class EntityLifeCycleTests
     /// </summary>
     private EntityLifeTestEntity Prefab()
     {
-        LogAssert.ignoreFailingMessages = true;
-
         var gameObject = new GameObject(Prefix + "Prefab");
         gameObject.SetActive(false);
 

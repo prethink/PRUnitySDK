@@ -350,6 +350,11 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
     /// <summary>
     /// Зовёт обработчиков конца жизни, пометив, что объект ещё не спрятан и не уничтожен.
     /// </summary>
+    /// <remarks>
+    /// Исключение обработчика не прерывает ни остальных обработчиков, ни само уничтожение: состояние к этому
+    /// моменту уже сменилось, и сущность, которую не довели до конца, осталась бы на сцене «спрятанной»
+    /// или «в пуле» только по названию — повторный <c>DestroyEntity</c> её бы уже не тронул.
+    /// </remarks>
     private void Notify(Action<EntityBase> handlers)
     {
         if (handlers == null)
@@ -360,7 +365,17 @@ public abstract partial class EntityBase : PRMonoBehaviour, IEntity, IPoolable, 
 
         try
         {
-            handlers.Invoke(this);
+            foreach (Delegate handler in handlers.GetInvocationList())
+            {
+                try
+                {
+                    ((Action<EntityBase>)handler).Invoke(this);
+                }
+                catch (Exception exception)
+                {
+                    PRLog.WriteError(this, $"Обработчик конца жизни сущности бросил исключение, уничтожение продолжается. {exception}");
+                }
+            }
         }
         finally
         {
