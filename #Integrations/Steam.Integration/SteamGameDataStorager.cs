@@ -18,8 +18,9 @@ using UnityEngine;
 /// единственная) — запись до конца запуска выключена (<see cref="GameDataStorageBase.IsWriteBlocked"/>).
 /// </para>
 /// <para>
-/// Файл на диске есть, но не открылся (занят, нет прав) — это не «сохранения нет»: что в нём, неизвестно, оно может
-/// быть новее облачного. Запись в таком запуске выключена, игра идёт с облачной копией, если она есть.
+/// Файл на диске есть, но не открылся (занят, нет прав), или файл в облаке есть, но Steam его не отдал, — это не
+/// «сохранения нет»: что в нём, неизвестно, оно может быть новее второй копии. Запись в таком запуске выключена,
+/// игра идёт со второй копией, если она есть.
 /// На диск сохранение пишется через временный файл: оборванная запись не портит прежнее.
 /// </para>
 /// <para>
@@ -50,7 +51,12 @@ public class SteamGameDataStorager : GameDataStorageBase
     /// </remarks>
     protected override bool ReadSave(out PRSaveData data, out bool unreadable)
     {
-        bool cloudLoaded = SaveDataVersioning.TryReadRaw(ReadCloud(), out PRSaveData cloud, out bool cloudUnreadable);
+        bool cloudLoaded = SaveDataVersioning.TryReadRaw(ReadCloud(out bool cloudFailed), out PRSaveData cloud, out bool cloudUnreadable);
+
+        // Файл в облаке есть, но Steam его не отдал: что в нём, неизвестно, и запись этого запуска могла бы заменить более новое.
+        if (cloudFailed)
+            MarkUnavailable();
+
         bool localLoaded = SaveDataVersioning.TryReadRaw(ReadLocal(out bool localFailed), out PRSaveData local, out bool localUnreadable);
 
         // Файл не открылся: его содержимое неизвестно, и запись этого запуска могла бы заменить более новое.
@@ -83,7 +89,7 @@ public class SteamGameDataStorager : GameDataStorageBase
     /// <inheritdoc />
     protected override string ReadRaw()
     {
-        string cloud = ReadCloud();
+        string cloud = ReadCloud(out _);
         return string.IsNullOrEmpty(cloud) ? ReadLocal(out _) : cloud;
     }
 
@@ -124,18 +130,31 @@ public class SteamGameDataStorager : GameDataStorageBase
         return written;
     }
 
-    private static string ReadCloud()
+    /// <param name="failed">Файл в облаке есть и не пуст, но прочитать его не удалось: это не то же, что «файла нет».</param>
+    private static string ReadCloud(out bool failed)
     {
+        failed = false;
+
         if (!UseCloud || !SteamRemoteStorage.FileExists(FileName))
             return string.Empty;
 
+        // Пустой файл прогресса не содержит: беречь в нём нечего.
         int size = SteamRemoteStorage.GetFileSize(FileName);
         if (size <= 0)
             return string.Empty;
 
         var bytes = new byte[size];
         int read = SteamRemoteStorage.FileRead(FileName, bytes, size);
-        return read > 0 ? Encoding.UTF8.GetString(bytes, 0, read) : string.Empty;
+
+        // FileRead отдаёт число прочитанных байт; ноль или меньше размера — чтение не удалось.
+        if (read != size)
+        {
+            failed = true;
+            PRLog.WriteError(typeof(SteamGameDataStorager), $"Сохранение не прочитано из Steam Cloud: получено {read} из {size} байт.");
+            return string.Empty;
+        }
+
+        return Encoding.UTF8.GetString(bytes, 0, read);
     }
 
     /// <param name="failed">Файл есть, но прочитать его не удалось: это не то же, что «файла нет».</param>

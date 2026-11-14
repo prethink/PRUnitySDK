@@ -68,10 +68,30 @@ public static class SaveDataVersioning
     /// <returns><c>true</c>, если прочитано существующее сохранение.</returns>
     public static bool TryRead(PRSaveData stored, out PRSaveData data)
     {
-        if (stored == null)
-            return Complete(SaveReadResult.NotFound, null, out data);
+        return TryRead(stored, out data, out _);
+    }
 
-        return Complete(Read(JObject.FromObject(stored, Serializer), out PRSaveData loaded), loaded, out data);
+    /// <summary>
+    /// Проверяет версию сохранения, которое хранилище держит объектом, и сообщает, осталось ли оно непрочитанным.
+    /// </summary>
+    /// <remarks>
+    /// Объект уже разобран, но версию он проходит так же, как строка: шаг преобразования может сорваться, и тогда
+    /// сохранение игрока цело, а перезаписывать его нельзя.
+    /// </remarks>
+    /// <param name="data">Прочитанное сохранение. Если его нет, оно не прочиталось или отброшено из-за версии, новое.</param>
+    /// <param name="unreadable"><c>true</c>, если сохранение есть, но не прочиталось: хранилище его не перезапишет.</param>
+    /// <returns><c>true</c>, если прочитано существующее сохранение.</returns>
+    public static bool TryRead(PRSaveData stored, out PRSaveData data, out bool unreadable)
+    {
+        SaveReadResult result = SaveReadResult.NotFound;
+        PRSaveData loaded = null;
+
+        if (stored != null)
+            result = Read(JObject.FromObject(stored, Serializer), out loaded);
+
+        unreadable = result == SaveReadResult.Failed;
+
+        return Complete(result, loaded, out data);
     }
 
     /// <summary>

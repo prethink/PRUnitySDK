@@ -39,9 +39,9 @@ public class YandexGameDataStorager : GameDataStorageBase
                 return base.ReadSave(out data, out unreadable);
 
             case SaveStrategy.Class:
-                // Объект разобрал сам плагин: нечитаемой строки здесь не бывает.
-                unreadable = false;
-                return SaveDataVersioning.TryRead(YG2.saves?.PRSaveData, out data);
+                // Объект разобрал сам плагин, но версию он проходит как строка: сорвавшийся шаг преобразования
+                // делает сохранение нечитаемым и здесь.
+                return SaveDataVersioning.TryRead(YG2.saves?.PRSaveData, out data, out unreadable);
 
             default:
                 throw new NotImplementedException();

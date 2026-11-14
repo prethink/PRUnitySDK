@@ -341,6 +341,27 @@ public class GameDataStorageBaseTests
         Assert.IsFalse(blocked.LastSaveWritten, "Запись выключена.");
     }
 
+    /// <summary>
+    /// Сохранение, которое хранилище держит объектом (стратегия Class у Яндекса): нет объекта — первый запуск,
+    /// есть — прочитано.
+    /// </summary>
+    [Test]
+    public void StoredObjectIsReadLikeAString()
+    {
+        IgnoreLoggedErrors();
+
+        Assert.IsFalse(SaveDataVersioning.TryRead(null, out PRSaveData fresh, out bool missingUnreadable));
+        Assert.IsFalse(missingUnreadable);
+        Assert.IsNotNull(fresh);
+
+        var stored = new PRSaveData { SaveId = "player-1" };
+        SaveDataVersioning.Stamp(stored);
+
+        Assert.IsTrue(SaveDataVersioning.TryRead(stored, out PRSaveData loaded, out bool unreadable));
+        Assert.IsFalse(unreadable);
+        Assert.AreEqual("player-1", loaded.SaveId);
+    }
+
     [Test]
     public void ReadTellsMissingFromUnreadable()
     {
