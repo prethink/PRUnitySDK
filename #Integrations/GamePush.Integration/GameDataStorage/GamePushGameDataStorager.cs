@@ -1,6 +1,5 @@
 #if !PRSDK_DISABLE_GAMEPUSH
 using System;
-using System.Diagnostics;
 using GamePush;
 
 /// <summary>
@@ -31,7 +30,7 @@ using GamePush;
 /// (списание покупок), тот после этого подтверждениям не верит.
 /// </para>
 /// </remarks>
-public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
+public class GamePushGameDataStorager : GameDataStorageBase
 {
     /// <summary>
     /// Поле игрока в панели GamePush, где лежит сохранение.
@@ -39,8 +38,6 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
     public const string SaveFieldKey = "prsave";
 
     #region Поля и свойства
-
-    private PRSaveData saveData;
 
     /// <summary>
     /// Хранилище запущенной игры; <c>null</c>, пока его не создали.
@@ -89,16 +86,6 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
         watchdog = null;
         SyncFinished = null;
     }
-
-    public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
-        ? null
-        : saveData.SaveDate;
-
-    public DateTime? LastUpdateDate => saveData == null
-        ? null
-        : saveData.UpdateDate != default
-            ? saveData.UpdateDate
-            : CreationDate;
 
     #endregion
 
@@ -208,82 +195,39 @@ public class GamePushGameDataStorager : IGameDataStorage, IGameDataStorageSaveIn
         SyncFinished?.Invoke(finished, success);
     }
 
-    #region IGameDataStorage
+    #region Чтение и запись
 
     /// <remarks>
     /// Игрок с сохранением приходит вместе с запуском площадки, поэтому читать можно сразу:
-    /// загрузчик собирает SDK только после него. Площадка не поднялась — игра начинается с нуля.
+    /// загрузчик собирает SDK только после него. Площадка не поднялась — игра начинается с нуля,
+    /// а запись до конца запуска выключена (<see cref="GameDataStorageBase.IsWriteBlocked"/>).
     /// </remarks>
-    public bool TryLoad()
+    protected override string ReadRaw()
     {
-        var stopwatch = Stopwatch.StartNew();
-
-        string raw = GP_Init.isReady ? GP_Player.GetString(SaveFieldKey) : string.Empty;
-
         if (!GP_Init.isReady)
+        {
             PRLog.WriteWarning(this, "GamePush не запущен: сохранение не прочитано, игра начнётся с нуля.");
+            MarkUnavailable();
+            return string.Empty;
+        }
 
-        bool loaded = SaveDataVersioning.TryReadRaw(raw ?? string.Empty, out saveData);
-
-        stopwatch.Stop();
-        readySignal.SetReady();
-        PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
-        return loaded;
+        return GP_Player.GetString(SaveFieldKey);
     }
 
-    public void Save()
+    /// <inheritdoc />
+    protected override bool WriteRaw(string raw)
     {
-        var stopwatch = Stopwatch.StartNew();
-
-        saveData.UpdateDate = PRUnitySDK.ServerTime.GetNow();
-
         // Без площадки записывать некуда: обращение к ней в браузере упало бы в JavaScript.
         if (!GP_Init.isReady)
         {
             PRLog.WriteWarning(this, "GamePush не запущен: сохранение не отправлено.");
-            return;
+            return false;
         }
 
-        GP_Player.Set(SaveFieldKey, SaveDataVersioning.Serialize(saveData));
+        GP_Player.Set(SaveFieldKey, raw);
         Sync();
-
-        stopwatch.Stop();
-        PRLog.WriteDebug(this, $"Save end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        return true;
     }
-
-    public GameSettings GetGameSettings()
-    {
-        return saveData.GameSettings.Clone() as GameSettings;
-    }
-
-    public ProjectData GetProjectData()
-    {
-        return saveData.ProjectData.Clone() as ProjectData;
-    }
-
-    public void UpdateGameSettings(GameSettings gameSettings, bool requiredSave = false)
-    {
-        saveData.GameSettings = gameSettings.Clone() as GameSettings;
-
-        if (requiredSave)
-            Save();
-    }
-
-    public void UpdateProjectData(ProjectData projectData, bool requiredSave = false)
-    {
-        saveData.ProjectData = projectData.Clone() as ProjectData;
-
-        if (requiredSave)
-            Save();
-    }
-
-    #endregion
-
-    #region IReadySignalProvider
-
-    protected readonly ReadySignal readySignal = new ReadySignal(typeof(GamePushGameDataStorager));
-
-    public IReadySignal ReadySignal => readySignal;
 
     #endregion
 }

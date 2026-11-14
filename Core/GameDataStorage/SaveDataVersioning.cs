@@ -38,7 +38,27 @@ public static class SaveDataVersioning
     /// <returns><c>true</c>, если прочитано существующее сохранение.</returns>
     public static bool TryReadRaw(string raw, out PRSaveData data)
     {
-        return Complete(ReadRaw(raw, out PRSaveData loaded), loaded, out data);
+        return TryReadRaw(raw, out data, out _);
+    }
+
+    /// <summary>
+    /// Читает сохранение из строки хранилища и сообщает, была ли строка, которую прочитать не удалось.
+    /// </summary>
+    /// <remarks>
+    /// «Строки нет» и «строка есть, но не читается» для игры выглядят одинаково: данные новые, результат
+    /// <c>false</c>. Для хранилища это разные случаи: в первом записывать можно, во втором запись затёрла бы
+    /// сохранение игрока пустым. Отброшенное из-за версии сохранение нечитаемым не считается: начать новое —
+    /// решение настроек проекта.
+    /// </remarks>
+    /// <param name="data">Прочитанное сохранение. Если прочитать не удалось или сохранение отброшено из-за версии, новое.</param>
+    /// <param name="unreadable"><c>true</c>, если строка не пуста, но сохранение из неё не получилось.</param>
+    /// <returns><c>true</c>, если прочитано существующее сохранение.</returns>
+    public static bool TryReadRaw(string raw, out PRSaveData data, out bool unreadable)
+    {
+        SaveReadResult result = ReadRaw(raw, out PRSaveData loaded);
+        unreadable = result == SaveReadResult.Failed;
+
+        return Complete(result, loaded, out data);
     }
 
     /// <summary>
@@ -49,7 +69,7 @@ public static class SaveDataVersioning
     public static bool TryRead(PRSaveData stored, out PRSaveData data)
     {
         if (stored == null)
-            return Complete(SaveReadResult.Failed, null, out data);
+            return Complete(SaveReadResult.NotFound, null, out data);
 
         return Complete(Read(JObject.FromObject(stored, Serializer), out PRSaveData loaded), loaded, out data);
     }
@@ -162,7 +182,7 @@ public static class SaveDataVersioning
     /// </summary>
     private static bool Complete(SaveReadResult result, PRSaveData loaded, out PRSaveData data)
     {
-        data = result == SaveReadResult.Failed ? new PRSaveData() : loaded;
+        data = result == SaveReadResult.Failed || result == SaveReadResult.NotFound ? new PRSaveData() : loaded;
 
         return result == SaveReadResult.Loaded;
     }
@@ -173,8 +193,8 @@ public static class SaveDataVersioning
 
         if (string.IsNullOrEmpty(raw))
         {
-            PRLog.WriteWarning(typeof(SaveDataVersioning), "Cannot loading. Raw data is empty.");
-            return SaveReadResult.Failed;
+            PRLog.WriteDebug(typeof(SaveDataVersioning), "Raw data is empty: no save yet.");
+            return SaveReadResult.NotFound;
         }
 
         bool plainAllowed = !Settings.UseEncryption || Settings.EncryptionStrategy == EncryptionLoadingStrategy.Convert;

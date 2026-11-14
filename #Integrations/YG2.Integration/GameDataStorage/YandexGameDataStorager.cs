@@ -1,118 +1,80 @@
 ﻿#if !PRSDK_DISABLE_YG2
 using System;
-using System.Diagnostics;
 using YG;
 
 /// <summary>
-/// Менеджер сохранения для работы с yandexSDK.
+/// Сохранение игры в Яндекс Играх через плагин YG2.
 /// </summary>
-public class YandexGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
+/// <remarks>
+/// Плагин сам держит локальную копию и облако и выбирает из них более новую; сюда сохранение приходит уже
+/// выбранным — в поле <c>YG2.saves</c>. Как оно там лежит, задаёт <see cref="SaveStrategy"/> настроек проекта:
+/// строкой (<see cref="SaveStrategy.Serialize"/>) или объектом (<see cref="SaveStrategy.Class"/>).
+/// </remarks>
+public class YandexGameDataStorager : GameDataStorageBase
 {
-    #region Поля и свойства
+    private static SaveStrategy Strategy => PRUnitySDK.Settings.GameStorage.SaveStrategy;
 
-    private PRSaveData saveData;
-
-    public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
-        ? null
-        : saveData.SaveDate;
-
-    public DateTime? LastUpdateDate => saveData == null
-        ? null
-        : saveData.UpdateDate != default
-            ? saveData.UpdateDate
-            : CreationDate;
-
-    #endregion
-
-    #region ISaveLoad
-
-    public bool TryLoad()
+    /// <inheritdoc />
+    protected override string ReadRaw()
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        PRLog.WriteDebug(this, $"Try loading data use strategy {GetSettings().SaveStrategy}");
-        bool loaded = GetSettings().SaveStrategy switch
-        {
-            SaveStrategy.Serialize => SaveDataVersioning.TryReadRaw(YG2.saves.RawData, out saveData),
-            SaveStrategy.Class => SaveDataVersioning.TryRead(YG2.saves?.PRSaveData, out saveData),
-            _ => throw new NotImplementedException()
-        };
-        stopwatch.Stop();
-        readySignal.SetReady();
-        PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
-        return loaded;
+        return YG2.saves?.RawData;
     }
 
-    public void Save()
+    /// <inheritdoc />
+    protected override bool WriteRaw(string raw)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        saveData.UpdateDate = PRUnitySDK.ServerTime.GetNow();
-        PRLog.WriteDebug(this, $"Try save data use strategy {GetSettings().SaveStrategy}");
-        if (GetSettings().SaveStrategy == SaveStrategy.Serialize)
-        {
-            YG2.saves.RawData = SaveDataVersioning.Serialize(saveData);
+        YG2.saves.RawData = raw;
 
-            if (YG2.isSDKEnabled)
-                YG2.SaveProgress();
+        return SendToPlatform();
+    }
+
+    /// <inheritdoc />
+    protected override bool ReadSave(out PRSaveData data, out bool unreadable)
+    {
+        PRLog.WriteDebug(this, $"Try loading data use strategy {Strategy}");
+
+        switch (Strategy)
+        {
+            case SaveStrategy.Serialize:
+                return base.ReadSave(out data, out unreadable);
+
+            case SaveStrategy.Class:
+                // Объект разобрал сам плагин: нечитаемой строки здесь не бывает.
+                unreadable = false;
+                return SaveDataVersioning.TryRead(YG2.saves?.PRSaveData, out data);
+
+            default:
+                throw new NotImplementedException();
         }
-        else if(GetSettings().SaveStrategy == SaveStrategy.Class)
+    }
+
+    /// <inheritdoc />
+    protected override bool WriteSave(PRSaveData data)
+    {
+        PRLog.WriteDebug(this, $"Try save data use strategy {Strategy}");
+
+        switch (Strategy)
         {
-            SaveDataVersioning.Stamp(saveData);
-            YG2.saves.PRSaveData = (PRSaveData)saveData.Clone();
+            case SaveStrategy.Serialize:
+                return base.WriteSave(data);
 
-            if (YG2.isSDKEnabled)
-                YG2.SaveProgress();
+            case SaveStrategy.Class:
+                SaveDataVersioning.Stamp(data);
+                YG2.saves.PRSaveData = (PRSaveData)data.Clone();
+                return SendToPlatform();
+
+            default:
+                throw new NotImplementedException();
         }
-        else
-        {
-            throw new NotImplementedException();
-        }
-
-        stopwatch.Stop();
-        PRLog.WriteDebug(this, $"Save end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
-
     }
 
-    public GameSettings GetGameSettings()
+    private static bool SendToPlatform()
     {
-        return saveData.GameSettings.Clone() as GameSettings;
+        if (!YG2.isSDKEnabled)
+            return false;
+
+        YG2.SaveProgress();
+        return true;
     }
-
-    public ProjectData GetProjectData()
-    {
-        return saveData.ProjectData.Clone() as ProjectData;
-    }
-
-    public void UpdateGameSettings(GameSettings gameSettings, bool requiredSave = false)
-    {
-        this.saveData.GameSettings = gameSettings.Clone() as GameSettings;
-
-        if (requiredSave)
-            Save();
-    }
-
-    public void UpdateProjectData(ProjectData projectData, bool requiredSave = false)
-    {
-        this.saveData.ProjectData = projectData.Clone() as ProjectData;
-
-        if(requiredSave)
-            Save();
-    }
-
-    public GameStorageSettings GetSettings()
-    {
-        return PRUnitySDK.Settings.GameStorage;
-    }
-
-    #endregion
-
-    #region IReadySignalProvider
-
-    protected readonly ReadySignal readySignal = new ReadySignal(typeof(YandexGameDataStorager));
-
-    public IReadySignal ReadySignal => readySignal;
-
-    #endregion
 }
 #endif

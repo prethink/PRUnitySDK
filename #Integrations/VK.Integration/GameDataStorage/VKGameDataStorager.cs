@@ -1,7 +1,4 @@
 #if !PRSDK_DISABLE_VK
-using System;
-using System.Diagnostics;
-
 /// <summary>
 /// Сохранение игры в VK Storage: весь <see cref="PRSaveData"/> одной строкой.
 /// </summary>
@@ -11,100 +8,43 @@ using System.Diagnostics;
 /// по очереди и не чаще раза в 30 секунд — у VK Storage значение до 4096 символов и 1000 записей в час на игрока.
 /// На скрытой странице несохранённое пишется сразу. Частые сохранения игры поэтому склеиваются: в облако уходит последнее.
 /// <para>
-/// Сохранение не прочиталось при запуске (сеть, повреждение обеих ячеек) — облако в этой сессии не пишется:
-/// пустой прогресс затёр бы настоящий.
+/// Площадка не поднялась или сохранение не прочиталось при запуске (сеть, повреждение обеих ячеек) — облако в этой
+/// сессии не пишется: пустой прогресс затёр бы настоящий. Мост в этом случае не пишет сам, а хранилище выключает
+/// запись у себя (<see cref="GameDataStorageBase.IsWriteBlocked"/>), и игра о такой «записи» не узнаёт.
 /// </para>
 /// <para>
 /// Стратегия сохранения из настроек здесь не важна: данные всегда идут строкой, как при <see cref="SaveStrategy.Serialize"/>.
 /// </para>
 /// </remarks>
-public class VKGameDataStorager : IGameDataStorage, IGameDataStorageSaveInfo
+public class VKGameDataStorager : GameDataStorageBase
 {
-    #region Поля и свойства
-
-    private PRSaveData saveData;
-
-    public DateTime? CreationDate => saveData == null || saveData.SaveDate == default
-        ? null
-        : saveData.SaveDate;
-
-    public DateTime? LastUpdateDate => saveData == null
-        ? null
-        : saveData.UpdateDate != default
-            ? saveData.UpdateDate
-            : CreationDate;
-
-    #endregion
-
-    #region IGameDataStorage
-
-    public bool TryLoad()
+    /// <inheritdoc />
+    protected override string ReadRaw()
     {
-        var stopwatch = Stopwatch.StartNew();
-
         if (!VKBridge.IsReady)
+        {
             PRLog.WriteWarning(this, "VK Bridge не запущен: сохранение не прочитано, игра начнётся с нуля.");
+            MarkUnavailable();
+            return string.Empty;
+        }
 
-        bool loaded = SaveDataVersioning.TryReadRaw(VKBridge.Launch?.save ?? string.Empty, out saveData);
+        if (VKBridge.Launch is { saveLoadFailed: true })
+            MarkUnavailable();
 
-        stopwatch.Stop();
-        readySignal.SetReady();
-        PRLog.WriteDebug(this, $"Loading end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
-        return loaded;
+        return VKBridge.Launch?.save;
     }
 
-    public void Save()
+    /// <inheritdoc />
+    protected override bool WriteRaw(string raw)
     {
-        var stopwatch = Stopwatch.StartNew();
-
-        saveData.UpdateDate = PRUnitySDK.ServerTime.GetNow();
-
         if (!VKBridge.IsReady)
         {
             PRLog.WriteWarning(this, "VK Bridge не запущен: сохранение не отправлено.");
-            return;
+            return false;
         }
 
-        VKBridge.StorageSave(SaveDataVersioning.Serialize(saveData));
-
-        stopwatch.Stop();
-        PRLog.WriteDebug(this, $"Save end. in {stopwatch.Elapsed.TotalMilliseconds:F2} ms.");
+        VKBridge.StorageSave(raw);
+        return true;
     }
-
-    public GameSettings GetGameSettings()
-    {
-        return saveData.GameSettings.Clone() as GameSettings;
-    }
-
-    public ProjectData GetProjectData()
-    {
-        return saveData.ProjectData.Clone() as ProjectData;
-    }
-
-    public void UpdateGameSettings(GameSettings gameSettings, bool requiredSave = false)
-    {
-        saveData.GameSettings = gameSettings.Clone() as GameSettings;
-
-        if (requiredSave)
-            Save();
-    }
-
-    public void UpdateProjectData(ProjectData projectData, bool requiredSave = false)
-    {
-        saveData.ProjectData = projectData.Clone() as ProjectData;
-
-        if (requiredSave)
-            Save();
-    }
-
-    #endregion
-
-    #region IReadySignalProvider
-
-    protected readonly ReadySignal readySignal = new ReadySignal(typeof(VKGameDataStorager));
-
-    public IReadySignal ReadySignal => readySignal;
-
-    #endregion
 }
 #endif

@@ -285,10 +285,16 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
             gameDataStorage.UpdateProjectData(projectData);
             gameDataStorage.UpdateGameSettings(gameSettings);
             gameDataStorage.Save();
-            succeeded = true;
             frequentSavePending = false;
 
-            GameplayEvents.RaiseSaveEvent();
+            // Хранилище могло записи не принять: площадка не поднялась или сохранение игрока не прочиталось.
+            // О такой «записи» подписчики знать не должны — списание покупок ждёт именно записанного.
+            succeeded = IsLastSaveWritten();
+
+            if (succeeded)
+                GameplayEvents.RaiseSaveEvent();
+            else
+                MarkSaveAttempt();
         }
         catch(Exception ex) 
         {
@@ -487,12 +493,36 @@ public partial class GameManager : MonoBehaviourSingletonBase<GameManager>, IRea
         try
         {
             saveAction.Invoke();
-            succeeded = true;
+            succeeded = IsLastSaveWritten();
+
+            if (!succeeded)
+                MarkSaveAttempt();
         }
         finally
         {
             CompleteSaveOperation(succeeded, GetSuccessfulSaveInfo(succeeded));
         }
+    }
+
+    /// <summary>
+    /// Хранилище приняло последнюю запись. Хранилище без этого признака считается принявшим.
+    /// </summary>
+    private bool IsLastSaveWritten()
+    {
+        return gameDataStorage is not GameDataStorageBase storage || storage.LastSaveWritten;
+    }
+
+    /// <summary>
+    /// Отсчитывает кулдаун от несостоявшейся записи.
+    /// </summary>
+    /// <remarks>
+    /// Иначе при выключенной записи кулдаун не начинался бы никогда, и каждое событие игры заново собирало
+    /// и копировало бы данные, которые всё равно некуда записать.
+    /// </remarks>
+    private void MarkSaveAttempt()
+    {
+        saveCooldownCounter = PRTime.Instance.CurrentRealSecond;
+        lastSaveTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
     }
 
     private void BeginSaveOperation()
