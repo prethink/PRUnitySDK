@@ -439,12 +439,18 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                 fallback = entry;
         }
 
-        // Поиск показывает найденное, но выбор не переписывает: стёрли запрос —
-        // окно возвращается к модулю, который был открыт до поиска.
-        if (fallback != null && !Searching)
+        // Выбор переписывается, только когда выбранного модуля больше нет в проекте.
+        // Поиск, другая вкладка и свёрнутая группа лишь прячут его строку: убрали запрос
+        // или раскрыли группу — окно возвращается к тому же модулю.
+        if (fallback != null && !IsKnownKey(selectedKey))
             selectedKey = fallback.Key;
 
         return fallback;
+    }
+
+    private bool IsKnownKey(string key)
+    {
+        return key == CoreKey || modules.Any(module => module.Folder == key);
     }
 
     private void DrawEntry(ListEntry entry, bool selected)
@@ -499,13 +505,15 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         var enabledModules = entry.SlotModules.Where(module => !pendingDisabled.Contains(module.Id)).ToList();
         bool nothingEnabled = enabledModules.Count == 0;
 
-        PRSDKSidebarGUI.ToggleRow(
+        // У этой строки нечего открывать справа, поэтому щелчок по названию — тот же выбор,
+        // что и щелчок по переключателю.
+        bool clicked = PRSDKSidebarGUI.ToggleRow(
             entry.Title, entry.Depth, false, nothingEnabled, out bool next,
             radio: true,
             dimmed: !nothingEnabled,
             tooltip: "Модули слота в сборку не входят, SDK работает на своих реализациях по умолчанию.");
 
-        if (!next || nothingEnabled)
+        if (nothingEnabled || !next && !clicked)
             return;
 
         foreach (PRModuleInfo module in enabledModules)
@@ -827,9 +835,18 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
         var failed = new List<string>();
 
+        // Файлы оборачиваются по одному, а проект обновляется один раз в конце: WrapAll
+        // обновлял бы его после каждого модуля и запускал промежуточные пересборки.
         foreach (PRModuleInfo module in unguarded)
-            failed.AddRange(PRModuleGuard.WrapAll(module.UnguardedScripts, module.Id));
+        {
+            foreach (string path in module.UnguardedScripts.ToList())
+            {
+                if (!PRModuleGuard.Wrap(path, module.Id))
+                    failed.Add(path);
+            }
+        }
 
+        AssetDatabase.Refresh();
         Reload(true);
 
         if (failed.Count > 0)
