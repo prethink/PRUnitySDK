@@ -833,28 +833,61 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
                 "Обернуть", "Отмена"))
             return;
 
-        var failed = new List<string>();
+        // Причины отказа разные и лечатся по-разному: кодировку правят в файле,
+        // занятый или защищённый файл освобождают и повторяют.
+        var wrongEncoding = new List<string>();
+        var notWritten = new List<string>();
+        int wrapped = 0;
 
-        // Файлы оборачиваются по одному, а проект обновляется один раз в конце: WrapAll
-        // обновлял бы его после каждого модуля и запускал промежуточные пересборки.
-        foreach (PRModuleInfo module in unguarded)
+        try
         {
-            foreach (string path in module.UnguardedScripts.ToList())
+            // Файлы оборачиваются по одному, а проект обновляется один раз в конце: WrapAll
+            // обновлял бы его после каждого модуля и запускал промежуточные пересборки.
+            foreach (PRModuleInfo module in unguarded)
             {
-                if (!PRModuleGuard.Wrap(path, module.Id))
-                    failed.Add(path);
+                foreach (string path in module.UnguardedScripts.ToList())
+                {
+                    try
+                    {
+                        if (PRModuleGuard.Wrap(path, module.Id))
+                            wrapped++;
+                        else
+                            wrongEncoding.Add(path);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                    {
+                        // Один занятый файл не должен обрывать остальные: уже обёрнутые
+                        // остались бы на диске без обновления проекта и без отчёта.
+                        notWritten.Add($"{path} — {exception.Message}");
+                    }
+                }
             }
         }
-
-        AssetDatabase.Refresh();
-        Reload(true);
-
-        if (failed.Count > 0)
+        finally
         {
-            EditorUtility.DisplayDialog(
-                "Не все файлы обёрнуты",
-                "Эти файлы не в UTF-8, их нужно перекодировать и обернуть заново:\n\n" + string.Join("\n", failed),
-                "Понятно");
+            // Часть файлов уже изменена, чем бы ни кончился обход: проект и список модулей
+            // должны это увидеть.
+            AssetDatabase.Refresh();
+            Reload(true);
+        }
+
+        if (wrongEncoding.Count > 0 || notWritten.Count > 0)
+        {
+            string report = $"Обёрнуто файлов: {wrapped} из {files}.";
+
+            if (wrongEncoding.Count > 0)
+            {
+                report += "\n\nНе в UTF-8 — перекодируйте и оберните заново:\n" +
+                          string.Join("\n", wrongEncoding);
+            }
+
+            if (notWritten.Count > 0)
+            {
+                report += "\n\nНе удалось прочитать или записать — освободите файл и повторите:\n" +
+                          string.Join("\n", notWritten);
+            }
+
+            EditorUtility.DisplayDialog("Не все файлы обёрнуты", report, "Понятно");
         }
 
         GUIUtility.ExitGUI();
