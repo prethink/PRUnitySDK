@@ -58,28 +58,67 @@ public static class PRModuleGuard
     }
 
     /// <summary>
-    /// Оборачивает несколько файлов и обновляет их в проекте.
+    /// Оборачивает файлы одного модуля и обновляет их в проекте.
     /// </summary>
-    /// <returns>Файлы, которые остались без обёртки, потому что они не в UTF-8.</returns>
-    public static List<string> WrapAll(IEnumerable<string> paths, string moduleId)
+    public static PRModuleWrapResult WrapAll(IEnumerable<string> paths, string moduleId)
     {
-        var failed = new List<string>();
+        return WrapAll(paths.Select(path => (path, moduleId)));
+    }
+
+    /// <summary>
+    /// Оборачивает файлы, каждый в обёртку своего модуля, и один раз обновляет проект.
+    /// </summary>
+    /// <remarks>
+    /// Единственный путь пакетной обёртки: кнопка у модуля, «Обернуть все» и проверка проекта
+    /// идут через него, поэтому ошибки у всех обрабатываются одинаково. Отказ одного файла
+    /// не обрывает остальные — иначе уже обёрнутые остались бы без обновления проекта и без отчёта.
+    /// </remarks>
+    /// <param name="files">Путь файла и идентификатор модуля, которому он принадлежит.</param>
+    /// <param name="refresh">
+    /// Обновить проект после обхода. Выключается там, где файлы лежат вне проекта: в тестах.
+    /// </param>
+    public static PRModuleWrapResult WrapAll(IEnumerable<(string Path, string ModuleId)> files, bool refresh = true)
+    {
+        var result = new PRModuleWrapResult();
 
         try
         {
-            foreach (string path in paths.ToList())
+            foreach ((string path, string moduleId) in files.ToList())
             {
-                if (!Wrap(path, moduleId))
-                    failed.Add(path);
+                try
+                {
+                    if (Wrap(path, moduleId))
+                        result.Wrapped++;
+                    else
+                        result.WrongEncoding.Add(path);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    result.NotWritten.Add($"{path} — {exception.Message}");
+                }
             }
         }
         finally
         {
-            // Ошибка записи одного файла не отменяет уже обёрнутые: проект должен их увидеть.
-            AssetDatabase.Refresh();
+            // Часть файлов уже изменена, чем бы ни кончился обход: проект должен это увидеть.
+            if (refresh)
+                AssetDatabase.Refresh();
         }
 
-        return failed;
+        return result;
+    }
+
+    /// <summary>
+    /// Показывает, какие файлы не обёрнуты и почему.
+    /// </summary>
+    /// <returns><c>true</c>, если обёрнуты все файлы и показывать нечего.</returns>
+    public static bool ShowReport(PRModuleWrapResult result)
+    {
+        if (!result.HasFailures)
+            return true;
+
+        EditorUtility.DisplayDialog("Не все файлы обёрнуты", result.Describe(), "Понятно");
+        return false;
     }
 
     /// <summary>
@@ -186,5 +225,53 @@ public static class PRModuleGuard
 
             throw;
         }
+    }
+}
+
+/// <summary>
+/// Итог пакетной обёртки файлов.
+/// </summary>
+/// <remarks>
+/// Причины отказа разведены: кодировку правят в самом файле, а занятый или защищённый
+/// файл освобождают и повторяют.
+/// </remarks>
+public sealed class PRModuleWrapResult
+{
+    /// <summary>
+    /// Сколько файлов обёрнуто.
+    /// </summary>
+    public int Wrapped;
+
+    /// <summary>
+    /// Файлы не в UTF-8: не тронуты.
+    /// </summary>
+    public readonly List<string> WrongEncoding = new();
+
+    /// <summary>
+    /// Файлы, которые не удалось прочитать или записать, с текстом ошибки: не тронуты.
+    /// </summary>
+    public readonly List<string> NotWritten = new();
+
+    public int Total => Wrapped + WrongEncoding.Count + NotWritten.Count;
+
+    public bool HasFailures => WrongEncoding.Count > 0 || NotWritten.Count > 0;
+
+    /// <summary>
+    /// Текст отчёта для пользователя.
+    /// </summary>
+    public string Describe()
+    {
+        string report = $"Обёрнуто файлов: {Wrapped} из {Total}.";
+
+        if (WrongEncoding.Count > 0)
+            report += "\n\nНе в UTF-8 — перекодируйте и оберните заново:\n" + string.Join("\n", WrongEncoding);
+
+        if (NotWritten.Count > 0)
+        {
+            report += "\n\nНе удалось прочитать или записать — освободите файл и повторите:\n" +
+                      string.Join("\n", NotWritten);
+        }
+
+        return report;
     }
 }

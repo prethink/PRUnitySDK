@@ -115,7 +115,7 @@ public sealed class PRModuleValidator : IProjectValidator
                     $"У модуля {module.DisplayName} файлов без обёртки: {scripts.Count}. Первый: {scripts[0]}.",
                     AssetDatabase.LoadAssetAtPath<MonoScript>(scripts[0]),
                     "Обернуть",
-                    () => PRModuleGuard.WrapAll(scripts, id));
+                    () => PRModuleGuard.ShowReport(PRModuleGuard.WrapAll(scripts, id)));
             }
         }
 
