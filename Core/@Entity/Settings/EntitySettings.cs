@@ -5,7 +5,7 @@ using UnityEngine;
 /// Настройки сущностей.
 /// </summary>
 [Serializable]
-[SettingsDescription("Сущности: как выглядит каркас, который остаётся на месте спрятанной сущности в режимах HideWire и HideWirePolygons.")]
+[SettingsDescription("Сущности: как выглядит каркас, который остаётся на месте спрятанной сущности в режимах HideWire и HideWirePolygons.", Icon = "Object")]
 public class EntitySettings
 {
     [field: Header("Каркас")]

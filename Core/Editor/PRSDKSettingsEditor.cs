@@ -103,7 +103,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
         foreach (SectionGroup group in groups)
         {
-            foreach ((SerializedProperty candidate, string name) in group.Sections)
+            foreach ((SerializedProperty candidate, string name, _) in group.Sections)
             {
                 if (candidate.propertyPath == selectedSection)
                 {
@@ -142,7 +142,8 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     /// </summary>
     /// <remarks>
     /// Включённый раздел помечен зелёной точкой: по списку видно, что работает, не открывая
-    /// разделы по очереди. Раздел без полей приглушён.
+    /// разделы по очереди. Раздел без полей приглушён. Иконка раздела задаётся в его
+    /// <see cref="SettingsDescriptionAttribute.Icon"/>.
     /// </remarks>
     private void DrawSidebar(List<SectionGroup> groups)
     {
@@ -168,7 +169,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                 if (!searching && !next)
                     continue;
 
-                foreach ((SerializedProperty property, string sectionName) in group.Sections)
+                foreach ((SerializedProperty property, string sectionName, Texture icon) in group.Sections)
                 {
                     bool isOn = PRSDKInspectorUtility.TryGetSectionToggle(property, out bool isEnabled) && isEnabled;
                     bool clicked = PRSDKSidebarGUI.Row(
@@ -176,7 +177,8 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                         1,
                         property.propertyPath == shownSection,
                         dimmed: !property.hasVisibleChildren,
-                        enabled: isOn);
+                        enabled: isOn,
+                        icon: icon);
 
                     if (!clicked)
                         continue;
@@ -246,7 +248,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     private sealed class SectionGroup
     {
         public string Source;
-        public readonly List<(SerializedProperty Property, string Name)> Sections = new();
+        public readonly List<(SerializedProperty Property, string Name, Texture Icon)> Sections = new();
     }
 
     private const string GroupExpandedKeyPrefix = "PRSDKSettingsEditor.Group.";
@@ -265,7 +267,9 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
         foreach (SerializedProperty property in properties)
         {
-            if (HasExternalEditor(property))
+            Type sectionType = PRSDKInspectorUtility.GetFieldType(typeof(PRSDKSettings), property);
+
+            if (HasExternalEditor(sectionType))
                 continue;
 
             string sectionName = PRSDKInspectorUtility.GetSectionName(property);
@@ -281,7 +285,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                 groups.Add(group);
             }
 
-            group.Sections.Add((property, sectionName));
+            group.Sections.Add((property, sectionName, PRSDKInspectorUtility.GetSectionIcon(sectionType)));
         }
 
         groups.Sort((left, right) => PRSDKSettingsSources.Compare(left.Source, right.Source));
@@ -343,10 +347,8 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     /// а строка-ссылка на окно занимала место в списке и ничего не настраивала: своё окно
     /// открывается из меню.
     /// </remarks>
-    private static bool HasExternalEditor(SerializedProperty property)
+    private static bool HasExternalEditor(Type sectionType)
     {
-        Type sectionType = PRSDKInspectorUtility.GetFieldType(typeof(PRSDKSettings), property);
-
         return sectionType != null
             && Attribute.IsDefined(sectionType, typeof(DatabaseExternalEditorAttribute), true);
     }

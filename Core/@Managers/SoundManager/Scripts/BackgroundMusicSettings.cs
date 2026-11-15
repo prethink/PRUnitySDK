@@ -15,7 +15,7 @@ using UnityEngine;
 /// </para>
 /// </remarks>
 [Serializable]
-[SettingsDescription("Фоновая музыка: треки, порядок и повтор. Играет менеджер звука — он же ставит музыку на паузу вместе с игрой и слушается громкости из настроек игрока.")]
+[SettingsDescription("Фоновая музыка: треки, порядок и повтор. Играет менеджер звука — он же ставит музыку на паузу вместе с игрой и слушается громкости из настроек игрока.", Icon = "Music_1")]
 public sealed class BackgroundMusicSettings
 {
     [SerializeField]
@@ -35,8 +35,10 @@ public sealed class BackgroundMusicSettings
     private bool shuffle;
 
     [SerializeField, Range(0f, 1f)]
-    [Tooltip("Громкость музыки относительно той, что выбрал игрок: 0.5 — вдвое тише его ползунка.")]
-    private float volume = 1f;
+    [Tooltip("Громкость музыки относительно той, что выбрал игрок: 0.5 — вдвое тише его ползунка. Готовые треки сведены " +
+             "плотно и звучат без пауз: общий фон (Classic Easter) в среднем −13 dB, а звуки игры в пике −14…−23 dB. " +
+             "На полной громкости музыка глушит звуки; 0.25 (−12 dB) держит её на 8–10 dB тише их.")]
+    private float volume = 0.25f;
 
     /// <summary>
     /// Играть ли фоновую музыку.

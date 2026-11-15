@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-[SettingsDescription("Правила урона проекта: действуют на всех сценах, для любого удара. Правила отдельной сцены кладут компонентом DamageRuleComponent.")]
+[SettingsDescription("Правила урона проекта: действуют на всех сценах, для любого удара. Правила отдельной сцены кладут компонентом DamageRuleComponent.", Icon = "Critical_1")]
 public class DamageRulesSettings
 {
     [SerializeReference, ReferenceSelector]

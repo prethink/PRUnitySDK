@@ -10,7 +10,7 @@ public partial class PRSDKSettings
 /// Общий звук нажатия на элементы интерфейса.
 /// </summary>
 [Serializable]
-[SettingsDescription("Общий звук нажатия: кнопки HUD, кнопки и переключатели внутри окон. Своё звучание кнопки его заменяет.")]
+[SettingsDescription("Общий звук нажатия: кнопки HUD, кнопки и переключатели внутри окон. Своё звучание кнопки его заменяет.", Icon = "Bell")]
 public class UIClickSoundSettings
 {
     [field: SerializeField, Tooltip("Щёлкать при нажатии на элементы интерфейса.")]

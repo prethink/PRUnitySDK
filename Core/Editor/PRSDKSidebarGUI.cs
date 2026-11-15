@@ -14,10 +14,14 @@ public static class PRSDKSidebarGUI
     /// <summary>
     /// Ширина списка.
     /// </summary>
-    public const float Width = 212f;
+    /// <remarks>
+    /// С иконкой перед названием длинные имена разделов («Game Event Announcements») при 212 обрезались.
+    /// </remarks>
+    public const float Width = 232f;
 
     private const float RowHeight = 22f;
     private const float CountWidth = 40f;
+    private const float IconSize = 16f;
 
     private static GUIStyle labelStyle;
     private static GUIStyle selectedStyle;
@@ -34,6 +38,7 @@ public static class PRSDKSidebarGUI
     /// <param name="dimmed">Приглушить: в разделе пусто.</param>
     /// <param name="count">Число справа; пусто — не рисовать.</param>
     /// <param name="enabled">Зелёная точка слева: раздел включён.</param>
+    /// <param name="icon">Иконка перед названием — белая пиктограмма; пусто — без иконки.</param>
     /// <returns><c>true</c>, если по строке щёлкнули.</returns>
     public static bool Row(
         string name,
@@ -41,7 +46,8 @@ public static class PRSDKSidebarGUI
         bool selected,
         bool dimmed = false,
         string count = null,
-        bool enabled = false)
+        bool enabled = false,
+        Texture icon = null)
     {
         EnsureStyles();
 
@@ -58,17 +64,21 @@ public static class PRSDKSidebarGUI
             EditorGUI.DrawRect(dot, new Color(0.36f, 0.82f, 0.40f, 1f));
         }
 
+        float iconOffset = icon != null ? IconSize + 5f : 0f;
         bool hasCount = !string.IsNullOrEmpty(count);
         var nameRect = new Rect(
-            row.x + indent,
+            row.x + indent + iconOffset,
             row.y,
-            row.width - indent - (hasCount ? CountWidth + 6f : 4f),
+            row.width - indent - iconOffset - (hasCount ? CountWidth + 6f : 4f),
             row.height);
 
         // Пустой раздел приглушён: взгляд сразу находит те, где что-то лежит.
         Color previous = GUI.color;
         if (dimmed && !selected)
             GUI.color = new Color(1f, 1f, 1f, 0.55f);
+
+        if (icon != null && Event.current.type == EventType.Repaint)
+            DrawIcon(new Rect(row.x + indent, row.y + (row.height - IconSize) * 0.5f, IconSize, IconSize), icon, selected);
 
         GUI.Label(nameRect, name, selected ? selectedStyle : labelStyle);
 
@@ -236,6 +246,28 @@ public static class PRSDKSidebarGUI
             EditorGUIUtility.isProSkin
                 ? new Color(0.17f, 0.36f, 0.53f, 1f)
                 : new Color(0.23f, 0.45f, 0.69f, 1f));
+    }
+
+    /// <summary>
+    /// Рисует белую пиктограмму в цвет текста строки.
+    /// </summary>
+    /// <remarks>
+    /// Пиктограммы белые: на тёмной теме их чуть приглушаем, чтобы не спорили с названием,
+    /// на светлой — красим в тёмный, иначе белое на светлом не видно. На синей полосе выбора
+    /// иконка белая, как и текст.
+    /// </remarks>
+    private static void DrawIcon(Rect rect, Texture icon, bool selected)
+    {
+        Color tint = selected
+            ? Color.white
+            : EditorGUIUtility.isProSkin
+                ? new Color(0.82f, 0.82f, 0.82f, 1f)
+                : new Color(0.24f, 0.24f, 0.24f, 1f);
+
+        Color previous = GUI.color;
+        GUI.color = previous * tint;
+        GUI.DrawTexture(rect, icon, ScaleMode.ScaleToFit, true);
+        GUI.color = previous;
     }
 
     private static float GetIndent(int depth)

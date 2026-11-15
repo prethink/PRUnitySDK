@@ -9,6 +9,7 @@ using UnityEngine;
 /// Лежат в <see cref="PRSDKSettings"/>, а значит у каждой игры (проекта SDK) свои. Удобнее править
 /// в окне <c>PRUnitySDK/Windows/Game Rules</c>. Читает их <see cref="GameRules"/> при старте SDK.
 /// </remarks>
+[SettingsDescription("Ограничения характеристик проекта: применяются последними, после базовых значений и модификаторов. Удобнее править в окне PRUnitySDK → Windows → Game Rules.", Icon = "Scale")]
 [Serializable]
 public class GameRulesSettings
 {

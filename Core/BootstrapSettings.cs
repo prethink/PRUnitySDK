@@ -12,7 +12,7 @@ using UnityEngine;
 /// </para>
 /// </remarks>
 [Serializable]
-[SettingsDescription("Запуск игры: какая сцена открывается после загрузчика, собирать ли SDK порциями, показывать ли отладочные цифры загрузки. Вид экрана загрузки — в Loading Screen.")]
+[SettingsDescription("Запуск игры: какая сцена открывается после загрузчика, собирать ли SDK порциями, показывать ли отладочные цифры загрузки. Вид экрана загрузки — в Loading Screen.", Icon = "Power_Off")]
 public sealed class BootstrapSettings
 {
     [Header("Сцена")]

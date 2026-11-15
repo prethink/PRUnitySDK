@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
-[SettingsDescription("Переход между сценами: затемнение на смене, его вид (режим, цвет, картинка, узор, звуки) и предел ожидания загрузчика.")]
+[SettingsDescription("Переход между сценами: затемнение на смене, его вид (режим, цвет, картинка, узор, звуки) и предел ожидания загрузчика.", Icon = "Exit_2")]
 public class SceneTransitionSettings 
 {
     [field: SerializeField] public bool UseFadeOnChange { get; protected set; } = true;

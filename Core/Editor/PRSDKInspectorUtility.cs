@@ -298,6 +298,70 @@ internal static class PRSDKInspectorUtility
     private static GUIStyle enabledFoldoutStyle;
 
     /// <summary>
+    /// Папка белых пиктограмм для иконок разделов.
+    /// </summary>
+    /// <remarks>
+    /// Копии лежат в самом SDK: публичная часть не должна зависеть от набора в <c>PRUnitySDKPrivate</c>.
+    /// </remarks>
+    private const string SectionIconFolder = "Assets/PRUnitySDK/Core/Editor/Icons/SettingsSections/";
+
+    private const string SectionIconPrefix = "PictoIcon_";
+    private const string DefaultSectionIcon = "Setting";
+
+    /// <summary>
+    /// Найденные иконки по типу раздела. Список перерисовывается на каждое движение мыши,
+    /// а поиск картинки идёт через базу ассетов.
+    /// </summary>
+    private static readonly Dictionary<Type, Texture> sectionIcons = new();
+
+    /// <summary>
+    /// Иконка раздела для списка в окне настроек.
+    /// </summary>
+    /// <remarks>
+    /// Берётся из <see cref="SettingsDescriptionAttribute.Icon"/>; без неё — общая иконка настроек,
+    /// чтобы строки списка не расходились по отступу.
+    /// </remarks>
+    /// <param name="sectionType">Тип раздела; <c>null</c> даёт общую иконку.</param>
+    public static Texture GetSectionIcon(Type sectionType)
+    {
+        if (sectionType == null)
+            return LoadSectionIcon(DefaultSectionIcon);
+
+        if (sectionIcons.TryGetValue(sectionType, out Texture cached) && cached != null)
+            return cached;
+
+        var attribute = (SettingsDescriptionAttribute)Attribute.GetCustomAttribute(
+            sectionType, typeof(SettingsDescriptionAttribute));
+
+        Texture icon = LoadSectionIcon(attribute?.Icon) ?? LoadSectionIcon(DefaultSectionIcon);
+        sectionIcons[sectionType] = icon;
+
+        return icon;
+    }
+
+    /// <summary>
+    /// Ищет иконку по имени: пиктограмма SDK, путь к картинке, встроенная иконка Unity.
+    /// </summary>
+    private static Texture LoadSectionIcon(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        Texture icon = name.Contains("/")
+            ? AssetDatabase.LoadAssetAtPath<Texture2D>(name)
+            : AssetDatabase.LoadAssetAtPath<Texture2D>(SectionIconFolder + SectionIconPrefix + name + ".png");
+
+        if (icon != null)
+            return icon;
+
+        if (name == DefaultSectionIcon)
+            return EditorGUIUtility.IconContent("d_Settings").image;
+
+        // Встроенную иконку ищем тихо: IconContent с неизвестным именем пишет ошибку в консоль.
+        return EditorGUIUtility.FindTexture(name);
+    }
+
+    /// <summary>
     /// Есть ли у типа описание раздела.
     /// </summary>
     /// <remarks>

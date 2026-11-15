@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 [Serializable]
 [SettingsDescription("Броня и сопротивления (DamageDefenseComponent): константа брони, потолки снижения урона " +
-                     "и какие типы урона закрывает броня.")]
+                     "и какие типы урона закрывает броня.", Icon = "Shield_1")]
 public class DefenseSettings
 {
     /// <summary>

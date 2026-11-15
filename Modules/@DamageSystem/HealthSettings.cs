@@ -5,7 +5,7 @@ using UnityEngine;
 /// Настройки здоровья проекта.
 /// </summary>
 [Serializable]
-[SettingsDescription("Здоровье сущностей: что считать попаданием, о котором сообщает HealthComponent.OnHit.")]
+[SettingsDescription("Здоровье сущностей: что считать попаданием, о котором сообщает HealthComponent.OnHit.", Icon = "Heart")]
 public class HealthSettings
 {
     /// <summary>

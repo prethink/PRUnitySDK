@@ -285,6 +285,18 @@ public class PRQualitySettings
 
 Описание показывается только у развёрнутой секции.
 
+### Иконка раздела
+
+В списке слева у каждого раздела белая пиктограмма. Она задаётся в том же атрибуте:
+
+```csharp
+[SettingsDescription("Фоновая музыка: треки, порядок и повтор.", Icon = "Music_1")]
+```
+
+`Icon` — имя картинки `PictoIcon_<Icon>.png` из `Core/Editor/Icons/SettingsSections` (копии набора PictoIcons, публичный
+SDK от `PRUnitySDKPrivate` не зависит). Нужной там нет — скопируйте её из `PRUnitySDKPrivate/@Resources/Sprites/Components/Icon_PictoIcons/64`.
+Ещё подойдут путь от `Assets/` или имя встроенной иконки Unity. Без `Icon` раздел получает общую шестерёнку `Setting`.
+
 ### Подсветка включённых
 
 Заголовок раздела с флагом включения подсвечивается зелёным, пока флаг поднят. Флаг — поле с именем `Enabled`, `IsEnabled`, `Active` или `IsActive`. Список имён закрытый: поле вроде `ShowNames` не учитывается. Выключенные разделы не подсвечиваются.
