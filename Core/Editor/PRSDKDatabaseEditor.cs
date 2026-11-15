@@ -511,7 +511,9 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                 fallback = node;
         }
 
-        if (fallback != null)
+        // Поиск показывает найденное, но выбор не переписывает: стёрли запрос —
+        // окно возвращается к каталогу, который был открыт до поиска.
+        if (fallback != null && string.IsNullOrWhiteSpace(search))
             selectedSectionKey = fallback.Key;
 
         return fallback;
@@ -1320,12 +1322,16 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         UnityEngine.Object selected = ResolveSelectedAsset(sectionKey, shown);
         float panelHeight = ResolveGridHeight(sectionKey);
         float availableWidth = Mathf.Max(sidebarLayout ? 470f : 580f, gridAreaWidth - 24f);
+
+        // Пределы панелей зависят от ширины: с постоянными 280 и 286 в узком окне диапазон
+        // схлопывался в одну точку, и разделитель переставал двигаться.
+        float minPanel = Mathf.Min(280f, availableWidth * 0.4f);
         float leftWidth = Mathf.Clamp(
             availableWidth * gridSplit,
-            280f,
-            Mathf.Max(280f, availableWidth - 286f));
+            minPanel,
+            availableWidth - minPanel - 6f);
 
-        using (new EditorGUILayout.HorizontalScope(GUILayout.Height(panelHeight)))
+        using (var gridScope = new EditorGUILayout.HorizontalScope(GUILayout.Height(panelHeight)))
         {
             using (new EditorGUILayout.VerticalScope(
                        GUILayout.Width(leftWidth),
@@ -1351,7 +1357,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                 6f,
                 GUILayout.Width(6f),
                 GUILayout.Height(panelHeight));
-            DrawGridSplitter(splitterRect, availableWidth);
+            DrawGridSplitter(splitterRect, gridScope.rect.x, availableWidth, minPanel);
 
             using (new EditorGUILayout.VerticalScope(
                        EditorStyles.helpBox,
@@ -1614,7 +1620,11 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             : -1;
     }
 
-    private void DrawGridSplitter(Rect rect, float availableWidth)
+    /// <param name="rect">Полоса разделителя.</param>
+    /// <param name="gridLeft">Левый край сетки: от него отсчитывается положение указателя.</param>
+    /// <param name="availableWidth">Ширина сетки вместе с панелью свойств.</param>
+    /// <param name="minPanel">Наименьшая ширина каждой из двух панелей.</param>
+    private void DrawGridSplitter(Rect rect, float gridLeft, float availableWidth, float minPanel)
     {
         EditorGUI.DrawRect(rect, new Color(0.20f, 0.20f, 0.20f, 1f));
         EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeHorizontal);
@@ -1628,7 +1638,12 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
         if (resizeGridSplit && current.type == EventType.MouseDrag)
         {
-            gridSplit = Mathf.Clamp((current.mousePosition.x - 8f) / availableWidth, 0.35f, 0.75f);
+            // Доля хранится в тех же пределах, что и ширина панели: иначе у края указатель
+            // двигался бы дальше, а панель стояла.
+            gridSplit = Mathf.Clamp(
+                (current.mousePosition.x - gridLeft) / availableWidth,
+                minPanel / availableWidth,
+                1f - (minPanel + 6f) / availableWidth);
             Repaint();
             current.Use();
         }

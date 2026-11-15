@@ -22,6 +22,19 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     /// </remarks>
     [SerializeField] private string selectedSection;
 
+    /// <summary>
+    /// Раздел, показанный справа в этом кадре.
+    /// </summary>
+    /// <remarks>
+    /// Отличается от выбранного, пока идёт поиск и выбранный под запрос не подходит.
+    /// </remarks>
+    [NonSerialized] private string shownSection;
+
+    /// <summary>
+    /// На сколько уровней вглубь поиск заглядывает в поля раздела.
+    /// </summary>
+    private const int SearchDepth = 4;
+
     [MenuItem("PRUnitySDK/Windows/Settings", false, 30)]
     private static void OpenWindow()
     {
@@ -96,6 +109,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                 {
                     property = candidate;
                     sectionName = name;
+                    shownSection = selectedSection;
                     return true;
                 }
 
@@ -108,9 +122,18 @@ public sealed class PRSDKSettingsEditor : EditorWindow
         }
 
         if (property == null)
+        {
+            shownSection = null;
             return false;
+        }
 
-        selectedSection = property.propertyPath;
+        shownSection = property.propertyPath;
+
+        // Поиск показывает найденное, но выбор не переписывает: стёрли запрос —
+        // окно возвращается к разделу, который был открыт до поиска.
+        if (string.IsNullOrWhiteSpace(search))
+            selectedSection = shownSection;
+
         return true;
     }
 
@@ -151,7 +174,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                     bool clicked = PRSDKSidebarGUI.Row(
                         sectionName,
                         1,
-                        property.propertyPath == selectedSection,
+                        property.propertyPath == shownSection,
                         dimmed: !property.hasVisibleChildren,
                         enabled: isOn);
 
@@ -183,12 +206,34 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     /// </remarks>
     private bool MatchesSearch(SerializedProperty property, string sectionName)
     {
-        if (PRSDKInspectorUtility.MatchesSearch(sectionName, search))
-            return true;
+        return PRSDKInspectorUtility.MatchesSearch(sectionName, search)
+            || MatchesFields(property, SearchDepth);
+    }
 
+    /// <summary>
+    /// Ищет запрос в названиях полей раздела, заходя во вложенные разделы.
+    /// </summary>
+    /// <remarks>
+    /// Числа, которые правят, лежат глубже первого уровня: бустеры — внутри опыта.
+    /// В списки поиск не заходит: в них сотни элементов с одинаковыми названиями полей,
+    /// а обход идёт на каждую перерисовку окна.
+    /// </remarks>
+    private bool MatchesFields(SerializedProperty property, int depth)
+    {
         foreach (SerializedProperty child in PRSDKInspectorUtility.GetDirectChildren(property))
         {
             if (PRSDKInspectorUtility.MatchesSearch(child.displayName, search))
+                return true;
+
+            if (depth <= 1
+                || child.isArray
+                || child.propertyType != SerializedPropertyType.Generic
+                || !child.hasVisibleChildren)
+            {
+                continue;
+            }
+
+            if (MatchesFields(child, depth - 1))
                 return true;
         }
 

@@ -5,9 +5,9 @@ using UnityEngine;
 /// Список разделов в левой части окон SDK: строки, заголовки групп, подложка.
 /// </summary>
 /// <remarks>
-/// Окна базы и настроек устроены одинаково — слева список, справа выбранный раздел.
-/// Общий список держит их вид одним: строка, отступ и подсветка выбора не расходятся
-/// от окна к окну.
+/// Окна базы, настроек и модулей устроены одинаково — слева список, справа выбранный
+/// раздел. Общий список держит их вид одним: строка, отступ и подсветка выбора
+/// не расходятся от окна к окну.
 /// </remarks>
 public static class PRSDKSidebarGUI
 {
@@ -48,14 +48,7 @@ public static class PRSDKSidebarGUI
         float indent = GetIndent(depth);
         Rect row = GUILayoutUtility.GetRect(0f, RowHeight, GUILayout.ExpandWidth(true));
 
-        if (selected && Event.current.type == EventType.Repaint)
-        {
-            EditorGUI.DrawRect(
-                row,
-                EditorGUIUtility.isProSkin
-                    ? new Color(0.17f, 0.36f, 0.53f, 1f)
-                    : new Color(0.23f, 0.45f, 0.69f, 1f));
-        }
+        DrawSelection(row, selected);
 
         bool clicked = GUI.Button(row, GUIContent.none, GUIStyle.none);
 
@@ -86,6 +79,87 @@ public static class PRSDKSidebarGUI
         }
 
         GUI.color = previous;
+        return clicked;
+    }
+
+    /// <summary>
+    /// Рисует строку с галкой или переключателем: щелчок по галке меняет значение,
+    /// по названию — открывает раздел.
+    /// </summary>
+    /// <param name="name">Название раздела.</param>
+    /// <param name="depth">Уровень вложенности: ноль — верхний.</param>
+    /// <param name="selected">Раздел открыт справа.</param>
+    /// <param name="value">Текущее значение галки.</param>
+    /// <param name="newValue">Значение после щелчка по галке.</param>
+    /// <param name="radio">Рисовать переключателем «один из»: строка входит в группу выбора.</param>
+    /// <param name="toggleDisabled">Галку менять нельзя.</param>
+    /// <param name="dimmed">Приглушить название: раздел выключен.</param>
+    /// <param name="icon">Значок справа — предупреждение или ошибка.</param>
+    /// <param name="changed">Синяя точка справа: значение изменено и ещё не применено.</param>
+    /// <param name="tooltip">Подсказка строки.</param>
+    /// <returns><c>true</c>, если щёлкнули по названию.</returns>
+    public static bool ToggleRow(
+        string name,
+        int depth,
+        bool selected,
+        bool value,
+        out bool newValue,
+        bool radio = false,
+        bool toggleDisabled = false,
+        bool dimmed = false,
+        Texture icon = null,
+        bool changed = false,
+        string tooltip = null)
+    {
+        EnsureStyles();
+
+        float indent = GetIndent(depth) - 6f;
+        Rect row = GUILayoutUtility.GetRect(0f, RowHeight, GUILayout.ExpandWidth(true));
+
+        DrawSelection(row, selected);
+
+        var toggleRect = new Rect(row.x + indent, row.y + 2f, 16f, 18f);
+
+        using (new EditorGUI.DisabledScope(toggleDisabled))
+        {
+            newValue = GUI.Toggle(
+                toggleRect,
+                value,
+                GUIContent.none,
+                radio ? EditorStyles.radioButton : EditorStyles.toggle);
+        }
+
+        var rest = new Rect(toggleRect.xMax + 4f, row.y, row.xMax - toggleRect.xMax - 4f, row.height);
+        bool clicked = GUI.Button(rest, GUIContent.none, GUIStyle.none);
+
+        float right = 6f;
+
+        if (icon != null)
+        {
+            GUI.DrawTexture(new Rect(row.xMax - right - 16f, row.y + 3f, 16f, 16f), icon, ScaleMode.ScaleToFit);
+            right += 20f;
+        }
+
+        if (changed)
+        {
+            if (Event.current.type == EventType.Repaint)
+            {
+                var dot = new Rect(row.xMax - right - 7f, row.y + (row.height - 7f) * 0.5f, 7f, 7f);
+                EditorGUI.DrawRect(dot, new Color(0.35f, 0.65f, 1f, 1f));
+            }
+
+            right += 12f;
+        }
+
+        var nameRect = new Rect(rest.x, row.y, rest.width - right, row.height);
+
+        Color previous = GUI.color;
+        if (dimmed && !selected)
+            GUI.color = new Color(1f, 1f, 1f, 0.55f);
+
+        GUI.Label(nameRect, new GUIContent(name, tooltip), selected ? selectedStyle : labelStyle);
+        GUI.color = previous;
+
         return clicked;
     }
 
@@ -152,6 +226,18 @@ public static class PRSDKSidebarGUI
         EditorGUI.DrawRect(line, new Color(0f, 0f, 0f, 0.4f));
     }
 
+    private static void DrawSelection(Rect row, bool selected)
+    {
+        if (!selected || Event.current.type != EventType.Repaint)
+            return;
+
+        EditorGUI.DrawRect(
+            row,
+            EditorGUIUtility.isProSkin
+                ? new Color(0.17f, 0.36f, 0.53f, 1f)
+                : new Color(0.23f, 0.45f, 0.69f, 1f));
+    }
+
     private static float GetIndent(int depth)
     {
         return 14f + Mathf.Max(0, depth) * 12f;
@@ -170,6 +256,7 @@ public static class PRSDKSidebarGUI
 
         selectedStyle = new GUIStyle(labelStyle) { fontStyle = FontStyle.Bold };
         selectedStyle.normal.textColor = Color.white;
+        selectedStyle.hover.textColor = Color.white;
 
         countStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleRight };
         selectedCountStyle = new GUIStyle(selectedStyle) { alignment = TextAnchor.MiddleRight };

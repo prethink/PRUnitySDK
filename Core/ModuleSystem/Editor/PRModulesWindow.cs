@@ -56,14 +56,12 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
     private GUIStyle wrappedMiniLabel;
 
-    private GUIStyle radioLabel;
-
     [MenuItem(MenuPath, false, 1)]
     private static void Open()
     {
         var window = GetWindow<PRModulesWindow>();
         window.titleContent = new GUIContent("Модули");
-        window.minSize = new Vector2(520f, 360f);
+        window.minSize = new Vector2(760f, 420f);
         window.Show();
     }
 
@@ -126,34 +124,652 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
     private void OnGUI()
     {
-        wrappedMiniLabel ??= new GUIStyle(EditorStyles.miniLabel) { wordWrap = true };
-        radioLabel ??= new GUIStyle(EditorStyles.radioButton) { fontStyle = FontStyle.Bold };
+        EnsureStyles();
 
         CreateHorizontalToolBar(DrawToolbar);
-        tab = GUILayout.Toolbar(tab, TabTitles);
         DrawProjectWarnings();
+        DrawUnguardedWarning();
 
-        scroll = EditorGUILayout.BeginScrollView(scroll);
+        List<ListEntry> entries = tab == IntegrationsTab ? BuildIntegrationEntries() : BuildModuleEntries();
+        ListEntry selected = ResolveSelected(entries);
 
-        if (tab == IntegrationsTab)
-            DrawIntegrations();
-        else
-            DrawLayers();
+        // Слева список с галками, справа один модуль целиком. Карточки с описанием,
+        // папкой и предупреждениями у каждого модуля умещали на экране пять модулей из сорока.
+        using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandHeight(true)))
+        {
+            using (var list = new EditorGUILayout.VerticalScope(
+                       GUILayout.Width(ListWidth),
+                       GUILayout.ExpandHeight(true)))
+            {
+                PRSDKSidebarGUI.Background(list.rect);
+                tab = GUILayout.Toolbar(tab, TabTitles);
 
-        EditorGUILayout.EndScrollView();
+                scroll = EditorGUILayout.BeginScrollView(scroll, GUILayout.ExpandHeight(true));
+
+                foreach (ListEntry entry in entries)
+                    DrawEntry(entry, entry == selected);
+
+                if (entries.Count == 0)
+                    GUILayout.Label("Ничего не найдено", EditorStyles.centeredGreyMiniLabel);
+
+                EditorGUILayout.EndScrollView();
+                DrawLegend();
+            }
+
+            PRSDKSidebarGUI.Separator();
+
+            detailsScroll = EditorGUILayout.BeginScrollView(detailsScroll);
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.inspectorDefaultMargins))
+            {
+                if (selected == null)
+                    EditorGUILayout.HelpBox("Выберите модуль слева.", MessageType.Info);
+                else if (selected.Kind == EntryKind.Core)
+                    DrawCoreDetails();
+                else
+                    DrawModuleDetails(selected.Module);
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
     }
 
-    private void DrawLayers()
+    #region Список слева
+
+    private const float ListWidth = 320f;
+
+    private const string CoreKey = "core";
+
+    private enum EntryKind
     {
-        DrawLayer(PRModuleLayer.Public, "Публичная часть", DrawCore);
-        DrawLayer(PRModuleLayer.Private, "Приватная часть", null);
-
-        if (modules.Any(module => module.Layer == PRModuleLayer.Project && module.Manifest.Group != PRModuleGroup.Integrations))
-            DrawLayer(PRModuleLayer.Project, "Проект", null);
+        Header,
+        SubHeader,
+        Note,
+        Core,
+        Module,
+        SlotNone
     }
+
+    /// <summary>
+    /// Строка списка: заголовок, пояснение, ядро, модуль или «не подключено» у слота.
+    /// </summary>
+    private sealed class ListEntry
+    {
+        public EntryKind Kind;
+        public string Key;
+        public string Title;
+        public string Count;
+        public int Depth;
+        public PRModuleInfo Module;
+        public bool Radio;
+        public List<PRModuleInfo> SlotModules;
+        public MessageType NoteType;
+    }
+
+    /// <summary>
+    /// Модуль, открытый справа: его папка либо <see cref="CoreKey"/>.
+    /// </summary>
+    /// <remarks>
+    /// Сериализуется: «Применить» пересобирает проект, и окно должно вернуться к тому же модулю.
+    /// </remarks>
+    [SerializeField] private string selectedKey;
+
+    private Vector2 detailsScroll;
+
+    // Стили не сериализуются: редактор сохранил бы старый набор через перезагрузку скриптов,
+    // и добавленный позже стиль остался бы пустым при непустых остальных.
+    [NonSerialized] private GUIStyle titleStyle;
+
+    [NonSerialized] private GUIStyle wrappedLabel;
+
+    [NonSerialized] private GUIStyle factLabel;
+
+    private void EnsureStyles()
+    {
+        wrappedMiniLabel ??= new GUIStyle(EditorStyles.miniLabel) { wordWrap = true };
+
+        if (titleStyle != null)
+            return;
+
+        titleStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 15 };
+        wrappedLabel = new GUIStyle(EditorStyles.label) { wordWrap = true };
+        factLabel = new GUIStyle(EditorStyles.label);
+        factLabel.normal.textColor = Color.Lerp(EditorStyles.label.normal.textColor, Color.gray, 0.6f);
+    }
+
+    private bool Searching => !string.IsNullOrWhiteSpace(search);
+
+    /// <summary>
+    /// Развёрнута ли группа. Во время поиска раскрыты все: свёрнутая спрятала бы найденное.
+    /// </summary>
+    private bool IsExpanded(string key)
+    {
+        return Searching || !collapsedSections.Contains(key);
+    }
+
+    private List<ListEntry> BuildModuleEntries()
+    {
+        var entries = new List<ListEntry>();
+
+        if (!Searching || "ядро".IndexOf(search.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+            entries.Add(new ListEntry { Kind = EntryKind.Core, Key = CoreKey, Title = "Ядро SDK" });
+
+        AddLayerEntries(entries, PRModuleLayer.Public, "Публичная часть");
+        AddLayerEntries(entries, PRModuleLayer.Private, "Приватная часть");
+        AddLayerEntries(entries, PRModuleLayer.Project, "Проект");
+
+        return entries;
+    }
+
+    /// <summary>
+    /// Добавляет группы одного слоя: «Приватная часть · Окна» и так далее.
+    /// </summary>
+    /// <remarks>
+    /// Слой и группа стоят в одном заголовке: два уровня стрелок ради десятка строк
+    /// только добавляли щелчков.
+    /// </remarks>
+    private void AddLayerEntries(List<ListEntry> entries, PRModuleLayer layer, string layerTitle)
+    {
+        foreach (PRModuleGroup group in Enum.GetValues(typeof(PRModuleGroup)))
+        {
+            if (group == PRModuleGroup.Integrations)
+                continue;
+
+            var groupModules = modules
+                .Where(module => module.Layer == layer && module.Manifest.Group == group && MatchesSearch(module))
+                .ToList();
+
+            if (groupModules.Count == 0)
+                continue;
+
+            string key = $"{layer}/{group}";
+            entries.Add(new ListEntry
+            {
+                Kind = EntryKind.Header,
+                Key = key,
+                Title = $"{layerTitle} · {GetGroupTitle(group)}",
+                Count = groupModules.Count.ToString()
+            });
+
+            if (!IsExpanded(key))
+                continue;
+
+            foreach (PRModuleInfo module in groupModules)
+                entries.Add(new ListEntry { Kind = EntryKind.Module, Key = module.Folder, Module = module, Depth = 1 });
+        }
+    }
+
+    private List<ListEntry> BuildIntegrationEntries()
+    {
+        var entries = new List<ListEntry>();
+        var integrations = modules.Where(module => module.Manifest.Group == PRModuleGroup.Integrations).ToList();
+
+        if (integrations.Count == 0)
+        {
+            entries.Add(new ListEntry
+            {
+                Kind = EntryKind.Note,
+                Title = "Интеграций в проекте нет. Интеграция — модуль, у которого в манифесте выбрана группа «Интеграции».",
+                NoteType = MessageType.Info
+            });
+            return entries;
+        }
+
+        // Сначала платформы по имени, интеграции для любой платформы — последними.
+        var platforms = integrations
+            .GroupBy(module => module.Manifest.Platform, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(platform => platform.Key.Length == 0)
+            .ThenBy(platform => platform.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (IGrouping<string, PRModuleInfo> platform in platforms)
+            AddPlatformEntries(entries, platform.Key, platform.ToList());
+
+        return entries;
+    }
+
+    /// <summary>
+    /// Интеграции одной платформы сборки: её слоты и модули без слота.
+    /// </summary>
+    private void AddPlatformEntries(List<ListEntry> entries, string platform, List<PRModuleInfo> platformModules)
+    {
+        var visible = platformModules.Where(MatchesSearch).ToList();
+
+        if (visible.Count == 0)
+            return;
+
+        string key = "Platform/" + platform;
+        entries.Add(new ListEntry
+        {
+            Kind = EntryKind.Header,
+            Key = key,
+            Title = platform.Length == 0 ? "Любая платформа" : GetPlatformTitle(platform),
+            Count = visible.Count.ToString()
+        });
+
+        if (!IsExpanded(key))
+            return;
+
+        BuildTarget active = EditorUserBuildSettings.activeBuildTarget;
+        if (platform.Length > 0 && !platformModules[0].Manifest.SupportsPlatform(active))
+        {
+            bool anyEnabled = platformModules.Any(module => !pendingDisabled.Contains(module.Id));
+            entries.Add(new ListEntry
+            {
+                Kind = EntryKind.Note,
+                Title = $"Активная платформа сборки — {active}. Эти интеграции работают только в {platform}" +
+                        (anyEnabled ? ": включённая не попадёт в сборку как надо, переключите платформу (File → Build Settings)." : "."),
+                NoteType = anyEnabled ? MessageType.Warning : MessageType.Info
+            });
+        }
+
+        var slots = platformModules
+            .Where(module => module.Slot.Length > 0)
+            .GroupBy(module => module.Slot, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(slot => slot.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (IGrouping<string, PRModuleInfo> slot in slots)
+        {
+            List<PRModuleInfo> slotModules = slot.ToList();
+            List<PRModuleInfo> slotVisible = slotModules.Where(MatchesSearch).ToList();
+
+            if (slotVisible.Count == 0)
+                continue;
+
+            entries.Add(new ListEntry { Kind = EntryKind.SubHeader, Title = $"{slot.Key} — один на выбор", Depth = 1 });
+
+            var enabledModules = slotModules.Where(module => !pendingDisabled.Contains(module.Id)).ToList();
+            if (enabledModules.Count > 1)
+            {
+                entries.Add(new ListEntry
+                {
+                    Kind = EntryKind.Note,
+                    Title = $"В слоте «{slot.Key}» включено несколько модулей: {JoinNames(enabledModules)}. Оставьте один.",
+                    NoteType = MessageType.Error
+                });
+            }
+
+            entries.Add(new ListEntry
+            {
+                Kind = EntryKind.SlotNone,
+                Title = "Не подключено",
+                Depth = 1,
+                SlotModules = slotModules
+            });
+
+            foreach (PRModuleInfo module in slotVisible)
+            {
+                entries.Add(new ListEntry
+                {
+                    Kind = EntryKind.Module,
+                    Key = module.Folder,
+                    Module = module,
+                    Depth = 1,
+                    Radio = true
+                });
+            }
+        }
+
+        var withoutSlot = visible.Where(module => module.Slot.Length == 0).ToList();
+        if (withoutSlot.Count == 0)
+            return;
+
+        entries.Add(new ListEntry { Kind = EntryKind.SubHeader, Title = "Без слота", Depth = 1 });
+
+        foreach (PRModuleInfo module in withoutSlot)
+            entries.Add(new ListEntry { Kind = EntryKind.Module, Key = module.Folder, Module = module, Depth = 1 });
+    }
+
+    /// <summary>
+    /// Находит открытую строку, а если её нет в списке — берёт первый модуль.
+    /// </summary>
+    private ListEntry ResolveSelected(List<ListEntry> entries)
+    {
+        ListEntry fallback = null;
+
+        foreach (ListEntry entry in entries)
+        {
+            if (entry.Kind != EntryKind.Module && entry.Kind != EntryKind.Core)
+                continue;
+
+            if (entry.Key == selectedKey)
+                return entry;
+
+            // Ядро первым не выбирается: оно не настраивается, а окно открывают ради модулей.
+            if (fallback == null || fallback.Kind == EntryKind.Core)
+                fallback = entry;
+        }
+
+        // Поиск показывает найденное, но выбор не переписывает: стёрли запрос —
+        // окно возвращается к модулю, который был открыт до поиска.
+        if (fallback != null && !Searching)
+            selectedKey = fallback.Key;
+
+        return fallback;
+    }
+
+    private void DrawEntry(ListEntry entry, bool selected)
+    {
+        switch (entry.Kind)
+        {
+            case EntryKind.Header:
+                bool expanded = IsExpanded(entry.Key);
+                bool next = PRSDKSidebarGUI.FoldoutHeader(entry.Title, expanded, entry.Count);
+
+                if (!Searching && next != expanded)
+                {
+                    if (next)
+                        collapsedSections.Remove(entry.Key);
+                    else
+                        collapsedSections.Add(entry.Key);
+                }
+
+                break;
+
+            case EntryKind.SubHeader:
+                PRSDKSidebarGUI.Header(entry.Title, entry.Depth);
+                break;
+
+            case EntryKind.Note:
+                EditorGUILayout.HelpBox(entry.Title, entry.NoteType);
+                break;
+
+            case EntryKind.Core:
+                if (PRSDKSidebarGUI.ToggleRow(
+                        entry.Title, 0, selected, true, out _,
+                        toggleDisabled: true,
+                        tooltip: "Ядро не отключается: на нём держатся все модули."))
+                {
+                    Select(entry.Key);
+                }
+
+                break;
+
+            case EntryKind.SlotNone:
+                DrawSlotNone(entry);
+                break;
+
+            case EntryKind.Module:
+                DrawModuleRow(entry, selected);
+                break;
+        }
+    }
+
+    private void DrawSlotNone(ListEntry entry)
+    {
+        var enabledModules = entry.SlotModules.Where(module => !pendingDisabled.Contains(module.Id)).ToList();
+        bool nothingEnabled = enabledModules.Count == 0;
+
+        PRSDKSidebarGUI.ToggleRow(
+            entry.Title, entry.Depth, false, nothingEnabled, out bool next,
+            radio: true,
+            dimmed: !nothingEnabled,
+            tooltip: "Модули слота в сборку не входят, SDK работает на своих реализациях по умолчанию.");
+
+        if (!next || nothingEnabled)
+            return;
+
+        foreach (PRModuleInfo module in enabledModules)
+        {
+            if (!TryDisable(module))
+                break;
+        }
+
+        GUIUtility.ExitGUI();
+    }
+
+    private void DrawModuleRow(ListEntry entry, bool selected)
+    {
+        PRModuleInfo module = entry.Module;
+        bool enabled = !pendingDisabled.Contains(module.Id);
+        bool applied = !appliedDisabled.Contains(module.Id);
+        string problem = GetProblemSummary(module, enabled, out bool isError);
+
+        string tooltip = GetStateText(module, enabled);
+        if (problem != null)
+            tooltip += "\n" + problem;
+
+        Texture icon = problem == null
+            ? null
+            : EditorGUIUtility.IconContent(isError ? "console.erroricon.sml" : "console.warnicon.sml").image;
+
+        bool clicked = PRSDKSidebarGUI.ToggleRow(
+            module.DisplayName, entry.Depth, selected, enabled, out bool next,
+            radio: entry.Radio,
+            toggleDisabled: module.IsRequired && enabled,
+            dimmed: !enabled,
+            icon: icon,
+            changed: applied != enabled,
+            tooltip: tooltip);
+
+        if (clicked)
+            Select(entry.Key);
+
+        // Переключатель слота снимается выбором другого модуля или «Не подключено», а не повторным нажатием.
+        if (next == enabled || !next && entry.Radio)
+            return;
+
+        SetEnabled(module, next);
+
+        // Переключение могло обернуть файлы и перечитать модули: строки этого кадра устарели.
+        GUIUtility.ExitGUI();
+    }
+
+    private void Select(string key)
+    {
+        selectedKey = key;
+        detailsScroll = Vector2.zero;
+        GUI.FocusControl(null);
+        Repaint();
+    }
+
+    /// <summary>
+    /// Открывает модуль справа, где бы он ни лежал: на другой вкладке или в свёрнутой группе.
+    /// </summary>
+    private void JumpTo(PRModuleInfo module)
+    {
+        tab = module.Manifest.Group == PRModuleGroup.Integrations ? IntegrationsTab : 0;
+        collapsedSections.Clear();
+        search = string.Empty;
+        Select(module.Folder);
+    }
+
+    /// <summary>
+    /// Подпись под списком: что значат значки в строках.
+    /// </summary>
+    private void DrawLegend()
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Space(8f);
+            Rect dot = GUILayoutUtility.GetRect(7f, 16f, GUILayout.Width(7f));
+
+            if (Event.current.type == EventType.Repaint)
+                EditorGUI.DrawRect(new Rect(dot.x, dot.y + 5f, 7f, 7f), new Color(0.35f, 0.65f, 1f, 1f));
+
+            GUILayout.Label("изменено, ждёт «Применить»", EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+        }
+
+        EditorGUILayout.Space(2f);
+    }
+
+    /// <summary>
+    /// Коротко о том, что не так с модулем, — для значка и подсказки в списке.
+    /// </summary>
+    /// <returns>Текст либо <c>null</c>, если замечаний нет.</returns>
+    private string GetProblemSummary(PRModuleInfo module, bool enabled, out bool isError)
+    {
+        var lines = new List<string>();
+        isError = false;
+
+        if (!PRModuleManifest.IsValidId(module.Id))
+        {
+            lines.Add("Неверный идентификатор.");
+            isError = true;
+        }
+
+        if (duplicateIds.Contains(module.Id))
+        {
+            lines.Add("Идентификатор занят другим модулем.");
+            isError = true;
+        }
+
+        if (module.IsRequired && !enabled)
+        {
+            lines.Add("Обязательный модуль отключён.");
+            isError = true;
+        }
+
+        if (enabled && missingPlugins.Contains(module))
+        {
+            lines.Add("Плагина нет в проекте.");
+            isError = true;
+        }
+
+        if (module.MissingDependencyCount > 0)
+            lines.Add("Пустые ссылки на зависимости.");
+
+        if (module.UnguardedScripts.Count > 0)
+            lines.Add($"Файлов без обёртки: {module.UnguardedScripts.Count}.");
+
+        return lines.Count == 0 ? null : string.Join("\n", lines);
+    }
+
+    #endregion
+
+    #region Модуль справа
+
+    private void DrawCoreDetails()
+    {
+        GUILayout.Label("Ядро SDK", titleStyle);
+        GUILayout.Label("Не отключается: на нём держатся все модули.", wrappedLabel);
+        EditorGUILayout.Space(6f);
+
+        DrawFact("Папка", CoreFolder);
+        DrawFact("Частей", coreParts.Count.ToString());
+        EditorGUILayout.Space(6f);
+        GUILayout.Label(string.Join(" · ", coreParts), wrappedLabel);
+    }
+
+    private void DrawModuleDetails(PRModuleInfo module)
+    {
+        bool enabled = !pendingDisabled.Contains(module.Id);
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Label(module.DisplayName, titleStyle);
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button("Манифест", EditorStyles.miniButton, GUILayout.Width(80f)))
+            {
+                Selection.activeObject = module.Manifest;
+                EditorGUIUtility.PingObject(module.Manifest);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(module.Manifest.Description))
+            GUILayout.Label(module.Manifest.Description, wrappedLabel);
+
+        EditorGUILayout.Space(6f);
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            using (new EditorGUI.DisabledScope(module.IsRequired && enabled))
+            {
+                bool next = EditorGUILayout.ToggleLeft("В сборке", enabled, EditorStyles.boldLabel, GUILayout.Width(100f));
+
+                if (next != enabled)
+                {
+                    SetEnabled(module, next);
+                    GUIUtility.ExitGUI();
+                }
+            }
+
+            GUILayout.Label(GetStateText(module, enabled), EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+        }
+
+        EditorGUILayout.Space(6f);
+        DrawModuleProblems(module, enabled);
+
+        DrawFact("Идентификатор", module.Id);
+
+        if (module.Manifest.Platform.Length > 0)
+            DrawFact("Платформа", module.Manifest.Platform);
+
+        if (module.Slot.Length > 0)
+            DrawFact("Слот", $"{module.Slot} — включается один модуль");
+
+        DrawFact("Папка", module.Folder);
+
+        if (module.PartFolders.Count > 0)
+            DrawFact("Ещё папки", string.Join(", ", module.PartFolders));
+
+        DrawFact("Скриптов", module.Scripts.Count.ToString());
+
+        DrawLinks("Зависит от", module.Dependencies);
+        DrawLinks("Нужен для", module.Dependents);
+        DrawPlugin(module);
+    }
+
+    /// <summary>
+    /// Строка «подпись — значение»; длинное значение переносится.
+    /// </summary>
+    private void DrawFact(string label, string value)
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Label(label, factLabel, GUILayout.Width(FactLabelWidth));
+            GUILayout.Label(value, wrappedLabel);
+        }
+    }
+
+    private const float FactLabelWidth = 120f;
+
+    /// <summary>
+    /// Связанные модули кнопками: щелчок открывает модуль, чтобы не искать его в списке.
+    /// </summary>
+    private void DrawLinks(string label, IEnumerable<PRModuleInfo> linked)
+    {
+        List<PRModuleInfo> list = linked.ToList();
+
+        if (list.Count == 0)
+            return;
+
+        const int perRow = 3;
+
+        for (int first = 0; first < list.Count; first += perRow)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Label(first == 0 ? label : string.Empty, factLabel, GUILayout.Width(FactLabelWidth));
+
+                for (int index = first; index < list.Count && index < first + perRow; index++)
+                {
+                    PRModuleInfo module = list[index];
+                    bool enabled = !pendingDisabled.Contains(module.Id);
+                    var content = new GUIContent(module.DisplayName, enabled ? "включён" : "отключён");
+
+                    if (GUILayout.Button(content, EditorStyles.miniButton, GUILayout.MaxWidth(220f)))
+                    {
+                        JumpTo(module);
+                        GUIUtility.ExitGUI();
+                    }
+                }
+
+                GUILayout.FlexibleSpace();
+            }
+        }
+    }
+
+    #endregion
 
     private void DrawToolbar()
     {
+        // Поиск стоит над списком, который он отбирает.
+        search = GUILayout.TextField(search, EditorStyles.toolbarSearchField, GUILayout.Width(ListWidth - 8f));
+        GUILayout.FlexibleSpace();
+
         if (GUILayout.Button("Обновить", EditorStyles.toolbarButton, GUILayout.Width(70f)))
             Reload(true);
 
@@ -172,9 +788,59 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
             if (GUILayout.Button(title, EditorStyles.toolbarButton, GUILayout.Width(100f)))
                 Apply();
         }
+    }
 
-        GUILayout.FlexibleSpace();
-        search = GUILayout.TextField(search, EditorStyles.toolbarSearchField, GUILayout.Width(200f));
+    /// <summary>
+    /// Одно предупреждение на все модули с файлами без обёртки.
+    /// </summary>
+    /// <remarks>
+    /// Одинаковая жёлтая плашка с кнопкой стояла в карточке каждого второго модуля.
+    /// У одного модуля она остаётся в его описании справа.
+    /// </remarks>
+    private void DrawUnguardedWarning()
+    {
+        var unguarded = modules.Where(module => module.UnguardedScripts.Count > 0).ToList();
+
+        if (unguarded.Count < 2)
+            return;
+
+        int files = unguarded.Sum(module => module.UnguardedScripts.Count);
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.HelpBox(
+            $"Файлов без обёртки модуля: {files}, модулей с ними: {unguarded.Count}. " +
+            "Пока они есть, эти модули нельзя отключить. В списке они помечены значком.",
+            MessageType.Warning);
+
+        bool wrap = GUILayout.Button("Обернуть все", GUILayout.Width(100f), GUILayout.Height(38f));
+        EditorGUILayout.EndHorizontal();
+
+        if (!wrap)
+            return;
+
+        if (!EditorUtility.DisplayDialog(
+                "Обернуть файлы",
+                $"В файлы ({files}) будет дописана обёртка их модулей: {JoinNames(unguarded)}.\n\n" +
+                "После этого проект пересоберётся.",
+                "Обернуть", "Отмена"))
+            return;
+
+        var failed = new List<string>();
+
+        foreach (PRModuleInfo module in unguarded)
+            failed.AddRange(PRModuleGuard.WrapAll(module.UnguardedScripts, module.Id));
+
+        Reload(true);
+
+        if (failed.Count > 0)
+        {
+            EditorUtility.DisplayDialog(
+                "Не все файлы обёрнуты",
+                "Эти файлы не в UTF-8, их нужно перекодировать и обернуть заново:\n\n" + string.Join("\n", failed),
+                "Понятно");
+        }
+
+        GUIUtility.ExitGUI();
     }
 
     private void DrawProjectWarnings()
@@ -210,99 +876,6 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         EditorGUILayout.EndHorizontal();
     }
 
-    private void DrawLayer(PRModuleLayer layer, string title, Action drawBeforeGroups)
-    {
-        if (!DrawSectionHeader(layer.ToString(), title, EditorStyles.foldoutHeader))
-            return;
-
-        EditorGUI.indentLevel++;
-        drawBeforeGroups?.Invoke();
-
-        foreach (PRModuleGroup group in Enum.GetValues(typeof(PRModuleGroup)))
-        {
-            if (group == PRModuleGroup.Integrations)
-                continue;
-
-            var groupModules = modules
-                .Where(module => module.Layer == layer && module.Manifest.Group == group && MatchesSearch(module))
-                .ToList();
-
-            if (groupModules.Count == 0)
-                continue;
-
-            if (!DrawSectionHeader($"{layer}/{group}", $"{GetGroupTitle(group)} ({groupModules.Count})", EditorStyles.foldout))
-                continue;
-
-            foreach (PRModuleInfo module in groupModules)
-                DrawModule(module);
-        }
-
-        EditorGUI.indentLevel--;
-        EditorGUILayout.Space();
-    }
-
-    private void DrawIntegrations()
-    {
-        var integrations = modules.Where(module => module.Manifest.Group == PRModuleGroup.Integrations).ToList();
-
-        if (integrations.Count == 0)
-        {
-            EditorGUILayout.HelpBox(
-                "Интеграций в проекте нет. Интеграция — модуль, у которого в манифесте выбрана группа «Интеграции».",
-                MessageType.Info);
-            return;
-        }
-
-        // Сначала платформы по имени, интеграции для любой платформы — последними.
-        var platforms = integrations
-            .GroupBy(module => module.Manifest.Platform, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(platform => platform.Key.Length == 0)
-            .ThenBy(platform => platform.Key, StringComparer.OrdinalIgnoreCase);
-
-        foreach (IGrouping<string, PRModuleInfo> platform in platforms)
-            DrawPlatform(platform.Key, platform.ToList());
-    }
-
-    /// <summary>
-    /// Интеграции одной платформы сборки: её слоты и модули без слота.
-    /// </summary>
-    private void DrawPlatform(string platform, List<PRModuleInfo> platformModules)
-    {
-        string title = platform.Length == 0 ? "Любая платформа" : GetPlatformTitle(platform);
-        if (!DrawSectionHeader("Platform/" + platform, title, EditorStyles.foldoutHeader))
-            return;
-
-        BuildTarget active = EditorUserBuildSettings.activeBuildTarget;
-        if (platform.Length > 0 && !platformModules[0].Manifest.SupportsPlatform(active))
-        {
-            bool anyEnabled = platformModules.Any(module => !pendingDisabled.Contains(module.Id));
-            EditorGUILayout.HelpBox(
-                $"Активная платформа сборки — {active}. Эти интеграции работают только в {platform}" +
-                (anyEnabled ? ": включённая не попадёт в сборку как надо, переключите платформу (File → Build Settings)." : "."),
-                anyEnabled ? MessageType.Warning : MessageType.Info);
-        }
-
-        EditorGUI.indentLevel++;
-
-        var slots = platformModules
-            .Where(module => module.Slot.Length > 0)
-            .GroupBy(module => module.Slot, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(slot => slot.Key, StringComparer.OrdinalIgnoreCase);
-
-        foreach (IGrouping<string, PRModuleInfo> slot in slots)
-            DrawSlot(platform + "/" + slot.Key, slot.Key, slot.ToList());
-
-        var withoutSlot = platformModules.Where(module => module.Slot.Length == 0 && MatchesSearch(module)).ToList();
-        if (withoutSlot.Count > 0 && DrawSectionHeader($"Integrations/{platform}/NoSlot", $"Без слота ({withoutSlot.Count})", EditorStyles.foldout))
-        {
-            foreach (PRModuleInfo module in withoutSlot)
-                DrawModule(module);
-        }
-
-        EditorGUI.indentLevel--;
-        EditorGUILayout.Space();
-    }
-
     /// <summary>
     /// Заголовок группы платформы: для браузера — с пояснением, что это площадки веб-игр.
     /// </summary>
@@ -317,63 +890,6 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         return platform.IndexOf("Standalone", StringComparison.OrdinalIgnoreCase) >= 0
             ? "PC — Windows, Linux, macOS"
             : platform;
-    }
-
-    private void DrawSlot(string key, string slot, List<PRModuleInfo> slotModules)
-    {
-        if (!DrawSectionHeader("Slot/" + key, $"{slot} — включается один модуль", EditorStyles.foldout))
-            return;
-
-        var enabledModules = slotModules.Where(module => !pendingDisabled.Contains(module.Id)).ToList();
-
-        if (enabledModules.Count > 1)
-        {
-            EditorGUILayout.HelpBox(
-                $"В слоте «{slot}» включено несколько модулей: {JoinNames(enabledModules)}. Оставьте один.",
-                MessageType.Error);
-        }
-
-        bool nothingEnabled = enabledModules.Count == 0;
-
-        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-        EditorGUILayout.BeginHorizontal();
-
-        if (DrawSwitch("Не подключено", nothingEnabled, true) && !nothingEnabled)
-        {
-            foreach (PRModuleInfo module in enabledModules)
-            {
-                if (!TryDisable(module))
-                    break;
-            }
-        }
-
-        GUILayout.FlexibleSpace();
-        EditorGUILayout.EndHorizontal();
-        EditorGUILayout.LabelField("Модули слота в сборку не входят, SDK работает на своих реализациях по умолчанию.", wrappedMiniLabel);
-        EditorGUILayout.EndVertical();
-
-        foreach (PRModuleInfo module in slotModules.Where(MatchesSearch))
-            DrawModule(module, true);
-
-        EditorGUILayout.Space();
-    }
-
-    private bool DrawSwitch(string label, bool value, bool radio)
-    {
-        if (!radio)
-            return EditorGUILayout.ToggleLeft(label, value, EditorStyles.boldLabel);
-
-        // GUILayout отступ EditorGUI.indentLevel не учитывает.
-        GUILayout.Space(EditorGUI.indentLevel * 15f);
-        return GUILayout.Toggle(value, " " + label, radioLabel);
-    }
-
-    private void DrawCore()
-    {
-        if (!DrawSectionHeader("Core", "Ядро — не отключается", EditorStyles.foldout))
-            return;
-
-        EditorGUILayout.LabelField(string.Join(" · ", coreParts), wrappedMiniLabel);
     }
 
     private bool DrawSectionHeader(string key, string title, GUIStyle style)
@@ -394,54 +910,6 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
         return next;
     }
 
-    private void DrawModule(PRModuleInfo module, bool radio = false)
-    {
-        bool enabled = !pendingDisabled.Contains(module.Id);
-
-        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-        EditorGUILayout.BeginHorizontal();
-
-        using (new EditorGUI.DisabledScope(module.IsRequired && enabled))
-        {
-            bool next = DrawSwitch(module.DisplayName, enabled, radio);
-
-            // Переключатель слота снимается выбором другого модуля или «Не подключено», а не повторным нажатием.
-            if (next != enabled && (next || !radio))
-                SetEnabled(module, next);
-        }
-
-        GUILayout.FlexibleSpace();
-        GUILayout.Label(GetStateText(module, enabled), EditorStyles.miniLabel);
-
-        if (GUILayout.Button("Манифест", EditorStyles.miniButton, GUILayout.Width(70f)))
-        {
-            Selection.activeObject = module.Manifest;
-            EditorGUIUtility.PingObject(module.Manifest);
-        }
-
-        EditorGUILayout.EndHorizontal();
-
-        string platformInfo = module.Manifest.Platform.Length > 0 ? " · " + module.Manifest.Platform : string.Empty;
-        string info = $"{module.Id}{platformInfo} · {module.Folder} · скриптов: {module.Scripts.Count}";
-        EditorGUILayout.LabelField(info, wrappedMiniLabel);
-
-        if (module.PartFolders.Count > 0)
-            EditorGUILayout.LabelField("Ещё папки: " + string.Join(", ", module.PartFolders), wrappedMiniLabel);
-
-        if (!string.IsNullOrWhiteSpace(module.Manifest.Description))
-            EditorGUILayout.LabelField(module.Manifest.Description, wrappedMiniLabel);
-
-        if (module.Dependencies.Count > 0)
-            EditorGUILayout.LabelField("Зависит от: " + JoinNames(module.Dependencies), wrappedMiniLabel);
-
-        if (module.Dependents.Count > 0)
-            EditorGUILayout.LabelField("Нужен для: " + JoinNames(module.Dependents), wrappedMiniLabel);
-
-        DrawPlugin(module);
-        DrawModuleProblems(module, enabled);
-        EditorGUILayout.EndVertical();
-    }
-
     private void DrawPlugin(PRModuleInfo module)
     {
         string folder = module.Manifest.PluginFolder;
@@ -456,7 +924,7 @@ public sealed class PRModulesWindow : ExtendedEditorWindow
 
             if (module.Manifest.HidePluginWhenDisabled)
                 state += ", прячется, пока модуль отключён";
-            EditorGUILayout.LabelField($"Плагин: {folder} — {state}", wrappedMiniLabel);
+            DrawFact("Плагин", $"{folder} — {state}");
         }
 
         if (!pluginModules.TryGetValue(module, out List<string> parts))
