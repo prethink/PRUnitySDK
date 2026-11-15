@@ -65,13 +65,20 @@ public static class PRModuleGuard
     {
         var failed = new List<string>();
 
-        foreach (string path in paths.ToList())
+        try
         {
-            if (!Wrap(path, moduleId))
-                failed.Add(path);
+            foreach (string path in paths.ToList())
+            {
+                if (!Wrap(path, moduleId))
+                    failed.Add(path);
+            }
+        }
+        finally
+        {
+            // Ошибка записи одного файла не отменяет уже обёрнутые: проект должен их увидеть.
+            AssetDatabase.Refresh();
         }
 
-        AssetDatabase.Refresh();
         return failed;
     }
 
@@ -136,8 +143,48 @@ public static class PRModuleGuard
         }
     }
 
+    /// <summary>
+    /// Суффикс временного файла записи.
+    /// </summary>
+    /// <remarks>
+    /// Кончается на «~»: такие файлы Unity не импортирует, поэтому временный файл
+    /// не получает .meta и не попадает в сборку, даже если остался после сбоя.
+    /// </remarks>
+    private const string TempSuffix = ".prguard~";
+
+    /// <summary>
+    /// Записывает файл так, что исходник либо меняется целиком, либо остаётся прежним.
+    /// </summary>
+    /// <remarks>
+    /// Запись прямо в исходник сначала обрезает его: кончилось место на диске или запись
+    /// оборвалась — и от C#-файла остаётся половина. Поэтому текст пишется во временный
+    /// файл рядом, и только готовый файл подменяет оригинал одной операцией.
+    /// </remarks>
     private static void Write(string path, string text, bool hasBom)
     {
-        File.WriteAllText(path, text, new UTF8Encoding(hasBom));
+        string temp = path + TempSuffix;
+
+        try
+        {
+            File.WriteAllText(temp, text, new UTF8Encoding(hasBom));
+            File.Replace(temp, path, null);
+        }
+        catch
+        {
+            // Оригинал не тронут; недописанный временный файл рядом с ним не оставляем.
+            try
+            {
+                if (File.Exists(temp))
+                    File.Delete(temp);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+
+            throw;
+        }
     }
 }
