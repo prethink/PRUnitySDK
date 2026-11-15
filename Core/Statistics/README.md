@@ -35,6 +35,19 @@ statistics.AddCounter("TotalLevel", gainedLevels);
 long total = statistics.GetCounter("TotalLevel");
 ```
 
+Событие, которое бывает и до загрузки сохранения (реклама площадки на старте, покупка, возвращённая
+площадкой при запуске), считают через `StatisticsManager.AddCounterWhenLoaded(key)`: прибавка подождёт
+`GameManager.ReadySignal`, а после загрузки идёт сразу. Прибавка раньше легла бы в данные, которые загрузка заменит.
+
+Счётчики модулей SDK:
+
+| Ключ | Что считает | Кто | Чтение |
+| --- | --- | --- | --- |
+| `ads.interstitial_watched` | полноэкранная реклама открылась и закрылась без ошибки (и реклама площадки на старте) | `AdManagerBase` | `AdStatistics.InterstitialsWatched` |
+| `ads.rewarded_watched` | ролик за награду досмотрен | `AdManagerBase` | `AdStatistics.RewardedWatched` |
+| `ads.rewarded_failed` | ролик за награду не удался: недоступен, ошибка, отказ или молчание площадки | `AdManagerBase` | `AdStatistics.RewardedFailed` |
+| `purchases.real_count` | покупка за реальные деньги прошла | подписка на `IPurchaseService.PurchaseSucceeded` | `PurchaseStatistics.RealPurchases`, `HasRealPurchases` |
+
 `TryGetCounter` отличает отсутствующий счётчик от нуля. Это нужно, чтобы завести его
 от текущего значения у игрока, который начал играть раньше.
 

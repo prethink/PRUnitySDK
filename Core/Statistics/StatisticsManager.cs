@@ -128,6 +128,23 @@ public class StatisticsManager : SingletonProviderBase<StatisticsManager>
         return current;
     }
 
+    /// <summary>
+    /// Прибавляет к счётчику модуля, когда сохранение загружено; загружено — сразу.
+    /// </summary>
+    /// <remarks>
+    /// Для событий, которые случаются и до загрузки: реклама площадки на старте, покупка, возвращённая площадкой
+    /// при запуске. Прибавка до загрузки легла бы в данные, которые загрузка заменит, и пропала бы.
+    /// </remarks>
+    public static void AddCounterWhenLoaded(string key, long value = 1)
+    {
+        if (string.IsNullOrEmpty(key) || value == 0)
+            return;
+
+        // До готовности SDK обращение к GameManager создало бы его раньше загрузчика.
+        PRUnitySDK.ReadySignal.SubscribeOnReady(() =>
+            GameManager.Instance.ReadySignal.SubscribeOnReady(() => Instance.AddCounter(key, value)));
+    }
+
     private Dictionary<string, long> GetResources()
     {
         GameStatistics data = GetData();
