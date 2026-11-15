@@ -74,7 +74,7 @@ public class IconPreviewDrawer : PropertyDrawer
     /// из <c>OnGUI</c> ломает отрисовку всего окна.
     /// </para>
     /// </remarks>
-    private static Sprite ResolveIcon(SerializedProperty property)
+    internal static Sprite ResolveIcon(SerializedProperty property)
     {
         if (property.propertyType != SerializedPropertyType.ObjectReference)
             return null;
@@ -101,7 +101,7 @@ public class IconPreviewDrawer : PropertyDrawer
     /// Через координаты текстуры, а не <c>GUI.DrawTexture</c> целиком: спрайт может быть
     /// частью атласа, и без пересчёта нарисовался бы весь лист.
     /// </remarks>
-    private static void DrawSprite(Rect rect, Sprite sprite)
+    internal static void DrawSprite(Rect rect, Sprite sprite)
     {
         Texture2D texture = sprite.texture;
 
