@@ -88,6 +88,92 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     private GUIStyle unusedBadgeStyle;
     private bool resizeGridSplit;
 
+    #region Список каталогов слева
+
+    private const float SidebarWidth = 212f;
+
+    /// <summary>
+    /// Каталог, открытый в правой части окна.
+    /// </summary>
+    /// <remarks>
+    /// Сериализуется: после перезагрузки скриптов окно возвращается к тому же каталогу,
+    /// а не к первому в списке.
+    /// </remarks>
+    [SerializeField] private string selectedSectionKey;
+
+    /// <summary>
+    /// Не показывать в списке каталоги без единого элемента.
+    /// </summary>
+    [SerializeField] private bool hideEmptySections;
+
+    private Vector2 sidebarScroll;
+
+    /// <summary>
+    /// Окно рисуется списком каталогов слева и одним каталогом справа.
+    /// </summary>
+    /// <remarks>
+    /// Так рисуется окно с несколькими каталогами. Стопка сворачиваемых разделов прятала
+    /// заполненные каталоги среди пустых, а каждый развёрнутый занимал высоту окна —
+    /// второй уезжал под прокрутку.
+    /// </remarks>
+    private bool sidebarLayout;
+
+    /// <summary>
+    /// Ширина, доставшаяся каталогу: всё окно либо окно без списка слева.
+    /// </summary>
+    private float gridAreaWidth;
+
+    /// <summary>
+    /// Где под панелью инструментов начинается содержимое.
+    /// </summary>
+    private float bodyTop = 22f;
+
+    /// <summary>
+    /// На какой высоте каталога начинается сетка.
+    /// </summary>
+    /// <remarks>
+    /// Над сеткой бывают кнопки и отчёт проверки, у каждого каталога свои. Замер
+    /// по отрисовке даёт сетке ровно остаток окна — без пустой полосы снизу и без
+    /// второй прокрутки.
+    /// </remarks>
+    private readonly Dictionary<string, float> gridTops = new();
+
+    private int sectionLeafTotal;
+    private int sectionEmptyTotal;
+    // Стили не переживают перезагрузку скриптов: редактор сохранил бы старый набор,
+    // и добавленный позже стиль остался бы пустым при непустых остальных.
+    [NonSerialized] private GUIStyle sidebarLabelStyle;
+    [NonSerialized] private GUIStyle sidebarSelectedStyle;
+    [NonSerialized] private GUIStyle sidebarCountStyle;
+    [NonSerialized] private GUIStyle sidebarSelectedCountStyle;
+    [NonSerialized] private GUIStyle sidebarGroupStyle;
+
+    /// <summary>
+    /// Строка списка каталогов.
+    /// </summary>
+    private sealed class SectionNode
+    {
+        public SerializedProperty Property;
+        public string Name;
+        public Type FieldType;
+        public object Value;
+        public int Depth;
+
+        /// <summary>
+        /// Заголовок группы: сам не открывается, каталоги лежат под ним.
+        /// </summary>
+        public bool IsGroup;
+
+        /// <summary>
+        /// Сколько элементов в каталоге; -1 у раздела без списка.
+        /// </summary>
+        public int Count = -1;
+
+        public string Key => Property.propertyPath;
+    }
+
+    #endregion
+
     private enum AssetSortMode
     {
         Quality,
@@ -112,6 +198,11 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         public bool SortDescending;
         public int QualityFilter = -1;
         public bool InvalidOnly;
+
+        /// <summary>
+        /// Часть названия, по которой отобраны карточки.
+        /// </summary>
+        public string Search = string.Empty;
 
         /// <summary>
         /// Вид элемента, по которому отфильтрована сетка. Пусто — показывать все.
@@ -209,7 +300,39 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         }
 
         serializedDatabase.UpdateIfRequiredOrScript();
-        PRSDKInspectorUtility.DrawHeader("PRUnitySDK Database", database);
+
+        var owned = new List<SerializedProperty>();
+        var links = new List<(DatabaseExternalEditorAttribute Editor, string Section)>();
+
+        foreach (SerializedProperty property in PRSDKInspectorUtility.GetRootProperties(serializedDatabase))
+        {
+            Type fieldType = PRSDKInspectorUtility.GetFieldType(database.GetType(), property);
+
+            if (!IsSectionVisible(fieldType))
+                continue;
+
+            DatabaseExternalEditorAttribute external = GetExternalEditor(fieldType);
+
+            // В своём окне раздел рисуется целиком, в общем — уходит в строку ссылок.
+            if (external == null || !string.IsNullOrEmpty(OwnedEditorMenuPath))
+                owned.Add(property);
+            else if (PRSDKInspectorUtility.MatchesSearch(PRSDKInspectorUtility.GetSectionName(property), search))
+                links.Add((external, PRSDKInspectorUtility.GetSectionName(property)));
+        }
+
+        List<SectionNode> nodes = CollectSectionNodes(owned);
+
+        sidebarLayout = sectionLeafTotal > 1;
+        gridAreaWidth = sidebarLayout ? position.width - SidebarWidth - 8f : position.width;
+
+        var wantedMinSize = new Vector2(sidebarLayout ? 780f : 620f, 450f);
+        if (minSize != wantedMinSize)
+            minSize = wantedMinSize;
+
+        // Со списком слева заголовок не нужен: имя окна стоит на вкладке, а путь к базе
+        // показывает кнопка «Asset» — две строки сверху отнимали место у каталога.
+        if (!sidebarLayout)
+            PRSDKInspectorUtility.DrawHeader("PRUnitySDK Database", database);
 
         if (DrawTabs())
             return;
@@ -217,29 +340,26 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         DrawToolbar();
         DrawPresetReport();
 
-        List<SerializedProperty> matched = PRSDKInspectorUtility
-            .GetRootProperties(serializedDatabase)
-            .Where(property =>
-                IsSectionVisible(PRSDKInspectorUtility.GetFieldType(database.GetType(), property))
-                && PRSDKInspectorUtility.MatchesSearch(
-                    PRSDKInspectorUtility.GetSectionName(property),
-                    search))
+        if (sidebarLayout)
+            DrawSidebarLayout(nodes, links);
+        else
+            DrawStackedLayout(owned, links);
+
+        serializedDatabase.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// Рисует разделы стопкой: вид окна с одним каталогом.
+    /// </summary>
+    private void DrawStackedLayout(
+        IReadOnlyList<SerializedProperty> owned,
+        IReadOnlyList<(DatabaseExternalEditorAttribute Editor, string Section)> links)
+    {
+        List<SerializedProperty> visible = owned
+            .Where(property => PRSDKInspectorUtility.MatchesSearch(
+                PRSDKInspectorUtility.GetSectionName(property),
+                search))
             .ToList();
-
-        var visible = new List<SerializedProperty>();
-        var links = new List<(DatabaseExternalEditorAttribute Editor, string Section)>();
-
-        foreach (SerializedProperty property in matched)
-        {
-            Type fieldType = PRSDKInspectorUtility.GetFieldType(database.GetType(), property);
-            DatabaseExternalEditorAttribute external = GetExternalEditor(fieldType);
-
-            // В своём окне раздел рисуется целиком, в общем — уходит в строку ссылок.
-            if (external != null && string.IsNullOrEmpty(OwnedEditorMenuPath))
-                links.Add((external, PRSDKInspectorUtility.GetSectionName(property)));
-            else
-                visible.Add(property);
-        }
 
         // Единственный раздел разворачивается сам: сворачивать в окне нечего, а лишний
         // клик при каждом открытии раздражает.
@@ -257,20 +377,407 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
             scrollPosition = scrollView.scrollPosition;
         }
-
-        serializedDatabase.ApplyModifiedProperties();
     }
+
+    #region Список каталогов слева
+
+    /// <summary>
+    /// Собирает строки списка каталогов с учётом поиска и скрытия пустых.
+    /// </summary>
+    /// <remarks>
+    /// Заодно считает каталоги без оглядки на фильтры: вид окна зависит от того, сколько
+    /// их всего, и не должен меняться, пока в поиске набирают слово.
+    /// </remarks>
+    private List<SectionNode> CollectSectionNodes(IReadOnlyList<SerializedProperty> owned)
+    {
+        var nodes = new List<SectionNode>();
+        sectionLeafTotal = 0;
+        sectionEmptyTotal = 0;
+
+        foreach (SerializedProperty property in owned)
+        {
+            CollectSectionNode(
+                property,
+                PRSDKInspectorUtility.GetFieldType(database.GetType(), property),
+                PRSDKInspectorUtility.GetFieldValue(database, property),
+                0,
+                false,
+                nodes);
+        }
+
+        // Единственная группа свой заголовок не показывает: в окне наград «Rewards»
+        // ничего не различает — под ним и так одни награды.
+        if (owned.Count == 1 && nodes.Count > 0 && nodes[0].IsGroup)
+        {
+            nodes.RemoveAt(0);
+
+            foreach (SectionNode node in nodes)
+                node.Depth--;
+        }
+
+        return nodes;
+    }
+
+    private void CollectSectionNode(
+        SerializedProperty property,
+        Type fieldType,
+        object value,
+        int depth,
+        bool parentMatches,
+        List<SectionNode> nodes)
+    {
+        string name = PRSDKInspectorUtility.GetSectionName(property);
+        Type elementType = PRSDKInspectorUtility.GetDatabaseElementType(fieldType);
+
+        // Поиск по названию группы показывает все её каталоги: «obby» — и скины, и шапки.
+        bool matches = parentMatches || PRSDKInspectorUtility.MatchesSearch(name, search);
+
+        if (elementType == null)
+        {
+            IReadOnlyList<SerializedProperty> children = PRSDKInspectorUtility.GetDirectChildren(property);
+            bool isGroup = children.Any(child =>
+                PRSDKInspectorUtility.GetDatabaseElementType(
+                    PRSDKInspectorUtility.GetFieldType(fieldType, child)) != null);
+
+            if (isGroup)
+            {
+                int groupIndex = nodes.Count;
+                nodes.Add(new SectionNode
+                {
+                    Property = property,
+                    Name = name,
+                    FieldType = fieldType,
+                    Value = value,
+                    Depth = depth,
+                    IsGroup = true
+                });
+
+                foreach (SerializedProperty child in children)
+                {
+                    CollectSectionNode(
+                        child,
+                        PRSDKInspectorUtility.GetFieldType(fieldType, child),
+                        PRSDKInspectorUtility.GetFieldValue(value, child),
+                        depth + 1,
+                        matches,
+                        nodes);
+                }
+
+                // Группа, в которой фильтры ничего не оставили, сама тоже не нужна.
+                if (nodes.Count == groupIndex + 1)
+                    nodes.RemoveAt(groupIndex);
+
+                return;
+            }
+        }
+
+        SerializedProperty data = elementType != null ? property.FindPropertyRelative("data") : null;
+        int count = data is { isArray: true } ? data.arraySize : -1;
+
+        sectionLeafTotal++;
+        if (count == 0)
+            sectionEmptyTotal++;
+
+        if (!matches)
+            return;
+
+        // Открытый каталог остаётся в списке и пустым: иначе он пропал бы из-под рук,
+        // когда из него убрали последний элемент.
+        if (hideEmptySections && count == 0 && property.propertyPath != selectedSectionKey)
+            return;
+
+        nodes.Add(new SectionNode
+        {
+            Property = property,
+            Name = name,
+            FieldType = fieldType,
+            Value = value,
+            Depth = depth,
+            Count = count
+        });
+    }
+
+    /// <summary>
+    /// Находит открытый каталог, а если его нет в списке — выбирает первый подходящий.
+    /// </summary>
+    /// <remarks>
+    /// Первым берётся заполненный каталог: окно, открытое на пустом разделе, выглядит
+    /// так, будто в игре нет предметов.
+    /// </remarks>
+    private SectionNode ResolveSelectedNode(IReadOnlyList<SectionNode> nodes)
+    {
+        SectionNode fallback = null;
+
+        foreach (SectionNode node in nodes)
+        {
+            if (node.IsGroup)
+                continue;
+
+            if (node.Key == selectedSectionKey)
+                return node;
+
+            if (fallback == null || fallback.Count == 0 && node.Count != 0)
+                fallback = node;
+        }
+
+        if (fallback != null)
+            selectedSectionKey = fallback.Key;
+
+        return fallback;
+    }
+
+    /// <summary>
+    /// Рисует окно в два столбца: список каталогов и выбранный каталог.
+    /// </summary>
+    private void DrawSidebarLayout(
+        IReadOnlyList<SectionNode> nodes,
+        IReadOnlyList<(DatabaseExternalEditorAttribute Editor, string Section)> links)
+    {
+        if (Event.current.type == EventType.Repaint)
+        {
+            float top = GUILayoutUtility.GetLastRect().yMax;
+
+            if (Mathf.Abs(top - bodyTop) > 0.5f)
+            {
+                bodyTop = top;
+                Repaint();
+            }
+        }
+
+        SectionNode selected = ResolveSelectedNode(nodes);
+
+        using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandHeight(true)))
+        {
+            DrawSidebar(nodes, links, selected);
+
+            Rect line = GUILayoutUtility.GetRect(1f, 1f, GUILayout.Width(1f), GUILayout.ExpandHeight(true));
+            EditorGUI.DrawRect(line, new Color(0f, 0f, 0f, 0.4f));
+
+            using (var scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
+            {
+                if (selected == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        string.IsNullOrWhiteSpace(search)
+                            ? "Каталогов нет."
+                            : "Каталоги с таким названием не найдены.",
+                        MessageType.Info);
+                }
+                else
+                {
+                    // Раздел без сетки рисуется обычным полем со стрелкой: свёрнутым он
+                    // показал бы справа одну строку.
+                    selected.Property.isExpanded = true;
+                    DrawSection(
+                        selected.Property,
+                        selected.Name,
+                        selected.FieldType,
+                        selected.Value,
+                        alwaysExpanded: true);
+                }
+
+                scrollPosition = scrollView.scrollPosition;
+            }
+        }
+    }
+
+    private void DrawSidebar(
+        IReadOnlyList<SectionNode> nodes,
+        IReadOnlyList<(DatabaseExternalEditorAttribute Editor, string Section)> links,
+        SectionNode selected)
+    {
+        EnsureSidebarStyles();
+
+        using (var sidebar = new EditorGUILayout.VerticalScope(
+                   GUILayout.Width(SidebarWidth),
+                   GUILayout.ExpandHeight(true)))
+        {
+            if (Event.current.type == EventType.Repaint)
+                EditorGUI.DrawRect(sidebar.rect, new Color(0f, 0f, 0f, 0.14f));
+
+            using (var scrollView = new EditorGUILayout.ScrollViewScope(
+                       sidebarScroll,
+                       GUILayout.ExpandHeight(true)))
+            {
+                foreach (SectionNode node in nodes)
+                    DrawSidebarRow(node, node == selected);
+
+                if (nodes.Count == 0)
+                    GUILayout.Label("Ничего не найдено", EditorStyles.centeredGreyMiniLabel);
+
+                DrawSidebarLinks(links);
+                sidebarScroll = scrollView.scrollPosition;
+            }
+
+            using (new EditorGUI.DisabledScope(sectionEmptyTotal == 0))
+            {
+                hideEmptySections = EditorGUILayout.ToggleLeft(
+                    new GUIContent(
+                        $"Скрыть пустые ({sectionEmptyTotal})",
+                        "Не показывать каталоги, в которых нет ни одного элемента."),
+                    hideEmptySections);
+            }
+
+            EditorGUILayout.Space(2f);
+        }
+    }
+
+    private void DrawSidebarRow(SectionNode node, bool selected)
+    {
+        float indent = 8f + Mathf.Max(0, node.Depth) * 12f;
+
+        if (node.IsGroup)
+        {
+            Rect header = GUILayoutUtility.GetRect(0f, 24f, GUILayout.ExpandWidth(true));
+            GUI.Label(
+                new Rect(header.x + indent, header.y + 6f, header.width - indent, 18f),
+                node.Name,
+                sidebarGroupStyle);
+            return;
+        }
+
+        Rect row = GUILayoutUtility.GetRect(0f, 22f, GUILayout.ExpandWidth(true));
+
+        if (selected && Event.current.type == EventType.Repaint)
+        {
+            EditorGUI.DrawRect(
+                row,
+                EditorGUIUtility.isProSkin
+                    ? new Color(0.17f, 0.36f, 0.53f, 1f)
+                    : new Color(0.23f, 0.45f, 0.69f, 1f));
+        }
+
+        if (GUI.Button(row, GUIContent.none, GUIStyle.none))
+        {
+            selectedSectionKey = node.Key;
+            scrollPosition = Vector2.zero;
+
+            // Поле, в котором стоял курсор, принадлежало прежнему каталогу.
+            GUI.FocusControl(null);
+            Repaint();
+        }
+
+        const float countWidth = 40f;
+        bool hasCount = node.Count >= 0;
+        var nameRect = new Rect(
+            row.x + indent,
+            row.y,
+            row.width - indent - (hasCount ? countWidth : 4f),
+            row.height);
+
+        // Пустой каталог приглушён: взгляд сразу находит те, где что-то лежит.
+        Color previous = GUI.color;
+        if (node.Count == 0 && !selected)
+            GUI.color = new Color(1f, 1f, 1f, 0.55f);
+
+        GUI.Label(nameRect, node.Name, selected ? sidebarSelectedStyle : sidebarLabelStyle);
+
+        if (hasCount)
+        {
+            var countRect = new Rect(row.xMax - countWidth - 6f, row.y, countWidth, row.height);
+            GUI.Label(countRect, node.Count.ToString(), selected ? sidebarSelectedCountStyle : sidebarCountStyle);
+        }
+
+        GUI.color = previous;
+    }
+
+    /// <summary>
+    /// Рисует под списком разделы, которыми занимаются другие окна.
+    /// </summary>
+    private void DrawSidebarLinks(
+        IReadOnlyList<(DatabaseExternalEditorAttribute Editor, string Section)> links)
+    {
+        if (links.Count == 0)
+            return;
+
+        Rect header = GUILayoutUtility.GetRect(0f, 24f, GUILayout.ExpandWidth(true));
+        GUI.Label(
+            new Rect(header.x + 8f, header.y + 6f, header.width - 8f, 18f),
+            "В других окнах",
+            sidebarGroupStyle);
+
+        foreach (var group in links.GroupBy(link => link.Editor.MenuPath))
+        {
+            DatabaseExternalEditorAttribute editor = group.First().Editor;
+            string sections = string.Join(", ", group.Select(link => link.Section));
+            string window = string.IsNullOrEmpty(editor.WindowName) ? sections : editor.WindowName;
+            string tooltip = string.IsNullOrEmpty(editor.Description)
+                ? sections
+                : $"{sections}\n{editor.Description}";
+
+            if (GUILayout.Button(new GUIContent($"{window} ↗", tooltip), EditorStyles.miniButton))
+                EditorApplication.ExecuteMenuItem(editor.MenuPath);
+        }
+    }
+
+    private void EnsureSidebarStyles()
+    {
+        if (sidebarLabelStyle != null)
+            return;
+
+        sidebarLabelStyle = new GUIStyle(EditorStyles.label)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            clipping = TextClipping.Clip
+        };
+
+        sidebarSelectedStyle = new GUIStyle(sidebarLabelStyle) { fontStyle = FontStyle.Bold };
+        sidebarSelectedStyle.normal.textColor = Color.white;
+
+        sidebarCountStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleRight };
+        sidebarSelectedCountStyle = new GUIStyle(sidebarSelectedStyle) { alignment = TextAnchor.MiddleRight };
+
+        sidebarGroupStyle = new GUIStyle(EditorStyles.miniBoldLabel) { alignment = TextAnchor.MiddleLeft };
+    }
+
+    /// <summary>
+    /// Высота сетки каталога: остаток окна под тем, что нарисовано над ней.
+    /// </summary>
+    private float ResolveGridHeight(string sectionKey)
+    {
+        if (!sidebarLayout)
+            return Mathf.Max(380f, position.height - 210f);
+
+        if (Event.current.type == EventType.Repaint)
+        {
+            float top = GUILayoutUtility.GetLastRect().yMax;
+
+            if (!gridTops.TryGetValue(sectionKey, out float known) || Mathf.Abs(known - top) > 0.5f)
+            {
+                gridTops[sectionKey] = top;
+                Repaint();
+            }
+        }
+
+        float measured = gridTops.TryGetValue(sectionKey, out float value) ? value : 90f;
+        return Mathf.Max(260f, position.height - bodyTop - measured - 20f);
+    }
+
+    #endregion
 
     private void DrawToolbar()
     {
         using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
         {
-            search = GUILayout.TextField(search, EditorStyles.toolbarSearchField);
+            if (sidebarLayout)
+            {
+                // Поиск стоит над списком, который он отбирает; сворачивать здесь нечего.
+                search = GUILayout.TextField(
+                    search,
+                    EditorStyles.toolbarSearchField,
+                    GUILayout.Width(SidebarWidth - 8f));
+                GUILayout.FlexibleSpace();
+            }
+            else
+            {
+                search = GUILayout.TextField(search, EditorStyles.toolbarSearchField);
 
-            if (GUILayout.Button("Развернуть", EditorStyles.toolbarButton, GUILayout.Width(82f)))
-                SetExpanded(true);
-            if (GUILayout.Button("Свернуть", EditorStyles.toolbarButton, GUILayout.Width(76f)))
-                SetExpanded(false);
+                if (GUILayout.Button("Развернуть", EditorStyles.toolbarButton, GUILayout.Width(82f)))
+                    SetExpanded(true);
+                if (GUILayout.Button("Свернуть", EditorStyles.toolbarButton, GUILayout.Width(76f)))
+                    SetExpanded(false);
+            }
+
             if (GUILayout.Button("Обновить", EditorStyles.toolbarButton, GUILayout.Width(76f)))
             {
                 assetCache.Clear();
@@ -283,7 +790,8 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             }
             if (GUILayout.Button("Наборы", EditorStyles.toolbarDropDown, GUILayout.Width(66f)))
                 ShowPresetMenu();
-            if (GUILayout.Button("Asset", EditorStyles.toolbarButton, GUILayout.Width(52f)))
+            var assetButton = new GUIContent("Asset", AssetDatabase.GetAssetPath(database));
+            if (GUILayout.Button(assetButton, EditorStyles.toolbarButton, GUILayout.Width(52f)))
             {
                 Selection.activeObject = database;
                 EditorGUIUtility.PingObject(database);
@@ -880,8 +1388,8 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         HandleGridShortcuts(sectionKey, data);
 
         UnityEngine.Object selected = ResolveSelectedAsset(sectionKey, shown);
-        float panelHeight = Mathf.Max(380f, position.height - 210f);
-        float availableWidth = Mathf.Max(580f, position.width - 24f);
+        float panelHeight = ResolveGridHeight(sectionKey);
+        float availableWidth = Mathf.Max(sidebarLayout ? 470f : 580f, gridAreaWidth - 24f);
         float leftWidth = Mathf.Clamp(
             availableWidth * gridSplit,
             280f,
@@ -944,9 +1452,29 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     {
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
+            // Три строки вместо пяти: подписи «Показать», «Сортировка», «Качество» заменены
+            // говорящими вариантами в самих списках, а место досталось карточкам.
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField("Показать", GUILayout.Width(76f));
+                state.Search = GUILayout.TextField(
+                    state.Search ?? string.Empty,
+                    EditorStyles.toolbarSearchField);
+
+                int totalCount = state.Scope switch
+                {
+                    AssetGridScope.NotInDatabase => unusedCount,
+                    AssetGridScope.All => databaseCount + unusedCount,
+                    _ => databaseCount
+                };
+
+                EditorGUILayout.LabelField(
+                    new GUIContent($"{visibleCount}/{totalCount}", "Показано / всего"),
+                    EditorStyles.miniLabel,
+                    GUILayout.Width(56f));
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
                 state.Scope = (AssetGridScope)EditorGUILayout.Popup(
                     (int)state.Scope,
                     new[]
@@ -955,11 +1483,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                         $"Не в базе проекта ({unusedCount})",
                         $"Все ({databaseCount + unusedCount})"
                     });
-            }
 
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                EditorGUILayout.LabelField("Сортировка", GUILayout.Width(76f));
                 state.SortMode = (AssetSortMode)EditorGUILayout.Popup(
                     (int)state.SortMode,
                     SortLabels);
@@ -974,30 +1498,12 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField("Качество", GUILayout.Width(76f));
                 state.QualityFilter = DrawQualityFilter(state.QualityFilter);
-            }
-
-            DrawCategoryFilter(state, categories);
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
+                DrawCategoryFilter(state, categories);
                 state.InvalidOnly = GUILayout.Toggle(
                     state.InvalidOnly,
-                    new GUIContent("Только с ошибками", "Показывать элементы с проблемами валидации."),
-                    GUILayout.Width(142f));
-                GUILayout.FlexibleSpace();
-                int totalCount = state.Scope switch
-                {
-                    AssetGridScope.NotInDatabase => unusedCount,
-                    AssetGridScope.All => databaseCount + unusedCount,
-                    _ => databaseCount
-                };
-
-                EditorGUILayout.LabelField(
-                    $"{visibleCount}/{totalCount}",
-                    EditorStyles.miniLabel,
-                    GUILayout.Width(48f));
+                    new GUIContent("С ошибками", "Показывать только элементы с проблемами валидации."),
+                    GUILayout.Width(96f));
             }
         }
     }
@@ -1048,18 +1554,13 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         }
 
         var labels = new string[categories.Length + 1];
-        labels[0] = "Все";
+        labels[0] = "Любой вид";
 
         for (int index = 0; index < categories.Length; index++)
             labels[index + 1] = Nicify(categories[index]);
 
         int selected = System.Array.IndexOf(categories, state.CategoryFilter) + 1;
-
-        using (new EditorGUILayout.HorizontalScope())
-        {
-            EditorGUILayout.LabelField("Вид", GUILayout.Width(76f));
-            selected = EditorGUILayout.Popup(Mathf.Clamp(selected, 0, categories.Length), labels);
-        }
+        selected = EditorGUILayout.Popup(Mathf.Clamp(selected, 0, categories.Length), labels);
 
         state.CategoryFilter = selected <= 0 ? string.Empty : categories[selected - 1];
     }
@@ -1084,7 +1585,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
     {
         string[] qualityNames = Enum.GetNames(typeof(QualityType));
         string[] labels = new string[qualityNames.Length + 1];
-        labels[0] = "Все";
+        labels[0] = "Любое качество";
         Array.Copy(qualityNames, 0, labels, 1, qualityNames.Length);
         int selectedIndex = Mathf.Clamp(qualityFilter + 1, 0, labels.Length - 1);
         selectedIndex = EditorGUILayout.Popup(selectedIndex, labels);
@@ -1130,6 +1631,19 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     private static bool PassesFilters(UnityEngine.Object asset, AssetGridViewState state)
     {
+        if (!string.IsNullOrWhiteSpace(state.Search))
+        {
+            string query = state.Search.Trim();
+
+            // И название для игрока, и имя файла: ищут то, что помнят.
+            if (asset == null ||
+                GetAssetName(asset).IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
+                asset.name.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return false;
+            }
+        }
+
         if (state.QualityFilter >= 0 &&
             (asset is not IQualityProvider qualityProvider ||
              (int)qualityProvider.Quality != state.QualityFilter))
@@ -1693,7 +2207,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         {
             float previousLabelWidth = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = Mathf.Clamp(
-                position.width * (1f - gridSplit) * 0.38f,
+                gridAreaWidth * (1f - gridSplit) * 0.38f,
                 110f,
                 220f);
             try
