@@ -12,20 +12,29 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     private string search = string.Empty;
     private SerializedObject serializedSettings;
     private Vector2 scrollPosition;
+    private Vector2 sidebarScroll;
+
+    /// <summary>
+    /// Раздел, открытый в правой части окна.
+    /// </summary>
+    /// <remarks>
+    /// Сериализуется: после перезагрузки скриптов окно возвращается к тому же разделу.
+    /// </remarks>
+    [SerializeField] private string selectedSection;
 
     [MenuItem("PRUnitySDK/Windows/Settings", false, 30)]
     private static void OpenWindow()
     {
         PRSDKSettingsEditor window = GetWindow<PRSDKSettingsEditor>();
         window.titleContent = new GUIContent("SDK Settings");
-        window.minSize = new Vector2(620f, 450f);
+        window.minSize = new Vector2(780f, 450f);
         window.Show();
     }
 
     private void OnEnable()
     {
         titleContent = new GUIContent("SDK Settings");
-        minSize = new Vector2(620f, 450f);
+        minSize = new Vector2(780f, 450f);
         BindSettings();
     }
 
@@ -38,50 +47,152 @@ public sealed class PRSDKSettingsEditor : EditorWindow
         }
 
         serializedSettings.UpdateIfRequiredOrScript();
-        PRSDKInspectorUtility.DrawHeader("PRUnitySDK Settings", settings);
         DrawToolbar();
 
-        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-
         List<SectionGroup> groups = BuildGroups(PRSDKInspectorUtility.GetRootProperties(serializedSettings));
-        int visibleSectionCount = 0;
+        bool found = TryResolveSelected(groups, out SerializedProperty selected, out string selectedName);
         bool sectionWasReset = false;
 
-        foreach (SectionGroup group in groups)
+        // Слева список разделов, справа один раздел целиком. Стопка сворачиваемых разделов
+        // заставляла искать нужный среди полусотни строк, а развёрнутый уезжал под прокрутку.
+        using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandHeight(true)))
         {
-            visibleSectionCount += group.Sections.Count;
+            DrawSidebar(groups);
+            PRSDKSidebarGUI.Separator();
 
-            if (!DrawGroupHeader(group))
-                continue;
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-            foreach ((SerializedProperty property, string sectionName) in group.Sections)
-            {
-                // Сброс меняет данные под руками: дальше по списку идут свойства, собранные
-                // до него. Кадр дорисовываем пустым и выходим, следующий нарисует новые.
-                if (DrawSection(property, sectionName))
-                {
-                    sectionWasReset = true;
-                    break;
-                }
+            if (found)
+                sectionWasReset = DrawSection(selected, selectedName);
+            else
+                EditorGUILayout.HelpBox("Разделы с таким названием или полем не найдены.", MessageType.Info);
 
-                EditorGUILayout.Space(2f);
-            }
-
-            if (sectionWasReset)
-                break;
-
-            EditorGUILayout.Space(6f);
+            EditorGUILayout.EndScrollView();
         }
 
-        if (visibleSectionCount == 0)
-            EditorGUILayout.HelpBox("Секции с таким названием не найдены.", MessageType.Info);
-
-        EditorGUILayout.EndScrollView();
-
+        // Сброс меняет данные под руками: правки из полей этого кадра применять уже нельзя.
         if (sectionWasReset)
             return;
 
         serializedSettings.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// Находит открытый раздел, а если фильтр его убрал — берёт первый из найденных.
+    /// </summary>
+    private bool TryResolveSelected(
+        List<SectionGroup> groups,
+        out SerializedProperty property,
+        out string sectionName)
+    {
+        property = null;
+        sectionName = null;
+
+        foreach (SectionGroup group in groups)
+        {
+            foreach ((SerializedProperty candidate, string name) in group.Sections)
+            {
+                if (candidate.propertyPath == selectedSection)
+                {
+                    property = candidate;
+                    sectionName = name;
+                    return true;
+                }
+
+                if (property == null)
+                {
+                    property = candidate;
+                    sectionName = name;
+                }
+            }
+        }
+
+        if (property == null)
+            return false;
+
+        selectedSection = property.propertyPath;
+        return true;
+    }
+
+    /// <summary>
+    /// Рисует список разделов по папкам-источникам.
+    /// </summary>
+    /// <remarks>
+    /// Включённый раздел помечен зелёной точкой: по списку видно, что работает, не открывая
+    /// разделы по очереди. Раздел без полей приглушён.
+    /// </remarks>
+    private void DrawSidebar(List<SectionGroup> groups)
+    {
+        // Во время поиска группы раскрыты: свёрнутая спрятала бы найденное.
+        bool searching = !string.IsNullOrWhiteSpace(search);
+
+        using (var sidebar = new EditorGUILayout.VerticalScope(
+                   GUILayout.Width(PRSDKSidebarGUI.Width),
+                   GUILayout.ExpandHeight(true)))
+        {
+            PRSDKSidebarGUI.Background(sidebar.rect);
+            sidebarScroll = EditorGUILayout.BeginScrollView(sidebarScroll, GUILayout.ExpandHeight(true));
+
+            foreach (SectionGroup group in groups)
+            {
+                string key = GroupExpandedKeyPrefix + group.Source;
+                bool expanded = searching || EditorPrefs.GetBool(key, true);
+                bool next = PRSDKSidebarGUI.FoldoutHeader(group.Source, expanded, group.Sections.Count.ToString());
+
+                if (!searching && next != expanded)
+                    EditorPrefs.SetBool(key, next);
+
+                if (!searching && !next)
+                    continue;
+
+                foreach ((SerializedProperty property, string sectionName) in group.Sections)
+                {
+                    bool isOn = PRSDKInspectorUtility.TryGetSectionToggle(property, out bool isEnabled) && isEnabled;
+                    bool clicked = PRSDKSidebarGUI.Row(
+                        sectionName,
+                        1,
+                        property.propertyPath == selectedSection,
+                        dimmed: !property.hasVisibleChildren,
+                        enabled: isOn);
+
+                    if (!clicked)
+                        continue;
+
+                    selectedSection = property.propertyPath;
+                    scrollPosition = Vector2.zero;
+
+                    // Поле, в котором стоял курсор, принадлежало прежнему разделу.
+                    GUI.FocusControl(null);
+                    Repaint();
+                }
+            }
+
+            if (groups.Count == 0)
+                GUILayout.Label("Ничего не найдено", EditorStyles.centeredGreyMiniLabel);
+
+            EditorGUILayout.EndScrollView();
+        }
+    }
+
+    /// <summary>
+    /// Раздел подходит под поиск названием или названием одного из своих полей.
+    /// </summary>
+    /// <remarks>
+    /// Ищут обычно настройку, а не раздел: «volume» должно привести к звуку, даже если
+    /// раздел называется иначе.
+    /// </remarks>
+    private bool MatchesSearch(SerializedProperty property, string sectionName)
+    {
+        if (PRSDKInspectorUtility.MatchesSearch(sectionName, search))
+            return true;
+
+        foreach (SerializedProperty child in PRSDKInspectorUtility.GetDirectChildren(property))
+        {
+            if (PRSDKInspectorUtility.MatchesSearch(child.displayName, search))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -94,8 +205,6 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     }
 
     private const string GroupExpandedKeyPrefix = "PRSDKSettingsEditor.Group.";
-
-    private static GUIStyle groupHeaderStyle;
 
     /// <summary>
     /// Раскладывает видимые разделы по папкам, из которых они объявлены.
@@ -115,7 +224,7 @@ public sealed class PRSDKSettingsEditor : EditorWindow
                 continue;
 
             string sectionName = PRSDKInspectorUtility.GetSectionName(property);
-            if (!PRSDKInspectorUtility.MatchesSearch(sectionName, search))
+            if (!MatchesSearch(property, sectionName))
                 continue;
 
             string source = PRSDKSettingsSources.GetSource(property);
@@ -136,34 +245,8 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     }
 
     /// <summary>
-    /// Рисует заголовок группы: имя папки-источника и число разделов в ней.
-    /// </summary>
-    /// <returns>Группа развёрнута, её разделы нужно рисовать.</returns>
-    private bool DrawGroupHeader(SectionGroup group)
-    {
-        // Во время поиска группы раскрыты: свёрнутая спрятала бы найденное.
-        bool searching = !string.IsNullOrWhiteSpace(search);
-        string key = GroupExpandedKeyPrefix + group.Source;
-        bool expanded = searching || EditorPrefs.GetBool(key, true);
-
-        groupHeaderStyle ??= new GUIStyle(EditorStyles.foldoutHeader) { fontStyle = FontStyle.Bold };
-
-        bool next = EditorGUILayout.Foldout(
-            expanded, $"{group.Source}  ({group.Sections.Count})", true, groupHeaderStyle);
-
-        if (!searching && next != expanded)
-            EditorPrefs.SetBool(key, next);
-
-        return searching || next;
-    }
-
-    /// <summary>
     /// Рисует один раздел: заголовок с кнопкой сброса, описание и поля.
     /// </summary>
-    /// <remarks>
-    /// Описание рисуется только у развёрнутого раздела: свёрнутые идут списком, и абзац
-    /// текста под каждым превратил бы этот список в стену.
-    /// </remarks>
     /// <returns>
     /// <c>true</c>, если раздел сброшен — тогда отрисовку кадра нужно прекратить:
     /// сериализованные данные под руками поменялись.
@@ -176,22 +259,31 @@ public sealed class PRSDKSettingsEditor : EditorWindow
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                property.isExpanded = EditorGUILayout.Foldout(
-                    property.isExpanded, sectionName, true, GetHeaderStyle(property));
+                EditorGUILayout.LabelField(sectionName, EditorStyles.boldLabel);
 
                 if (DrawResetButton(property, sectionName, settings, typeof(PRSDKSettings)))
                     return true;
             }
 
-            if (!property.isExpanded)
-                return false;
-
             PRSDKInspectorUtility.DrawSectionDescription(sectionType);
+            EditorGUILayout.Space(2f);
 
-            using (new EditorGUI.IndentLevelScope())
+            // В широком окне подпись в 150 точек обрезает длинные названия полей,
+            // а значение растягивается на весь экран.
+            float previousLabelWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = Mathf.Clamp(
+                (position.width - PRSDKSidebarGUI.Width) * 0.3f,
+                180f,
+                340f);
+
+            try
             {
                 if (DrawChildren(property, sectionType, PRSDKInspectorUtility.GetFieldValue(settings, property)))
                     return true;
+            }
+            finally
+            {
+                EditorGUIUtility.labelWidth = previousLabelWidth;
             }
         }
 
@@ -379,34 +471,25 @@ public sealed class PRSDKSettingsEditor : EditorWindow
     {
         using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
         {
-            search = GUILayout.TextField(search, EditorStyles.toolbarSearchField);
+            // Поиск стоит над списком, который он отбирает; сворачивать здесь нечего.
+            search = GUILayout.TextField(
+                search,
+                EditorStyles.toolbarSearchField,
+                GUILayout.Width(PRSDKSidebarGUI.Width - 8f));
+            GUILayout.FlexibleSpace();
 
-            if (GUILayout.Button("Развернуть", EditorStyles.toolbarButton, GUILayout.Width(82f)))
-                SetExpanded(true);
-            if (GUILayout.Button("Свернуть", EditorStyles.toolbarButton, GUILayout.Width(76f)))
-                SetExpanded(false);
             if (GUILayout.Button("Сохранить", EditorStyles.toolbarButton, GUILayout.Width(76f)))
             {
                 serializedSettings.ApplyModifiedProperties();
                 AssetDatabase.SaveAssets();
             }
-            if (GUILayout.Button("Asset", EditorStyles.toolbarButton, GUILayout.Width(52f)))
+            var assetButton = new GUIContent("Asset", AssetDatabase.GetAssetPath(settings));
+            if (GUILayout.Button(assetButton, EditorStyles.toolbarButton, GUILayout.Width(52f)))
             {
                 Selection.activeObject = settings;
                 EditorGUIUtility.PingObject(settings);
             }
         }
-    }
-
-    private void SetExpanded(bool expanded)
-    {
-        foreach (SerializedProperty property in PRSDKInspectorUtility.GetRootProperties(serializedSettings))
-        {
-            if (!HasExternalEditor(property))
-                property.isExpanded = expanded;
-        }
-
-        Repaint();
     }
 
     /// <remarks>

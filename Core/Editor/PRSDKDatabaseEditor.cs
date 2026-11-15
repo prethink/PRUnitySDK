@@ -90,8 +90,6 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     #region Список каталогов слева
 
-    private const float SidebarWidth = 212f;
-
     /// <summary>
     /// Каталог, открытый в правой части окна.
     /// </summary>
@@ -140,13 +138,6 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     private int sectionLeafTotal;
     private int sectionEmptyTotal;
-    // Стили не переживают перезагрузку скриптов: редактор сохранил бы старый набор,
-    // и добавленный позже стиль остался бы пустым при непустых остальных.
-    [NonSerialized] private GUIStyle sidebarLabelStyle;
-    [NonSerialized] private GUIStyle sidebarSelectedStyle;
-    [NonSerialized] private GUIStyle sidebarCountStyle;
-    [NonSerialized] private GUIStyle sidebarSelectedCountStyle;
-    [NonSerialized] private GUIStyle sidebarGroupStyle;
 
     /// <summary>
     /// Строка списка каталогов.
@@ -323,7 +314,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         List<SectionNode> nodes = CollectSectionNodes(owned);
 
         sidebarLayout = sectionLeafTotal > 1;
-        gridAreaWidth = sidebarLayout ? position.width - SidebarWidth - 8f : position.width;
+        gridAreaWidth = sidebarLayout ? position.width - PRSDKSidebarGUI.Width - 8f : position.width;
 
         var wantedMinSize = new Vector2(sidebarLayout ? 780f : 620f, 450f);
         if (minSize != wantedMinSize)
@@ -550,8 +541,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         {
             DrawSidebar(nodes, links, selected);
 
-            Rect line = GUILayoutUtility.GetRect(1f, 1f, GUILayout.Width(1f), GUILayout.ExpandHeight(true));
-            EditorGUI.DrawRect(line, new Color(0f, 0f, 0f, 0.4f));
+            PRSDKSidebarGUI.Separator();
 
             using (var scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
             {
@@ -586,14 +576,11 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         IReadOnlyList<(DatabaseExternalEditorAttribute Editor, string Section)> links,
         SectionNode selected)
     {
-        EnsureSidebarStyles();
-
         using (var sidebar = new EditorGUILayout.VerticalScope(
-                   GUILayout.Width(SidebarWidth),
+                   GUILayout.Width(PRSDKSidebarGUI.Width),
                    GUILayout.ExpandHeight(true)))
         {
-            if (Event.current.type == EventType.Repaint)
-                EditorGUI.DrawRect(sidebar.rect, new Color(0f, 0f, 0f, 0.14f));
+            PRSDKSidebarGUI.Background(sidebar.rect);
 
             using (var scrollView = new EditorGUILayout.ScrollViewScope(
                        sidebarScroll,
@@ -624,61 +611,28 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
 
     private void DrawSidebarRow(SectionNode node, bool selected)
     {
-        float indent = 8f + Mathf.Max(0, node.Depth) * 12f;
-
         if (node.IsGroup)
         {
-            Rect header = GUILayoutUtility.GetRect(0f, 24f, GUILayout.ExpandWidth(true));
-            GUI.Label(
-                new Rect(header.x + indent, header.y + 6f, header.width - indent, 18f),
-                node.Name,
-                sidebarGroupStyle);
+            PRSDKSidebarGUI.Header(node.Name, node.Depth);
             return;
         }
 
-        Rect row = GUILayoutUtility.GetRect(0f, 22f, GUILayout.ExpandWidth(true));
+        bool clicked = PRSDKSidebarGUI.Row(
+            node.Name,
+            node.Depth,
+            selected,
+            dimmed: node.Count == 0,
+            count: node.Count >= 0 ? node.Count.ToString() : null);
 
-        if (selected && Event.current.type == EventType.Repaint)
-        {
-            EditorGUI.DrawRect(
-                row,
-                EditorGUIUtility.isProSkin
-                    ? new Color(0.17f, 0.36f, 0.53f, 1f)
-                    : new Color(0.23f, 0.45f, 0.69f, 1f));
-        }
+        if (!clicked)
+            return;
 
-        if (GUI.Button(row, GUIContent.none, GUIStyle.none))
-        {
-            selectedSectionKey = node.Key;
-            scrollPosition = Vector2.zero;
+        selectedSectionKey = node.Key;
+        scrollPosition = Vector2.zero;
 
-            // Поле, в котором стоял курсор, принадлежало прежнему каталогу.
-            GUI.FocusControl(null);
-            Repaint();
-        }
-
-        const float countWidth = 40f;
-        bool hasCount = node.Count >= 0;
-        var nameRect = new Rect(
-            row.x + indent,
-            row.y,
-            row.width - indent - (hasCount ? countWidth : 4f),
-            row.height);
-
-        // Пустой каталог приглушён: взгляд сразу находит те, где что-то лежит.
-        Color previous = GUI.color;
-        if (node.Count == 0 && !selected)
-            GUI.color = new Color(1f, 1f, 1f, 0.55f);
-
-        GUI.Label(nameRect, node.Name, selected ? sidebarSelectedStyle : sidebarLabelStyle);
-
-        if (hasCount)
-        {
-            var countRect = new Rect(row.xMax - countWidth - 6f, row.y, countWidth, row.height);
-            GUI.Label(countRect, node.Count.ToString(), selected ? sidebarSelectedCountStyle : sidebarCountStyle);
-        }
-
-        GUI.color = previous;
+        // Поле, в котором стоял курсор, принадлежало прежнему каталогу.
+        GUI.FocusControl(null);
+        Repaint();
     }
 
     /// <summary>
@@ -690,11 +644,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
         if (links.Count == 0)
             return;
 
-        Rect header = GUILayoutUtility.GetRect(0f, 24f, GUILayout.ExpandWidth(true));
-        GUI.Label(
-            new Rect(header.x + 8f, header.y + 6f, header.width - 8f, 18f),
-            "В других окнах",
-            sidebarGroupStyle);
+        PRSDKSidebarGUI.Header("В других окнах");
 
         foreach (var group in links.GroupBy(link => link.Editor.MenuPath))
         {
@@ -708,26 +658,6 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
             if (GUILayout.Button(new GUIContent($"{window} ↗", tooltip), EditorStyles.miniButton))
                 EditorApplication.ExecuteMenuItem(editor.MenuPath);
         }
-    }
-
-    private void EnsureSidebarStyles()
-    {
-        if (sidebarLabelStyle != null)
-            return;
-
-        sidebarLabelStyle = new GUIStyle(EditorStyles.label)
-        {
-            alignment = TextAnchor.MiddleLeft,
-            clipping = TextClipping.Clip
-        };
-
-        sidebarSelectedStyle = new GUIStyle(sidebarLabelStyle) { fontStyle = FontStyle.Bold };
-        sidebarSelectedStyle.normal.textColor = Color.white;
-
-        sidebarCountStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleRight };
-        sidebarSelectedCountStyle = new GUIStyle(sidebarSelectedStyle) { alignment = TextAnchor.MiddleRight };
-
-        sidebarGroupStyle = new GUIStyle(EditorStyles.miniBoldLabel) { alignment = TextAnchor.MiddleLeft };
     }
 
     /// <summary>
@@ -765,7 +695,7 @@ public abstract class PRSDKDatabaseEditor : EditorWindow
                 search = GUILayout.TextField(
                     search,
                     EditorStyles.toolbarSearchField,
-                    GUILayout.Width(SidebarWidth - 8f));
+                    GUILayout.Width(PRSDKSidebarGUI.Width - 8f));
                 GUILayout.FlexibleSpace();
             }
             else
