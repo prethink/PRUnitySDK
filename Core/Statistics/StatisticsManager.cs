@@ -129,6 +129,21 @@ public class StatisticsManager : SingletonProviderBase<StatisticsManager>
     }
 
     /// <summary>
+    /// Значение счётчика модуля, если сохранение загружено; до загрузки — <paramref name="fallback"/>.
+    /// </summary>
+    /// <remarks>
+    /// Для свойств, которые спрашивают когда угодно (<c>AdStatistics</c>, <c>PurchaseStatistics</c>): до загрузки
+    /// данных нет, и <see cref="GetCounter"/> бросил бы исключение из <c>GameManager.GetProjectData</c>.
+    /// </remarks>
+    public static long GetCounterIfLoaded(string key, long fallback = 0)
+    {
+        if (!GameManager.HasInstance || !GameManager.Instance.ReadySignal.IsReady)
+            return fallback;
+
+        return Instance.GetCounter(key, fallback);
+    }
+
+    /// <summary>
     /// Прибавляет к счётчику модуля, когда сохранение загружено; загружено — сразу.
     /// </summary>
     /// <remarks>
