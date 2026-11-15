@@ -99,23 +99,16 @@ public class IconPreviewDrawer : PropertyDrawer
     /// </summary>
     /// <remarks>
     /// Через координаты текстуры, а не <c>GUI.DrawTexture</c> целиком: спрайт может быть
-    /// частью атласа, и без пересчёта нарисовался бы весь лист.
+    /// частью атласа, и без пересчёта нарисовался бы весь лист. Координаты считает
+    /// <see cref="SpriteUtils"/>: у плотно упакованного спрайта <c>textureRect</c> бросает исключение.
     /// </remarks>
     internal static void DrawSprite(Rect rect, Sprite sprite)
     {
-        Texture2D texture = sprite.texture;
-
-        if (texture == null)
+        if (!SpriteUtils.TryGetTextureCoordinates(sprite, out Rect coordinates))
             return;
 
-        Rect textureRect = sprite.textureRect;
-        var coordinates = new Rect(
-            textureRect.x / texture.width,
-            textureRect.y / texture.height,
-            textureRect.width / texture.width,
-            textureRect.height / texture.height);
-
-        float spriteAspect = textureRect.width / textureRect.height;
+        Texture2D texture = sprite.texture;
+        float spriteAspect = coordinates.width * texture.width / (coordinates.height * texture.height);
         float rectAspect = rect.width / rect.height;
 
         if (spriteAspect > rectAspect)

@@ -97,6 +97,33 @@ public class PRModuleGuardTests
     }
 
     [Test]
+    public void Wrap_NoTrailingNewLine_UnwrapRestoresBytes()
+    {
+        byte[] original = Utf8("public class E\n{\n}");
+        string path = Create("no-eol.cs", original);
+
+        Assert.IsTrue(PRModuleGuard.Wrap(path, ModuleId));
+        Assert.AreEqual(ModuleId, PRModuleGuard.ReadGuardId(path));
+        StringAssert.EndsWith("}\n#endif", File.ReadAllText(path));
+
+        // Повторная обёртка не копит переводы строк.
+        Assert.IsTrue(PRModuleGuard.Wrap(path, ModuleId));
+        Assert.IsTrue(PRModuleGuard.Unwrap(path));
+        CollectionAssert.AreEqual(original, File.ReadAllBytes(path));
+    }
+
+    [Test]
+    public void Wrap_MixedLineEndings_UnwrapRestoresBytes()
+    {
+        byte[] original = Utf8("// A\r\npublic class F\n{\r\n}\n");
+        string path = Create("mixed.cs", original);
+
+        Assert.IsTrue(PRModuleGuard.Wrap(path, ModuleId));
+        Assert.IsTrue(PRModuleGuard.Unwrap(path));
+        CollectionAssert.AreEqual(original, File.ReadAllBytes(path));
+    }
+
+    [Test]
     public void Wrap_WriteFails_LeavesOriginalAndNoTempFile()
     {
         byte[] original = Utf8("public class C\n{\n}\n");

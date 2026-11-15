@@ -48,12 +48,17 @@ public static class PRModuleGuard
             return false;
 
         string newLine = text.Contains("\r\n") ? "\r\n" : "\n";
-        string body = Unwrapped(text, newLine);
+        string body = Unwrapped(text);
 
-        if (!body.EndsWith("\n", StringComparison.Ordinal))
-            body += newLine;
+        // Исходник без перевода строки в конце: #endif нужна своя строка, а то, что перевода
+        // не было, запоминает сама обёртка — после #endif его тоже нет. Иначе Unwrap
+        // вернул бы файл с лишним переводом строки.
+        bool endsWithNewLine = body.EndsWith("\n", StringComparison.Ordinal);
+        string wrapped = endsWithNewLine
+            ? OpenLine(moduleId) + newLine + body + CloseLine + newLine
+            : OpenLine(moduleId) + newLine + body + newLine + CloseLine;
 
-        Write(path, OpenLine(moduleId) + newLine + body + CloseLine + newLine, hasBom);
+        Write(path, wrapped, hasBom);
         return true;
     }
 
@@ -130,8 +135,7 @@ public static class PRModuleGuard
         if (!TryRead(path, out string text, out bool hasBom))
             return false;
 
-        string newLine = text.Contains("\r\n") ? "\r\n" : "\n";
-        Write(path, Unwrapped(text, newLine), hasBom);
+        Write(path, Unwrapped(text), hasBom);
         return true;
     }
 
@@ -148,7 +152,16 @@ public static class PRModuleGuard
         return match.Success ? match.Groups[1].Value : null;
     }
 
-    private static string Unwrapped(string text, string newLine)
+    /// <summary>
+    /// Текст файла без обёртки модуля.
+    /// </summary>
+    /// <remarks>
+    /// Тело вырезается из текста целиком, а не собирается по строкам: переводы строк
+    /// у каждой строки остаются свои, даже если в файле они смешаны. Файл, обёрнутый
+    /// без перевода строки после <c>#endif</c>, исходно кончался без него — этот перевод
+    /// дописала обёртка, и он снимается.
+    /// </remarks>
+    private static string Unwrapped(string text)
     {
         if (ReadGuardIdFromText(text) == null)
             return text;
@@ -157,11 +170,29 @@ public static class PRModuleGuard
         int first = Array.FindIndex(lines, line => line.Trim().Length > 0);
         int last = Array.FindLastIndex(lines, line => line.Trim().Length > 0);
 
-        var builder = new StringBuilder();
-        for (int index = first + 1; index < last; index++)
-            builder.Append(lines[index].TrimEnd('\r')).Append(newLine);
+        int bodyStart = LineOffset(lines, first + 1);
+        int bodyEnd = LineOffset(lines, last);
+        string body = text.Substring(bodyStart, bodyEnd - bodyStart);
 
-        return builder.ToString();
+        if (!text.EndsWith("\n", StringComparison.Ordinal) && body.EndsWith("\n", StringComparison.Ordinal))
+        {
+            int cut = body.EndsWith("\r\n", StringComparison.Ordinal) ? 2 : 1;
+            body = body.Substring(0, body.Length - cut);
+        }
+
+        return body;
+    }
+
+    /// <summary>
+    /// С какого символа текста начинается строка с этим номером.
+    /// </summary>
+    private static int LineOffset(string[] lines, int index)
+    {
+        int offset = 0;
+        for (int line = 0; line < index; line++)
+            offset += lines[line].Length + 1;
+
+        return offset;
     }
 
     private static bool TryRead(string path, out string text, out bool hasBom)

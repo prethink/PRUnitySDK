@@ -525,6 +525,9 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
 
         byte[] pixels = CaptureSprite(image.sprite, PageSpinnerSize, out int width, out int pixelHeight);
 
+        if (pixels == null)
+            return;
+
         PRBootSpinner_Show(pixels, width, pixelHeight,
             center.x / Screen.width, 1f - center.y / Screen.height, height / Screen.height, 360f / settings.SpinnerSpeed);
 
@@ -550,10 +553,17 @@ public sealed class BootstrapLoadingScreen : MonoBehaviour
     /// <remarks>
     /// Копированием через видеокарту: у иконок интерфейса выключен Read/Write, а часть сжата.
     /// </remarks>
+    /// <returns><c>null</c>, если у спрайта нет текстуры или места в ней.</returns>
     private static byte[] CaptureSprite(Sprite sprite, int size, out int width, out int height)
     {
+        width = 0;
+        height = 0;
+
+        // Не textureRect напрямую: у плотно упакованного в атлас спрайта он бросает исключение.
+        if (!SpriteUtils.TryGetTextureRect(sprite, out Rect rect))
+            return null;
+
         Texture2D source = sprite.texture;
-        Rect rect = sprite.textureRect;
 
         // Большая сторона — size, вторая по пропорциям спрайта.
         float scale = size / Mathf.Max(rect.width, rect.height);

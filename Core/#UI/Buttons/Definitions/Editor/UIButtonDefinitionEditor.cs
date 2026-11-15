@@ -63,10 +63,9 @@ public sealed class UIButtonDefinitionEditor : Editor
     /// </remarks>
     private static void DrawSprite(Rect rect, Sprite sprite, Color tint)
     {
-        if (sprite == null || sprite.texture == null || rect.width <= 0f || rect.height <= 0f)
+        if (rect.width <= 0f || rect.height <= 0f || !SpriteUtils.TryGetTextureRect(sprite, out Rect source))
             return;
         Texture2D texture = sprite.texture;
-        Rect source = sprite.textureRect;
         var coordinates = new Rect(source.x / texture.width, source.y / texture.height,
             source.width / texture.width, source.height / texture.height);
         float scale = Mathf.Min(rect.width / source.width, rect.height / source.height);

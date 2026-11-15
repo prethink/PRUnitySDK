@@ -596,35 +596,7 @@ public sealed class EntityDescriptionBrowser : ScriptableObject
     /// </remarks>
     private static void DrawSprite(Rect rect, Sprite sprite)
     {
-        Texture2D texture = sprite.texture;
-
-        if (texture == null)
-            return;
-
-        Rect textureRect = sprite.textureRect;
-        var coordinates = new Rect(
-            textureRect.x / texture.width,
-            textureRect.y / texture.height,
-            textureRect.width / texture.width,
-            textureRect.height / texture.height);
-
-        float spriteAspect = textureRect.width / textureRect.height;
-        float rectAspect = rect.width / rect.height;
-
-        if (spriteAspect > rectAspect)
-        {
-            float height = rect.width / spriteAspect;
-            rect.y += (rect.height - height) * 0.5f;
-            rect.height = height;
-        }
-        else
-        {
-            float width = rect.height * spriteAspect;
-            rect.x += (rect.width - width) * 0.5f;
-            rect.width = width;
-        }
-
-        GUI.DrawTextureWithTexCoords(rect, texture, coordinates, true);
+        IconPreviewDrawer.DrawSprite(rect, sprite);
     }
 
     private static void DrawBorder(Rect rect, Color color, float thickness)
