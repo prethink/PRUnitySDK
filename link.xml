@@ -219,6 +219,7 @@
       <method name="InitializeDashboardMessages" />
       <method name="InitializeEmoteWheel" />
       <method name="InitializeExperienceShopWindow" />
+      <method name="InitializeFoodTossWindows" />
       <method name="InitializeFreeGiftWindow" />
       <method name="InitializeGameEventsWindow" />
       <method name="InitializeGameResultsWindow" />
@@ -280,6 +281,7 @@
     <type fullname="ProjectProperties" preserve="all" />
     <type fullname="PromoCodeSaveData" preserve="all" />
     <type fullname="PromoCodeUsage" preserve="all" />
+    <type fullname="PullupBarDatabase" preserve="all" />
     <type fullname="QualityCaseDatabase" preserve="all" />
     <type fullname="QuestProgress" preserve="all" />
     <type fullname="QuestsSaveData" preserve="all" />

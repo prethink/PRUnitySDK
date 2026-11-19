@@ -71,14 +71,36 @@ public class YandexGameDataStorager : GameDataStorageBase
     /// <returns>
     /// <see langword="true"/> — сохранение передано плагину. Дошло ли оно до облака, плагин не сообщает: этот признак
     /// нельзя считать подтверждением сервера.
+    /// <see langword="false"/> — плагин не запущен или держит запись закрытой (см. <see cref="IsCloudWriteBlocked"/>).
     /// </returns>
     private static bool SendToPlatform()
     {
-        if (!YG2.isSDKEnabled)
+        if (!YG2.isSDKEnabled || IsCloudWriteBlocked)
             return false;
 
         YG2.SaveProgress();
         return true;
+    }
+
+    /// <summary>
+    /// Плагин закрыл запись: облако при запуске не прочиталось.
+    /// </summary>
+    /// <remarks>
+    /// С YG2 v2.01 <c>SaveProgress</c> в этом состоянии молча ничего не пишет — ни в облако, ни локально, — чтобы
+    /// пустая копия не затёрла облачную. Без этой проверки хранилище считало бы запись принятой. В редакторе плагин
+    /// запись не закрывает. Поля <c>internal</c>: плагин лежит в той же сборке; если обновление их уберёт, это
+    /// всплывёт ошибкой компиляции здесь.
+    /// </remarks>
+    private static bool IsCloudWriteBlocked
+    {
+        get
+        {
+#if UNITY_EDITOR
+            return false;
+#else
+            return YG2.infoYG.Storage.saveCloud && (!YG2.cloudLoadResolved || YG2.cloudLoadFailed);
+#endif
+        }
     }
 }
 #endif
